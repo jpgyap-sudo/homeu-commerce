@@ -33,10 +33,6 @@ export default buildConfig({
   ],
   // Security: cookie configuration for admin auth
   cookiePrefix: 'homeu',
-  upload: {
-    useTempFiles: true,
-    tempUploadDir: '/tmp/uploads',
-  },
   // Rate limiting for API endpoints
   rateLimit: {
     max: 100,          // Max requests per window
