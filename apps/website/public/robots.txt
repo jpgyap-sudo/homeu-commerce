@@ -1,0 +1,8 @@
+# HomeU Commerce - Staging Site
+# This is a staging/preview site for migration testing
+# The live production site is at https://www.homeu.ph
+
+User-agent: *
+Disallow: /
+
+# No indexes while in staging/preview mode

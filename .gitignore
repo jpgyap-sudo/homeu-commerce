@@ -1,4 +1,4 @@
-node_modules
+node_modules/
 .next
 .env
 .env.local
@@ -6,10 +6,13 @@ dist
 .DS_Store
 *.log
 .next-env.d.ts
-memory/
+.blackboxrules
 tools/playwright-scanner/output/
 tools/shopify-import/output/
-node_modules/
-.blackboxrules
 tools/shopify-mcp/.shopify-env.json
-*.log
+migration-output/
+tools/**/node_modules/
+
+# Allow tracking of important docs in memory/
+memory/*
+!memory/migration-decisions.md

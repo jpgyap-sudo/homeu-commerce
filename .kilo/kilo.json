@@ -2,40 +2,124 @@
   "name": "homeu-commerce",
   "agents": {
     "reverse-engineer": {
-      "description": "Reverse engineers the live Shopify site (www.homeu.ph) with Playwright + Ollama vision + Central Brain",
+      "description": "Reverse engineer Shopify site with Playwright + Central Brain + MCP",
       "file": ".kilo/agent/reverse-engineer.md"
     },
     "central-brain": {
-      "description": "Migration Central Brain — PostgreSQL memory + Hermes3 reasoning for the Shopify → Payload CMS migration",
+      "description": "PostgreSQL memory + Hermes3 reasoning for migration orchestration",
       "file": ".kilo/agent/central-brain.md"
+    },
+    "deploy": {
+      "description": "VPS deployment, Docker lifecycle, SSL, rollback management",
+      "file": ".kilo/agent/deploy-agent.md"
+    },
+    "data-sync": {
+      "description": "Shopify → Payload CMS data synchronization via MCP + Central Brain",
+      "file": ".kilo/agent/data-sync-agent.md"
+    },
+    "image-pipeline": {
+      "description": "Image migration from Shopify CDN to self-hosted storage",
+      "file": ".kilo/agent/image-pipeline-agent.md"
+    },
+    "navigation": {
+      "description": "Shopify mega menu → Next.js navigation migration",
+      "file": ".kilo/agent/navigation-agent.md"
+    },
+    "theme-migration": {
+      "description": "Shopify Liquid theme → Next.js component migration with visual verification",
+      "file": ".kilo/agent/theme-migration-agent.md"
+    },
+    "security": {
+      "description": "Security audit: secrets, headers, SSL, exposed ports, deps",
+      "file": ".kilo/agent/security-agent.md"
+    },
+    "planner": {
+      "description": "Analyze migration state and prioritize next tasks",
+      "file": "agents/planner-agent.md"
+    },
+    "shopify-auditor": {
+      "description": "Cross-reference Shopify data from scanner vs MCP vs export",
+      "file": "agents/shopify-auditor-agent.md"
+    },
+    "seo": {
+      "description": "SEO metadata validation and improvement suggestions",
+      "file": "agents/seo-agent.md"
+    },
+    "frontend-builder": {
+      "description": "Build Next.js frontend components matching Shopify design",
+      "file": "agents/frontend-builder-agent.md"
+    },
+    "qa": {
+      "description": "Quality assurance: broken links, screenshots, Lighthouse, forms",
+      "file": "agents/qa-agent.md"
+    },
+    "content": {
+      "description": "Draft and improve product descriptions, landing pages, blog posts",
+      "file": "agents/content-agent.md"
     }
   },
   "skills": {
     "shopify-reverse-engineer": {
-      "description": "Full migration pipeline: Playwright scan, Ollama vision (llava:7b), Central Brain (PostgreSQL + Hermes3), Shopify export parser",
+      "description": "Full migration pipeline: Playwright scan, MCP, Ollama vision, Central Brain",
       "file": ".kilo/skill/shopify-reverse-engineer/SKILL.md"
     },
     "migration-central-brain": {
-      "description": "PostgreSQL-backed migration memory with Hermes3 reasoning for intelligent migration decisions",
+      "description": "PostgreSQL memory store + Hermes3 reasoning for intelligent migration",
       "file": ".kilo/skill/migration-central-brain/SKILL.md"
+    },
+    "deploy": {
+      "description": "VPS Docker deployment, SSL, rollback management",
+      "file": ".kilo/skill/deploy/SKILL.md"
+    },
+    "data-sync": {
+      "description": "Synchronize Shopify data to Payload CMS through Central Brain",
+      "file": ".kilo/skill/data-sync/SKILL.md"
+    },
+    "image-pipeline": {
+      "description": "Image migration from Shopify CDN to self-hosted storage",
+      "file": ".kilo/skill/image-pipeline/SKILL.md"
+    },
+    "navigation-migration": {
+      "description": "Migrate Shopify mega menu navigation to Next.js",
+      "file": ".kilo/skill/navigation-migration/SKILL.md"
+    },
+    "theme-migration": {
+      "description": "Convert Shopify Liquid to Next.js components with visual verification",
+      "file": ".kilo/skill/theme-migration/SKILL.md"
+    },
+    "security-audit": {
+      "description": "Security scanning: secrets, headers, SSL, ports, dependencies",
+      "file": ".kilo/skill/security-audit/SKILL.md"
     }
   },
   "commands": {
-    "reverse-engineer": {
-      "description": "Run full Shopify reverse engineering pipeline with Central Brain",
-      "prompt": "Load the shopify-reverse-engineer skill. Initialize the Central Brain database, run Playwright scanner, analyze with Hermes3, parse Shopify exports, and generate Payload CMS import data."
+    "migrate": {
+      "description": "Run the full migration pipeline: scan → sync → build → verify",
+      "prompt": "Execute the migration workflow: 1) Run reverse-engineer to scan Shopify, 2) Sync data via data-sync, 3) Build frontend via frontend-builder, 4) Run QA checks, 5) Report status"
     },
-    "playwright-scan": {
-      "description": "Scan www.homeu.ph with Playwright + store results in Central Brain",
-      "prompt": "Run Playwright scanner with --brain flag to automatically store all discovered pages, products, collections, and SEO data into the Central Brain PostgreSQL database."
+    "deploy": {
+      "description": "Deploy latest changes to VPS with approval gate",
+      "prompt": "Load deploy skill. Run git pull, docker compose build, docker compose up -d. Require user approval before executing."
     },
-    "brain-status": {
-      "description": "Show Central Brain migration status and Hermes3-recommended next steps",
-      "prompt": "Run tools/migration-brain/brain.mjs to check migration status, then ask hermes3 for next steps."
+    "security-scan": {
+      "description": "Run full security audit",
+      "prompt": "Load security-audit skill. Execute all audit commands and generate docs/SECURITY_AUDIT.md report."
     },
-    "parse-shopify-export": {
-      "description": "Parse Shopify exports and cross-reference with Central Brain via Hermes3",
-      "prompt": "Run tools/shopify-import/parser.mjs to parse exports, then use hermes-agent.mjs to cross-reference with scanner data stored in Central Brain."
+    "sync-data": {
+      "description": "Export all Shopify data via MCP and store in Central Brain",
+      "prompt": "Load data-sync skill. Run shopify-mcp server export, store in Central Brain, validate counts."
+    },
+    "scan": {
+      "description": "Run Playwright scanner on www.homeu.ph with screenshots",
+      "prompt": "Run the Playwright scanner with screenshots enabled. Store results in Central Brain."
+    },
+    "visual-check": {
+      "description": "Compare old Shopify vs new frontend screenshots via Ollama vision",
+      "prompt": "Run ollama-vision.mjs to compare screenshots between www.homeu.ph and store.homeu.ph."
+    },
+    "plan": {
+      "description": "Show migration status and Hermes3-recommended next steps",
+      "prompt": "Read Central Brain status and docs/STATUS.md. Use Hermes3 to suggest optimal next task."
     }
   }
 }

@@ -1,0 +1,17 @@
+{
+  "name": "homeu-migration-brain",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PostgreSQL-backed Central Brain with Hermes3 reasoning for migration orchestration",
+  "main": "brain.mjs",
+  "scripts": {
+    "init": "node brain.mjs init",
+    "status": "node brain.mjs status",
+    "report": "node brain.mjs report",
+    "hermes": "node hermes-agent.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.14.1"
+  }
+}
