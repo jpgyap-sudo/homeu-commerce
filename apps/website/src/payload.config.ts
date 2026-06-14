@@ -11,8 +11,6 @@ const serverURL = process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:300
 
 export default buildConfig({
   admin: {
-    user: 'users',
-    // Restrict admin access by IP or domain if needed
     meta: {
       titleSuffix: ' - HomeU Admin',
     },
