@@ -1,0 +1,14 @@
+{
+  "name": "homeu-playwright-scanner",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "playwright": "^1.60.0"
+  },
+  "scripts": {
+    "scan": "node scan.mjs",
+    "scan:full": "node scan.mjs --screenshots --ollama",
+    "scan:fast": "node scan.mjs --no-screenshots --delay 200",
+    "vision": "node ollama-vision.mjs"
+  }
+}

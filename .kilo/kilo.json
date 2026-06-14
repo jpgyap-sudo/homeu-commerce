@@ -8,14 +8,22 @@
   },
   "skills": {
     "shopify-reverse-engineer": {
-      "description": "Reverse engineer Shopify site, extract all data (products, collections, pages, SEO, theme), and generate Payload CMS migration artifacts",
+      "description": "Reverse engineer Shopify site with Playwright scanner + Ollama vision (llava:7b), parse exports, and generate Payload CMS migration data",
       "file": ".kilo/skill/shopify-reverse-engineer/SKILL.md"
     }
   },
   "commands": {
     "reverse-engineer": {
-      "description": "Run the Shopify reverse engineering and migration pipeline",
-      "prompt": "Load the shopify-reverse-engineer skill and follow all phases to reverse engineer www.homeu.ph and prepare Payload CMS migration data."
+      "description": "Run the full Shopify reverse engineering pipeline",
+      "prompt": "Load the shopify-reverse-engineer skill and execute all phases: 1) Playwright scan with screenshots + Ollama vision, 2) Parse Shopify exports, 3) Generate Payload CMS import data, 4) Validate completeness."
+    },
+    "playwright-scan": {
+      "description": "Scan www.homeu.ph with Playwright + take screenshots + Ollama vision analysis",
+      "prompt": "Run the Playwright scanner on www.homeu.ph with screenshots enabled. Then analyze key screenshots with Ollama llava:7b for visual structure extraction. Save all output to tools/playwright-scanner/output/."
+    },
+    "parse-shopify-export": {
+      "description": "Parse Shopify products CSV, theme, and images from input/ folder",
+      "prompt": "Run tools/shopify-import/parser.mjs to parse any Shopify exports in tools/shopify-import/input/ and generate Payload CMS compatible data."
     }
   }
 }
