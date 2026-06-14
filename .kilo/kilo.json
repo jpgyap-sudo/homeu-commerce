@@ -101,10 +101,6 @@
       "description": "Run the full migration pipeline: scan → sync → build → verify",
       "prompt": "Execute the migration workflow: 1) Run reverse-engineer to scan Shopify, 2) Sync data via data-sync, 3) Build frontend via frontend-builder, 4) Run QA checks, 5) Report status"
     },
-    "deploy": {
-      "description": "Deploy latest changes to VPS with approval gate",
-      "prompt": "Load deploy skill. Run git pull, docker compose build, docker compose up -d. Require user approval before executing."
-    },
     "security-scan": {
       "description": "Run full security audit",
       "prompt": "Load security-audit skill. Execute all audit commands and generate docs/SECURITY_AUDIT.md report."

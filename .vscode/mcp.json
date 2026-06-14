@@ -1,5 +1,16 @@
 {
   "servers": {
+    "homeu-deployer": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/tools/deployer-agent/deployer-mcp.mjs"
+      ],
+      "description": "🚀 DEPLOYER AGENT — Central coordinator for ALL coding extensions. Prevents duplicate builds. Call deployer_deploy instead of docker compose directly.",
+      "env": {
+        "DEPLOYER_EXTENSION_ID": "vscode-${workspaceName}"
+      }
+    },
     "shopify-homeu": {
       "type": "stdio",
       "command": "node",

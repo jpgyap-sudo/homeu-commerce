@@ -1,0 +1,35 @@
+#!/bin/sh
+# HomeU Pre-Push Hook — Ensures deployer coordination
+# 
+# This hook runs BEFORE git push completes.
+# It logs the deployment intent to the deployer history.
+# 
+# To install:
+#   git config core.hooksPath .githooks
+
+echo "🔍 HomeU Deployer Check"
+
+# Get commit info
+COMMIT_SHA=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+
+# Check if deployer database is accessible
+if command -v psql >/dev/null 2>&1; then
+    PGHOST="${PGHOST:-localhost}"
+    PGPORT="${PGPORT:-5432}"
+    PGUSER="${PGUSER:-homeu}"
+    PGDATABASE="${PGDATABASE:-homeu}"
+    
+    # Log to deployer_history
+    PGPASSWORD="${PGPASSWORD:-homeu_local_password}" psql \
+        -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" \
+        -c "INSERT INTO deployer_history (commit_sha, branch, status, deployed_by, created_at)
+            VALUES ('$COMMIT_SHA', '$BRANCH', 'pushed', 'git-pre-push', NOW())" 2>/dev/null && \
+        echo "✅ Push logged to Deployer Agent" || \
+        echo "ℹ️  Deployer database not available (push proceeds)"
+else
+    echo "ℹ️  psql not available (push proceeds)"
+fi
+
+echo "📤 Pushing $BRANCH ($COMMIT_SHA)"
+exit 0
