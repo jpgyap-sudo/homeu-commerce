@@ -1,0 +1,21 @@
+{
+  "name": "homeu-commerce",
+  "agents": {
+    "reverse-engineer": {
+      "description": "Reverse engineers the live Shopify site (www.homeu.ph) and generates complete migration data for Payload CMS",
+      "file": ".kilo/agent/reverse-engineer.md"
+    }
+  },
+  "skills": {
+    "shopify-reverse-engineer": {
+      "description": "Reverse engineer Shopify site, extract all data (products, collections, pages, SEO, theme), and generate Payload CMS migration artifacts",
+      "file": ".kilo/skill/shopify-reverse-engineer/SKILL.md"
+    }
+  },
+  "commands": {
+    "reverse-engineer": {
+      "description": "Run the Shopify reverse engineering and migration pipeline",
+      "prompt": "Load the shopify-reverse-engineer skill and follow all phases to reverse engineer www.homeu.ph and prepare Payload CMS migration data."
+    }
+  }
+}
