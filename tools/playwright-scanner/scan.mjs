@@ -3,28 +3,18 @@
 /**
  * Playwright Site Scanner
  * 
- * Crawls www.homeu.ph with Playwright to:
- * - Discover all URLs (products, collections, pages, blogs)
- * - Extract full HTML content per page
- * - Screenshot every page for visual reference
- * - Extract SEO metadata (title, meta desc, canonical, OG tags)
- * - Extract image URLs and map to products
- * - Generate structured JSON output for Payload CMS import
+ * Crawls www.homeu.ph with Playwright to extract all data for migration.
+ * Uses HTML content parsing (not page.evaluate) for robustness against
+ * Shopify's JavaScript navigation patterns.
  * 
  * Usage:
- *   node tools/playwright-scanner/scan.mjs [options]
- * 
- * Options:
- *   --url       Starting URL (default: https://www.homeu.ph)
- *   --output    Output directory (default: tools/playwright-scanner/output)
- *   --screenshots  Take screenshots (default: true)
- *   --delay     Delay between page loads in ms (default: 1000)
- *   --max-pages Max pages to scan (default: 1000)
- *   --ollama    Use Ollama vision for analysis (default: false)
- * 
- * Input (optional, for verification):
- *   tools/shopify-import/input/products.csv  - Shopify product export
- *   tools/shopify-import/input/images/       - Product images folder
+ *   node scan.mjs [options]
+ *   --url         Starting URL (default: https://www.homeu.ph)
+ *   --output      Output directory
+ *   --screenshots Take screenshots (default: true)
+ *   --delay       Delay between page loads in ms (default: 1000)
+ *   --max-pages   Max pages to scan (default: 1000)
+ *   --ollama      Use Ollama vision for analysis (default: false)
  */
 
 import { chromium } from 'playwright'
@@ -36,7 +26,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const OUTPUT_DIR = path.resolve(__dirname, 'output')
 const INPUT_DIR = path.resolve(__dirname, '..', 'shopify-import', 'input')
 
-// Parse CLI args
 const args = process.argv.slice(2)
 const START_URL = args.includes('--url') ? args[args.indexOf('--url') + 1] : 'https://www.homeu.ph'
 const CUSTOM_OUTPUT = args.includes('--output') ? args[args.indexOf('--output') + 1] : OUTPUT_DIR
@@ -45,15 +34,11 @@ const PAGE_DELAY = parseInt(args.includes('--delay') ? args[args.indexOf('--dela
 const MAX_PAGES = parseInt(args.includes('--max-pages') ? args[args.indexOf('--max-pages') + 1] : '1000')
 const USE_OLLAMA = args.includes('--ollama')
 
-// Ensure output directories
 const SCREENSHOTS_DIR = path.join(CUSTOM_OUTPUT, 'screenshots')
 const DATA_DIR = path.join(CUSTOM_OUTPUT, 'data')
 const RAW_DIR = path.join(CUSTOM_OUTPUT, 'raw')
-;[CUSTOM_OUTPUT, SCREENSHOTS_DIR, DATA_DIR, RAW_DIR].forEach(dir => {
-  fs.mkdirSync(dir, { recursive: true })
-})
+;[CUSTOM_OUTPUT, SCREENSHOTS_DIR, DATA_DIR, RAW_DIR].forEach(dir => fs.mkdirSync(dir, { recursive: true }))
 
-// State
 const visited = new Set()
 const allPages = []
 const products = []
@@ -61,101 +46,111 @@ const collections = []
 const allImages = []
 const seoData = []
 const brokenLinks = []
-const screenshotMap = {} // pageUrl -> screenshot path
 
-// URL patterns for categorization
-const PATTERNS = {
-  product: /\/products\//,
-  collection: /\/collections\//,
-  page: /\/pages\//,
-  blog: /\/blogs\//,
-  policy: /\/policies\//,
-}
-
-function categorizeUrl(url) {
-  const u = new URL(url)
-  const path = u.pathname
-  if (PATTERNS.product.test(path)) return 'product'
-  if (PATTERNS.collection.test(path)) return 'collection'
-  if (PATTERNS.page.test(path)) return 'page'
-  if (PATTERNS.blog.test(path)) return 'blog'
-  if (PATTERNS.policy.test(path)) return 'policy'
-  if (path === '/' || path === '') return 'homepage'
+function catUrl(url) {
+  const p = new URL(url).pathname
+  if (/\/products\//.test(p)) return 'product'
+  if (/\/collections\//.test(p)) return 'collection'
+  if (/\/pages\//.test(p)) return 'page'
+  if (/\/blogs\//.test(p)) return 'blog'
+  if (/\/policies\//.test(p)) return 'policy'
+  if (p === '/' || p === '') return 'homepage'
   return 'other'
 }
 
-function extractProductHandle(url) {
-  const match = url.match(/\/products\/([^/?]+)/)
-  return match ? match[1] : null
+function extractHandle(url, pattern) {
+  const m = url.match(pattern)
+  return m ? m[1] : null
 }
 
-function extractCollectionHandle(url) {
-  const match = url.match(/\/collections\/([^/?]+)/)
-  return match ? match[1] : null
-}
-
-function getLinksFromPage(page, baseUrl) {
-  return page.$$eval('a[href]', (anchors, base) => {
-    return anchors.map(a => {
-      try {
-        return new URL(a.getAttribute('href'), base).href
-      } catch { return null }
-    }).filter(Boolean)
-  }, baseUrl)
-}
-
-function extractSEO(page) {
-  return page.evaluate(() => ({
-    title: document.title,
-    metaDescription: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
-    canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href') || '',
-    ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute('content') || '',
-    ogDescription: document.querySelector('meta[property="og:description"]')?.getAttribute('content') || '',
-    ogImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content') || '',
-    h1: document.querySelector('h1')?.textContent?.trim() || '',
-    jsonLd: extractJSONLD(),
-  }))
-  function extractJSONLD() {
-    const scripts = document.querySelectorAll('script[type="application/ld+json"]')
-    return Array.from(scripts).map(s => {
-      try { return JSON.parse(s.textContent) } catch { return null }
-    }).filter(Boolean)
-  }
-}
-
-function extractImages(page, sourceUrl) {
-  return page.$$eval('img[src]', (imgs, base) => {
-    return imgs.map(img => ({
-      src: new URL(img.getAttribute('src'), base).href,
-      alt: img.getAttribute('alt') || '',
-      width: img.naturalWidth || img.getAttribute('width') || null,
-      height: img.naturalHeight || img.getAttribute('height') || null,
-    }))
-  }, sourceUrl)
-}
-
-function isInternalUrl(url, baseUrl) {
+function isInternal(url, base) {
   try {
-    const u = new URL(url)
-    const b = new URL(baseUrl)
+    const u = new URL(url), b = new URL(base)
     return u.hostname === b.hostname || u.hostname.endsWith('.homeu.ph')
   } catch { return false }
 }
 
-function shouldVisit(url, baseUrl) {
+function shouldVisit(url, base) {
   if (visited.has(url)) return false
-  if (!isInternalUrl(url, baseUrl)) return false
-  // Skip static assets, API endpoints, etc.
-  const skipPatterns = [/\?/ , /#/, /\.(png|jpg|jpeg|gif|svg|css|js|pdf|zip)$/i, /\/cdn\.shopify/, /\/checkouts\//, /\/account\//, /\/cart/]
-  for (const p of skipPatterns) {
-    if (p.test(url)) return false
-  }
-  return !visited.has(url)
+  if (!isInternal(url, base)) return false
+  if (/\.(png|jpg|jpeg|gif|svg|css|js|pdf|zip)$/i.test(url)) return false
+  if (/\?/.test(url) || /#/.test(url)) return false
+  if (/\/cdn\.shopify/.test(url) || /\/checkouts\//.test(url)) return false
+  if (/\/account\//.test(url) || /\/cart/.test(url)) return false
+  return true
 }
 
-// =============================================
-// Ollama Vision Integration
-// =============================================
+// Parse HTML content for SEO metadata (regardless of JS execution)
+function parseHTMLForSEO(html, url) {
+  const getMeta = (name) => {
+    const r1 = new RegExp(`<meta[^>]+name=["']${escapeRegex(name)}["'][^>]+content=["']([^"']*)["']`, 'i')
+    const r2 = new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+name=["']${escapeRegex(name)}["']`, 'i')
+    const m = html.match(r1) || html.match(r2)
+    return m ? m[1] : ''
+  }
+  const getProp = (prop) => {
+    const r = new RegExp(`<meta[^>]+property=["']${escapeRegex(prop)}["'][^>]+content=["']([^"']*)["']`, 'i')
+    const m = html.match(r)
+    return m ? m[1] : ''
+  }
+  const title = (html.match(/<title>([^<]*)<\/title>/i) || [])[1] || ''
+  const canonical = (html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']*)["']/i) || [])[1] || ''
+  const h1 = (html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || [])[1] || ''
+  const h1Clean = h1.replace(/<[^>]+>/g, '').trim()
+  
+  return {
+    title: title.trim(),
+    metaDescription: getMeta('description'),
+    canonical, h1: h1Clean,
+    ogTitle: getProp('og:title'),
+    ogDescription: getProp('og:description'),
+    ogImage: getProp('og:image'),
+    jsonLd: extractJSONLD(html),
+  }
+}
+
+function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
+
+function extractJSONLD(html) {
+  const results = []
+  const regex = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  let match
+  while ((match = regex.exec(html)) !== null) {
+    try { results.push(JSON.parse(match[1])) } catch { /* skip invalid JSON */ }
+  }
+  return results
+}
+
+function extractImagesFromHTML(html, baseUrl) {
+  const images = []
+  const regex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
+  let match
+  while ((match = regex.exec(html)) !== null) {
+    const imgTag = match[0]
+    const src = match[1]
+    const alt = (imgTag.match(/alt=["']([^"']*)["']/i) || [])[1] || ''
+    try {
+      const fullUrl = src.startsWith('http') ? src : new URL(src, baseUrl).href
+      images.push({ src: fullUrl, alt, baseUrl })
+    } catch { /* skip invalid URLs */ }
+  }
+  return images
+}
+
+function extractLinksFromHTML(html, baseUrl) {
+  const links = []
+  const regex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi
+  let match
+  while ((match = regex.exec(html)) !== null) {
+    const href = match[1]
+    if (href.startsWith('#') || href.startsWith('javascript:')) continue
+    try {
+      links.push(new URL(href, baseUrl).href)
+    } catch { /* skip invalid */ }
+  }
+  return [...new Set(links)]
+}
+
 async function analyzeWithOllama(imagePath, prompt) {
   if (!USE_OLLAMA) return null
   try {
@@ -164,215 +159,170 @@ async function analyzeWithOllama(imagePath, prompt) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'llava:7b',
-        prompt: prompt,
-        images: [base64],
-        stream: false,
+        model: 'llava:7b', prompt, images: [base64], stream: false,
       })
     })
     const data = await response.json()
     return data.response
   } catch (err) {
-    console.warn(`  ⚠️  Ollama vision error: ${err.message}`)
+    console.warn(`  ⚠️  Ollama: ${err.message}`)
     return null
   }
 }
 
-async function analyzeScreenshot(screenshotPath, pageUrl, pageType) {
-  if (!USE_OLLAMA) return
-  const prompts = {
-    product: 'Describe this product page layout: what product is shown, what sections exist (title, price, description, images, variants, add-to-cart), and what navigation is visible.',
-    collection: 'Describe this collection/category page layout: what products are listed, what filtering/sorting options exist, and how is the grid arranged.',
-    homepage: 'Describe this homepage layout: what sections exist (hero, featured products, categories, testimonials), what is the visual hierarchy.',
-    default: 'Describe this web page layout: what is the page structure, navigation, content sections, and footer.',
-  }
-  const prompt = prompts[pageType] || prompts.default
-  const analysis = await analyzeWithOllama(screenshotPath, prompt)
-  if (analysis) {
-    const analysisFile = screenshotPath.replace(/\.png$/, '.analysis.json')
-    fs.writeFileSync(analysisFile, JSON.stringify({ url: pageUrl, type: pageType, analysis }, null, 2))
-    console.log(`  🧠  Ollama analysis saved: ${path.basename(analysisFile)}`)
-  }
-}
-
-// =============================================
-// Load Shopify Export Data (if available)
-// =============================================
-function loadShopifyExport() {
-  const productsCsv = path.join(INPUT_DIR, 'products.csv')
-  const imagesDir = path.join(INPUT_DIR, 'images')
-  
-  const shopifyData = { products: [], images: [] }
-
-  if (fs.existsSync(productsCsv)) {
-    const csv = fs.readFileSync(productsCsv, 'utf-8')
-    const lines = csv.split('\n').filter(Boolean)
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
-    for (let i = 1; i < lines.length; i++) {
-      const vals = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''))
-      const entry = {}
-      headers.forEach((h, idx) => { entry[h] = vals[idx] || '' })
-      shopifyData.products.push(entry)
-    }
-    console.log(`📦 Loaded ${shopifyData.products.length} products from Shopify export CSV`)
-  }
-
-  if (fs.existsSync(imagesDir)) {
-    shopifyData.images = fs.readdirSync(imagesDir).filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f))
-    console.log(`🖼️  Found ${shopifyData.images.length} product images in input directory`)
-  }
-
-  return shopifyData
-}
-
-// =============================================
-// Main Scanner
-// =============================================
+// ============================
+// MAIN SCAN LOOP
+// ============================
 async function scan() {
   console.log('🚀 Playwright Site Scanner')
   console.log(`   Start URL: ${START_URL}`)
-  console.log(`   Output:    ${CUSTOM_OUTPUT}`)
   console.log(`   Screenshots: ${TAKE_SCREENSHOTS}`)
-  console.log(`   Ollama Vision: ${USE_OLLAMA ? '✅ (llava:7b)' : '❌'}`)
-  console.log(`   Max pages: ${MAX_PAGES}`)
-  console.log('')
+  console.log(`   Ollama Vision: ${USE_OLLAMA ? '✅ llava:7b' : '❌'}`)
+  console.log(`   Max pages: ${MAX_PAGES}\n`)
 
-  // Load Shopify export if available
-  const shopifyExport = loadShopifyExport()
+  // Load Shopify export CSV if available
+  const csvPath = path.join(INPUT_DIR, 'products.csv')
+  let shopifyProducts = []
+  if (fs.existsSync(csvPath)) {
+    // Basic CSV parsing for product validation
+    const csv = fs.readFileSync(csvPath, 'utf-8')
+    shopifyProducts = csv.split('\n').filter(l => l.trim()).slice(1)
+    console.log(`📦 ${shopifyProducts.length} products from Shopify export\n`)
+  }
 
-  const browser = await chromium.launch({ headless: true })
+  const browser = await chromium.launch({ 
+    headless: true,
+    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled']
+  })
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
-    userAgent: 'HomeU-Migration-Scanner/1.0',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
   })
   const page = await context.newPage()
 
-  // Track errors
-  page.on('pageerror', err => console.warn(`  ⚠️  Page error: ${err.message}`))
+  // Normalize URL: strip trailing slash for consistency
+  const normalizeUrl = (u) => {
+    try {
+      const parsed = new URL(u)
+      let path = parsed.pathname
+      if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1)
+      return `${parsed.protocol}//${parsed.hostname}${path}${parsed.search}`
+    } catch { return u }
+  }
 
-  // BFS crawl queue
-  const queue = [START_URL]
+  const queue = [normalizeUrl(START_URL)]
+  const normalizeAdd = (url) => {
+    const norm = normalizeUrl(url)
+    if (!visited.has(norm) && !queue.includes(norm)) queue.push(norm)
+  }
   let pagesScanned = 0
 
   while (queue.length > 0 && pagesScanned < MAX_PAGES) {
     const url = queue.shift()
-    if (visited.has(url)) continue
+    if (visited.has(url) || visited.has(normalizeUrl(url))) continue
     visited.add(url)
 
     try {
       console.log(`📄 [${pagesScanned + 1}] ${url}`)
+
+      // Load the page (domcontentloaded is faster than load)
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {
+        // Fallback: try again with shorter timeout
+        return page.goto(url, { waitUntil: 'commit', timeout: 15000 }).catch(() => {})
+      })
       
-      await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 })
-      
-      const pageType = categorizeUrl(url)
+      // Small wait for page to stabilize
+      await new Promise(r => setTimeout(r, 1500))
+
+      // Get HTML content (safe even if page context is unstable)
+      let html = ''
+      try { html = await page.content() } catch { /* content not available */ }
+      if (!html) continue
+
+      const pageType = catUrl(url)
       const timestamp = new Date().toISOString()
 
-      // SEO Extraction
-      const seo = extractSEO(page)
+      // Parse SEO from HTML
+      const seo = parseHTMLForSEO(html, url)
       seoData.push({ url, type: pageType, ...seo })
 
-      // Image Extraction
-      const images = extractImages(page, url)
+      // Parse images from HTML
+      const images = extractImagesFromHTML(html, url)
+
       const pageRecord = {
-        url,
-        type: pageType,
-        seo,
-        images,
-        productHandle: extractProductHandle(url),
-        collectionHandle: extractCollectionHandle(url),
+        url, type: pageType, seo, images,
+        productHandle: extractHandle(url, /\/products\/([^/?]+)/),
+        collectionHandle: extractHandle(url, /\/collections\/([^/?]+)/),
         timestamp,
       }
       allPages.push(pageRecord)
+      if (pageType === 'product') products.push(pageRecord)
+      if (pageType === 'collection') collections.push(pageRecord)
 
-      // Categorize
+      // Collect Shopify product images
       if (pageType === 'product') {
-        products.push(pageRecord)
-      } else if (pageType === 'collection') {
-        collections.push(pageRecord)
-      }
-
-      // Image manifest
-      if (pageType === 'product') {
-        const productImages = images.filter(img => 
+        const shopifyImgs = images.filter(img => 
           img.src.includes('cdn.shopify.com') || img.src.includes('shopify')
         )
-        allImages.push(...productImages.map(img => ({
-          ...img,
-          productUrl: url,
-          productHandle: extractProductHandle(url),
+        allImages.push(...shopifyImgs.map(img => ({
+          ...img, productUrl: url, productHandle: extractHandle(url, /\/products\/([^/?]+)/),
         })))
       }
 
       // Screenshot
       if (TAKE_SCREENSHOTS) {
-        const safeName = url.replace(/https?:\/\//, '').replace(/[\/?#]/g, '_').substring(0, 120)
-        const screenshotPath = path.join(SCREENSHOTS_DIR, `${safeName}.png`)
-        await page.screenshot({ path: screenshotPath, fullPage: true })
-        screenshotMap[url] = screenshotPath
-
-        // Analyze screenshot with Ollama
-        await analyzeScreenshot(screenshotPath, url, pageType)
+        try {
+          const safeName = url.replace(/https?:\/\//, '').replace(/[\/?#]/g, '_').substring(0, 120)
+          const shotPath = path.join(SCREENSHOTS_DIR, `${safeName}.png`)
+          await page.screenshot({ path: shotPath, fullPage: true })
+          if (USE_OLLAMA) {
+            const analysis = await analyzeWithOllama(shotPath, 
+              'Describe this web page layout: what type of page, what sections exist, navigation structure, products shown, and any notable visual elements.')
+            if (analysis) {
+              fs.writeFileSync(shotPath.replace(/\.png$/, '.analysis.txt'), analysis)
+            }
+          }
+        } catch { /* screenshot failed */ }
       }
 
       // Save raw HTML
-      const safeFile = url.replace(/https?:\/\//, '').replace(/[\/?#]/g, '_').substring(0, 120)
-      const html = await page.content()
-      fs.writeFileSync(path.join(RAW_DIR, `${safeFile}.html`), html)
+      try {
+        const safeFile = url.replace(/https?:\/\//, '').replace(/[\/?#]/g, '_').substring(0, 120)
+        fs.writeFileSync(path.join(RAW_DIR, `${safeFile}.html`), html)
+      } catch { /* save failed */ }
 
-      // Discover links
-      const links = getLinksFromPage(page, url)
-      const internalLinks = [...new Set(links.filter(l => shouldVisit(l, START_URL)))]
-      
-      // Check for broken links
+      // Extract links and add to queue
+      const links = extractLinksFromHTML(html, url)
       for (const link of links) {
-        if (isInternalUrl(link, START_URL) && !link.startsWith('#')) {
-          try {
-            const resp = await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 5000 })
-            if (resp && resp.status() >= 400) {
-              brokenLinks.push({ source: url, target: link, status: resp.status() })
-            }
-          } catch {
-            brokenLinks.push({ source: url, target: link, status: 0 })
-          }
-        }
-      }
-
-      // Add to queue
-      for (const link of internalLinks) {
-        if (!visited.has(link)) {
-          queue.push(link)
+        if (shouldVisit(link, START_URL)) {
+          normalizeAdd(link)
         }
       }
 
       pagesScanned++
-      
-      // Delay to be respectful
       if (queue.length > 0 && PAGE_DELAY > 0) {
         await new Promise(r => setTimeout(r, PAGE_DELAY))
       }
 
     } catch (err) {
-      console.warn(`  ❌ Error scanning ${url}: ${err.message}`)
-      brokenLinks.push({ source: url, target: url, status: -1, error: err.message })
+      console.warn(`  ⚠️  Skipping ${url}: ${err.message}`)
     }
   }
 
   await browser.close()
 
-  // =============================================
-  // Save Results
-  // =============================================
+  // ============================
+  // SAVE RESULTS
+  // ============================
   console.log('\n💾 Saving results...')
-
-  // Full page data
+  
   fs.writeFileSync(path.join(DATA_DIR, 'all-pages.json'), JSON.stringify(allPages, null, 2))
   fs.writeFileSync(path.join(DATA_DIR, 'products.json'), JSON.stringify(products, null, 2))
   fs.writeFileSync(path.join(DATA_DIR, 'collections.json'), JSON.stringify(collections, null, 2))
   fs.writeFileSync(path.join(DATA_DIR, 'seo-metadata.json'), JSON.stringify(seoData, null, 2))
   fs.writeFileSync(path.join(DATA_DIR, 'all-images.json'), JSON.stringify(allImages, null, 2))
   fs.writeFileSync(path.join(DATA_DIR, 'broken-links.json'), JSON.stringify(brokenLinks, null, 2))
-  
-  // Summary report
+
   const summary = {
     scanDate: new Date().toISOString(),
     startUrl: START_URL,
@@ -381,20 +331,24 @@ async function scan() {
     collectionsFound: collections.length,
     totalImages: allImages.length,
     seoRecords: seoData.length,
-    brokenLinks: brokenLinks.filter(l => l.status >= 400).length,
     pagesByType: {},
-    screenshotCount: Object.keys(screenshotMap).length,
-    ollamaEnabled: USE_OLLAMA,
   }
   allPages.forEach(p => {
     summary.pagesByType[p.type] = (summary.pagesByType[p.type] || 0) + 1
   })
-  
   fs.writeFileSync(path.join(DATA_DIR, 'scan-summary.json'), JSON.stringify(summary, null, 2))
 
-  // =============================================
-  // Print Summary
-  // =============================================
+  // Share with shopify-import output
+  const sharedOutput = path.resolve(__dirname, '..', 'shopify-import', 'output')
+  fs.mkdirSync(sharedOutput, { recursive: true })
+  fs.writeFileSync(path.join(sharedOutput, 'payload-products.json'), JSON.stringify(products, null, 2))
+  if (allPages.some(p => p.type === 'page' || p.type === 'blog')) {
+    fs.writeFileSync(path.join(sharedOutput, 'payload-pages.json'), JSON.stringify(
+      allPages.filter(p => ['page', 'blog', 'homepage'].includes(p.type)), null, 2))
+  }
+  fs.writeFileSync(path.join(sharedOutput, 'seo-metadata.json'), JSON.stringify(seoData, null, 2))
+
+  // Summary
   console.log('\n' + '='.repeat(50))
   console.log('📊 SCAN COMPLETE')
   console.log('='.repeat(50))
@@ -403,34 +357,11 @@ async function scan() {
   console.log(`   Collections:      ${summary.collectionsFound}`)
   console.log(`   SEO records:      ${summary.seoRecords}`)
   console.log(`   Unique images:    ${summary.totalImages}`)
-  console.log(`   Screenshots:      ${summary.screenshotCount}`)
-  console.log(`   Broken links:     ${summary.brokenLinks}`)
   console.log('')
-  for (const [type, count] of Object.entries(summary.pagesByType)) {
+  for (const [type, count] of Object.entries(summary.pagesByType).sort()) {
     console.log(`   ${type.padEnd(15)} ${count}`)
   }
-  console.log('')
-  console.log(`📁 Output: ${CUSTOM_OUTPUT}`)
-  console.log('')
-  
-  // Save to shopify-import/output as well for the migration pipeline
-  const sharedOutput = path.resolve(__dirname, '..', 'shopify-import', 'output')
-  fs.mkdirSync(sharedOutput, { recursive: true })
-  fs.writeFileSync(path.join(sharedOutput, 'payload-products.json'), JSON.stringify(products, null, 2))
-  fs.writeFileSync(path.join(sharedOutput, 'payload-pages.json'), JSON.stringify(
-    allPages.filter(p => p.type === 'page'), null, 2))
-  fs.writeFileSync(path.join(sharedOutput, 'seo-metadata.json'), JSON.stringify(seoData, null, 2))
-  
-  console.log('✅ Results saved to:')
-  console.log(`   ${DATA_DIR}/`)
-  console.log(`   ${SCREENSHOTS_DIR}/ (${summary.screenshotCount} screenshots)`)
-  console.log(`   ${RAW_DIR}/ (raw HTML)`)
-  if (USE_OLLAMA) {
-    console.log(`   ${SCREENSHOTS_DIR}/ (Ollama vision analyses)`)
-  }
+  console.log(`\n📁 Output: ${CUSTOM_OUTPUT}`)
 }
 
-scan().catch(err => {
-  console.error('Fatal error:', err)
-  process.exit(1)
-})
+scan().catch(err => { console.error('Fatal:', err); process.exit(1) })

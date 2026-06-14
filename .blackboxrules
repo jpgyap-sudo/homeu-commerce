@@ -1,0 +1,41 @@
+# HomeU Commerce Blackbox Rules
+
+## Workspace Reality Check
+
+This repo is not empty. If environment details say "No files found", do not
+trust that snapshot. Immediately use a file-listing tool or command from:
+
+```powershell
+Get-ChildItem -Force
+git ls-files
+rg --files
+```
+
+If a cloud provider fails with `BAD_DECRYPT`, quota, auth, transport, or
+streaming errors, stop that provider path and start a fresh local Ollama turn.
+Use provider `ollama`, model `qwen2.5-coder:14b`, base URL
+`http://127.0.0.1:11434`.
+
+Do not narrate "I need to use a tool" more than once. If a tool is needed, call
+it. If the tool is unavailable, state the blocker once and use the shell
+fallback commands above.
+
+## Central Logs
+
+All coding extensions must append meaningful work to these repo-local logs:
+
+- `memory/task-log.jsonl` for tasks, updates, and completed changes.
+- `memory/bug-log.jsonl` for bugs found, fixes attempted, and verified fixes.
+
+Use append-only JSON Lines. Do not rewrite prior entries. Each entry should
+include:
+
+- `timestamp` in ISO 8601 format.
+- `agent` such as `blackbox`, `codex`, `kilo-code`, or `claude`.
+- `status` such as `active`, `completed`, `blocked`, `found`, or `fixed`.
+- `summary` with the concrete change or bug.
+- `files` as an array of touched or relevant paths.
+- `verification` with tests, commands, or evidence, when available.
+
+Also update the global SuperRoo task/bug memory when available, but the
+repo-local JSONL files are the durable source for this project.
