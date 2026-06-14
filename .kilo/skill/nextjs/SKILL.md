@@ -1,16 +1,16 @@
 # Next.js Skill — HomeU Commerce
 
-Resources, patterns, and architecture for the Next.js 16 + Payload CMS 3.x application at [`apps/website/`](apps/website/).
+Resources, patterns, and architecture for the Next.js 16 + DaVinciOS CMS 3.x application at [`apps/website/`](apps/website/).
 
 ## Tech Stack
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
 | Framework | Next.js | 16.2.9 |
-| CMS / Backend | Payload | 3.85.1 |
-| Database | PostgreSQL (via Payload) | 16 |
-| Rich Text | Lexical Editor | (Payload plugin) |
-| Database ORM | Drizzle ORM | (via Payload) |
+| CMS / Backend | DaVinciOS | 3.85.1 |
+| Database | PostgreSQL (via DaVinciOS) | 16 |
+| Rich Text | Lexical Editor | (DaVinciOS plugin) |
+| Database ORM | Drizzle ORM | (via DaVinciOS) |
 | Image optimization | Sharp | 0.35.1 |
 | Runtime | Node.js | 20 (Alpine in Docker) |
 | Language | TypeScript | 6.0.3 |
@@ -20,23 +20,23 @@ Resources, patterns, and architecture for the Next.js 16 + Payload CMS 3.x appli
 
 ```
 apps/website/
-├── next.config.mjs          # Next.js + Payload config
+├── next.config.mjs          # Next.js + DaVinciOS config
 ├── package.json             # Dependencies
 ├── tsconfig.json            # TypeScript config
 ├── public/                  # Static assets
 │   ├── robots.txt
 │   └── .gitkeep
 └── src/
-    ├── payload.config.ts    # Payload CMS config (collections, DB, admin)
+    ├── DaVinciOS.config.ts    # DaVinciOS CMS config (collections, DB, admin)
     ├── app/
     │   ├── globals.css      # Global styles
     │   ├── layout.tsx       # Root layout
     │   ├── page.tsx         # Homepage
-    │   └── (payload)/       # Payload admin routes (internal)
+    │   └── (DaVinciOS)/       # DaVinciOS admin routes (internal)
     │       ├── layout.tsx
     │       ├── admin/       # Admin panel UI
-    │       └── api/         # Payload REST & GraphQL API endpoints
-    ├── collections/         # Payload collection schemas
+    │       └── api/         # DaVinciOS REST & GraphQL API endpoints
+    ├── collections/         # DaVinciOS collection schemas
     │   ├── Products.ts
     │   ├── Categories.ts
     │   ├── Pages.ts
@@ -50,8 +50,8 @@ apps/website/
 
 | File | Purpose |
 |------|---------|
-| [`payload.config.ts`](apps/website/src/payload.config.ts) | CMS config: collections, DB connection, CORS, CSRF, cookie settings |
-| [`next.config.mjs`](apps/website/next.config.mjs) | Next.js config: standalone output, image remote patterns, Payload integration |
+| [`DaVinciOS.config.ts`](apps/website/src/DaVinciOS.config.ts) | CMS config: collections, DB connection, CORS, CSRF, cookie settings |
+| [`next.config.mjs`](apps/website/next.config.mjs) | Next.js config: standalone output, image remote patterns, DaVinciOS integration |
 | [`Dockerfile`](Dockerfile) | Multi-stage production build (Node 20 Alpine) |
 | [`docker-compose.yml`](docker-compose.yml) | PostgreSQL + website containers |
 | [`.env.example`](.env.example) | Environment variables template |
@@ -74,7 +74,7 @@ PAYLOAD_TELEMETRY_DISABLED= # true
 
 ## App Router Patterns
 
-### Server Component — Fetching from Payload
+### Server Component — Fetching from DaVinciOS
 
 ```typescript
 // app/products/page.tsx
@@ -140,7 +140,7 @@ export function AddToQuoteButton({ product }: { product: any }) {
 }
 ```
 
-## Payload REST API Endpoints
+## DaVinciOS REST API Endpoints
 
 > All available at `PAYLOAD_PUBLIC_SERVER_URL/api/{collection}`
 
@@ -176,7 +176,7 @@ export function AddToQuoteButton({ product }: { product: any }) {
 `/api/products?depth=2`
 ```
 
-## Payload Admin Panel
+## DaVinciOS Admin Panel
 
 - **URL:** `admin.homeu.ph/admin` (or `http://localhost:3000/admin` locally)
 - **Collections managed:** Products, Categories, Pages, Media, RFQ Requests
@@ -211,9 +211,9 @@ docker build -f docker/build.Dockerfile -t homeu-build .
 
 ### Documentation
 - [Next.js 16 Docs](https://nextjs.org/docs)
-- [Payload CMS 3 Docs](https://payloadcms.com/docs)
-- [Payload REST API](https://payloadcms.com/docs/rest-api/overview)
-- [Payload GraphQL API](https://payloadcms.com/docs/graphql/overview)
+- [DaVinciOS CMS 3 Docs](https://DaVinciOScms.com/docs)
+- [DaVinciOS REST API](https://DaVinciOScms.com/docs/rest-api/overview)
+- [DaVinciOS GraphQL API](https://DaVinciOScms.com/docs/graphql/overview)
 - [Drizzle ORM](https://orm.drizzle.team/docs/overview)
 
 ### Project Docs

@@ -8,13 +8,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@payloadcms/db-postgres": "3.85.1",
-    "@payloadcms/next": "3.85.1",
-    "@payloadcms/richtext-lexical": "3.85.1",
+    "@DaVinciOScms/db-postgres": "3.85.1",
+    "@DaVinciOScms/next": "3.85.1",
+    "@DaVinciOScms/richtext-lexical": "3.85.1",
     "next": "16.2.9",
     "nodemailer": "^8.0.11",
     "ollama": "^0.6.3",
-    "payload": "3.85.1",
+    "DaVinciOS": "3.85.1",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "sharp": "0.35.1"

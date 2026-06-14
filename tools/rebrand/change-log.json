@@ -1,0 +1,227 @@
+[
+  {
+    "type": "rename",
+    "old": "apps\\website\\src\\app\\(DaVinciOS)",
+    "new": "apps\\website\\src\\app\\(DaVinciOS)"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\app\\(DaVinciOS)\\admin\\importMap.d.ts"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\app\\(DaVinciOS)\\admin\\importMap.js"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\app\\(DaVinciOS)\\admin\\[[...segments]]\\page.tsx"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\app\\(DaVinciOS)\\api\\graphql\\route.ts"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\app\\(DaVinciOS)\\api\\[...slug]\\route.ts"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\app\\(DaVinciOS)\\layout.tsx"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\app\\api\\rfq\\route.ts"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\collections\\Categories.ts"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\collections\\Media.ts"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\collections\\Pages.ts"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\collections\\Products.ts"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\collections\\Redirects.ts"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\collections\\RFQRequests.ts"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\DaVinciOS.config.ts"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\src\\scripts\\seed-postgres.mjs"
+  },
+  {
+    "type": "content",
+    "file": "apps\\website\\tsconfig.json"
+  },
+  {
+    "type": "content",
+    "file": "docker\\build.Dockerfile"
+  },
+  {
+    "type": "content",
+    "file": "docker\\migrate-v2.mjs"
+  },
+  {
+    "type": "content",
+    "file": "docker\\migrate.mjs"
+  },
+  {
+    "type": "content",
+    "file": "docker\\nginx.conf"
+  },
+  {
+    "type": "content",
+    "file": "docker\\push-schema.sh"
+  },
+  {
+    "type": "content",
+    "file": "Dockerfile"
+  },
+  {
+    "type": "content",
+    "file": "docs\\architecture.md"
+  },
+  {
+    "type": "content",
+    "file": "docs\\INSTRUCTION.md"
+  },
+  {
+    "type": "content",
+    "file": "docs\\migration-plan.md"
+  },
+  {
+    "type": "content",
+    "file": "docs\\STATUS.md"
+  },
+  {
+    "type": "content",
+    "file": "docs\\WORKFLOW_DIAGRAM.md"
+  },
+  {
+    "type": "content",
+    "file": "homeu-schema.sql"
+  },
+  {
+    "type": "content",
+    "file": "homeu-website.tar"
+  },
+  {
+    "type": "content",
+    "file": "memory\\lesson-index.jsonl"
+  },
+  {
+    "type": "content",
+    "file": "memory\\lessons-learned.md"
+  },
+  {
+    "type": "content",
+    "file": "memory\\migration-decisions.md"
+  },
+  {
+    "type": "content",
+    "file": "README.md"
+  },
+  {
+    "type": "content",
+    "file": "tools\\deployer-agent\\deployer-mcp.mjs"
+  },
+  {
+    "type": "content",
+    "file": "tools\\deployer-agent\\queue-schema.sql"
+  },
+  {
+    "type": "content",
+    "file": "tools\\migration-brain\\brain.mjs"
+  },
+  {
+    "type": "content",
+    "file": "tools\\migration-brain\\hermes-agent.mjs"
+  },
+  {
+    "type": "content",
+    "file": "tools\\migration-brain\\migrations\\001-schema.sql"
+  },
+  {
+    "type": "content",
+    "file": "tools\\migration-brain\\migrations\\002-deployer-queue.sql"
+  },
+  {
+    "type": "content",
+    "file": "tools\\migration-brain\\README.md"
+  },
+  {
+    "type": "content",
+    "file": "tools\\playwright-scanner\\README.md"
+  },
+  {
+    "type": "content",
+    "file": "tools\\playwright-scanner\\scan.mjs"
+  },
+  {
+    "type": "content",
+    "file": "tools\\rebrand\\rename-daVinciOS.mjs"
+  },
+  {
+    "type": "content",
+    "file": "tools\\seo-audit\\README.md"
+  },
+  {
+    "type": "content",
+    "file": "tools\\shared\\approval.mjs"
+  },
+  {
+    "type": "content",
+    "file": "tools\\shared\\SAFETY_PLEDGE.md"
+  },
+  {
+    "type": "content",
+    "file": "tools\\shopify-import\\generate-redirects.mjs"
+  },
+  {
+    "type": "content",
+    "file": "tools\\shopify-import\\import-DaVinciOS.mjs"
+  },
+  {
+    "type": "content",
+    "file": "tools\\shopify-import\\parser.mjs"
+  },
+  {
+    "type": "content",
+    "file": "tools\\shopify-import\\README.md"
+  },
+  {
+    "type": "content",
+    "file": "tools\\shopify-import\\transform-bulk-export.mjs"
+  },
+  {
+    "type": "content",
+    "file": "tools\\shopify-import\\transform-collections.mjs"
+  },
+  {
+    "type": "content",
+    "file": "tools\\shopify-import\\transform-pages.mjs"
+  },
+  {
+    "type": "content",
+    "file": "tools\\shopify-mcp\\AUTH.md"
+  },
+  {
+    "type": "content",
+    "file": "tools\\shopify-mcp\\server.mjs"
+  }
+]

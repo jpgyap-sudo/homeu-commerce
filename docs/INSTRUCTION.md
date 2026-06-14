@@ -9,7 +9,7 @@ This document is the **single source of truth** for the HomeU migration. It comb
 ```
 homeu.ph / www.homeu.ph  = 🔴 LIVE SHOPIFY — Do not touch during migration
 store.homeu.ph            = 🟢 New Next.js frontend (preview, noindex)
-admin.homeu.ph            = 🟢 Payload CMS admin (backoffice)
+admin.homeu.ph            = 🟢 DaVinciOS CMS admin (backoffice)
 ```
 
 ## Safety Rules (Non-Negotiable)
@@ -43,7 +43,7 @@ admin.homeu.ph            = 🟢 Payload CMS admin (backoffice)
 └─────────────────┘
       │
 ┌─────▼──────────┐
-│  Payload CMS    │──── PostgreSQL ──── Next.js Frontend
+│  DaVinciOS CMS    │──── PostgreSQL ──── Next.js Frontend
 │  Admin Backend  │                       store.homeu.ph
 │  5 collections  │
 └─────────────────┘
@@ -64,7 +64,7 @@ Any Write Operation → approval.mjs → Asks "yes" → Proceeds
 ### Phase 0 — Stabilize Current Deployment ✅
 - [x] VPS Docker deployment running
 - [x] SSL certificates installed (Let's Encrypt)
-- [x] Payload admin accessible at admin.homeu.ph
+- [x] DaVinciOS admin accessible at admin.homeu.ph
 - [x] `.env` excluded from git
 - [x] Database not publicly exposed
 
@@ -83,7 +83,7 @@ Any Write Operation → approval.mjs → Asks "yes" → Proceeds
 
 ### Phase 3 — Product & Collection Sync ✅
 - [x] Shopify Admin API via MCP server
-- [x] Payload CMS collections ready
+- [x] DaVinciOS CMS collections ready
 - [x] Product-collection relationships
 - [x] Sync via Central Brain
 
@@ -105,7 +105,7 @@ Any Write Operation → approval.mjs → Asks "yes" → Proceeds
 - [ ] Mobile responsive
 
 ### Phase 6 — RFQ Cart 🔧 In Progress
-- [x] RFQRequests collection in Payload
+- [x] RFQRequests collection in DaVinciOS
 - [x] QuoteCart component with localStorage
 - [x] Add to RFQ function
 - [ ] Cart page UI

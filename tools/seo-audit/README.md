@@ -1,32 +1,40 @@
-# SEO Audit Tool
+# SEO Validation Resources
 
-Audits SEO metadata across the Shopify site and generates comparison reports.
+This directory contains resources for the SEO Manager Agent to validate and maintain SEO health during the Shopify → DaVinciOS migration.
 
-## Usage
+## Files
+
+- `report.json` – Full diff between Shopify export and new site data
+- `suggestions.txt` – Human-readable fix list
+- `results.json` – Score summary for CI/CD gating
+
+## Validation Checklist
+
+Before deploying, the SEO Manager must confirm:
+
+1. **URL Parity** – Every Shopify URL has a matching redirect rule
+2. **Meta Tags** – Title/description length and uniqueness
+3. **Canonical URLs** – Correct domain and path structure
+4. **JSON-LD** – Valid structured data on all key pages
+5. **Images** – Alt text present on all product images
+
+## Running Validation
 
 ```bash
-# Check metadata from a page
-curl -s "https://www.homeu.ph/products/aalto-modern-sofa" | node check-metadata.mjs
-
-# Generate full SEO report for all products
-node audit.mjs --url https://www.homeu.ph --output output/seo-report.json
+node tools/seo-manager/run.mjs
 ```
 
-## What It Checks
+## CI Integration
 
-- Title tags (length, uniqueness, keywords)
-- Meta descriptions (length, quality)
-- Canonical URLs
-- Open Graph tags
-- JSON-LD structured data
-- Image alt text presence
-- Heading hierarchy (h1, h2, etc.)
-- URL structure
-- Broken links
+Add to your deployment pipeline:
 
-## Output
-
-Generates `tools/seo-audit/output/seo-report.json` with:
-- Per-page SEO score
-- Missing metadata warnings
-- Recommendations for migration
+```yaml
+- name: SEO Validation
+  run: node tools/seo-manager/run.mjs
+- name: Check Results
+  run: |
+    if [ "$(node -p "require('./tools/seo-audit/results.json').scores.urlConsistency")" != "100" ]; then
+      echo "SEO validation failed"
+      exit 1
+    fi
+```

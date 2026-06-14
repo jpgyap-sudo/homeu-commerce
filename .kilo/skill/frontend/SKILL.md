@@ -58,7 +58,7 @@ Main Menu:
 ## Architecture
 
 ```
-store.homeu.ph (Next.js 16 + Payload 3.x)
+store.homeu.ph (Next.js 16 + DaVinciOS 3.x)
 │
 ├── Public Routes (no auth)
 │   ├── / → Homepage (hero, featured products, categories)
@@ -68,17 +68,17 @@ store.homeu.ph (Next.js 16 + Payload 3.x)
 │   ├── /cart → RFQ Cart view
 │   └── /rfq/submit → RFQ form
 │
-├── API Routes (Next.js, proxied from Payload)
+├── API Routes (Next.js, proxied from DaVinciOS)
 │   ├── /api/products
 │   ├── /api/categories
 │   ├── /api/pages
 │   └── /api/rfq-requests
 │
-└── Admin (Payload CMS)
+└── Admin (DaVinciOS CMS)
     └── /admin → admin.homeu.ph
 ```
 
-## Payload Collections (Backend Data Sources)
+## DaVinciOS Collections (Backend Data Sources)
 
 ### Products (`/api/products`)
 ```
@@ -154,7 +154,7 @@ store.homeu.ph (Next.js 16 + Payload 3.x)
 
 ## Frontend Data Fetching Pattern
 
-Always use Payload's REST API directly from server components:
+Always use DaVinciOS's REST API directly from server components:
 
 ```typescript
 // Server component data fetching
@@ -165,7 +165,7 @@ async function getProducts() {
   return res.json()
 }
 
-// Client component data fetching via Payload REST API
+// Client component data fetching via DaVinciOS REST API
 // If the user is browsing from store.homeu.ph, proxy through Next.js:
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api'
 ```

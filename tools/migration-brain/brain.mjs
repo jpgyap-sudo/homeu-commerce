@@ -3,7 +3,7 @@
 /**
  * Migration Central Brain
  * 
- * PostgreSQL-backed persistent memory for the entire Shopify → Payload CMS migration.
+ * PostgreSQL-backed persistent memory for the entire Shopify → DaVinciOS CMS migration.
  * Orchestrates: Playwright Scanner, Hermes3 Reasoner, Ollama Vision, Shopify Parser
  * 
  * The brain remembers:
@@ -39,7 +39,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const OLLAMA_URL = 'http://localhost:11434'
 const HERMES_MODEL = 'hermes3:latest'
 
-// Database config - uses the existing Payload CMS postgres
+// Database config - uses the existing DaVinciOS CMS postgres
 const DB = {
   host: process.env.PGHOST || 'localhost',
   port: parseInt(process.env.PGPORT || '5432'),
@@ -223,7 +223,7 @@ async function generateReport() {
       body: JSON.stringify({
         model: HERMES_MODEL,
         messages: [
-          { role: 'system', content: 'You are the Migration Central Brain for a Shopify to Payload CMS migration. Give concise, actionable next steps based on the status information.' },
+          { role: 'system', content: 'You are the Migration Central Brain for a Shopify to DaVinciOS CMS migration. Give concise, actionable next steps based on the status information.' },
           { role: 'user', content: 'Review the current migration status and suggest the top 5 next actions to complete the migration efficiently.' }
         ],
         stream: false,

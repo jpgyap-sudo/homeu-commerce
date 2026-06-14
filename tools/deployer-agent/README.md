@@ -2,6 +2,40 @@
 
 Central coordination for all coding extensions. Prevents duplicate runs, queues deployments, tracks locks.
 
+## Centralized Logging
+The Deployer Agent must log all deployments and issues to the centralized logs:
+
+```javascript
+import { logTask, logBug } from '../shared/central-logger.mjs';
+
+// Log active deployment
+await logTask({
+  agent: 'deployer',
+  status: 'active',
+  summary: 'Deploying dashboard to VPS',
+  files: ['apps/web/', 'docker/'],
+  verification: 'Docker build in progress'
+});
+
+// Log completed deployment
+await logTask({
+  agent: 'deployer',
+  status: 'completed',
+  summary: 'Deployed dashboard v2.3.1 to VPS',
+  files: ['apps/web/', 'memory/task-log.jsonl'],
+  verification: 'VPS health check passed - homepage loads'
+});
+
+// Log deployment bug
+await logBug({
+  agent: 'deployer',
+  status: 'found',
+  summary: 'Docker build failed - npm install error',
+  files: ['docker/build.Dockerfile'],
+  verification: 'Build logs show ECONNREFUSED'
+});
+```
+
 ## Architecture
 
 ```

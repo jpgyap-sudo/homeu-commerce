@@ -1,6 +1,6 @@
 #!/bin/sh
 # ═══════════════════════════════════════════════════════════════
-#  push-schema.sh — Push Payload CMS schema to PostgreSQL
+#  push-schema.sh — Push DaVinciOS CMS schema to PostgreSQL
 # ═══════════════════════════════════════════════════════════════
 #  Runs inside the builder container (homeu-builder-tmp:latest)
 #  which has full node_modules under /app/website/
@@ -16,14 +16,14 @@ set -euo pipefail
 NETWORK="homeu-commerce_homeu_network"
 BUILDER_IMAGE="homeu-builder-tmp:latest"
 DB_URI="postgres://homeu:homeu_local_password@postgres:5432/homeu"
-PAYLOAD_SECRET="homeu-commerce-payload-secret-2026"
+PAYLOAD_SECRET="homeu-commerce-DaVinciOS-secret-2026"
 PUBLIC_URL="https://admin.homeu.ph"
 
-echo "=== Pushing Payload CMS schema to PostgreSQL ==="
+echo "=== Pushing DaVinciOS CMS schema to PostgreSQL ==="
 
 # Run the builder container with:
 #   -w /app/website       → working directory where package.json & tsconfig live
-#   PAYLOAD_CONFIG_PATH   → relative to /app/website → ./src/payload.config.ts
+#   PAYLOAD_CONFIG_PATH   → relative to /app/website → ./src/DaVinciOS.config.ts
 #   --network             → access the postgres container
 #   --rm                  → auto-remove after completion
 docker run --rm \
@@ -32,19 +32,19 @@ docker run --rm \
   -e DATABASE_URI="$DB_URI" \
   -e PAYLOAD_SECRET="$PAYLOAD_SECRET" \
   -e PAYLOAD_PUBLIC_SERVER_URL="$PUBLIC_URL" \
-  -e PAYLOAD_CONFIG_PATH="./src/payload.config.ts" \
+  -e PAYLOAD_CONFIG_PATH="./src/DaVinciOS.config.ts" \
   -e NODE_ENV=production \
   "$BUILDER_IMAGE" \
   sh -c '
     echo "Working directory: $(pwd)"
     echo "PAYLOAD_CONFIG_PATH: $PAYLOAD_CONFIG_PATH"
-    echo "Config file exists: $(test -f src/payload.config.ts && echo YES || echo NO)"
+    echo "Config file exists: $(test -f src/DaVinciOS.config.ts && echo YES || echo NO)"
     echo "Package.json exists: $(test -f package.json && echo YES || echo NO)"
-    echo "Payload CLI: $(ls node_modules/.bin/payload 2>/dev/null || echo not found)"
+    echo "DaVinciOS CLI: $(ls node_modules/.bin/DaVinciOS 2>/dev/null || echo not found)"
 
     echo ""
-    echo "=== Running: npx payload push ==="
-    npx --yes payload push
+    echo "=== Running: npx DaVinciOS push ==="
+    npx --yes DaVinciOS push
   '
 
 echo ""

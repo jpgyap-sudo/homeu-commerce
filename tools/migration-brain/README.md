@@ -79,7 +79,7 @@ node tools/migration-brain/hermes-agent.mjs analyze-url \
 # Cross-reference scanner vs export data
 node tools/migration-brain/hermes-agent.mjs match-products \
   tools/playwright-scanner/output/data/products.json \
-  tools/shopify-import/output/payload-products.json
+  tools/shopify-import/output/DaVinciOS-products.json
 
 # Analyze navigation structure
 node tools/migration-brain/hermes-agent.mjs analyze-nav \

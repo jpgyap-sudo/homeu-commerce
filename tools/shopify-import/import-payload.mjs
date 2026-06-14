@@ -1,14 +1,14 @@
 /**
- * Payload CMS Import Script
+ * DaVinciOS CMS Import Script
  * 
  * Reads extracted Shopify data from tools/shopify-import/output/
- * and imports it into Payload CMS via REST API.
+ * and imports it into DaVinciOS CMS via REST API.
  * 
- * Usage: node tools/shopify-import/import-payload.mjs
+ * Usage: node tools/shopify-import/import-DaVinciOS.mjs
  * 
  * Environment variables required:
- *   PAYLOAD_URL    - e.g. https://admin.homeu.ph/api
- *   PAYLOAD_TOKEN  - API key or auth token
+ *   DAVINCIOS_URL    - e.g. https://admin.homeu.ph/api
+ *   DAVINCIOS_TOKEN  - API key or auth token
  *   DATABASE_URI   - Postgres connection string (for direct import)
  */
 
@@ -37,11 +37,11 @@ function loadJSON(filename) {
 }
 
 async function main() {
-  console.log('=== Payload CMS Import Tool ===\n')
+  console.log('=== DaVinciOS CMS Import Tool ===\n')
 
-  const products = loadJSON('payload-products.json')
-  const categories = loadJSON('payload-categories.json')
-  const pages = loadJSON('payload-pages.json')
+  const products = loadJSON('DaVinciOS-products.json')
+  const categories = loadJSON('DaVinciOS-categories.json')
+  const pages = loadJSON('DaVinciOS-pages.json')
   const navigation = loadJSON('navigation.json')
 
   // Summary
@@ -77,10 +77,10 @@ async function main() {
   if (errors === 0) {
     console.log('✅ All data validated successfully!')
     console.log('\n📋 Import Instructions:')
-    console.log('   1. Deploy Payload CMS on your VPS')
+    console.log('   1. Deploy DaVinciOS CMS on your VPS')
     console.log('   2. Access admin panel at https://admin.homeu.ph/admin')
     console.log('   3. Create admin user on first login')
-    console.log('   4. Import data via Payload admin or REST API:')
+    console.log('   4. Import data via DaVinciOS admin or REST API:')
     console.log('      Categories → Products (with images) → Pages')
     console.log('   5. Verify imported data matches Shopify counts')
     console.log('   6. Configure navigation in Next.js frontend')

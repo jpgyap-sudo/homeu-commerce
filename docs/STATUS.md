@@ -6,7 +6,7 @@ Maps every feature from the reference (`FEATURES.md`) to our implementation stat
 |----|---------|----------|--------|-------|
 | **P0 — Migration Safety** |
 | 1 | Domain Separation | P0 | ✅ Done | DNS: homeu.ph=Shopify, store.homeu.ph=Frontend, admin.homeu.ph=Admin |
-| 2 | Secrets Protection | P0 | ✅ Done | `.env` in gitignore, `.env.example` with warnings, Payload DB internal |
+| 2 | Secrets Protection | P0 | ✅ Done | `.env` in gitignore, `.env.example` with warnings, DaVinciOS DB internal |
 | 3 | Backup & Rollback | P0 | ⚠️ Partial | Git tags pending, VPS deployment works, rollback plan in `docs/migration-plan.md` |
 | **P0 — Reverse Engineering** |
 | 4 | Playwright Site Crawler | P0 | ✅ Done | `tools/playwright-scanner/scan.mjs` — full crawl, SEO, images, screenshots, HTML |
@@ -16,10 +16,10 @@ Maps every feature from the reference (`FEATURES.md`) to our implementation stat
 | 7 | Product Sync | P1 | ✅ Done | `tools/shopify-mcp/server.mjs` — 11 read-only MCP tools, Admin API, full export |
 | 8 | Collection Sync | P1 | ✅ Done | Collections with product mappings in MCP export + Central Brain |
 | 9 | Sync Logs | P1 | ✅ Done | Central Brain logs all sync operations, errors with Hermes3 triage |
-| **P1 — Payload Backend/Admin** |
-| 10 | Product Mirror Collection | P1 | ✅ Done | Payload `Products` collection with shopifyId, all fields mapped |
-| 11 | Collection Mirror Collection | P1 | ✅ Done | Payload `Categories` collection with shopifyId |
-| 12 | Page Mirror Collection | P1 | ✅ Done | Payload `Pages` collection with shopifyId + shopifyOriginalUrl |
+| **P1 — DaVinciOS Backend/Admin** |
+| 10 | Product Mirror Collection | P1 | ✅ Done | DaVinciOS `Products` collection with shopifyId, all fields mapped |
+| 11 | Collection Mirror Collection | P1 | ✅ Done | DaVinciOS `Categories` collection with shopifyId |
+| 12 | Page Mirror Collection | P1 | ✅ Done | DaVinciOS `Pages` collection with shopifyId + shopifyOriginalUrl |
 | **P1 — Temporary Frontend** |
 | 13 | Store Preview Frontend | P1 | ✅ Done | Next.js on `store.homeu.ph`, Docker, SSL |
 | 14 | Product Listing | P1 | 🔧 Building | Collection pages + product grid components |
@@ -27,8 +27,8 @@ Maps every feature from the reference (`FEATURES.md`) to our implementation stat
 | **P1 — RFQ Cart** |
 | 16 | Add to RFQ | P1 | ✅ Done | `QuoteCart.tsx` — localStorage cart with add, quantity, notes |
 | 17 | RFQ Cart Page | P1 | 🔧 Building | Cart view UI pending |
-| 18 | RFQ Submission Form | P1 | ✅ Done | Payload `RFQRequests` collection — full form fields |
-| 19 | RFQ Admin View | P1 | ✅ Done | Payload admin panel at `admin.homeu.ph/admin` for RFQ management |
+| 18 | RFQ Submission Form | P1 | ✅ Done | DaVinciOS `RFQRequests` collection — full form fields |
+| 19 | RFQ Admin View | P1 | ✅ Done | DaVinciOS admin panel at `admin.homeu.ph/admin` for RFQ management |
 | 20 | RFQ Notification | P1 | ⏳ Pending | Email notification upon submission |
 | **P2 — AI Agent Assistant** |
 | 21 | Website Auditor Agent | P2 | ✅ Done | Central Brain + Hermes3: reads crawler output, screenshots, SEO map, sync logs |
@@ -41,7 +41,7 @@ Maps every feature from the reference (`FEATURES.md`) to our implementation stat
 | 27 | Vision AI Review | P2 | ✅ Done | llava:7b analyzes screenshots, compares old vs new |
 | **P2 — Admin Workflow** |
 | 28 | Migration Dashboard | P2 | ⏳ Pending | Central Brain `report` command provides CLI dashboard |
-| 29 | Quotation Dashboard | P2 | ⏳ Pending | Payload admin already has RFQ collection admin |
+| 29 | Quotation Dashboard | P2 | ⏳ Pending | DaVinciOS admin already has RFQ collection admin |
 | **P3 — Future** |
 | 30 | Competitor Comparison | P3 | ⏳ Not started |
 | 31 | Blog/SEO System | P3 | ⏳ Not started |

@@ -2,12 +2,12 @@
 
 ## Project
 Replace Shopify (www.homeu.ph) with self-hosted site on VPS.
-**Stack:** Next.js + Payload CMS + PostgreSQL + Docker + Hermes3 + Ollama
+**Stack:** Next.js + DaVinciOS CMS + PostgreSQL + Docker + Hermes3 + Ollama
 
 ## Domains
 - `homeu.ph` / `www.homeu.ph` = 🔴 LIVE SHOPIFY — Do not touch
 - `store.homeu.ph` = 🟢 New frontend (noindex)
-- `admin.homeu.ph` = 🟢 Payload admin
+- `admin.homeu.ph` = 🟢 DaVinciOS admin
 
 ## Available Agents (14 total)
 
@@ -16,7 +16,7 @@ Replace Shopify (www.homeu.ph) with self-hosted site on VPS.
 | `reverse-engineer` | `migrate` | Full pipeline: scan → sync → build → verify |
 | `central-brain` | — | PostgreSQL + Hermes3 memory (always query before decisions) |
 | `deploy` | `deploy` | VPS Docker deploy (requires approval) |
-| `data-sync` | `sync-data` | Shopify → Payload sync via MCP |
+| `data-sync` | `sync-data` | Shopify → DaVinciOS sync via MCP |
 | `image-pipeline` | — | Image download/optimize/storage |
 | `navigation` | — | Shopify menu → Next.js components |
 | `theme-migration` | — | Liquid → Next.js component mapping |

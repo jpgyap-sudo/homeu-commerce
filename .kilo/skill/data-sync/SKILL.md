@@ -1,6 +1,6 @@
 # Data Sync Skill
 
-Synchronize Shopify data to Payload CMS through the Central Brain.
+Synchronize Shopify data to DaVinciOS CMS through the Central Brain.
 
 ## Sync Order
 1. **Collections** — Create category entries first
@@ -28,7 +28,7 @@ node tools/shopify-import/parser.mjs
 
 ### Validate import data
 ```bash
-node tools/shopify-import/import-payload.mjs
+node tools/shopify-import/import-DaVinciOS.mjs
 ```
 
 ### Store in Central Brain
@@ -38,6 +38,6 @@ node tools/migration-brain/brain.mjs status
 
 ## Sync Validation
 After sync, verify counts match:
-- Products: Shopify vs Payload
-- Collections: Shopify vs Payload
+- Products: Shopify vs DaVinciOS
+- Collections: Shopify vs DaVinciOS
 - Images: Mapped vs missing

@@ -5,7 +5,7 @@
 ```mermaid
 flowchart LR
     A[Customer visits homeu.ph] --> B[🔴 Live Shopify - DO NOT TOUCH]
-    C[Admin visits admin.homeu.ph] --> D[🟢 Payload CMS on VPS]
+    C[Admin visits admin.homeu.ph] --> D[🟢 DaVinciOS CMS on VPS]
     E[Preview store.homeu.ph] --> F[🟢 Next.js Frontend]
     F --> D
     D --> G[(PostgreSQL)]
@@ -56,7 +56,7 @@ flowchart TD
         H2[Ollama Vision llava:7b]
     end
     subgraph "Output"
-        O1[Payload CMS Import]
+        O1[DaVinciOS CMS Import]
         O2[301 Redirect Map]
         O3[SEO Report]
         O4[Component Mappings]
@@ -104,7 +104,7 @@ flowchart TD
     J --> O
     K --> O
     L --> O[Visual Analysis]
-    O --> P[Payload CMS Import]
+    O --> P[DaVinciOS CMS Import]
     O --> Q[301 Redirect Map]
     O --> R[SEO Report]
     O --> S[Component Map]
@@ -122,7 +122,7 @@ flowchart TD
     E --> F[QuoteCart.tsx - localStorage]
     F --> G[Cart page - edit quantities/notes]
     G --> H[Submit RFQ form]
-    H --> I[Payload CMS - RFQRequests collection]
+    H --> I[DaVinciOS CMS - RFQRequests collection]
     H --> J[Email notification to business]
     I --> K[Admin views in admin.homeu.ph/admin]
     K --> L[Update status: new/contacted/quoted/closed]
@@ -144,7 +144,7 @@ flowchart TD
     J --> K[Log to migration_errors/Central Brain]
 ```
 
-## 7. Data Flow: Shopify → Payload → Frontend
+## 7. Data Flow: Shopify → DaVinciOS → Frontend
 
 ```mermaid
 flowchart LR
@@ -161,7 +161,7 @@ flowchart LR
         H3[Hermes3 Validation]
     end
     subgraph "New System"
-        PC[Payload CMS]
+        PC[DaVinciOS CMS]
         NF[Next.js Frontend]
         PG[(PostgreSQL)]
     end

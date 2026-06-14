@@ -18,4 +18,4 @@ Shopify CDN URL → Extract → Match to Product → Download → Optimize → U
 
 ## Related
 - Skill: image-pipeline
-- Payload collection: Media
+- DaVinciOS collection: Media

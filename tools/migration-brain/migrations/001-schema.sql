@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS products (
   seo_description TEXT,
   status VARCHAR(20) DEFAULT 'discovered',    -- discovered, extracted, mapped, imported, verified
   shopify_url TEXT,
-  payload_id INTEGER,                          -- ID after import to Payload CMS
+  DaVinciOS_id INTEGER,                          -- ID after import to DaVinciOS CMS
   confidence DECIMAL(5,2),                     -- hermess3 confidence in data accuracy
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS collections (
   parent_id INTEGER REFERENCES collections(id),
   sort_order INTEGER DEFAULT 0,
   status VARCHAR(20) DEFAULT 'discovered',
-  payload_id INTEGER,
+  DaVinciOS_id INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS images (
   height INTEGER,
   file_size BIGINT,
   status VARCHAR(20) DEFAULT 'pending',        -- pending, downloaded, uploaded, failed
-  payload_media_id INTEGER,                    -- ID after upload to Payload
+  DaVinciOS_media_id INTEGER,                    -- ID after upload to DaVinciOS
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

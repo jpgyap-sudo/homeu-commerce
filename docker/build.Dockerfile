@@ -34,5 +34,5 @@ FROM scratch AS export
 COPY --from=builder /workspace/website/.next/standalone /
 COPY --from=builder /workspace/website/.next/static /.next/static
 COPY --from=builder /workspace/website/public /public
-COPY --from=builder /workspace/website/node_modules/payload /node_modules/payload
-COPY --from=builder /workspace/website/node_modules/@payloadcms /node_modules/@payloadcms
+COPY --from=builder /workspace/website/node_modules/DaVinciOS /node_modules/DaVinciOS
+COPY --from=builder /workspace/website/node_modules/@DaVinciOScms /node_modules/@DaVinciOScms

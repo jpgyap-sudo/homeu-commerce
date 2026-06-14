@@ -1,6 +1,6 @@
 # Migration Pipeline Workflow
 
-Step-by-step pipeline for the Shopify → Payload CMS migration.
+Step-by-step pipeline for the Shopify → DaVinciOS CMS migration.
 
 ## Step 1: Load Skill
 ```
@@ -35,16 +35,16 @@ Build images manifest
 
 ## Step 4: Run Mapping Phase
 ```
-Map Shopify fields → Payload collection fields
+Map Shopify fields → DaVinciOS collection fields
 Create URL mapping (preserve all slugs)
 Document any data loss or transformation
 ```
 
 ## Step 5: Run Generation Phase
 ```
-Generate tools/shopify-import/output/payload-products.json
-Generate tools/shopify-import/output/payload-categories.json
-Generate tools/shopify-import/output/payload-pages.json
+Generate tools/shopify-import/output/DaVinciOS-products.json
+Generate tools/shopify-import/output/DaVinciOS-categories.json
+Generate tools/shopify-import/output/DaVinciOS-pages.json
 Generate tools/shopify-import/output/navigation.json
 Generate tools/shopify-import/output/301-redirect-map.csv
 Generate tools/seo-audit/output/seo-report.json
@@ -53,10 +53,10 @@ Generate tools/theme-analyzer/component-map.md
 
 ## Step 6: Run Validation
 ```
-node tools/shopify-import/import-payload.mjs
+node tools/shopify-import/import-DaVinciOS.mjs
 ```
 
-## Step 7: Import into Payload CMS
+## Step 7: Import into DaVinciOS CMS
 ```
 Access https://admin.homeu.ph/admin
 Create admin user

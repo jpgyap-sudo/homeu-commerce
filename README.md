@@ -5,7 +5,7 @@ Clean starter repo for migrating HomeU away from Shopify into a catalog website 
 ## Recommended stack
 
 - Next.js frontend
-- Payload CMS backend/admin
+- DaVinciOS CMS backend/admin
 - PostgreSQL database
 - RFQ cart instead of checkout
 - Shopify import tools

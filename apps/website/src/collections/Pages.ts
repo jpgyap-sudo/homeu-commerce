@@ -1,13 +1,19 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig } from 'DaVinciOS'
+import { adminUsers, anyone } from '../access/admin'
 
 export const Pages = {
   slug: 'pages',
-  admin: { useAsTitle: 'title' },
+  admin: {
+    useAsTitle: 'title',
+    defaultColumns: ['title', 'slug', 'updatedAt'],
+    description: 'Editorial and SEO pages for HomeU content outside the product catalog.',
+    listSearchableFields: ['title', 'slug', 'seoTitle'],
+  },
   access: {
-    read: () => true,       // Public: anyone can view pages
-    create: () => false,     // Admin-only via admin panel
-    update: () => false,     // Admin-only via admin panel
-    delete: () => false,     // Admin-only via admin panel
+    read: anyone,
+    create: adminUsers,
+    update: adminUsers,
+    delete: adminUsers,
   },
   fields: [
     { name: 'title', type: 'text', required: true },
@@ -15,6 +21,13 @@ export const Pages = {
     { name: 'content', type: 'richText' },
     { name: 'seoTitle', type: 'text' },
     { name: 'seoDescription', type: 'textarea' },
-    { name: 'shopifyOriginalUrl', type: 'text' }
+    {
+      name: 'shopifyOriginalUrl',
+      type: 'text',
+      admin: {
+        position: 'sidebar',
+        description: 'Legacy Shopify page URL for redirect mapping.',
+      },
+    }
   ]
 } satisfies CollectionConfig

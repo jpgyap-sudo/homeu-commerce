@@ -12,7 +12,7 @@ The Shopify MCP server (`tools/shopify-mcp/`) is **physically incapable** of mod
 
 ## Rule 2: Approval Required for ALL Writes
 Any operation that writes data requires your explicit approval:
-- **import** → Creating products in Payload CMS → ⏸ Asks you
+- **import** → Creating products in DaVinciOS CMS → ⏸ Asks you
 - **deploy** → Updating VPS containers → ⏸ Asks you
 - **file writes** → Modifying project files → ⏸ Asks you
 - **API calls** → POST/PUT/DELETE to any service → ⏸ Asks you

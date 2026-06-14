@@ -1,6 +1,6 @@
 # Shopify Reverse Engineer Skill
 
-Reverse engineer the live HomeU Shopify store at **www.homeu.ph** and generate complete migration data for the Payload CMS + Next.js storefront.
+Reverse engineer the live HomeU Shopify store at **www.homeu.ph** and generate complete migration data for the DaVinciOS CMS + Next.js storefront.
 
 ## Tools Available
 
@@ -9,7 +9,7 @@ Reverse engineer the live HomeU Shopify store at **www.homeu.ph** and generate c
 | `tools/playwright-scanner/scan.mjs` | Playwright + Chromium site crawler with screenshots |
 | `tools/playwright-scanner/ollama-vision.mjs` | 🧠 Ollama vision analysis (llava:7b) |
 | `tools/shopify-import/parser.mjs` | Shopify CSV/theme/image export parser |
-| `tools/shopify-import/import-payload.mjs` | Payload CMS import validator |
+| `tools/shopify-import/import-DaVinciOS.mjs` | DaVinciOS CMS import validator |
 | `tools/crawler/` | Basic URL crawler |
 | `tools/url-mapper/` | 301 redirect URL mapper |
 
@@ -117,7 +117,7 @@ node tools/shopify-import/parser.mjs
 ```
 
 This will:
-- Parse products CSV → Payload CMS format
+- Parse products CSV → DaVinciOS CMS format
 - Extract theme info (Liquid templates, settings, assets)
 - Map image filenames to product handles/slugs
 - Handle common patterns:
@@ -190,12 +190,12 @@ From scanner-captured HTML, extract mega menu:
 
 ## Phase 4: Data Mapping & Generation
 
-### 4A. Shopify → Payload CMS Mapping
+### 4A. Shopify → DaVinciOS CMS Mapping
 Run `tools/url-mapper/` to generate 301 redirect maps.
 
 ### 4B. Generate Import Scripts
 ```bash
-node tools/shopify-import/import-payload.mjs
+node tools/shopify-import/import-DaVinciOS.mjs
 ```
 
 ## Phase 5: Theme Analysis
@@ -240,10 +240,10 @@ tools/
 │   │   ├── theme.zip              (YOU PROVIDE)
 │   │   └── images/                (YOU PROVIDE)
 │   ├── output/
-│   │   ├── payload-products.json
-│   │   ├── payload-categories.json
-│   │   ├── payload-pages.json
-│   │   ├── payload-media.json
+│   │   ├── DaVinciOS-products.json
+│   │   ├── DaVinciOS-categories.json
+│   │   ├── DaVinciOS-pages.json
+│   │   ├── DaVinciOS-media.json
 │   │   ├── navigation.json
 │   │   ├── seo-metadata.csv
 │   │   ├── 301-redirect-map.csv
@@ -276,7 +276,7 @@ cd ../shopify-import
 node parser.mjs
 
 # 4. Cross-reference and validate
-node import-payload.mjs
+node import-DaVinciOS.mjs
 
 # 5. Visual analysis
 cd ../playwright-scanner
@@ -289,7 +289,7 @@ node ollama-vision.mjs batch output/screenshots/
 # 2. Run parser
 node tools/shopify-import/parser.mjs
 # 3. Validate
-node tools/shopify-import/import-payload.mjs
+node tools/shopify-import/import-DaVinciOS.mjs
 ```
 
 ### Option C: Scan-Only (No Export Files)
@@ -312,7 +312,7 @@ node scan.mjs --screenshots --ollama
 - [ ] Screenshots captured for all page types
 - [ ] Ollama analyses saved for visual reference
 - [ ] Images correctly mapped to products (from export)
-- [ ] Payload CMS JSON validated
+- [ ] DaVinciOS CMS JSON validated
 - [ ] 301 redirect map generated
 - [ ] Component map created from theme analysis
 - [ ] Color scheme and fonts documented

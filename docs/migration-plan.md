@@ -2,7 +2,7 @@
 
 ## Overview
 
-Migrate **www.homeu.ph** (Shopify) to self-hosted VPS (Payload CMS + Next.js).
+Migrate **www.homeu.ph** (Shopify) to self-hosted VPS (DaVinciOS CMS + Next.js).
 ~661 products, 30+ collections, custom swatches, made-to-order model.
 
 ## Architecture
@@ -14,7 +14,7 @@ Internet → DNS (store.homeu.ph / admin.homeu.ph)
               ↓
     ┌─────────┴─────────┐
     │                   │
-  Next.js            Payload CMS
+  Next.js            DaVinciOS CMS
   (storefront)        (admin)
     │                   │
     └─────────┬─────────┘
@@ -41,10 +41,10 @@ Internet → DNS (store.homeu.ph / admin.homeu.ph)
 - [ ] Document current navigation structure
 - [ ] Extract theme colors, fonts, layout
 
-### Phase 2: Payload CMS Setup
-- [ ] Verify Payload admin panel at https://admin.homeu.ph/admin
+### Phase 2: DaVinciOS CMS Setup
+- [ ] Verify DaVinciOS admin panel at https://admin.homeu.ph/admin
 - [ ] Create first admin user
-- [ ] Configure Payload CORS/CSRF for store.homeu.ph
+- [ ] Configure DaVinciOS CORS/CSRF for store.homeu.ph
 - [ ] Test database connection
 - [ ] Run import validation script
 

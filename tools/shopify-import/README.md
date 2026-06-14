@@ -1,18 +1,18 @@
 # Shopify Import Tool
 
-Converts Shopify export data into Payload CMS compatible format.
+Converts Shopify export data into DaVinciOS CMS compatible format.
 
 ## Directory Structure
 
 ```
 shopify-import/
-├── import-payload.mjs     # Payload CMS import script
+├── import-DaVinciOS.mjs     # DaVinciOS CMS import script
 ├── output/                # Generated migration data
 │   ├── raw/               # Raw Shopify data (JSON pages)
-│   ├── payload-products.json
-│   ├── payload-categories.json
-│   ├── payload-pages.json
-│   ├── payload-media.json
+│   ├── DaVinciOS-products.json
+│   ├── DaVinciOS-categories.json
+│   ├── DaVinciOS-pages.json
+│   ├── DaVinciOS-media.json
 │   ├── navigation.json
 │   ├── seo-metadata.csv
 │   ├── 301-redirect-map.csv
@@ -36,12 +36,12 @@ shopify-import/
 ```bash
 # 1. Run reverse engineer to extract data
 # 2. Validate data
-node tools/shopify-import/import-payload.mjs
+node tools/shopify-import/import-DaVinciOS.mjs
 
-# 3. Import into Payload CMS via admin panel or REST API
+# 3. Import into DaVinciOS CMS via admin panel or REST API
 ```
 
-## Payload Endpoints
+## DaVinciOS Endpoints
 
 | Resource | Method | URL |
 |----------|--------|-----|

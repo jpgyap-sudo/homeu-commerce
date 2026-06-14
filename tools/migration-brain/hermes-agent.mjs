@@ -62,10 +62,10 @@ async function hermesReason(systemPrompt, userPrompt, options = {}) {
 
 const SYSTEM_PROMPTS = {
   default: `You are the Hermes3 Reasoning Agent for the HomeU Commerce migration project.
-You help migrate 661 products from Shopify to a self-hosted Payload CMS + Next.js site.
+You help migrate 661 products from Shopify to a self-hosted DaVinciOS CMS + Next.js site.
 Be precise, structured, and provide JSON output when possible.`,
 
-  urlMatcher: `You are a URL mapping specialist for Shopify to Payload CMS migration.
+  urlMatcher: `You are a URL mapping specialist for Shopify to DaVinciOS CMS migration.
 Given a Shopify URL and a potential new URL, determine if they represent the same page.
 Consider: product handles, collection slugs, page paths.
 Output JSON: { "match": true/false, "confidence": 0-100, "reason": "..." }`,

@@ -17,7 +17,7 @@
  *   
  *   // Will ask user before proceeding
  *   await requireApproval({
- *     action: 'Import 661 products into Payload CMS',
+ *     action: 'Import 661 products into DaVinciOS CMS',
  *     details: 'This will create products, categories, and pages in admin.homeu.ph',
  *     level: 'critical',
  *     timeout: 120,

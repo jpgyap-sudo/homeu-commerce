@@ -577,8 +577,8 @@ ${audit.slice(-20).map(c => `  • GET ${c.url.substring(0, 100)}`).join('\n')}`
       const filePath = path.join(OUTPUT_DIR, 'shopify-export.json')
       fs.writeFileSync(filePath, JSON.stringify(exportData, null, 2))
 
-      // Generate Payload CMS compatible format
-      const payloadProducts = products.map(p => ({
+      // Generate DaVinciOS CMS compatible format
+      const DaVinciOSProducts = products.map(p => ({
         shopifyId: p.id,
         title: p.title,
         slug: p.handle,
@@ -601,8 +601,8 @@ ${audit.slice(-20).map(c => `  • GET ${c.url.substring(0, 100)}`).join('\n')}`
         })) || [],
       }))
 
-      const payloadPath = path.resolve(__dirname, '..', 'shopify-import', 'output', 'payload-products.json')
-      fs.writeFileSync(payloadPath, JSON.stringify(payloadProducts, null, 2))
+      const DaVinciOSPath = path.resolve(__dirname, '..', 'shopify-import', 'output', 'DaVinciOS-products.json')
+      fs.writeFileSync(DaVinciOSPath, JSON.stringify(DaVinciOSProducts, null, 2))
 
       const summary = exportData.summary
       const result = `
@@ -618,13 +618,13 @@ ${audit.slice(-20).map(c => `  • GET ${c.url.substring(0, 100)}`).join('\n')}`
 ═══════════════════════════════════════════
   Files saved:
   • ${filePath}
-  • ${payloadPath}
+  • ${DaVinciOSPath}
   
   Your Shopify store has NOT been modified.
   Run safety verification: node tools/shopify-mcp/server.mjs --safety-check
 `
 
-      return { content: [{ type: 'text', text: result }] },
+      return { content: [{ type: 'text', text: result }] }
     },
   }
 }

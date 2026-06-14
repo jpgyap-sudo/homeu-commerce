@@ -14,7 +14,7 @@
       "file": ".kilo/agent/deploy-agent.md"
     },
     "data-sync": {
-      "description": "Shopify → Payload CMS data synchronization via MCP + Central Brain",
+      "description": "Shopify → DaVinciOS CMS data synchronization via MCP + Central Brain",
       "file": ".kilo/agent/data-sync-agent.md"
     },
     "image-pipeline": {
@@ -76,7 +76,7 @@
       "file": ".kilo/skill/deploy/SKILL.md"
     },
     "data-sync": {
-      "description": "Synchronize Shopify data to Payload CMS through Central Brain",
+      "description": "Synchronize Shopify data to DaVinciOS CMS through Central Brain",
       "file": ".kilo/skill/data-sync/SKILL.md"
     },
     "image-pipeline": {
@@ -100,8 +100,16 @@
       "file": ".kilo/skill/frontend/SKILL.md"
     },
     "nextjs": {
-      "description": "Next.js 16 + Payload CMS 3 resources: architecture, API endpoints, data patterns, env config, scanned data references",
+      "description": "Next.js 16 + DaVinciOS CMS 3 resources: architecture, API endpoints, data patterns, env config, scanned data references",
       "file": ".kilo/skill/nextjs/SKILL.md"
+    },
+    "shopify": {
+      "description": "Shopify e-commerce operations: customers, orders, products sync, inventory tracking, API resources",
+      "file": ".kilo/skill/shopify/SKILL.md"
+    },
+    "crm": {
+      "description": "Customer relationship management: customer profiles, RFQ lifecycle, quotation tracking, sales pipeline",
+      "file": ".kilo/skill/crm/SKILL.md"
     }
   },
   "commands": {

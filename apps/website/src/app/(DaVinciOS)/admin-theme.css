@@ -1,0 +1,309 @@
+:root {
+  --homeu-ink: #151a17;
+  --homeu-ink-soft: #2a322d;
+  --homeu-muted: #667168;
+  --homeu-line: #d9e0d7;
+  --homeu-line-strong: #c4cec3;
+  --homeu-canvas: #f4f6f1;
+  --homeu-canvas-warm: #fbfaf6;
+  --homeu-panel: #ffffff;
+  --homeu-nav: #101612;
+  --homeu-nav-raised: #172019;
+  --homeu-accent: #22734b;
+  --homeu-accent-strong: #145b38;
+  --homeu-gold: #c6923d;
+  --homeu-blue: #2f6fa8;
+  --homeu-danger: #b42318;
+  --homeu-shadow: 0 18px 48px rgba(21, 26, 23, 0.08);
+  --theme-bg: var(--homeu-canvas);
+  --theme-text: var(--homeu-ink);
+  --theme-elevation-0: var(--homeu-panel);
+  --theme-elevation-50: #fafbf8;
+  --theme-elevation-100: #f0f3ed;
+  --theme-elevation-150: #e8ede4;
+  --theme-elevation-200: var(--homeu-line);
+  --theme-elevation-300: var(--homeu-line-strong);
+  --theme-elevation-400: #aab6aa;
+  --theme-elevation-500: #7e8c81;
+  --theme-elevation-800: var(--homeu-ink-soft);
+  --theme-elevation-900: var(--homeu-ink);
+  --theme-success-500: var(--homeu-accent);
+  --theme-warning-500: var(--homeu-gold);
+  --theme-error-500: var(--homeu-danger);
+  --font-body: Inter, Arial, Helvetica, sans-serif;
+}
+
+html,
+body {
+  background: var(--homeu-canvas);
+}
+
+body {
+  color: var(--homeu-ink);
+  font-feature-settings: "cv02", "cv03", "cv04";
+}
+
+.app,
+.template-default {
+  background:
+    linear-gradient(180deg, rgba(34, 115, 75, 0.08), rgba(244, 246, 241, 0) 300px),
+    radial-gradient(circle at 82% 0%, rgba(198, 146, 61, 0.11), transparent 280px),
+    var(--homeu-canvas);
+}
+
+.template-default__wrap {
+  gap: 0;
+}
+
+.nav,
+.nav__scroll,
+.template-default__wrap > aside {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 220px),
+    var(--homeu-nav);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f7f4ec;
+}
+
+.nav__header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 18px;
+}
+
+.nav__header::after {
+  content: "HomeU Command";
+  display: block;
+  margin-top: 12px;
+  color: #f7f4ec;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.nav__header::before {
+  content: "DaVinciOS";
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  border: 1px solid rgba(198, 146, 61, 0.45);
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: rgba(198, 146, 61, 0.12);
+  color: #f1d9a8;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.nav a,
+.nav button {
+  border-radius: 6px;
+  color: #e7ece4;
+  font-weight: 650;
+}
+
+.nav a:hover,
+.nav button:hover,
+.nav .nav__link--active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.nav .nav__link--active {
+  box-shadow: inset 3px 0 0 var(--homeu-gold);
+}
+
+.dashboard,
+.collection-list,
+.doc {
+  max-width: 1520px;
+  padding-inline: clamp(18px, 2vw, 36px);
+}
+
+.dashboard__label,
+.collection-list__sub-header,
+.doc-header {
+  color: var(--homeu-ink);
+}
+
+.collection-list__sub-header,
+.doc-header {
+  border-bottom: 1px solid rgba(21, 26, 23, 0.08);
+  padding-bottom: 14px;
+}
+
+.collection-list__wrap,
+.doc__form,
+.auth,
+.table,
+.list-controls,
+.field-type,
+.dashboard__card-list li,
+.card {
+  border-color: var(--homeu-line);
+  border-radius: 8px;
+}
+
+.collection-list__wrap,
+.doc__form,
+.auth,
+.table,
+.dashboard__card-list li {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--homeu-shadow);
+}
+
+.list-controls {
+  background: linear-gradient(180deg, #ffffff, #fbfcf8);
+  border-bottom: 1px solid var(--homeu-line);
+}
+
+.btn,
+button,
+input,
+select,
+textarea {
+  border-radius: 6px;
+}
+
+input,
+select,
+textarea {
+  border-color: var(--homeu-line-strong);
+}
+
+.btn {
+  min-height: 36px;
+  font-weight: 750;
+}
+
+.btn--style-primary,
+.btn--style-primary:focus,
+.btn--style-primary:hover {
+  background: linear-gradient(180deg, #2c875a, var(--homeu-accent-strong));
+  border-color: var(--homeu-accent-strong);
+  box-shadow: 0 8px 22px rgba(34, 115, 75, 0.22);
+  color: #ffffff;
+}
+
+.btn--style-secondary {
+  border-color: var(--homeu-line-strong);
+  background: #ffffff;
+  color: var(--homeu-ink);
+}
+
+.btn--style-pill {
+  border-radius: 999px;
+}
+
+.btn:focus,
+a:focus,
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid rgba(34, 115, 75, 0.4);
+  outline-offset: 2px;
+}
+
+.table {
+  overflow: hidden;
+}
+
+.table table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table table thead th {
+  background: #edf2e9;
+  border-bottom: 1px solid var(--homeu-line-strong);
+  color: #344038;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.table table tbody tr {
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+.table table tbody tr:hover {
+  background: #f7faf4;
+  box-shadow: inset 3px 0 0 rgba(34, 115, 75, 0.45);
+}
+
+.table table tbody td {
+  border-bottom-color: #e8ede5;
+}
+
+.pill,
+.popup-button,
+.relationship--multi-value-label,
+.select-value {
+  border-radius: 999px;
+}
+
+.pill {
+  font-weight: 750;
+}
+
+.pill--style-success,
+[class*="status"][class*="active"] {
+  background: rgba(34, 115, 75, 0.13);
+  color: var(--homeu-accent-strong);
+}
+
+.field-label,
+.render-fields__label {
+  color: var(--homeu-ink);
+  font-weight: 800;
+}
+
+.field-description,
+.collection-list__description,
+.render-fields__description {
+  color: var(--homeu-muted);
+  line-height: 1.45;
+}
+
+.field-type {
+  background: #ffffff;
+}
+
+.drawer,
+.modal,
+.popup {
+  border-radius: 8px;
+  box-shadow: 0 22px 70px rgba(21, 26, 23, 0.18);
+}
+
+.login {
+  background:
+    linear-gradient(135deg, rgba(16, 22, 18, 0.94), rgba(24, 37, 28, 0.9)),
+    var(--homeu-nav);
+}
+
+.login .template-minimal__wrap,
+.login__form {
+  border-radius: 8px;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.26);
+}
+
+.login__brand {
+  margin-bottom: 22px;
+}
+
+@media (max-width: 900px) {
+  .dashboard,
+  .collection-list,
+  .doc {
+    max-width: 100%;
+    padding-inline: 14px;
+  }
+
+  .table {
+    box-shadow: none;
+  }
+}

@@ -26,8 +26,8 @@
       "@/*": [
         "./src/*"
       ],
-      "@payload-config": [
-        "./src/payload.config.ts"
+      "@DaVinciOS-config": [
+        "./src/daVinciOS.config.ts"
       ]
     }
   },

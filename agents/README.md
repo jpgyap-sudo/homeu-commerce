@@ -9,7 +9,7 @@ All agents registered in `.kilo/kilo.json` with corresponding skills in `.kilo/s
 | `reverse-engineer` | Kilo | `shopify-reverse-engineer` | Full migration pipeline |
 | `central-brain` | Kilo | `migration-central-brain` | PostgreSQL + Hermes3 memory |
 | `deploy` | Kilo | `deploy` | VPS Docker deployment |
-| `data-sync` | Kilo | `data-sync` | Shopify → Payload sync |
+| `data-sync` | Kilo | `data-sync` | Shopify → DaVinciOS sync |
 | `image-pipeline` | Kilo | `image-pipeline` | Image migration |
 | `navigation` | Kilo | `navigation-migration` | Menu migration |
 | `theme-migration` | Kilo | `theme-migration` | Liquid → Next.js |

@@ -1,6 +1,6 @@
 # Architecture
 
-Phase 1 uses Next.js + Payload CMS + PostgreSQL.
+Phase 1 uses Next.js + DaVinciOS CMS + PostgreSQL.
 
 The cart is an RFQ cart, not an ecommerce checkout cart. Customers can add multiple products, see estimated price, and submit a quotation request.
 

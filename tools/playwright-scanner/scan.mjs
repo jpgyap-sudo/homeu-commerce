@@ -341,9 +341,9 @@ async function scan() {
   // Share with shopify-import output
   const sharedOutput = path.resolve(__dirname, '..', 'shopify-import', 'output')
   fs.mkdirSync(sharedOutput, { recursive: true })
-  fs.writeFileSync(path.join(sharedOutput, 'payload-products.json'), JSON.stringify(products, null, 2))
+  fs.writeFileSync(path.join(sharedOutput, 'DaVinciOS-products.json'), JSON.stringify(products, null, 2))
   if (allPages.some(p => p.type === 'page' || p.type === 'blog')) {
-    fs.writeFileSync(path.join(sharedOutput, 'payload-pages.json'), JSON.stringify(
+    fs.writeFileSync(path.join(sharedOutput, 'DaVinciOS-pages.json'), JSON.stringify(
       allPages.filter(p => ['page', 'blog', 'homepage'].includes(p.type)), null, 2))
   }
   fs.writeFileSync(path.join(sharedOutput, 'seo-metadata.json'), JSON.stringify(seoData, null, 2))

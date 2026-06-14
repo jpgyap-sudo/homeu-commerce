@@ -6,7 +6,7 @@ Key architectural decisions made during the HomeU Shopify → self-hosted migrat
 
 | # | Decision | Rationale | Date |
 |---|----------|-----------|------|
-| 1 | **Payload CMS over Medusa** | Phase 1 doesn't need checkout/orders. Payload is simpler, no ecommerce overhead. Add Medusa later if needed. | 2026-06-14 |
+| 1 | **DaVinciOS CMS over Medusa** | Phase 1 doesn't need checkout/orders. DaVinciOS is simpler, no ecommerce overhead. Add Medusa later if needed. | 2026-06-14 |
 | 2 | **PostgreSQL Central Brain** | Flat JSON doesn't scale for 661 products + 30 collections + 2000 images. PostgreSQL gives queries, joins, resumability. | 2026-06-14 |
 | 3 | **Hermes3 over external AI** | Local hermes3:latest (4.7GB) avoids API costs, works offline, keeps data private. | 2026-06-14 |
 | 4 | **Shopify MCP server (read-only)** | MCP protocol allows AI agents to call Shopify API directly. Enforced GET-only at code level. | 2026-06-14 |

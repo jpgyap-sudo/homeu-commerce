@@ -1,7 +1,7 @@
 # Migration Central Brain Agent
 
 ## Description
-PostgreSQL-backed persistent memory with Hermes3 reasoning for the Shopify → Payload CMS migration.
+PostgreSQL-backed persistent memory with Hermes3 reasoning for the Shopify → DaVinciOS CMS migration.
 
 ## Capabilities
 - Initialize and manage PostgreSQL schema for migration data
@@ -18,7 +18,7 @@ PostgreSQL-backed persistent memory with Hermes3 reasoning for the Shopify → P
 - `tools/migration-brain/migrations/001-schema.sql` — Database schema
 
 ## Database
-PostgreSQL (same instance as Payload CMS) with 12 tables for migration state.
+PostgreSQL (same instance as DaVinciOS CMS) with 12 tables for migration state.
 
 ## Related
 - Skill: migration-central-brain

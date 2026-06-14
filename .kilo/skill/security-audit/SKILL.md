@@ -25,9 +25,9 @@ echo | openssl s_client -servername store.homeu.ph -connect store.homeu.ph:443 2
 ss -tlnp | grep -E ":(80|443|5432|3000|6379)"
 ```
 
-### Check Payload security config
+### Check DaVinciOS security config
 ```bash
-grep -E "cors|csrf|cookiePrefix|secret" apps/website/src/payload.config.ts
+grep -E "cors|csrf|cookiePrefix|secret" apps/website/src/DaVinciOS.config.ts
 ```
 
 ### npm audit

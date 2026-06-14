@@ -74,12 +74,12 @@ node scan.mjs --brain  # stores every page to PostgreSQL
 
 # 4. Ask Hermes3 for intelligent guidance
 node ../migration-brain/hermes-agent.mjs reason \
-  "What's the best approach for mapping the 30 Shopify collections to our Payload CMS categories?"
+  "What's the best approach for mapping the 30 Shopify collections to our DaVinciOS CMS categories?"
 
 # 5. Store a lesson learned
 node ../migration-brain/brain.mjs remember \
   "Product handle normalization" \
-  "Shopify handles are case-insensitive but Payload slugs are lowercase. Always lowercase handles during import." \
+  "Shopify handles are case-insensitive but DaVinciOS slugs are lowercase. Always lowercase handles during import." \
   "products,urls,lesson"
 
 # 6. Generate comprehensive report
@@ -106,7 +106,7 @@ The Hermes3 agent (hermes3:latest, 4.7GB local) fills these roles:
 [Start] → Brain init → Scanner (stores pages/products) 
          → Hermes3 validates → Parser (stores to brain)
          → Hermes3 cross-references → Map URLs
-         → Visual analysis (llava:7b) → Import to Payload
+         → Visual analysis (llava:7b) → Import to DaVinciOS
          → Verify → Store lessons → [Done]
                                      ↓
                              Brain remembers everything

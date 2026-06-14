@@ -4,7 +4,7 @@
  * Shopify Export Parser
  * 
  * Parses exported Shopify data (products CSV, theme ZIP, images folder)
- * and converts to Payload CMS compatible format.
+ * and converts to DaVinciOS CMS compatible format.
  * 
  * Input:
  *   tools/shopify-import/input/products.csv   - Shopify product export
@@ -12,10 +12,10 @@
  *   tools/shopify-import/input/images/        - Product images folder
  * 
  * Output:
- *   tools/shopify-import/output/payload-products.json
- *   tools/shopify-import/output/payload-categories.json
- *   tools/shopify-import/output/payload-pages.json
- *   tools/shopify-import/output/payload-media.json
+ *   tools/shopify-import/output/DaVinciOS-products.json
+ *   tools/shopify-import/output/DaVinciOS-categories.json
+ *   tools/shopify-import/output/DaVinciOS-pages.json
+ *   tools/shopify-import/output/DaVinciOS-media.json
  *   tools/shopify-import/output/navigation.json
  *   tools/shopify-import/output/301-redirect-map.csv
  *   tools/shopify-import/output/images-manifest.json
@@ -153,13 +153,13 @@ function mapImagesToProducts(products, imagesDir) {
 }
 
 // =============================================
-// 4. Generate Payload CMS Compatible Output
+// 4. Generate DaVinciOS CMS Compatible Output
 // =============================================
-function generatePayloadData(products, imageMap) {
+function generateDaVinciOSData(products, imageMap) {
   if (!products) return null
 
-  // Map CSV column names to payload fields
-  const payloadProducts = products.map(p => ({
+  // Map CSV column names to DaVinciOS fields
+  const DaVinciOSProducts = products.map(p => ({
     title: p.Title || p.title || '',
     slug: (p.Handle || p.handle || '').toLowerCase(),
     sku: p['Variant SKU'] || p.SKU || p.sku || '',
@@ -183,7 +183,7 @@ function generatePayloadData(products, imageMap) {
     shopifyOriginalUrl: p['Handle'] ? `https://www.homeu.ph/products/${p.Handle}` : '',
   }))
 
-  return payloadProducts
+  return DaVinciOSProducts
 }
 
 // =============================================
@@ -205,20 +205,20 @@ async function main() {
   const imagesDir = path.join(INPUT_DIR, 'images')
   const imageMap = mapImagesToProducts(products, imagesDir)
 
-  // 4. Generate Payload CMS data
+  // 4. Generate DaVinciOS CMS data
   if (products) {
-    const payloadProducts = generatePayloadData(products, imageMap)
+    const DaVinciOSProducts = generateDaVinciOSData(products, imageMap)
 
     fs.writeFileSync(
-      path.join(OUTPUT_DIR, 'payload-products.json'),
-      JSON.stringify(payloadProducts, null, 2)
+      path.join(OUTPUT_DIR, 'DaVinciOS-products.json'),
+      JSON.stringify(DaVinciOSProducts, null, 2)
     )
     fs.writeFileSync(
       path.join(OUTPUT_DIR, 'images-manifest.json'),
       JSON.stringify(imageMap, null, 2)
     )
 
-    console.log(`\n✅ Generated payload-products.json (${payloadProducts.length} products)`)
+    console.log(`\n✅ Generated DaVinciOS-products.json (${DaVinciOSProducts.length} products)`)
     console.log(`✅ Generated images-manifest.json (${imageMap.length} images)`)
   }
 
@@ -232,9 +232,9 @@ async function main() {
   console.log(`  Output directory:     ${OUTPUT_DIR}`)
   console.log('')
   console.log('📋 Next Steps:')
-  console.log('  1. Review payload-products.json for accuracy')
+  console.log('  1. Review DaVinciOS-products.json for accuracy')
   console.log('  2. Run Playwright scanner to verify against live site')
-  console.log('  3. Import into Payload CMS via admin panel')
+  console.log('  3. Import into DaVinciOS CMS via admin panel')
   console.log('')
   console.log('📂 Place Shopify export files in:')
   console.log(`  Products CSV: ${path.join(INPUT_DIR, 'products.csv')}`)

@@ -78,7 +78,7 @@ Live Shopify Site (www.homeu.ph)
 Playwright Scanner
        ↓
   ┌───────────────────┐
-  │ Structured JSON   │──→ Payload CMS Import
+  │ Structured JSON   │──→ DaVinciOS CMS Import
   │ SEO Metadata      │──→ SEO Preservation
   │ Screenshots       │──→ Visual Reference
   │ Image Manifest    │──→ Image Migration
@@ -89,7 +89,7 @@ Shopify Export (products.csv, images/, theme.zip)
 Shopify Export Parser
        ↓
   ┌───────────────────┐
-  │ Payload Products   │
+  │ DaVinciOS Products   │
   │ Image Mapping      │
   │ Theme Analysis     │
   └───────────────────┘
@@ -97,7 +97,7 @@ Shopify Export Parser
 Cross-reference: scanner data vs. export data
        ↓
   ┌───────────────────┐
-  │ Final Import Data  │──→ Payload CMS
+  │ Final Import Data  │──→ DaVinciOS CMS
   └───────────────────┘
 ```
 

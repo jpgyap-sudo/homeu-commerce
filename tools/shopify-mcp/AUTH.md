@@ -78,7 +78,7 @@ shopify_list_collections  → All categories with product mappings
 shopify_list_pages        → All pages with content and SEO
 shopify_list_blogs        → All blog articles
 shopify_get_themes        → Theme list and Liquid template access
-shopify_export_all        → Complete export to Payload CMS format
+shopify_export_all        → Complete export to DaVinciOS CMS format
 ```
 
 ## Troubleshooting

@@ -44,4 +44,4 @@ node -e "
 ## Storage Strategy
 - Short term: Keep original Shopify CDN URLs in database
 - Long term: Upload to DigitalOcean Spaces or Cloudflare R2
-- Referenced by: `products.images` → `media` collection in Payload
+- Referenced by: `products.images` → `media` collection in DaVinciOS

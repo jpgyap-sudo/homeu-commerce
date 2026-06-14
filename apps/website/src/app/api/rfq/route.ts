@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPayload } from 'payload'
-import { default as payloadConfig } from '@payload-config'
+import { getPayload as getDaVinciOS } from 'DaVinciOS'
+import { default as DaVinciOSConfig } from '@DaVinciOS-config'
 import nodemailer from 'nodemailer'
 import { generatePricingSuggestions } from '@/utils/ollama-utils'
 
@@ -16,7 +16,7 @@ const transporter = nodemailer.createTransport({
 
 export async function POST(request: NextRequest) {
   try {
-    const payload = await getPayload({ config: payloadConfig })
+    const daVinciOS = await getDaVinciOS({ config: DaVinciOSConfig })
     const body = await request.json()
 
     // Validate required fields
@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
       return sum + price * qty
     }, 0)
 
-    // Create RFQ request in Payload
-    const rfq = await payload.create({
+    // Create RFQ request in DaVinciOS
+    const rfq = await daVinciOS.create({
       collection: 'rfq-requests',
       data: {
         ...body,
