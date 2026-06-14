@@ -3,6 +3,12 @@ import type { CollectionConfig } from 'payload'
 export const RFQRequests = {
   slug: 'rfq-requests',
   admin: { useAsTitle: 'customerName' },
+  access: {
+    read: () => false,       // Admin-only: customers should not see other RFQs
+    create: () => true,      // Public: anyone can submit an RFQ
+    update: () => false,     // Admin-only via admin panel
+    delete: () => false,     // Admin-only via admin panel
+  },
   fields: [
     { name: 'customerName', type: 'text', required: true },
     { name: 'email', type: 'email' },

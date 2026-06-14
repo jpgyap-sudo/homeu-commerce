@@ -16,6 +16,7 @@ tools/**/node_modules/
 .next
 dist
 .next-env.d.ts
+next-env.d.ts
 
 # ─── Generated / Output ───
 tools/playwright-scanner/output/

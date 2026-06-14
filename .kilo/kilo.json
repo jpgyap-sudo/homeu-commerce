@@ -94,6 +94,14 @@
     "security-audit": {
       "description": "Security scanning: secrets, headers, SSL, ports, dependencies",
       "file": ".kilo/skill/security-audit/SKILL.md"
+    },
+    "frontend": {
+      "description": "Build and maintain the HomeU customer-facing frontend: pages, components, RFQ cart, data fetching patterns",
+      "file": ".kilo/skill/frontend/SKILL.md"
+    },
+    "nextjs": {
+      "description": "Next.js 16 + Payload CMS 3 resources: architecture, API endpoints, data patterns, env config, scanned data references",
+      "file": ".kilo/skill/nextjs/SKILL.md"
     }
   },
   "commands": {
