@@ -8,13 +8,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@DaVinciOScms/db-postgres": "3.85.1",
-    "@DaVinciOScms/next": "3.85.1",
-    "@DaVinciOScms/richtext-lexical": "3.85.1",
+    "@DaVinciOScms/db-postgres": "npm:@payloadcms/db-postgres@3.85.1",
+    "@DaVinciOScms/next": "npm:@payloadcms/next@3.85.1",
+    "@DaVinciOScms/richtext-lexical": "npm:@payloadcms/richtext-lexical@3.85.1",
     "next": "16.2.9",
     "nodemailer": "^8.0.11",
     "ollama": "^0.6.3",
-    "DaVinciOS": "3.85.1",
+    "DaVinciOS": "npm:payload@3.85.1",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "sharp": "0.35.1"

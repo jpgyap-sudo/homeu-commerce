@@ -3,29 +3,47 @@
 /**
  * ════════════════════════════════════════════════════════════
  *  DEPLOYER AGENT MCP SERVER
- *  Central coordination for all coding extensions.
- *  Prevents duplicate runs, queues deployments, tracks locks.
+ *  Central coordination for ALL coding extensions.
+ *  Prevents duplicate runs, queues deployments, tracks locks,
+ *  and ensures NO committed work is left behind.
  * ════════════════════════════════════════════════════════════
- * 
+ *
  * Architecture:
- *   Coding Extension → Deployer Agent MCP → Queue → Execute → Report
- *                          ↕                           ↕
- *                   Central Brain PostgreSQL       VPS (Tailscale/Public)
- * 
+ *   Coding Extensions (Roo, Claude, Blackbox, Codex, etc.)
+ *          │
+ *          ▼
+ *   Deployer Agent MCP ───▶ Queue ───▶ Execute ───▶ Report
+ *          │                              │
+ *          ▼                              ▼
+ *   Central Brain PostgreSQL        VPS (Tailscale/Public)
+ *   - deployer_locks                - git log for pending
+ *   - deployer_queue                - docker compose
+ *   - deployer_history [*]          - health checks
+ *
+ * PERSISTENCE GUARANTEE:
+ *   Before deploying, the agent checks ALL commits since the last
+ *   known deployment. Any work from ANY coding extension that has
+ *   been committed but not yet deployed WILL be deployed.
+ *
+ *   Use `deployer_pending` to see what's waiting, or
+ *   `deployer_deploy_pending` to deploy everything at once.
+ *
  * Locks:
  *   Only one coding extension can build/deploy at a time.
  *   Others get queued with status notification.
- * 
+ *
  * Connections:
  *   Primary:   Tailscale SSH  → 100.64.175.88
  *   Fallback:  Public IP SSH  → 104.248.225.250
  *   Direct:    VPS MCP        → local MCP server on VPS
- * 
+ *
  * Usage:
- *   node deployer-mcp.mjs           Run as MCP server (other extensions connect)
- *   node deployer-mcp.mjs --status  Show queue and lock status
- *   node deployer-mcp.mjs --deploy  Queue a full deployment
- *   node deployer-mcp.mjs --queue   Show current queue
+ *   node deployer-mcp.mjs                    Run as MCP server
+ *   node deployer-mcp.mjs --status           Show queue, locks, pending
+ *   node deployer-mcp.mjs --deploy           Queue a full deployment
+ *   node deployer-mcp.mjs --deploy-pending   Deploy ALL pending commits
+ *   node deployer-mcp.mjs --queue            Show current queue
+ *   node deployer-mcp.mjs --pending          Show pending commits
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
@@ -129,6 +147,155 @@ async function connectToVPS(command) {
   } catch { /* VPS MCP not available */ }
 
   return { success: false, error: lastError?.message || 'All connections failed' }
+}
+
+// =============================================
+// PENDING COMMITS DETECTION
+// Checks ALL coding extensions' committed-but-not-deployed work.
+// =============================================
+
+/**
+ * Get the last successfully deployed commit SHA from the database.
+ */
+async function getLastDeployedCommit() {
+  const pool = await getPg()
+  const result = await pool.query(
+    `SELECT commit_sha FROM deployer_history
+     WHERE status = 'success' OR status = 'degraded'
+     ORDER BY created_at DESC LIMIT 1`
+  )
+  return result.rows[0]?.commit_sha || null
+}
+
+/**
+ * Check the VPS for all commits that have been made since the last deployment.
+ * Returns detailed info about each pending commit including author, date, message, and files changed.
+ * This works across ALL coding extensions since it reads from the shared git log.
+ */
+async function checkPendingCommits() {
+  const lastDeployed = await getLastDeployedCommit()
+  
+  if (!lastDeployed) {
+    // No previous deployment found — check the full log
+    const result = await connectToVPS(
+      'cd /opt/homeu-commerce && git log --oneline -20 2>&1'
+    )
+    if (!result.success) {
+      return { success: false, error: result.error, pending: [], lastDeployed: null }
+    }
+    const commits = parseGitLog(result.output)
+    return {
+      success: true,
+      pending: commits,
+      lastDeployed: null,
+      note: 'No previous deployment found. Showing last 20 commits.',
+    }
+  }
+
+  // Check if lastDeployed is still in the git history
+  const verifyResult = await connectToVPS(
+    `cd /opt/homeu-commerce && git cat-file -t ${lastDeployed} 2>&1 || true`
+  )
+  if (!verifyResult.success || !verifyResult.output.trim()) {
+    // Commit SHA not found locally — might be a different branch
+    return {
+      success: false,
+      error: `Last deployed commit ${lastDeployed.slice(0, 12)} not found in local git history. May have been rebased.`,
+      pending: [],
+      lastDeployed,
+    }
+  }
+
+  // Get all commits since last deployment with full details
+  const logResult = await connectToVPS(
+    `cd /opt/homeu-commerce && git log ${lastDeployed}..HEAD --format="%H|%an|%ai|%s" 2>&1`
+  )
+  if (!logResult.success) {
+    return { success: false, error: logResult.error, pending: [], lastDeployed }
+  }
+
+  const commits = parseGitLogFull(logResult.output)
+
+  // For each commit, get the list of changed files
+  for (const commit of commits) {
+    const filesResult = await connectToVPS(
+      `cd /opt/homeu-commerce && git diff-tree --no-commit-id -r --name-only ${commit.sha} 2>&1`
+    )
+    if (filesResult.success && filesResult.output.trim()) {
+      commit.files = filesResult.output.split('\n').filter(f => f.trim())
+    }
+  }
+
+  return { success: true, pending: commits, lastDeployed }
+}
+
+/**
+ * Parse git log --oneline output into commit objects.
+ */
+function parseGitLog(output) {
+  if (!output || !output.trim()) return []
+  return output.split('\n')
+    .filter(line => line.trim())
+    .map(line => {
+      const match = line.match(/^([a-f0-9]+)\s(.+)$/)
+      if (!match) return null
+      return { sha: match[1], message: match[2].trim() }
+    })
+    .filter(Boolean)
+}
+
+/**
+ * Parse git log --format="%H|%an|%ai|%s" output into detailed commit objects.
+ */
+function parseGitLogFull(output) {
+  if (!output || !output.trim()) return []
+  return output.split('\n')
+    .filter(line => line.trim())
+    .map(line => {
+      const parts = line.split('|')
+      if (parts.length < 4) return null
+      return {
+        sha: parts[0],
+        author: parts[1],
+        date: parts[2],
+        message: parts.slice(3).join('|'),
+        files: [],
+      }
+    })
+    .filter(Boolean)
+}
+
+/**
+ * Get a human-readable summary of pending commits grouped by extension/author.
+ */
+function formatPendingSummary(pending) {
+  if (!pending || pending.length === 0) return '✅ Nothing pending — all commits are deployed.'
+  
+  // Group by author
+  const byAuthor = {}
+  for (const c of pending) {
+    const author = c.author || 'unknown'
+    if (!byAuthor[author]) byAuthor[author] = []
+    byAuthor[author].push(c)
+  }
+
+  const lines = [`📋 ${pending.length} pending commit(s) found:\n`]
+  for (const [author, commits] of Object.entries(byAuthor)) {
+    lines.push(`  👤 ${author}:`)
+    for (const c of commits) {
+      const sha = c.sha.slice(0, 8)
+      const date = c.date ? c.date.slice(0, 10) : ''
+      const msg = c.message.length > 60 ? c.message.slice(0, 57) + '...' : c.message
+      const fileCount = c.files?.length || 0
+      lines.push(`    📝 ${sha} ${date} ${msg}`)
+      if (fileCount > 0) {
+        lines.push(`       📄 ${fileCount} file(s) changed`)
+      }
+    }
+    lines.push('')
+  }
+  lines.push(`💡 Run \`deployer_deploy_pending\` to deploy all ${pending.length} pending commit(s).`)
+  return lines.join('\n')
 }
 
 // =============================================
@@ -262,23 +429,26 @@ async function executeDeploy() {
   const pull = await connectToVPS('cd /opt/homeu-commerce && git pull 2>&1')
   if (!pull.success) return pull
   
-  // 2. Build
+  // 2. Get the actual HEAD commit SHA after pull (this is what we're deploying)
+  const headResult = await connectToVPS('cd /opt/homeu-commerce && git rev-parse HEAD 2>&1')
+  const commitSha = headResult.success ? headResult.output.trim() : (pull.output.match(/[a-f0-9]{7,40}/)?.[0] || '')
+  
+  // 3. Build
   const build = await connectToVPS('cd /opt/homeu-commerce && docker compose build --no-cache 2>&1 | tail -5')
   if (!build.success) return build
   
-  // 3. Start services
+  // 4. Start services
   const start = await connectToVPS('cd /opt/homeu-commerce && docker compose up -d 2>&1')
   if (!start.success) return start
   
-  // 4. Health check
+  // 5. Health check
   const health = await connectToVPS(
     'curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/'
       + ' && echo " " && curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/admin'
   )
   
-  // 5. Record history
+  // 6. Record history with full commit SHA
   const pool = await getPg()
-  const commitSha = pull.output.match(/[a-f0-9]{7,40}/)?.[0] || ''
   await pool.query(
     `INSERT INTO deployer_history (commit_sha, status, docker_image, deployed_by)
      VALUES ($1, $2, 'homeu-commerce-website:latest', $3)`,
@@ -354,6 +524,19 @@ const TOOLS = [
     description: 'Quick health check: homepage, admin panel, postgres',
     inputSchema: { type: 'object', properties: {} },
   },
+  // ═══════════════════════════════════════════════════════
+  // PERSISTENCE TOOLS — Ensure NO committed work is missed
+  // ═══════════════════════════════════════════════════════
+  {
+    name: 'deployer_pending',
+    description: 'Check ALL pending commits from ANY coding extension that have NOT yet been deployed. Compares git log on VPS against the last successfully deployed commit SHA in the database. Returns author, date, message, and files changed for each pending commit.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'deployer_deploy_pending',
+    description: 'Deploy ALL pending commits from ANY coding extension. Checks git for un-deployed commits, then runs full deploy cycle (git pull → build → restart → health check) for everything at once. This is the recommended way to ensure no work is left behind.',
+    inputSchema: { type: 'object', properties: {} },
+  },
 ]
 
 async function main() {
@@ -409,6 +592,48 @@ async function main() {
       console.log(`\n📋 Queue (${queue.rows.length} active items):`)
       queue.rows.forEach(q => console.log(`  #${q.id} ${q.task_type.padEnd(10)} ${q.status.padEnd(10)} p${q.priority} ${q.requested_by}`))
     } catch (err) { console.error(`Error: ${err.message}`) }
+    process.exit(0)
+  }
+
+  if (args.includes('--pending')) {
+    try {
+      const result = await checkPendingCommits()
+      if (!result.success) {
+        console.error(`❌ Failed to check pending commits: ${result.error}`)
+        process.exit(1)
+      }
+      console.log('\n📋 PENDING DEPLOYMENTS')
+      console.log('═══════════════════════════')
+      console.log(`Last deployed: ${result.lastDeployed ? result.lastDeployed.slice(0, 12) : 'N/A'}`)
+      console.log(formatPendingSummary(result.pending))
+    } catch (err) { console.error(`Error: ${err.message}`) }
+    process.exit(0)
+  }
+
+  if (args.includes('--deploy-pending')) {
+    const lock = await acquireLock(LOCKS.DEPLOY, 600)
+    if (!lock) { console.error('❌ Deploy lock held by another extension. Queued.'); await enqueueTask('deploy-pending', {}, 1); process.exit(1) }
+    try {
+      // Check what's pending first
+      const pending = await checkPendingCommits()
+      if (!pending.success) {
+        console.error(`❌ Cannot check pending: ${pending.error}`)
+        process.exit(1)
+      }
+      if (pending.pending.length === 0) {
+        console.log('✅ Nothing to deploy — all commits are already deployed.')
+        process.exit(0)
+      }
+      console.log(`📋 Deploying ${pending.pending.length} pending commit(s)...`)
+      console.log(formatPendingSummary(pending.pending))
+      
+      const task = await enqueueTask('deploy-pending', { pendingCount: pending.pending.length, from: pending.lastDeployed }, 2)
+      const result = await executeDeploy()
+      console.log(result.output || JSON.stringify(result))
+      const pool = await getPg()
+      await pool.query("UPDATE deployer_queue SET status = 'completed', result = $1 WHERE id = $2",
+        [JSON.stringify(result), task.id])
+    } finally { await releaseLock(LOCKS.DEPLOY) }
     process.exit(0)
   }
 
@@ -522,6 +747,58 @@ async function main() {
             "curl -s -o /dev/null -w 'homepage:%{http_code}' http://localhost:3000/ && echo -n ' ' && curl -s -o /dev/null -w 'admin:%{http_code}' http://localhost:3000/admin && echo -n ' ' && docker compose ps --format '{{.Name}}:{{.Status}}' 2>/dev/null"
           )
           return { content: [{ type: 'text', text: result.output || `Error: ${result.error}` }] }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // PERSISTENCE TOOL HANDLERS
+        // ═══════════════════════════════════════════════════════════
+
+        case 'deployer_pending': {
+          const pending = await checkPendingCommits()
+          if (!pending.success) {
+            return { content: [{ type: 'text', text: `❌ Failed to check pending commits: ${pending.error}` }] }
+          }
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                lastDeployed: pending.lastDeployed,
+                pendingCount: pending.pending.length,
+                pending: pending.pending,
+                summary: formatPendingSummary(pending.pending),
+              }, null, 2),
+            }],
+          }
+        }
+
+        case 'deployer_deploy_pending': {
+          // First check what's pending
+          const pendingCheck = await checkPendingCommits()
+          if (!pendingCheck.success) {
+            return { content: [{ type: 'text', text: `❌ Cannot check pending: ${pendingCheck.error}` }] }
+          }
+          if (pendingCheck.pending.length === 0) {
+            return { content: [{ type: 'text', text: '✅ Nothing to deploy — all commits are already deployed.' }] }
+          }
+
+          const lock = await acquireLock(LOCKS.DEPLOY, 600)
+          if (!lock) {
+            const task = await enqueueTask('deploy-pending', { pendingCount: pendingCheck.pending.length }, 1)
+            return { content: [{ type: 'text', text: `⚠️ Deploy locked. Queued as #${task.id} to deploy ${pendingCheck.pending.length} pending commit(s).` }] }
+          }
+          try {
+            console.error(`📋 Deploying ${pendingCheck.pending.length} pending commit(s)...`)
+            const task = await enqueueTask('deploy-pending', { pendingCount: pendingCheck.pending.length, from: pendingCheck.lastDeployed }, 2)
+            const result = await executeDeploy()
+            const pool = await getPg()
+            await pool.query("UPDATE deployer_queue SET status = 'completed', result = $1 WHERE id = $2",
+              [JSON.stringify(result), task.id])
+
+            const response = result.success
+              ? `✅ Deployed ${pendingCheck.pending.length} pending commit(s) successfully!\n${result.output}`
+              : `❌ Deployment failed after ${pendingCheck.pending.length} pending commit(s): ${result.error}`
+            return { content: [{ type: 'text', text: response }] }
+          } finally { await releaseLock(LOCKS.DEPLOY) }
         }
 
         default:

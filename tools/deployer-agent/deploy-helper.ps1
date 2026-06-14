@@ -25,7 +25,7 @@
 
 param(
     [Parameter(Mandatory = $false)]
-    [ValidateSet('build', 'deploy', 'sync', 'scan', 'status', 'queue', 'health')]
+    [ValidateSet('build', 'deploy', 'sync', 'scan', 'status', 'queue', 'health', 'pending', 'deploy-pending')]
     [string]$Action = 'status',
 
     [Parameter(Mandatory = $false)]
@@ -217,5 +217,18 @@ switch ($Action) {
         Write-Banner "Starting Site Scan" "Green"
         $result = Invoke-VPSCommand "cd /opt/homeu-commerce/tools/playwright-scanner && node scan.mjs --no-screenshots --delay 500 --max-pages 20 2>&1 | tail -10"
         Write-Host $result.Output
+    }
+
+    'pending' {
+        Write-Banner "Checking Pending Commits" "Cyan"
+        $deployerScript = Join-Path $ProjectRoot "tools\deployer-agent\deployer-mcp.mjs"
+        node $deployerScript --pending 2>&1
+    }
+
+    'deploy-pending' {
+        if (-not (Invoke-ApprovalGate -Action "Deploy ALL Pending Commits (git pull → build → restart)")) { exit 1 }
+        Write-Banner "Deploying ALL Pending Commits" "Green"
+        $deployerScript = Join-Path $ProjectRoot "tools\deployer-agent\deployer-mcp.mjs"
+        node $deployerScript --deploy-pending 2>&1
     }
 }
