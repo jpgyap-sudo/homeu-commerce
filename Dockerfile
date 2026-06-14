@@ -20,10 +20,8 @@ COPY --from=builder /app/website/.next/standalone ./
 COPY --from=builder /app/website/.next/static ./.next/static
 COPY --from=builder /app/website/public ./public
 
-# Copy Payload config file so it's findable at runtime
-COPY --from=builder /app/website/src/payload.config.ts ./src/payload.config.ts 2>/dev/null || true
-# Also needed: compiled output that Payload resolves
-COPY --from=builder /app/website/src ./src 2>/dev/null || true
+# Copy Payload config file and source so it's findable at runtime
+COPY --from=builder /app/website/src ./src
 
 # Copy Payload dependencies
 COPY --from=builder /app/website/node_modules/payload ./node_modules/payload
