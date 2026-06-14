@@ -33,12 +33,6 @@ export default buildConfig({
   ],
   // Security: cookie configuration for admin auth
   cookiePrefix: 'homeu',
-  // Rate limiting for API endpoints
-  rateLimit: {
-    max: 100,          // Max requests per window
-    window: 60 * 1000, // 1 minute window
-    trustProxy: true,  // Trust nginx proxy headers
-  },
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URI || '',
