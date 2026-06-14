@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
+import { default as payloadConfig } from '@payload-config'
 import nodemailer from 'nodemailer'
-import { generatePricingSuggestions } from '../utils/ollama-utils'
+import { generatePricingSuggestions } from '@/utils/ollama-utils'
 
 // Configure email transport (update with your email provider credentials)
 const transporter = nodemailer.createTransport({
@@ -15,7 +16,7 @@ const transporter = nodemailer.createTransport({
 
 export async function POST(request: NextRequest) {
   try {
-    const payload = await getPayload()
+    const payload = await getPayload({ config: payloadConfig })
     const body = await request.json()
 
     // Validate required fields
