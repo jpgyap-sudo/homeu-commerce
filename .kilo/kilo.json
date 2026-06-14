@@ -2,28 +2,40 @@
   "name": "homeu-commerce",
   "agents": {
     "reverse-engineer": {
-      "description": "Reverse engineers the live Shopify site (www.homeu.ph) and generates complete migration data for Payload CMS",
+      "description": "Reverse engineers the live Shopify site (www.homeu.ph) with Playwright + Ollama vision + Central Brain",
       "file": ".kilo/agent/reverse-engineer.md"
+    },
+    "central-brain": {
+      "description": "Migration Central Brain — PostgreSQL memory + Hermes3 reasoning for the Shopify → Payload CMS migration",
+      "file": ".kilo/agent/central-brain.md"
     }
   },
   "skills": {
     "shopify-reverse-engineer": {
-      "description": "Reverse engineer Shopify site with Playwright scanner + Ollama vision (llava:7b), parse exports, and generate Payload CMS migration data",
+      "description": "Full migration pipeline: Playwright scan, Ollama vision (llava:7b), Central Brain (PostgreSQL + Hermes3), Shopify export parser",
       "file": ".kilo/skill/shopify-reverse-engineer/SKILL.md"
+    },
+    "migration-central-brain": {
+      "description": "PostgreSQL-backed migration memory with Hermes3 reasoning for intelligent migration decisions",
+      "file": ".kilo/skill/migration-central-brain/SKILL.md"
     }
   },
   "commands": {
     "reverse-engineer": {
-      "description": "Run the full Shopify reverse engineering pipeline",
-      "prompt": "Load the shopify-reverse-engineer skill and execute all phases: 1) Playwright scan with screenshots + Ollama vision, 2) Parse Shopify exports, 3) Generate Payload CMS import data, 4) Validate completeness."
+      "description": "Run full Shopify reverse engineering pipeline with Central Brain",
+      "prompt": "Load the shopify-reverse-engineer skill. Initialize the Central Brain database, run Playwright scanner, analyze with Hermes3, parse Shopify exports, and generate Payload CMS import data."
     },
     "playwright-scan": {
-      "description": "Scan www.homeu.ph with Playwright + take screenshots + Ollama vision analysis",
-      "prompt": "Run the Playwright scanner on www.homeu.ph with screenshots enabled. Then analyze key screenshots with Ollama llava:7b for visual structure extraction. Save all output to tools/playwright-scanner/output/."
+      "description": "Scan www.homeu.ph with Playwright + store results in Central Brain",
+      "prompt": "Run Playwright scanner with --brain flag to automatically store all discovered pages, products, collections, and SEO data into the Central Brain PostgreSQL database."
+    },
+    "brain-status": {
+      "description": "Show Central Brain migration status and Hermes3-recommended next steps",
+      "prompt": "Run tools/migration-brain/brain.mjs to check migration status, then ask hermes3 for next steps."
     },
     "parse-shopify-export": {
-      "description": "Parse Shopify products CSV, theme, and images from input/ folder",
-      "prompt": "Run tools/shopify-import/parser.mjs to parse any Shopify exports in tools/shopify-import/input/ and generate Payload CMS compatible data."
+      "description": "Parse Shopify exports and cross-reference with Central Brain via Hermes3",
+      "prompt": "Run tools/shopify-import/parser.mjs to parse exports, then use hermes-agent.mjs to cross-reference with scanner data stored in Central Brain."
     }
   }
 }

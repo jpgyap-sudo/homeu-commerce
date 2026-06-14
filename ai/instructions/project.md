@@ -2,50 +2,45 @@
 
 ## Project: HomeU Catalog + RFQ Starter
 
-**Goal:** Replace Shopify (www.homeu.ph) with a self-hosted furniture catalog website on VPS.
+**Goal:** Replace Shopify (www.homeu.ph) with self-hosted on VPS.
+**Stack:** Next.js + Payload CMS + PostgreSQL + Docker + Hermes3 + Ollama
+**Domains:** Frontend: store.homeu.ph | Admin: admin.homeu.ph
 
-**Stack:** Next.js + Payload CMS + PostgreSQL + Docker
+## Phase 1 Strategy
+Build as priced furniture catalog with RFQ cart. No checkout/payment in phase 1.
 
-**Domains:**
-- Frontend: store.homeu.ph → Next.js storefront
-- Admin: admin.homeu.ph → Payload CMS admin
+## Key Architecture: Migration Central Brain
 
-## Phase 1 Strategy (Current)
+The Central Brain is a **PostgreSQL-backed persistent memory** with **Hermes3 reasoning**:
 
-Build HomeU as a priced furniture catalog with RFQ cart. Do NOT build checkout, payment, or full ecommerce order flows in Phase 1.
+```
+tools/migration-brain/
+├── brain.mjs              # Orchestrator: init, status, next-steps, store, recall
+├── hermes-agent.mjs       # Hermes3 reasoning: URL matching, validation, triage
+├── migrations/
+│   └── 001-schema.sql     # 12 tables for migration state
+└── README.md              # Full architecture docs
+```
+
+Use it for every migration decision. Initialize once, then all tools store/read from it.
+
+## Hermes3 (local Ollama, 4.7GB)
+- **URL Matcher**: Determines if Shopify URL maps to new URL
+- **Product Validator**: Cross-references scanner vs export data
+- **Nav Analyst**: Reconstructs hierarchy from flat links
+- **Component Mapper**: Maps Liquid sections → Next.js components  
+- **Error Triage**: Analyzes errors and suggests fixes
+- **SEO Validator**: Scores and improves SEO metadata
+- **Strategist**: General migration advice
 
 ## Priorities
+1. SEO preservation — Use Central Brain URL mappings
+2. Visual clone — Use Ollama vision (llava:7b) comparisons
+3. Product import — Use Hermes3 cross-referencing
+4. RFQ cart — Simple quote-based, no ecommerce
+5. Central Brain — Always query before decisions
 
-1. **SEO preservation** — Keep URLs, titles, meta descriptions identical to Shopify
-2. **Visual clone** — Match the current Shopify site design exactly
-3. **Product import accuracy** — All 661 products must import correctly
-4. **RFQ cart and request flow** — Replace Shopify checkout with quote-based system
-5. **Simple maintainable code** — Prefer simplicity over complexity
-
-## Key Collections (Payload CMS)
-
-| Collection | Purpose |
-|------------|---------|
-| Products | Furniture catalog with prices, dimensions, materials, images |
-| Categories | Collection groupings matching Shopify |
-| RFQRequests | Bulk quotation requests from customers |
-| Media | Product images and uploads |
-| Pages | Static pages (About, FAQ, Contact, etc.) |
-
-## Available Tools
-
-| Tool | Purpose |
-|------|---------|
-| `tools/shopify-import/` | Import Shopify data into Payload |
-| `tools/seo-audit/` | Audit SEO metadata during migration |
-| `tools/theme-analyzer/` | Analyze Shopify theme for visual cloning |
-| `tools/crawler/` | Crawl Shopify site to discover all URLs |
-| `.kilo/skill/shopify-reverse-engineer/` | Full reverse engineering skill |
-
-## Security Rules
-
-- No analytics/telemetry code (confirmed clean)
-- All deps pinned to specific versions
-- Payload CMS configured with CORS/CSRF whitelist
-- Nginx with security headers
-- SSL via Let's Encrypt with auto-renewal
+## Connected Systems
+- Codex Brain MCP (global lessons) → Migration Central Brain (project state)
+- Ollama hermes3 (reasoning) + llava:7b (vision) → All agents
+- PostgreSQL (memory) → Persistent across sessions

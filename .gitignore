@@ -7,3 +7,7 @@ dist
 *.log
 .next-env.d.ts
 memory/
+tools/playwright-scanner/output/
+tools/shopify-import/output/
+node_modules/
+.blackboxrules
