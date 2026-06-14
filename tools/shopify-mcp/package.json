@@ -1,0 +1,19 @@
+{
+  "name": "homeu-shopify-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server that connects to Shopify Admin API — provides tools to export all store data for migration",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "export": "node export-all.mjs",
+    "auth": "node auth-setup.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.0"
+  },
+  "shopify": {
+    "scopes": "read_products,read_content,read_themes,read_customers,read_orders"
+  }
+}

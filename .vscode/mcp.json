@@ -1,0 +1,16 @@
+{
+  "servers": {
+    "shopify-homeu": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/tools/shopify-mcp/server.mjs"
+      ],
+      "description": "🔒 READ-ONLY Shopify Admin API — lists products, collections, pages, themes, blogs",
+      "env": {
+        "SHOPIFY_STORE": "",
+        "SHOPIFY_TOKEN": ""
+      }
+    }
+  }
+}
