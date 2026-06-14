@@ -38,3 +38,7 @@ Thumbs.db
 # ─── Memory (except important docs) ───
 memory/
 !memory/migration-decisions.md
+
+# ─── Docker Build Artifacts ───
+*.tar
+*.tar.gz
