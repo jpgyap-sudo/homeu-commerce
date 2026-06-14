@@ -56,6 +56,10 @@
     "content": {
       "description": "Draft and improve product descriptions, landing pages, blog posts",
       "file": "agents/content-agent.md"
+    },
+    "deployer": {
+      "description": "🚀 Central deploy coordinator: locks, queues, and executes deploys across multiple coding extensions. Prevents duplicate runs. Uses Tailscale SSH + VPS MCP fallback.",
+      "file": ".kilo/agent/deployer-agent.md"
     }
   },
   "skills": {
@@ -120,6 +124,14 @@
     "plan": {
       "description": "Show migration status and Hermes3-recommended next steps",
       "prompt": "Read Central Brain status and docs/STATUS.md. Use Hermes3 to suggest optimal next task."
+    },
+    "deploy": {
+      "description": "🚀 Queue a full deploy through the Deployer Agent. Locks, deduplicates, coordinates across extensions.",
+      "prompt": "Use the Deployer Agent to perform a full deploy: 1) Check deployer_status for locks, 2) Call deployer_deploy, 3) Monitor queue, 4) Report result with health check."
+    },
+    "build": {
+      "description": "🏗️ Queue a Docker build via the Deployer Agent. Separate build container, no production impact.",
+      "prompt": "Use the Deployer Agent build tool. Check for existing build lock, then queue a build. Use the separate build.Dockerfile for isolation."
     }
   }
 }

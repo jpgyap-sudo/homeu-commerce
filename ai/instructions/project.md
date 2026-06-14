@@ -36,3 +36,19 @@ Replace Shopify (www.homeu.ph) with self-hosted site on VPS.
 5. Full agent list: `agents/README.md`
 6. Feature status: `docs/STATUS.md`
 7. Migration plan: `docs/INSTRUCTION.md`
+
+## Blackbox + SuperRoo Memory Split
+
+For this repo, Blackbox should use its native coding workflow and built-in
+tools. Do not force Blackbox coding through local Ollama.
+
+SuperRoo remains active as the memory and coordination layer:
+
+- record tasks in `memory/task-log.jsonl`
+- record bugs in `memory/bug-log.jsonl`
+- store lessons in Codex Brain / SuperRoo lesson memory
+- record ML outcomes after meaningful coding/debugging work
+- sync lessons and ML artifacts when requested
+
+This split keeps Blackbox's working native tool path while preserving shared
+learning for Codex, Kilo Code, Claude, Blackbox, and SuperRoo.

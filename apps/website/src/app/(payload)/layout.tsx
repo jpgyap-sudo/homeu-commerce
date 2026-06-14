@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { RootLayout } from '@payloadcms/next/layouts'
-import type { LayoutServerProps } from 'payload'
 
 export const metadata: Metadata = {
   title: 'HomeU Admin',
@@ -8,6 +7,6 @@ export const metadata: Metadata = {
   robots: 'noindex,nofollow',
 }
 
-export default function PayloadLayout({ children, params }: LayoutServerProps) {
+export default function PayloadLayout({ children, params }: any) {
   return RootLayout({ children, params })
 }
