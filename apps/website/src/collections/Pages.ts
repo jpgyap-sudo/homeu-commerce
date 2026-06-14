@@ -1,3 +1,5 @@
+import type { CollectionConfig } from 'payload'
+
 export const Pages = {
   slug: 'pages',
   admin: { useAsTitle: 'title' },
@@ -9,4 +11,4 @@ export const Pages = {
     { name: 'seoDescription', type: 'textarea' },
     { name: 'shopifyOriginalUrl', type: 'text' }
   ]
-}
+} satisfies CollectionConfig

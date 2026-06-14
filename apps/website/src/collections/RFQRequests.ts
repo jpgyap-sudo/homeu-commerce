@@ -1,3 +1,5 @@
+import type { CollectionConfig } from 'payload'
+
 export const RFQRequests = {
   slug: 'rfq-requests',
   admin: { useAsTitle: 'customerName' },
@@ -22,4 +24,4 @@ export const RFQRequests = {
     { name: 'estimatedTotal', type: 'number' },
     { name: 'status', type: 'select', defaultValue: 'new', options: ['new', 'contacted', 'quoted', 'closed', 'lost'] }
   ]
-}
+} satisfies CollectionConfig
