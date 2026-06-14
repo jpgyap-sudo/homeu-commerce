@@ -1,18 +1,39 @@
-node_modules/
-.next
+# ─── Environment & Secrets ───
 .env
 .env.local
-dist
-.DS_Store
-*.log
-.next-env.d.ts
-.blackboxrules
-tools/playwright-scanner/output/
-tools/shopify-import/output/
-tools/shopify-mcp/.shopify-env.json
-migration-output/
+.env.*.local
+*.shopify-env.json
+*.env.json
+*credentials*
+*.pem
+*.key
+
+# ─── Node / Dependencies ───
+node_modules/
 tools/**/node_modules/
 
-# Allow tracking of important docs in memory/
-memory/*
+# ─── Build Artifacts ───
+.next
+dist
+.next-env.d.ts
+
+# ─── Generated / Output ───
+tools/playwright-scanner/output/
+tools/shopify-import/output/
+migration-output/
+
+# ─── OS Files ───
+.DS_Store
+Thumbs.db
+
+# ─── Logs ───
+*.log
+
+# ─── IDE / Config ───
+.blackboxrules
+.idea/
+.vscode/settings.json
+
+# ─── Memory (except important docs) ───
+memory/
 !memory/migration-decisions.md
