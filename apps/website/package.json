@@ -8,18 +8,19 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@payloadcms/db-postgres": "latest",
-    "@payloadcms/next": "latest",
-    "@payloadcms/richtext-lexical": "latest",
-    "next": "latest",
-    "payload": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "sharp": "latest"
+    "@payloadcms/db-postgres": "3.85.1",
+    "@payloadcms/next": "3.85.1",
+    "@payloadcms/richtext-lexical": "3.85.1",
+    "next": "16.2.9",
+    "payload": "3.85.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "sharp": "0.35.1"
   },
   "devDependencies": {
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "typescript": "latest"
+    "@types/node": "22.15.3",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.7",
+    "typescript": "5.8.3"
   }
 }
