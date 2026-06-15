@@ -50,7 +50,7 @@ apps/website/
 
 | File | Purpose |
 |------|---------|
-| [`DaVinciOS.config.ts`](apps/website/src/DaVinciOS.config.ts) | CMS config: collections, DB connection, CORS, CSRF, cookie settings |
+| [`daVinciOS.config.ts`](apps/website/src/daVinciOS.config.ts) | CMS config: collections, DB connection, CORS, CSRF, cookie settings |
 | [`next.config.mjs`](apps/website/next.config.mjs) | Next.js config: standalone output, image remote patterns, DaVinciOS integration |
 | [`Dockerfile`](Dockerfile) | Multi-stage production build (Node 20 Alpine) |
 | [`docker-compose.yml`](docker-compose.yml) | PostgreSQL + website containers |
@@ -60,16 +60,16 @@ apps/website/
 
 ```bash
 # Required
-PAYLOAD_SECRET=           # openssl rand -base64 48 (min 32 chars)
+DAVINCIOS_SECRET=         # openssl rand -base64 48 (min 32 chars)
 DATABASE_URI=             # postgres://user:password@host:5432/homeu
 
 # URLs
-PAYLOAD_PUBLIC_SERVER_URL=  # https://admin.homeu.ph
+DAVINCIOS_PUBLIC_SERVER_URL=  # https://admin.homeu.ph
 NEXT_PUBLIC_SITE_URL=       # https://store.homeu.ph
 NEXT_PUBLIC_SITE_NAME=      # HomeU
 
 # Optional
-PAYLOAD_TELEMETRY_DISABLED= # true
+DAVINCIOS_TELEMETRY_DISABLED= # true
 ```
 
 ## App Router Patterns
@@ -142,7 +142,7 @@ export function AddToQuoteButton({ product }: { product: any }) {
 
 ## DaVinciOS REST API Endpoints
 
-> All available at `PAYLOAD_PUBLIC_SERVER_URL/api/{collection}`
+> All available at `DAVINCIOS_PUBLIC_SERVER_URL/api/{collection}`
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|

@@ -4,8 +4,8 @@
  * Build a 301 redirect map (old Shopify path -> new site path) from the
  * already-migrated data, using each record's shopifyOriginalUrl + slug.
  *
- * Reads: output/payload-products.json, output/payload-categories.json,
- *        output/payload-pages.json
+ * Reads: output/daVinciOS-products.json, output/daVinciOS-categories.json,
+ *        output/daVinciOS-pages.json
  * Writes: output/redirects.json
  *
  * Usage: node tools/shopify-import/generate-redirects.mjs
@@ -34,9 +34,9 @@ function pathFromUrl(url) {
 }
 
 function main() {
-  const products = loadJSON('payload-products.json')
-  const categories = loadJSON('payload-categories.json')
-  const pages = loadJSON('payload-pages.json')
+  const products = loadJSON('daVinciOS-products.json')
+  const categories = loadJSON('daVinciOS-categories.json')
+  const pages = loadJSON('daVinciOS-pages.json')
 
   // Product count per category handle, used to prioritize which redirects
   // matter most for SEO (categories with more products = more search traffic).

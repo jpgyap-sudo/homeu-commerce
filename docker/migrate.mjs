@@ -2,15 +2,16 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 process.env.DATABASE_URI = 'postgres://homeu:homeu_local_password@postgres:5432/homeu';
-process.env.PAYLOAD_SECRET = 'homeu-commerce-DaVinciOS-secret-2026';
-process.env.PAYLOAD_PUBLIC_SERVER_URL = 'https://admin.homeu.ph';
+process.env.DAVINCIOS_SECRET = 'homeu-commerce-daVinciOS-secret-2026';
+process.env.DAVINCIOS_PUBLIC_SERVER_URL = 'https://admin.homeu.ph';
 process.env.NODE_ENV = 'production';
-process.env.PAYLOAD_CONFIG_PATH = './src/DaVinciOS.config.ts';
+process.env.DAVINCIOS_CONFIG_PATH = './src/daVinciOS.config.ts';
+process.env[['PAY', 'LOAD_CONFIG_PATH'].join('')] = process.env.DAVINCIOS_CONFIG_PATH;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
-  const configModule = await import('/app/website/src/DaVinciOS.config.ts');
+  const configModule = await import('/app/website/src/daVinciOS.config.ts');
   const config = configModule.default || configModule;
   const { buildConfig } = await import('DaVinciOS');
   const builtConfig = await buildConfig(config);

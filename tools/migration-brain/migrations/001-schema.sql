@@ -26,90 +26,12 @@ CREATE TABLE IF NOT EXISTS scanned_pages (
   notes TEXT
 );
 
--- Products extracted from Shopify (scanner + export)
-CREATE TABLE IF NOT EXISTS products (
-  id SERIAL PRIMARY KEY,
-  shopify_id BIGINT UNIQUE,
-  handle TEXT UNIQUE NOT NULL,
-  title TEXT NOT NULL,
-  sku TEXT,
-  price DECIMAL(12,2),
-  sale_price DECIMAL(12,2),
-  show_price BOOLEAN DEFAULT TRUE,
-  price_note TEXT,
-  description TEXT,
-  description_html TEXT,
-  dimensions TEXT,
-  materials TEXT,
-  tags TEXT[],
-  vendor TEXT,
-  seo_title TEXT,
-  seo_description TEXT,
-  status VARCHAR(20) DEFAULT 'discovered',    -- discovered, extracted, mapped, imported, verified
-  shopify_url TEXT,
-  DaVinciOS_id INTEGER,                          -- ID after import to DaVinciOS CMS
-  confidence DECIMAL(5,2),                     -- hermess3 confidence in data accuracy
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Collections/categories from Shopify
-CREATE TABLE IF NOT EXISTS collections (
-  id SERIAL PRIMARY KEY,
-  shopify_id BIGINT UNIQUE,
-  handle TEXT UNIQUE NOT NULL,
-  title TEXT NOT NULL,
-  description TEXT,
-  image_url TEXT,
-  seo_title TEXT,
-  seo_description TEXT,
-  parent_id INTEGER REFERENCES collections(id),
-  sort_order INTEGER DEFAULT 0,
-  status VARCHAR(20) DEFAULT 'discovered',
-  DaVinciOS_id INTEGER,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Many-to-many: products <-> collections
-CREATE TABLE IF NOT EXISTS product_collections (
-  product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
-  collection_id INTEGER REFERENCES collections(id) ON DELETE CASCADE,
-  sort_order INTEGER DEFAULT 0,
-  PRIMARY KEY (product_id, collection_id)
-);
-
--- Product images manifest
-CREATE TABLE IF NOT EXISTS images (
-  id SERIAL PRIMARY KEY,
-  product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
-  original_url TEXT NOT NULL,
-  local_path TEXT,                             -- path after download
-  alt_text TEXT,
-  checksum TEXT,                               -- MD5 for dedup
-  width INTEGER,
-  height INTEGER,
-  file_size BIGINT,
-  status VARCHAR(20) DEFAULT 'pending',        -- pending, downloaded, uploaded, failed
-  DaVinciOS_media_id INTEGER,                    -- ID after upload to DaVinciOS
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ==========================
--- SEO & URL MAPPING
--- ==========================
-
--- 301 redirect map (Shopify URL -> New URL)
-CREATE TABLE IF NOT EXISTS url_mappings (
-  id SERIAL PRIMARY KEY,
-  shopify_url TEXT NOT NULL UNIQUE,
-  new_url TEXT NOT NULL,
-  page_type VARCHAR(50),
-  redirect_type VARCHAR(10) DEFAULT '301',
-  status VARCHAR(20) DEFAULT 'mapped',         -- mapped, verified, deployed
-  verified BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- NOTE: Product/collection/image/redirect data is NOT duplicated here.
+-- DaVinciOS CMS already owns the canonical `products`, `categories`, `media`,
+-- and `redirects` tables (apps/website/src/collections/*) — the Central
+-- Brain reads counts from those directly (see brain.mjs showStatus /
+-- suggestNextSteps) instead of maintaining a second copy that would collide
+-- with DaVinciOS's table names and drift out of sync.
 
 -- ==========================
 -- NAVIGATION
@@ -214,12 +136,7 @@ CREATE TABLE IF NOT EXISTS brain_memories (
 -- INDEXES
 -- ==========================
 
-CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
-CREATE INDEX IF NOT EXISTS idx_products_handle ON products(handle);
-CREATE INDEX IF NOT EXISTS idx_collections_status ON collections(status);
-CREATE INDEX IF NOT EXISTS idx_url_mappings_status ON url_mappings(status);
 CREATE INDEX IF NOT EXISTS idx_migration_phases_phase ON migration_phases(phase);
 CREATE INDEX IF NOT EXISTS idx_scanned_pages_type ON scanned_pages(page_type);
-CREATE INDEX IF NOT EXISTS idx_images_status ON images(status);
 CREATE INDEX IF NOT EXISTS idx_migration_errors_severity ON migration_errors(severity);
 CREATE INDEX IF NOT EXISTS idx_brain_memories_type ON brain_memories(memory_type);

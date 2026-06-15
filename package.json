@@ -1,0 +1,15 @@
+{
+  "name": "homeu-commerce-monorepo",
+  "private": true,
+  "description": "HomeU Commerce — Monorepo root",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev": "npm run dev -w apps/website",
+    "lint": "npm run lint --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present"
+  }
+}

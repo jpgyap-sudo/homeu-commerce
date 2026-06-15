@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPayload as getDaVinciOS } from 'DaVinciOS'
 import type { Where } from 'DaVinciOS'
 import { default as DaVinciOSConfig } from '@DaVinciOS-config'
+import { getDaVinciOSClient } from '@/lib/daVinciOS'
 
 /**
  * GET /api/quotations?limit=10&page=1&status=draft&search=...
@@ -9,7 +9,7 @@ import { default as DaVinciOSConfig } from '@DaVinciOS-config'
  */
 export async function GET(request: NextRequest) {
   try {
-    const daVinciOS = await getDaVinciOS({ config: DaVinciOSConfig })
+    const daVinciOS = await getDaVinciOSClient(DaVinciOSConfig)
     const { searchParams } = new URL(request.url)
 
     const limit = parseInt(searchParams.get('limit') || '10')
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const daVinciOS = await getDaVinciOS({ config: DaVinciOSConfig })
+    const daVinciOS = await getDaVinciOSClient(DaVinciOSConfig)
     const body = await request.json()
 
     // Auto-generate quotation number if not provided

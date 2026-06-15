@@ -159,7 +159,7 @@ switch ($Action) {
         }
         
         Write-Banner "Starting Build" "Green"
-        $result = Invoke-VPSCommand "cd /opt/homeu-commerce && docker compose build --no-cache 2>&1 | tail -10"
+        $result = Invoke-VPSCommand "cd /opt/homeu-commerce; docker compose build --no-cache 2>&1 | tail -10"
         
         if ($result.Success) {
             Write-Host "✅ Build complete (via $($result.Via))`n$($result.Output)" -ForegroundColor Green
@@ -181,23 +181,23 @@ switch ($Action) {
         
         # Step 1: Pull latest
         Write-Host "1/4 Pulling latest code..." -ForegroundColor Cyan
-        $pull = Invoke-VPSCommand "cd /opt/homeu-commerce && git pull 2>&1"
+        $pull = Invoke-VPSCommand "cd /opt/homeu-commerce; git pull 2>&1"
         if (-not $pull.Success) { Write-Host "❌ Git pull failed" -ForegroundColor Red; exit 1 }
         
         # Step 2: Build
         Write-Host "2/4 Building..." -ForegroundColor Cyan
-        $build = Invoke-VPSCommand "cd /opt/homeu-commerce && docker compose build --no-cache 2>&1 | tail -10"
+        $build = Invoke-VPSCommand "cd /opt/homeu-commerce; docker compose build --no-cache 2>&1 | tail -10"
         if (-not $build.Success) { Write-Host "❌ Build failed" -ForegroundColor Red; exit 1 }
         
         # Step 3: Restart
         Write-Host "3/4 Restarting services..." -ForegroundColor Cyan
-        $restart = Invoke-VPSCommand "cd /opt/homeu-commerce && docker compose up -d 2>&1"
+        $restart = Invoke-VPSCommand "cd /opt/homeu-commerce; docker compose up -d 2>&1"
         if (-not $restart.Success) { Write-Host "❌ Restart failed" -ForegroundColor Red; exit 1 }
         
         # Step 4: Health check
         Write-Host "4/4 Health check..." -ForegroundColor Cyan
         Start-Sleep -Seconds 8
-        $health = Invoke-VPSCommand "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/ && echo -n ' ' && curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/admin"
+        $health = Invoke-VPSCommand "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/; echo -n ' '; curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/admin"
         
         Write-Host "`n✅ Deploy complete!" -ForegroundColor Green
         Write-Host "  Homepage: $($health.Output.Split(' ')[0])"
@@ -208,14 +208,14 @@ switch ($Action) {
     'sync' {
         if (-not (Invoke-ApprovalGate -Action "Shopify Data Sync")) { exit 1 }
         Write-Banner "Syncing Shopify Data" "Green"
-        $result = Invoke-VPSCommand "cd /opt/homeu-commerce && node tools/shopify-mcp/server.mjs --export 2>&1 | tail -10"
+        $result = Invoke-VPSCommand "cd /opt/homeu-commerce; node tools/shopify-mcp/server.mjs --export 2>&1 | tail -10"
         Write-Host $result.Output
     }
 
     'scan' {
         if (-not (Invoke-ApprovalGate -Action "Playwright Scan")) { exit 1 }
         Write-Banner "Starting Site Scan" "Green"
-        $result = Invoke-VPSCommand "cd /opt/homeu-commerce/tools/playwright-scanner && node scan.mjs --no-screenshots --delay 500 --max-pages 20 2>&1 | tail -10"
+        $result = Invoke-VPSCommand "cd /opt/homeu-commerce/tools/playwright-scanner; node scan.mjs --no-screenshots --delay 500 --max-pages 20 2>&1 | tail -10"
         Write-Host $result.Output
     }
 

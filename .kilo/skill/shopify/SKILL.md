@@ -109,7 +109,7 @@ Since HomeU uses RFQ (Request for Quotation) instead of direct checkout, the cus
 Name       — text, required
 Email      — email, required, unique
 Phone      — text, required
-Password   — (hashed, not stored in Payload — use Payload's built-in auth)
+Password   — (hashed, not stored in DaVinciOS — use DaVinciOS built-in auth)
 Address    — text (optional)
 CreatedAt  — date (auto)
 ```

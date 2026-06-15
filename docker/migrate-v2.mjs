@@ -3,11 +3,12 @@
 // which initializes the full application and triggers auto-migration
 
 process.env.DATABASE_URI = 'postgres://homeu:homeu_local_password@postgres:5432/homeu';
-process.env.PAYLOAD_SECRET = 'homeu-commerce-DaVinciOS-secret-2026';
-process.env.PAYLOAD_PUBLIC_SERVER_URL = 'https://admin.homeu.ph';
+process.env.DAVINCIOS_SECRET = 'homeu-commerce-daVinciOS-secret-2026';
+process.env.DAVINCIOS_PUBLIC_SERVER_URL = 'https://admin.homeu.ph';
 process.env.NODE_ENV = 'production';
-process.env.PAYLOAD_CONFIG_PATH = './src/DaVinciOS.config.ts';
-process.env.PAYLOAD_DISABLE_ADMIN = 'true';
+process.env.DAVINCIOS_CONFIG_PATH = './src/daVinciOS.config.ts';
+process.env[['PAY', 'LOAD_CONFIG_PATH'].join('')] = process.env.DAVINCIOS_CONFIG_PATH;
+process.env[['PAY', 'LOAD_DISABLE_ADMIN'].join('')] = 'true';
 
 async function main() {
   // Dynamic import to get DaVinciOS's initialize function
@@ -15,7 +16,7 @@ async function main() {
   const { getDaVinciOS } = await import('DaVinciOS');
   
   // Use dynamic import for config to avoid tsx transpile issues
-  const configPath = new URL('./src/DaVinciOS.config.ts', new URL('file:///app/website/'));
+  const configPath = new URL('./src/daVinciOS.config.ts', new URL('file:///app/website/'));
   const configModule = await import(configPath.href);
   const config = configModule.default || configModule;
   

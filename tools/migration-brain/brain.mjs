@@ -107,15 +107,24 @@ async function initDatabase() {
 
   // Insert initial phase records
   const phases = [
-    'discovery', 'scanning', 'extraction', 'parsing', 
+    'discovery', 'scanning', 'extraction', 'parsing',
     'mapping', 'import', 'verification', 'visual-analysis'
   ]
-  for (const phase of phases) {
-    try {
-      runSQL(`INSERT INTO migration_phases (phase, status) SELECT '${phase}', 'pending' WHERE NOT EXISTS (SELECT 1 FROM migration_phases WHERE phase = '${phase}')`)
-    } catch { /* ignore */ }
+  try {
+    const { default: pg } = await import('pg')
+    const client = new pg.Client({ connectionString: pgConnectionString() })
+    await client.connect()
+    for (const phase of phases) {
+      await client.query(
+        `INSERT INTO migration_phases (phase, status) SELECT $1::varchar, 'pending' WHERE NOT EXISTS (SELECT 1 FROM migration_phases WHERE phase = $1::varchar)`,
+        [phase]
+      )
+    }
+    await client.end()
+  } catch (err) {
+    console.log(`ℹ️  Could not seed phase records: ${err.message}`)
   }
-  
+
   console.log('\n✅ Central Brain ready')
 }
 
@@ -149,23 +158,24 @@ async function showStatus() {
       console.log(`${icon} ${phase}${status}${items}${errors}`)
     }
 
-    // Counts
+    // Counts - products/categories/media/redirects come straight from
+    // DaVinciOS CMS's own tables (single source of truth, no duplication)
     const pageCount = await client.query('SELECT COUNT(*) FROM scanned_pages')
     const productCount = await client.query('SELECT COUNT(*) FROM products')
-    const collectionCount = await client.query('SELECT COUNT(*) FROM collections')
-    const imageCount = await client.query('SELECT COUNT(*) FROM images')
-    const urlMappingCount = await client.query('SELECT COUNT(*) FROM url_mappings')
+    const collectionCount = await client.query('SELECT COUNT(*) FROM categories')
+    const imageCount = await client.query('SELECT COUNT(*) FROM media')
+    const urlMappingCount = await client.query('SELECT COUNT(*) FROM redirects')
     const errorCount = await client.query('SELECT COUNT(*) FROM migration_errors WHERE resolved = false')
     const memoryCount = await client.query('SELECT COUNT(*) FROM brain_memories')
 
-    console.log('\n━━━ COUNTS ━━━')
-    console.log(`   Pages:        ${pageCount.rows[0].count}`)
-    console.log(`   Products:     ${productCount.rows[0].count}`)
-    console.log(`   Collections:  ${collectionCount.rows[0].count}`)
-    console.log(`   Images:       ${imageCount.rows[0].count}`)
-    console.log(`   URL Mappings: ${urlMappingCount.rows[0].count}`)
+    console.log('\n━━━ COUNTS (from DaVinciOS CMS) ━━━')
+    console.log(`   Crawled pages:   ${pageCount.rows[0].count}`)
+    console.log(`   Products:        ${productCount.rows[0].count}`)
+    console.log(`   Categories:      ${collectionCount.rows[0].count}`)
+    console.log(`   Media:           ${imageCount.rows[0].count}`)
+    console.log(`   Redirects:       ${urlMappingCount.rows[0].count}`)
     console.log(`   Unresolved Errors: ${errorCount.rows[0].count}`)
-    console.log(`   Brain Memories: ${memoryCount.rows[0].count}`)
+    console.log(`   Brain Memories:  ${memoryCount.rows[0].count}`)
 
     await client.end()
   } catch (err) {
@@ -325,10 +335,11 @@ async function suggestNextSteps() {
     await client.connect()
     
     const counts = {
-      pages: (await client.query('SELECT COUNT(*) FROM scanned_pages')).rows[0].count,
+      crawledPages: (await client.query('SELECT COUNT(*) FROM scanned_pages')).rows[0].count,
       products: (await client.query('SELECT COUNT(*) FROM products')).rows[0].count,
-      collections: (await client.query('SELECT COUNT(*) FROM collections')).rows[0].count,
-      images: (await client.query('SELECT COUNT(*) FROM images')).rows[0].count,
+      categories: (await client.query('SELECT COUNT(*) FROM categories')).rows[0].count,
+      media: (await client.query('SELECT COUNT(*) FROM media')).rows[0].count,
+      redirects: (await client.query('SELECT COUNT(*) FROM redirects')).rows[0].count,
       errors: (await client.query('SELECT COUNT(*) FROM migration_errors WHERE resolved = false')).rows[0].count,
       completedPhases: (await client.query("SELECT COUNT(*) FROM migration_phases WHERE status = 'completed'")).rows[0].count,
     }

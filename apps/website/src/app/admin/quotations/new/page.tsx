@@ -284,7 +284,7 @@ export default function NewQuotationPage() {
 
     setSaving(true)
     try {
-      const payload = {
+      const quotationRequest = {
         customerName: customerName.trim(),
         email: email.trim() || undefined,
         phone: phone.trim(),
@@ -316,7 +316,7 @@ export default function NewQuotationPage() {
       const res = await fetch('/api/quotations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(quotationRequest),
       })
 
       if (!res.ok) {

@@ -36,7 +36,7 @@ RFQ Submitted → Contacted → Quoted → Quotation Sent → Won/Lost
 | `closed (won)` | Follow up, note closed won amount | Sales |
 | `closed (lost)` | Record reason, add to nurture list | Sales |
 
-## Payload CMS Collections
+## DaVinciOS CMS Collections
 
 ### Customers Collection
 **Slug**: `customers`
@@ -48,7 +48,7 @@ RFQ Submitted → Contacted → Quoted → Quotation Sent → Won/Lost
 | `name` | text | Yes | Customer's full name |
 | `email` | email | Yes | Login credential, unique |
 | `phone` | text | Yes | Contact number |
-| `password` | text | Yes | Hashed by Payload's auth |
+| `password` | text | Yes | Hashed by DaVinciOS auth |
 | `address` | text | No | Delivery address |
 | `notes` | textarea | No | Internal notes |
 | `status` | select | No | `active`, `inactive`, `lead` |
@@ -109,7 +109,7 @@ closed_lost     — ❌ Red (lost)
 
 ### Registration Page (`/register`)
 - Name, Email, Phone, Password fields
-- Creates new customer in Payload CMS
+- Creates new customer in DaVinciOS CMS
 - Auto-logs in after registration
 
 ### Customer Dashboard (`/customer/dashboard`)

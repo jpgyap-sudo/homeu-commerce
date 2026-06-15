@@ -207,6 +207,7 @@ async function main() {
   console.log(`\n=== Pages (${pages.length}) ===`)
   let pageCount = 0
   for (const p of pages) {
+    if (!p.title || !p.slug) continue // skip records not in the Shopify-export shape
     await client.query(
       `INSERT INTO pages (title, slug, content, seo_title, seo_description, shopify_original_url, updated_at, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, now(), now())

@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'DaVinciOS'
 import { adminUsers, anyone } from '../access/admin'
+import { generateProductSeoDescription, generateSeoTitle } from '../lib/seo/generateSeoDescription'
+import { extractPlainText } from '../lib/seo/extractPlainText'
 
 export const Products = {
   slug: 'products',
@@ -14,6 +16,44 @@ export const Products = {
     create: adminUsers,
     update: adminUsers,
     delete: adminUsers,
+  },
+  hooks: {
+    beforeValidate: [
+      async ({ data, req }) => {
+        if (!data || !data.title) return data
+
+        if (!data.seoTitle?.trim()) {
+          data.seoTitle = generateSeoTitle(data.title)
+        }
+
+        if (!data.seoDescription?.trim()) {
+          let categoryTitle: string | undefined
+          if (data.category) {
+            const categoryId = typeof data.category === 'object' ? data.category?.id : data.category
+            if (categoryId) {
+              try {
+                const category = await req.davincios.findByID({
+                  collection: 'categories',
+                  id: categoryId,
+                  depth: 0,
+                })
+                categoryTitle = category?.title
+              } catch {
+                // category lookup is best-effort; fall back without it
+              }
+            }
+          }
+
+          data.seoDescription = generateProductSeoDescription({
+            title: data.title,
+            description: extractPlainText(data.description),
+            categoryTitle,
+          })
+        }
+
+        return data
+      },
+    ],
   },
   fields: [
     { name: 'title', type: 'text', required: true },

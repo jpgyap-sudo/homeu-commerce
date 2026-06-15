@@ -2,6 +2,8 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Copy all local packages and website source
+COPY packages/ ./packages/
 COPY apps/website/package.json apps/website/tsconfig.json apps/website/next.config.mjs ./website/
 RUN cd website && npm install
 COPY apps/website/src/ ./website/src/
@@ -14,7 +16,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PAYLOAD_CONFIG_PATH=./src/DaVinciOS.config.ts
+ENV DAVINCIOS_CONFIG_PATH=./src/daVinciOS.config.ts
 
 COPY --from=builder /app/website/.next/standalone ./
 COPY --from=builder /app/website/.next/static ./.next/static
@@ -23,12 +25,11 @@ COPY --from=builder /app/website/public ./public
 # Copy DaVinciOS config file and source so it's findable at runtime
 COPY --from=builder /app/website/src ./src
 
-# Copy DaVinciOS dependencies
-COPY --from=builder /app/website/node_modules/DaVinciOS ./node_modules/DaVinciOS
-COPY --from=builder /app/website/node_modules/@DaVinciOScms ./node_modules/@DaVinciOScms
-COPY --from=builder /app/website/node_modules/pg ./node_modules/pg
-COPY --from=builder /app/website/node_modules/drizzle-orm ./node_modules/drizzle-orm
-COPY --from=builder /app/website/node_modules/pino ./node_modules/pino
+# Copy ALL node_modules from builder — ensures all transitive dependencies
+# (e.g. @next/env, drizzle-orm, pino, pg, etc.) are available at runtime.
+# Selective copies caused ERR_MODULE_NOT_FOUND for packages like @next/env/dist/index.js
+# which the DaVinciOS runtime loader requires.
+COPY --from=builder /app/website/node_modules ./node_modules
 
 EXPOSE 3000
 

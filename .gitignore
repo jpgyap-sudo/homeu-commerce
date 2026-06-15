@@ -17,11 +17,13 @@ tools/**/node_modules/
 dist
 .next-env.d.ts
 next-env.d.ts
+tsconfig.tsbuildinfo
 
 # ─── Generated / Output ───
 tools/playwright-scanner/output/
 tools/shopify-import/output/
 migration-output/
+admin.html
 
 # ─── OS Files ───
 .DS_Store
@@ -42,3 +44,7 @@ memory/
 # ─── Docker Build Artifacts ───
 *.tar
 *.tar.gz
+
+# ─── Temporary / Scratch files ───
+inspect-exports.mjs
+k.toLowerCase().includes(init)

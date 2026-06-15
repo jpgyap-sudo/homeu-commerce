@@ -60,6 +60,10 @@
     "deployer": {
       "description": "🚀 Central deploy coordinator: locks, queues, and executes deploys across multiple coding extensions. Prevents duplicate runs. Uses Tailscale SSH + VPS MCP fallback.",
       "file": ".kilo/agent/deployer-agent.md"
+    },
+    "concierge-builder": {
+      "description": "Build and maintain the HomeU Concierge chatbot: widget UI, API endpoints, AI integration, lead capture, RFQ cart sync, Telegram alerts, appointment booking",
+      "file": "agents/concierge-builder-agent.md"
     }
   },
   "skills": {
@@ -110,6 +114,10 @@
     "crm": {
       "description": "Customer relationship management: customer profiles, RFQ lifecycle, quotation tracking, sales pipeline",
       "file": ".kilo/skill/crm/SKILL.md"
+    },
+    "concierge-chatbot": {
+      "description": "AI-powered RFQ sales assistant chatbot: lead capture, product recommendations, RFQ cart, appointment booking, Telegram alerts, Viber handoff, lead scoring",
+      "file": ".kilo/skill/concierge-chatbot/SKILL.md"
     }
   },
   "commands": {
@@ -144,6 +152,10 @@
     "build": {
       "description": "🏗️ Queue a Docker build via the Deployer Agent. Separate build container, no production impact.",
       "prompt": "Use the Deployer Agent build tool. Check for existing build lock, then queue a build. Use the separate build.Dockerfile for isolation."
+    },
+    "build-chatbot": {
+      "description": "🤖 Build the HomeU Concierge chatbot: load skill guide and build all components",
+      "prompt": "Load the concierge-chatbot skill. Run the concierge-builder agent to build the full chatbot system: 1) Database schema, 2) AI provider layer, 3) Chat API endpoints, 4) Chat widget UI components, 5) Layout integration, 6) Telegram notifications."
     }
   }
 }

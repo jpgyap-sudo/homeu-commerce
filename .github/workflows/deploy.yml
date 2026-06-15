@@ -1,0 +1,158 @@
+# Deployment Pipeline Configuration
+
+This document describes the deployment pipeline for the DaVinciOS system.
+
+## Pipeline Overview
+
+The deployment pipeline automates the build, test, and deployment process for DaVinciOS using GitHub Actions.
+
+## Pipeline Configuration
+
+Create `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy DaVinciOS
+
+on:
+  push:
+    branches: [main, production]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'pnpm'
+    
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+    
+    - name: Build
+      run: pnpm build
+    
+    - name: Run tests
+      run: pnpm test
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build
+        path: dist/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/production'
+    
+    steps:
+    - name: Deploy to VPS
+      env:
+        VPS_HOST: ${{ secrets.VPS_HOST }}
+        VPS_USER: ${{ secrets.VPS_USER }}
+        DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+      run: |
+        echo "${{ secrets.DEPLOY_KEY }}" > /tmp/deploy_key
+        chmod 600 /tmp/deploy_key
+        ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'cd /app && git pull && pnpm install && pnpm build && pm2 restart all'
+```
+
+## Environment Configuration
+
+### Required Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `VPS_HOST` | Production VPS IP address |
+| `VPS_USER` | SSH user for VPS |
+| `DEPLOY_KEY` | SSH private key for deployment |
+
+### Environment Variables
+
+```env
+# Production
+NODE_ENV=production
+DAVINCIOS_SECRET=<production-secret>
+DAVINCIOS_PUBLIC_SERVER_URL=https://davincios.com
+
+# Staging
+NODE_ENV=staging
+DAVINCIOS_SECRET=<staging-secret>
+DAVINCIOS_PUBLIC_SERVER_URL=https://staging.davincios.com
+```
+
+## Deployment Stages
+
+### 1. Development
+- Automatic builds on PR
+- Test coverage required: 80%
+- Deploy preview URLs
+
+### 2. Staging
+- Manual approval required
+- Full integration tests
+- Performance benchmarks
+
+### 3. Production
+- Manual approval required
+- Blue-green deployment
+- Rollback capability
+
+## Rollback Procedures
+
+### Automated Rollback
+```bash
+# Rollback to previous version
+pm2 rollback davincios-api
+```
+
+### Manual Rollback
+```bash
+# SSH to VPS
+ssh user@vps-ip
+
+# Stop current deployment
+pm2 stop all
+
+# Rollback git
+git reset --hard HEAD~1
+
+# Restart
+pm2 start ecosystem.config.js
+```
+
+## Health Checks
+
+### Pre-deployment
+- Unit tests pass
+- Integration tests pass
+- Linting passes
+- Type checking passes
+
+### Post-deployment
+- API health check
+- Database connectivity
+- Admin panel accessible
+- File uploads working
+
+## Monitoring
+
+### Metrics to Track
+- Response time
+- Error rate
+- Database connections
+- Memory usage
+- CPU usage
+
+### Alerting Thresholds
+- Response time > 2s: Warning
+- Error rate > 5%: Critical
+- Memory usage > 80%: Warning
+- CPU usage > 90%: Critical

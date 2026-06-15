@@ -18,6 +18,7 @@ RUN npm install -g npm@latest
 
 # Pre-install dependencies layer (cached unless package.json changes)
 FROM base AS deps
+COPY packages/ ./packages/
 COPY apps/website/package.json apps/website/tsconfig.json apps/website/next.config.mjs ./website/
 RUN cd website && npm ci --only=production && npm ci --only=development
 
@@ -34,5 +35,4 @@ FROM scratch AS export
 COPY --from=builder /workspace/website/.next/standalone /
 COPY --from=builder /workspace/website/.next/static /.next/static
 COPY --from=builder /workspace/website/public /public
-COPY --from=builder /workspace/website/node_modules/DaVinciOS /node_modules/DaVinciOS
-COPY --from=builder /workspace/website/node_modules/@DaVinciOScms /node_modules/@DaVinciOScms
+COPY --from=builder /workspace/website/node_modules /node_modules

@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'DaVinciOS'
 import { adminUsers, anyone } from '../access/admin'
+import { generateCategorySeoDescription, generateSeoTitle } from '../lib/seo/generateSeoDescription'
 
 export const Categories = {
   slug: 'categories',
@@ -14,6 +15,20 @@ export const Categories = {
     create: adminUsers,
     update: adminUsers,
     delete: adminUsers,
+  },
+  hooks: {
+    beforeValidate: [
+      ({ data }) => {
+        if (!data) return data
+        if (!data.seoTitle?.trim() && data.title) {
+          data.seoTitle = generateSeoTitle(data.title)
+        }
+        if (!data.seoDescription?.trim() && data.title) {
+          data.seoDescription = generateCategorySeoDescription(data.title)
+        }
+        return data
+      },
+    ],
   },
   fields: [
     { name: 'title', type: 'text', required: true },

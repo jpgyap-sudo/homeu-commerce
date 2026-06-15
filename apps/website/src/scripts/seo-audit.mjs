@@ -7,7 +7,7 @@
  * against what's actually in the local Postgres DB, checks SEO-critical
  * fields, and cross-checks redirect coverage. Writes a report consumed by
  * apps/website/src/scripts/seed-seo-health.mjs (which pushes it into the
- * "seo-health" Payload global so it shows up in /admin).
+ * "seo-health" DaVinciOS global so it shows up in /admin).
  *
  * Usage: node src/scripts/seo-audit.mjs
  */
@@ -53,9 +53,9 @@ function nonEmpty(v) {
 async function main() {
   loadEnv()
 
-  const products = loadJSON('payload-products.json')
-  const categories = loadJSON('payload-categories.json')
-  const pages = loadJSON('payload-pages.json')
+  const products = loadJSON('daVinciOS-products.json')
+  const categories = loadJSON('daVinciOS-categories.json')
+  const pages = loadJSON('daVinciOS-pages.json')
   const redirects = loadJSON('redirects.json')
 
   const client = new pg.Client({ connectionString: process.env.DATABASE_URI })

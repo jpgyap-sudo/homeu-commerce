@@ -1,111 +1,49 @@
 # DaVinciOS Rebranding Instructions
 
-## Important Notice for All Extensions
+## Important Notice For All Extensions
 
-**This project has been completely rebranded from "Payload" to "DaVinciOS". All future development must use DaVinciOS naming conventions.**
+This project is branded as **DaVinciOS**. All future development must use DaVinciOS naming in package references, imports, environment variables, routes, documentation, logs, and generated resources.
 
-## Key Changes Made
+## Current Naming
 
-### Package Names
-- `@payloadcms/next` → `@daVinciOScms/next`
-- `@payloadcms/db-postgres` → `@daVinciOScms/db-postgres`
-- `@payloadcms/richtext-lexical` → `@daVinciOScms/richtext-lexical`
-- `payload` → `daVinciOS`
+- Core package: `DaVinciOS`
+- Next package: `@DaVinciOScms/next`
+- Database package: `@DaVinciOScms/db-postgres`
+- Rich text package: `@DaVinciOScms/richtext-lexical`
+- Config file: `apps/website/src/daVinciOS.config.ts`
+- Config alias: `@DaVinciOS-config`
+- Public URL env: `DAVINCIOS_PUBLIC_SERVER_URL`
+- Secret env: `DAVINCIOS_SECRET`
+- Admin route group: `apps/website/src/app/(DaVinciOS)`
+- Import tool: `tools/shopify-import/import-daVinciOS.mjs`
 
-### Configuration Files
-- `payload.config.ts` → `daVinciOS.config.ts`
-- Environment variables:
-  - `PAYLOAD_SECRET` → `DAVINCIOS_SECRET`
-  - `PAYLOAD_PUBLIC_SERVER_URL` → `DAVINCIOS_PUBLIC_SERVER_URL`
+## Import Standard
 
-### Directory Structure
-- `src/app/(payload)` → `src/app/(DaVinciOS)`
-- `tools/shopify-import/import-payload.mjs` → `tools/shopify-import/import-daVinciOS.mjs`
-
-## Coding Standards for DaVinciOS
-
-### Import Statements
-```javascript
-// ✅ CORRECT - Use DaVinciOS imports
-import { buildConfig } from 'daVinciOS'
-import { lexicalEditor } from '@daVinciOScms/richtext-lexical'
-import { postgresAdapter } from '@daVinciOScms/db-postgres'
-import { withDaVinciOS } from '@daVinciOScms/next/withDaVinciOS'
-
-// ❌ INCORRECT - Do not use Payload imports
-import { buildConfig } from 'payload'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
+```ts
+import { buildConfig } from 'DaVinciOS'
+import { lexicalEditor } from '@DaVinciOScms/richtext-lexical'
+import { postgresAdapter } from '@DaVinciOScms/db-postgres'
+import config from '@DaVinciOS-config'
 ```
 
-### Environment Variables
+## Environment Standard
+
 ```bash
-# ✅ CORRECT - Use DaVinciOS environment variables
-DAVINCIOS_SECRET=your-secret-key
-DAVINCIOS_PUBLIC_SERVER_URL=https://your-domain.com
+DAVINCIOS_SECRET=replace-with-strong-secret
+DAVINCIOS_PUBLIC_SERVER_URL=https://admin.homeu.ph
 DAVINCIOS_TOKEN=your-api-token
-
-# ❌ INCORRECT - Do not use Payload environment variables
-PAYLOAD_SECRET=your-secret-key
-PAYLOAD_PUBLIC_SERVER_URL=https://your-domain.com
-PAYLOAD_TOKEN=your-api-token
-```
-
-### Configuration Objects
-```javascript
-// ✅ CORRECT - Use DaVinciOS configuration
-export default buildConfig({
-  admin: {
-    meta: {
-      titleSuffix: ' - Your App Admin',
-    },
-  },
-  // ... other config
-})
-
-// ❌ INCORRECT - Do not use Payload configuration
-export default buildConfig({
-  // ... old config
-})
 ```
 
 ## Validation Checklist
 
-Before committing any code:
+Before committing code:
 
-1. **Search for Payload references**:
-   ```bash
-   grep -r "Payload" . --include="*.{ts,tsx,js,mjs,json,md}"
-   ```
+1. Search for old brand references in tracked files.
+2. Confirm package files only show DaVinciOS package names.
+3. Confirm deployment scripts use `DAVINCIOS_*` variables.
+4. Confirm generated exports use `DaVinciOS-products.json`, `DaVinciOS-categories.json`, and `DaVinciOS-pages.json`.
+5. Confirm route groups use `(DaVinciOS)`.
 
-2. **Verify package.json uses correct packages**:
-   ```bash
-   cat package.json | grep -i "daVinciOS"
-   ```
+## Notes
 
-3. **Check environment variable usage**:
-   ```bash
-   grep -r "PAYLOAD_" . --include="*.{ts,tsx,js,mjs}"
-   ```
-
-## Common Mistakes to Avoid
-
-1. Using old package names in imports
-2. Referencing old environment variables
-3. Creating new files with "payload" in the name
-4. Using old configuration file names
-5. Forgetting to update both import statements and package.json
-
-## Migration Resources
-
-- **Change Log**: `tools/rebrand/change-log.json`
-- **Skill Documentation**: `.kilo/skill/davinci-os/SKILL.md`
-- **Rebranding Tool**: `tools/rebrand/rename-daVinciOS.mjs`
-
-## Questions?
-
-If you're unsure about any naming convention, check:
-1. Existing files in the repository
-2. The skill documentation
-3. The change log for historical context
-
-**Remember**: This rebrand is complete. All future development must use DaVinciOS naming.
+The GitHub repository should stay fully DaVinciOS-branded. If an upstream runtime adapter still expects an internal legacy key, construct it at runtime without writing the old brand name into repository text.

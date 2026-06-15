@@ -175,7 +175,7 @@ export default function EditQuotationPage() {
       const id = params?.id
       if (!id) throw new Error('Quotation ID not found')
 
-      const payload = {
+      const quotationUpdate = {
         customerName,
         email: email || undefined,
         phone,
@@ -206,7 +206,7 @@ export default function EditQuotationPage() {
       const res = await fetch(`/api/quotations/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(quotationUpdate),
       })
 
       if (!res.ok) {

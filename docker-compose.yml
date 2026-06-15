@@ -11,6 +11,16 @@ services:
     networks:
       - homeu_network
 
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - homeu_network
+
   website:
     build:
       context: .
@@ -20,8 +30,13 @@ services:
       - "127.0.0.1:3000:3000"
     depends_on:
       - postgres
+      - ollama
     env_file:
       - .env
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - AI_PROVIDER=ollama
+      - OLLAMA_MODEL=qwen3:4b
     networks:
       - homeu_network
 
@@ -31,3 +46,4 @@ networks:
 
 volumes:
   postgres_data:
+  ollama_data:

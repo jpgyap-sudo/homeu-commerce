@@ -1,6 +1,6 @@
 /**
  * Push tools/shopify-import/output/seo-audit.json into the "seo-health"
- * Payload global (table: seo_health), so the score/checklist/recommendations
+ * DaVinciOS global (table: seo_health), so the score/checklist/recommendations
  * show up in /admin.
  *
  * Usage: node src/scripts/seed-seo-health.mjs

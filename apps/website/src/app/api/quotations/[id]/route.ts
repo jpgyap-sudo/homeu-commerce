@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPayload as getDaVinciOS } from 'DaVinciOS'
 import { default as DaVinciOSConfig } from '@DaVinciOS-config'
+import { getDaVinciOSClient } from '@/lib/daVinciOS'
 
 /**
  * GET /api/quotations/[id]
@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const daVinciOS = await getDaVinciOS({ config: DaVinciOSConfig })
+    const daVinciOS = await getDaVinciOSClient(DaVinciOSConfig)
 
     const quotation = await daVinciOS.findByID({
       collection: 'quotations',
@@ -47,7 +47,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    const daVinciOS = await getDaVinciOS({ config: DaVinciOSConfig })
+    const daVinciOS = await getDaVinciOSClient(DaVinciOSConfig)
     const body = await request.json()
 
     const quotation = await daVinciOS.update({
@@ -76,7 +76,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const daVinciOS = await getDaVinciOS({ config: DaVinciOSConfig })
+    const daVinciOS = await getDaVinciOSClient(DaVinciOSConfig)
 
     await daVinciOS.delete({
       collection: 'quotations',
