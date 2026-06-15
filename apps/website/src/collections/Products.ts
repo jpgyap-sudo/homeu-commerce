@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'DaVinciOS'
+import type { CollectionConfig } from '@davincios/cms'
 import { adminUsers, anyone } from '../access/admin'
 import { generateProductSeoDescription, generateSeoTitle } from '../lib/seo/generateSeoDescription'
 import { extractPlainText } from '../lib/seo/extractPlainText'

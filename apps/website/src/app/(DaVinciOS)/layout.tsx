@@ -1,8 +1,8 @@
 import config from '@DaVinciOS-config'
-import '@DaVinciOScms/next/css'
+import '@davincios/next/css'
 import './admin-theme.css'
-import type { ServerFunctionClient } from 'DaVinciOS'
-import { handleServerFunctions, RootLayout } from '@DaVinciOScms/next/layouts'
+import type { ServerFunctionClient } from '@davincios/cms'
+import { handleServerFunctions, RootLayout } from '@davincios/next/layouts'
 import React from 'react'
 import { importMap } from './admin/importMap'
 

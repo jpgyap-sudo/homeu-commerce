@@ -1,4 +1,4 @@
-import type { GlobalConfig } from 'DaVinciOS'
+import type { GlobalConfig } from '@davincios/cms'
 import { adminUsers } from '../access/admin'
 
 export const SEOHealth = {

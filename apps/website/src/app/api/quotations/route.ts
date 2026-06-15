@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { Where } from 'DaVinciOS'
+import type { Where } from '@davincios/cms'
 import { default as DaVinciOSConfig } from '@DaVinciOS-config'
 import { getDaVinciOSClient } from '@/lib/daVinciOS'
 

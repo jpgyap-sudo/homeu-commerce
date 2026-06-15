@@ -1,7 +1,7 @@
 type DaVinciOSClientFactory = (args: { config: unknown }) => Promise<any>
 
 export async function getDaVinciOSClient(config: unknown) {
-  const module = await import('DaVinciOS') as Record<string, unknown>
+  const module = await import('@davincios/cms') as Record<string, unknown>
   const factoryName = ['get', 'Da', 'VinciOS'].join('')
   const factory = module[factoryName] as DaVinciOSClientFactory | undefined
 

@@ -1,5 +1,5 @@
-import { CollectionCards as CollectionCards_root } from '@DaVinciOScms/next/rsc'
+import { CollectionCards as CollectionCards_root } from '@davincios/next/rsc'
 
 export const importMap = {
-  '@DaVinciOScms/next/rsc#CollectionCards': CollectionCards_root,
+  '@davincios/next/rsc#CollectionCards': CollectionCards_root,
 }

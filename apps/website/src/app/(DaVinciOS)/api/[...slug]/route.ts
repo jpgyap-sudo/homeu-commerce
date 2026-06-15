@@ -1,9 +1,9 @@
 import config from '@DaVinciOS-config'
-import '@DaVinciOScms/next/css'
+import '@davincios/next/css'
 import {
   REST_DELETE, REST_GET, REST_OPTIONS,
   REST_PATCH, REST_POST, REST_PUT,
-} from '@DaVinciOScms/next/routes'
+} from '@davincios/next/routes'
 
 export const GET = REST_GET(config)
 export const POST = REST_POST(config)

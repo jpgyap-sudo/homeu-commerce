@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import config from '@DaVinciOS-config'
-import { RootPage, generatePageMetadata } from '@DaVinciOScms/next/views'
+import { RootPage, generatePageMetadata } from '@davincios/next/views'
 import { importMap } from '../importMap'
 
 type Args = {

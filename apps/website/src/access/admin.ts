@@ -1,4 +1,4 @@
-import type { Access } from 'DaVinciOS'
+import type { Access } from '@davincios/cms'
 
 type UserWithRole = {
   role?: 'admin' | 'staff' | 'customer'

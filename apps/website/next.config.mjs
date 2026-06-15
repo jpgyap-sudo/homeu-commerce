@@ -1,5 +1,5 @@
 const upstreamPluginName = ['with', 'Da', 'VinciOS'].join('')
-const pluginModule = await import(`@DaVinciOScms/next/${upstreamPluginName}`)
+const pluginModule = await import(`@davincios/next/${upstreamPluginName}`)
 const withDaVinciOS = pluginModule[upstreamPluginName]
 
 /** @type {import('next').NextConfig} */

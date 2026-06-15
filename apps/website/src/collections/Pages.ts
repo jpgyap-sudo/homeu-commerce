@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'DaVinciOS'
+import type { CollectionConfig } from '@davincios/cms'
 import { adminUsers, anyone } from '../access/admin'
 
 export const Pages = {
