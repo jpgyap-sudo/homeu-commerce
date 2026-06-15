@@ -86,6 +86,7 @@ export const createLocalReq = async ({ context, depth, fallbackLocale, locale: l
     req.context = getRequestContext(req, context);
     req.DaVinciOSAPI = req?.DaVinciOSAPI || 'local';
     req.DaVinciOS = DaVinciOS;
+    req.davincios = DaVinciOS; /* lowercase alias — all next/dist code expects req.davincios */
     req.i18n = i18n;
     req.t = i18n.t;
     req.user = user || req?.user || null;
