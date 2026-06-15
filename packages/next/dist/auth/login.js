@@ -1,6 +1,6 @@
-'use server';
+﻿'use server';
 
-import { getDaVinciOS } from 'davincios';
+import { getDaVinciOS } from '@davincios/cms';
 import { setDaVinciOSAuthCookie } from '../utilities/setDaVinciOSAuthCookie.js';
 export async function login({
   collection,

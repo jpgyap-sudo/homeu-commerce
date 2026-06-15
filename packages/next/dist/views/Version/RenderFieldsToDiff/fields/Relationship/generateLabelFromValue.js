@@ -1,4 +1,4 @@
-import { fieldAffectsData, fieldIsPresentationalOnly, fieldShouldBeLocalized, flattenTopLevelFields } from 'davincios/shared';
+﻿import { fieldAffectsData, fieldIsPresentationalOnly, fieldShouldBeLocalized, flattenTopLevelFields } from '@davincios/cms/shared';
 export const generateLabelFromValue = async ({
   field,
   locale,

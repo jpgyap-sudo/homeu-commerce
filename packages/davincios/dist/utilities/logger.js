@@ -1,4 +1,4 @@
-import { pino } from 'pino';
+﻿import { pino } from 'pino';
 import { build } from 'pino-pretty';
 const prettyOptions = {
     colorize: true,
@@ -11,7 +11,7 @@ export const prettySyncLoggerDestination = build({
     sync: true
 });
 export const defaultLoggerOptions = build(prettyOptions);
-export const getLogger = (name = 'DaVinciOS', logger)=>{
+export const getLogger = (name = '@davincios/cms', logger)=>{
     if (!logger) {
         return pino(defaultLoggerOptions);
     }

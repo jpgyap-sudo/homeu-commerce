@@ -1,4 +1,4 @@
-import { execFileSync } from 'child_process';
+﻿import { execFileSync } from 'child_process';
 import os from 'os';
 import { getDependencies } from '../index.js';
 import { DaVinciOS_PACKAGE_LIST } from '../versions/DaVinciOSPackageList.js';
@@ -17,8 +17,8 @@ export const info = async ()=>{
 };
 function generateOutput(packages) {
     const cpuCores = os.cpus().length;
-    const primaryDeps = packages.filter(({ name })=>name === 'DaVinciOS' || name === 'next');
-    const otherDeps = packages.filter(({ name })=>name !== 'DaVinciOS' && name !== 'next').sort((a, b)=>a.name.localeCompare(b.name));
+    const primaryDeps = packages.filter(({ name })=>name === '@davincios/cms' || name === 'next');
+    const otherDeps = packages.filter(({ name })=>name !== '@davincios/cms' && name !== 'next').sort((a, b)=>a.name.localeCompare(b.name));
     const formattedDeps = [
         ...primaryDeps,
         ...otherDeps

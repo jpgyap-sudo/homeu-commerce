@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import { c as _c } from "react/compiler-runtime";
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { ConfirmPasswordField, Form, FormSubmit, HiddenField, PasswordField, useAuth, useConfig, useTranslation } from '@davincios/ui';
 import { useRouter } from 'next/navigation.js';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React from 'react';
 export const ResetPasswordForm = t0 => {
   const $ = _c(11);

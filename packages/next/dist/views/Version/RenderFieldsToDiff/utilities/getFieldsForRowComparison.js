@@ -1,4 +1,4 @@
-import { getUniqueListBy } from 'davincios/shared';
+﻿import { getUniqueListBy } from '@davincios/cms/shared';
 /**
  * Get the fields for a row in an iterable field for comparison.
  * - Array fields: the fields of the array field, because the fields are the same for each row.

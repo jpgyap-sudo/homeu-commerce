@@ -1,4 +1,4 @@
-import { logError } from 'davincios';
+﻿import { logError } from '@davincios/cms';
 export const fetchVersion = async ({
   id,
   collectionSlug,

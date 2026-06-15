@@ -1,4 +1,4 @@
-import { fieldShouldBeLocalized, groupHasName } from 'davincios/shared';
+﻿import { fieldShouldBeLocalized, groupHasName } from '@davincios/cms/shared';
 import { fieldHasChanges } from './fieldHasChanges.js';
 import { getFieldsForRowComparison } from './getFieldsForRowComparison.js';
 /**

@@ -1,6 +1,6 @@
-import { getClientConfig } from '@davincios/ui/utilities/getClientConfig';
-import { canAccessAdmin, isEntityHidden } from 'davincios';
-import { applyLocaleFiltering } from 'davincios/shared';
+﻿import { getClientConfig } from '@davincios/ui/utilities/getClientConfig';
+import { canAccessAdmin, isEntityHidden } from '@davincios/cms';
+import { applyLocaleFiltering } from '@davincios/cms/shared';
 import { renderDocument } from './index.js';
 export const renderDocumentHandler = async args => {
   const {

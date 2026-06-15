@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { ConfirmPasswordField, EmailAndUsernameFields, Form, FormSubmit, PasswordField, RenderFields, useAuth, useConfig, useServerFunctions, useTranslation } from '@davincios/ui';
 import { abortAndIgnore, handleAbortRef } from '@davincios/ui/shared';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React, { useEffect } from 'react';
 export const CreateFirstUserClient = ({
   docPermissions,

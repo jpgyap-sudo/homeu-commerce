@@ -1,6 +1,6 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Button, Gutter } from '@davincios/ui';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React from 'react';
 import { FormHeader } from '../../elements/FormHeader/index.js';
 const baseClass = 'unauthorized';

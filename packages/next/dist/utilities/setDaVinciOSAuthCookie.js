@@ -1,5 +1,5 @@
-import { cookies as getCookies } from 'next/headers.js';
-import { generateDaVinciOSCookie } from 'davincios';
+﻿import { cookies as getCookies } from 'next/headers.js';
+import { generateDaVinciOSCookie } from '@davincios/cms';
 export async function setDaVinciOSAuthCookie({
   authConfig,
   cookiePrefix,

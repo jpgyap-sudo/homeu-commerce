@@ -1,4 +1,4 @@
-/**
+﻿/**
  * These files must remain as plain JavaScript (.js) rather than TypeScript (.ts) because they are
  * imported directly in next.config.mjs files. Since next.config files run before the build process,
  * TypeScript compilation is not available. This ensures compatibility with all templates and
@@ -138,7 +138,7 @@ export const withDaVinciOS = (nextConfig = {}, options = {}) => {
     * During development, these bundle size difference do not matter much, and development speed /
     * turbopack support are more important.
     */
-    ['davincios', '@davincios/db-mongodb', '@davincios/db-postgres', '@davincios/db-sqlite', '@davincios/db-vercel-postgres', '@davincios/db-d1-sqlite', '@davincios/drizzle', '@davincios/email-nodemailer', '@davincios/email-resend', '@davincios/graphql', '@davincios/davincios-cloud', '@davincios/plugin-redirects'] : [])],
+    ['@davincios/cms', '@davincios/db-mongodb', '@davincios/db-postgres', '@davincios/db-sqlite', '@davincios/db-vercel-postgres', '@davincios/db-d1-sqlite', '@davincios/drizzle', '@davincios/email-nodemailer', '@davincios/email-resend', '@davincios/graphql', '@davincios/davincios-cloud', '@davincios/plugin-redirects'] : [])],
     webpack: (webpackConfig, webpackOptions) => {
       const incomingWebpackConfig = typeof nextConfig.webpack === 'function' ? nextConfig.webpack(webpackConfig, webpackOptions) : webpackConfig;
       return {

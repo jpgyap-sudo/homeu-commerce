@@ -1,5 +1,5 @@
-import { createHeadlessEditor } from '@lexical/headless';
-import { fieldAffectsData, fieldHasSubFields, fieldIsArrayType, tabHasName } from 'davincios/shared';
+﻿import { createHeadlessEditor } from '@lexical/headless';
+import { fieldAffectsData, fieldHasSubFields, fieldIsArrayType, tabHasName } from '@davincios/cms/shared';
 import { getEnabledNodes } from '../../lexical/nodes/index.js';
 export const upgradeDocumentFieldsRecursively = ({
   data,

@@ -1,7 +1,7 @@
-import { configToSchema } from '@davincios/graphql';
+﻿import { configToSchema } from '@davincios/graphql';
 import { createHandler } from 'graphql-http/lib/use/fetch';
 import { status as httpStatus } from 'http-status';
-import { addDataAndFileToRequest, addLocalesToRequestFromData, createDaVinciOSRequest, headersWithCors, logError, mergeHeaders } from 'davincios';
+import { addDataAndFileToRequest, addLocalesToRequestFromData, createDaVinciOSRequest, headersWithCors, logError, mergeHeaders } from '@davincios/cms';
 const handleError = async ({
   err,
   davincios,

@@ -1,4 +1,4 @@
-import { defaultAccess } from '../auth/defaultAccess.js';
+﻿import { defaultAccess } from '../auth/defaultAccess.js';
 import { foldersSlug, parentFolderFieldName } from '../folders/constants.js';
 import { databaseKVAdapter } from '../kv/adapters/DatabaseKVAdapter.js';
 /**
@@ -40,7 +40,7 @@ import { databaseKVAdapter } from '../kv/adapters/DatabaseKVAdapter.js';
     },
     bin: [],
     collections: [],
-    cookiePrefix: 'DaVinciOS',
+    cookiePrefix: '@davincios/cms',
     cors: [],
     csrf: [],
     custom: {},
@@ -114,7 +114,7 @@ export const addDefaultsToConfig = (config)=>{
     };
     config.bin = config.bin ?? [];
     config.collections = config.collections ?? [];
-    config.cookiePrefix = config.cookiePrefix ?? 'DaVinciOS';
+    config.cookiePrefix = config.cookiePrefix ?? '@davincios/cms';
     config.cors = config.cors ?? [];
     config.csrf = config.csrf ?? [];
     config.custom = config.custom ?? {};

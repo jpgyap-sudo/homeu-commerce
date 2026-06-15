@@ -1,5 +1,5 @@
-import escapeHTML from 'escape-html';
-import { sanitizeFields } from 'davincios';
+﻿import escapeHTML from 'escape-html';
+import { sanitizeFields } from '@davincios/cms';
 import { createServerFeature } from '../../../utilities/createServerFeature.js';
 import { convertLexicalNodesToHTML } from '../../converters/lexicalToHtml_deprecated/converter/index.js';
 import { createNode } from '../../typeUtilities.js';

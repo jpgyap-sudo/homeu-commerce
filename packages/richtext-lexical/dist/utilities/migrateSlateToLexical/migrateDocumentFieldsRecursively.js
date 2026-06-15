@@ -1,4 +1,4 @@
-import { fieldAffectsData, fieldHasSubFields, fieldIsArrayType, tabHasName } from 'davincios/shared';
+﻿import { fieldAffectsData, fieldHasSubFields, fieldIsArrayType, tabHasName } from '@davincios/cms/shared';
 import { convertSlateToLexical } from '../../features/migrations/slateToLexical/converter/index.js';
 export const migrateDocumentFieldsRecursively = ({
   data,

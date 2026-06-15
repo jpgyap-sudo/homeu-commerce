@@ -73,10 +73,19 @@ node tools/shopify-import/migrate-cdn-to-spaces.mjs --rewrite
   (dry run). With `--execute`, downloads from `cdn.shopify.com`, hashes,
   and uploads to DO Spaces (`DO_SPACES_*` env vars from `.env`). `--limit N`
   caps how many pending URLs are processed — use this for a small
-  end-to-end test before running the full batch (currently ~1,700+ unique
-  product image refs).
+  end-to-end test before running a full batch.
 - `--rewrite` — writes `output/<name>.cdn.json` for each input, with all
   `done` manifest URLs replaced by their Spaces CDN URL.
+
+## Status (2026-06-15)
+
+Initial migration complete: 3,209/3,212 unique Shopify CDN image URLs
+mirrored (3 are dead 404 links in the source export, left as `error` in the
+manifest). Deduped to 3,164 unique objects (~755 MB) under
+`homeatelierspaces/cdn-mirror/<sha256>.<ext>`. Rewritten outputs:
+`output/DaVinciOS-products.cdn.json` (3,152 URLs), `DaVinciOS-categories.cdn.json`
+(39), `DaVinciOS-pages.cdn.json` (18). Re-run `--scan`/`--mirror`/`--rewrite`
+if the source exports are regenerated or gain new image references.
 
 Credentials/endpoints come from `.env` (`DO_SPACES_REGION`,
 `DO_SPACES_BUCKET`, `DO_SPACES_ORIGIN_ENDPOINT`, `DO_SPACES_CDN_ENDPOINT`,

@@ -1,7 +1,7 @@
-import { extractHeaderLanguage } from '@davincios/translations';
+﻿import { extractHeaderLanguage } from '@davincios/translations';
 export const getRequestLanguage = ({ config, cookies, headers })=>{
     const supportedLanguageKeys = Object.keys(config.i18n.supportedLanguages);
-    const langCookie = cookies.get(`${config.cookiePrefix || 'DaVinciOS'}-lng`);
+    const langCookie = cookies.get(`${config.cookiePrefix || '@davincios/cms'}-lng`);
     const languageFromCookie = typeof langCookie === 'string' ? langCookie : langCookie?.value;
     if (languageFromCookie && supportedLanguageKeys.includes(languageFromCookie)) {
         return languageFromCookie;

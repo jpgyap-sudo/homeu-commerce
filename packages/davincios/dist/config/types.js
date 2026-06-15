@@ -1,5 +1,5 @@
-export const serverProps = [
-    'DaVinciOS',
+﻿export const serverProps = [
+    '@davincios/cms',
     'i18n',
     'locale',
     'params',

@@ -1,4 +1,4 @@
-import { PREFERENCE_KEYS } from 'davincios/shared';
+﻿import { PREFERENCE_KEYS } from '@davincios/cms/shared';
 import { cache } from 'react';
 export const getNavPrefs = cache(async req => {
   return req?.user?.collection ? await req.davincios.find({

@@ -1,4 +1,4 @@
-import { createHeadlessEditor } from '@lexical/headless';
+﻿import { createHeadlessEditor } from '@lexical/headless';
 import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
 import { describe, expect, it } from 'vitest';
 import { $convertToMarkdownString } from '../../packages/@lexical/markdown/index.js';
@@ -33,7 +33,7 @@ describe('createLinkMarkdownTransformer', () => {
             doc: null
           }
         });
-        link.append($createTextNode('DaVinciOS'));
+        link.append($createTextNode('@davincios/cms'));
         $getRoot().append($createParagraphNode().append(link));
       });
       expect(markdown).toBe('[DaVinciOS](https://davincios.com)');
@@ -49,7 +49,7 @@ describe('createLinkMarkdownTransformer', () => {
             doc: null
           }
         });
-        link.append($createTextNode('DaVinciOS'));
+        link.append($createTextNode('@davincios/cms'));
         $getRoot().append($createParagraphNode().append(link));
       });
       expect(markdown).toBe('[DaVinciOS](https://davincios.com)');

@@ -1,5 +1,5 @@
-import escapeHTML from 'escape-html';
-import { sanitizeUrl } from 'davincios/shared';
+﻿import escapeHTML from 'escape-html';
+import { sanitizeUrl } from '@davincios/cms/shared';
 export const LinkHTMLConverter = ({
   internalDocToHref
 }) => ({

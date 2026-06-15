@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import { c as _c } from "react/compiler-runtime";
 import { jsx as _jsx } from "react/jsx-runtime";
 import { Button } from '@davincios/ui';
 import { useParams, usePathname, useSearchParams } from 'next/navigation.js';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React from 'react';
 export const DocumentTabLink = t0 => {
   const $ = _c(13);

@@ -22,6 +22,22 @@
         "SHOPIFY_STORE": "",
         "SHOPIFY_TOKEN": ""
       }
+    },
+    "shopify-hub": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "C:/Users/user/.superroo/mcp/shopify-hub.mjs"
+      ],
+      "description": "Shared SuperRoo Shopify MCP hub, read-only by default.",
+      "env": {
+        "SUPERROO_HOME": "C:/Users/user/.superroo",
+        "SUPERROO_MCP_CLIENT_ID": "vscode-homeu",
+        "SUPERROO_SHOPIFY_MODE": "read-only",
+        "SHOPIFY_API_VERSION": "2025-10",
+        "SHOPIFY_STORE": "",
+        "SHOPIFY_ADMIN_TOKEN": ""
+      }
     }
   }
 }

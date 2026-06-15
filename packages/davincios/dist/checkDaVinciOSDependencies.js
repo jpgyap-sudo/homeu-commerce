@@ -1,4 +1,4 @@
-import { checkDependencies } from './utilities/dependencies/dependencyChecker.js';
+﻿import { checkDependencies } from './utilities/dependencies/dependencyChecker.js';
 import { DaVinciOS_PACKAGE_LIST } from './versions/DaVinciOSPackageList.js';
 export function checkDaVinciOSDependencies() {
     const dependencies = [
@@ -11,9 +11,9 @@ export function checkDaVinciOSDependencies() {
     void checkDependencies({
         dependencyGroups: [
             {
-                name: 'DaVinciOS',
+                name: '@davincios/cms',
                 dependencies,
-                targetVersionDependency: 'DaVinciOS'
+                targetVersionDependency: '@davincios/cms'
             }
         ]
     });

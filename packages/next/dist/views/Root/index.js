@@ -1,10 +1,10 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { PageConfigProvider } from '@davincios/ui';
 import { RenderServerComponent } from '@davincios/ui/elements/RenderServerComponent';
 import { getVisibleEntities } from '@davincios/ui/shared';
 import { getClientConfig } from '@davincios/ui/utilities/getClientConfig';
 import { notFound, redirect } from 'next/navigation.js';
-import { applyLocaleFiltering, formatAdminURL } from 'davincios/shared';
+import { applyLocaleFiltering, formatAdminURL } from '@davincios/cms/shared';
 import * as qs from 'qs-esm';
 import React from 'react';
 import { DefaultTemplate } from '../../templates/Default/index.js';

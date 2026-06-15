@@ -1,4 +1,4 @@
-import { combineWhereConstraints } from 'davincios/shared';
+﻿import { combineWhereConstraints } from '@davincios/cms/shared';
 /**
  * Recursively applies baseFilter from collection config to relationship fields
  * within blocks. This ensures that relationship drawers in blocks respect

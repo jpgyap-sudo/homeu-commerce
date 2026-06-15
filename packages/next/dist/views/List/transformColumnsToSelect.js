@@ -1,4 +1,4 @@
-import { unflatten } from 'davincios/shared';
+﻿import { unflatten } from '@davincios/cms/shared';
 export const transformColumnsToSelect = columns => {
   const columnsSelect = columns.reduce((acc, column) => {
     if (column.active) {

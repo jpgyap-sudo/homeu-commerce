@@ -1,4 +1,4 @@
-import type { ExecutionResult, GraphQLSchema, ValidationRule } from 'graphql';
+﻿import type { ExecutionResult, GraphQLSchema, ValidationRule } from 'graphql';
 import type { Request as graphQLRequest, OperationArgs } from 'graphql-http';
 import type { Logger } from 'pino';
 import type { NonNever } from 'ts-essentials';
@@ -170,7 +170,7 @@ export interface GeneratedTypes {
  *
  * @example
  * // In a plugin package's index.ts:
- * declare module 'DaVinciOS' {
+ * declare module '@davincios/cms' {
  *   interface RegisteredPlugins {
  *     'plugin-seo': SEOPluginOptions
  *   }

@@ -1,7 +1,7 @@
-import { jsx as _jsx } from "react/jsx-runtime";
+﻿import { jsx as _jsx } from "react/jsx-runtime";
 import { getTranslation } from '@davincios/translations';
 import { renderField } from '@davincios/ui/forms/renderField';
-import { getFromImportMap } from 'davincios/shared';
+import { getFromImportMap } from '@davincios/cms/shared';
 import React from 'react';
 // eslint-disable-next-line davincios/no-imports-from-exports-dir
 import { RichTextField } from '../exports/client/index.js';

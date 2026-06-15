@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import { c as _c } from "react/compiler-runtime";
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { getTranslation } from '@davincios/translations';
 import { useConfig, useTranslation } from '@davincios/ui';
-import { fieldIsArrayType, fieldIsBlockType } from 'davincios/shared';
+import { fieldIsArrayType, fieldIsBlockType } from '@davincios/cms/shared';
 import React from 'react';
 import { useSelectedLocales } from '../../../Default/SelectedLocalesContext.js';
 import { DiffCollapser } from '../../DiffCollapser/index.js';

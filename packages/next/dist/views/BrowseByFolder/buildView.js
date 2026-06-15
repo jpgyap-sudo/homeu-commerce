@@ -1,10 +1,10 @@
-import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { DefaultBrowseByFolderView, HydrateAuthProvider } from '@davincios/ui';
 import { RenderServerComponent } from '@davincios/ui/elements/RenderServerComponent';
 import { getFolderResultsComponentAndData, upsertPreferences } from '@davincios/ui/rsc';
 import { formatAdminURL } from '@davincios/ui/shared';
 import { redirect } from 'next/navigation.js';
-import { PREFERENCE_KEYS } from 'davincios/shared';
+import { PREFERENCE_KEYS } from '@davincios/cms/shared';
 import React from 'react';
 export const buildBrowseByFolderView = async args => {
   const {

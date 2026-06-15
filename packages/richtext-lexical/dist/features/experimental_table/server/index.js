@@ -1,5 +1,5 @@
-import { TableCellNode, TableNode, TableRowNode } from '@lexical/table';
-import { sanitizeFields } from 'davincios';
+﻿import { TableCellNode, TableNode, TableRowNode } from '@lexical/table';
+import { sanitizeFields } from '@davincios/cms';
 import { createServerFeature } from '../../../utilities/createServerFeature.js';
 import { convertLexicalNodesToHTML } from '../../converters/lexicalToHtml_deprecated/converter/index.js';
 import { createNode } from '../../typeUtilities.js';

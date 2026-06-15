@@ -32,7 +32,7 @@ export const Products = {
             const categoryId = typeof data.category === 'object' ? data.category?.id : data.category
             if (categoryId) {
               try {
-                const category = await req.davincios.findByID({
+                const category = await req.DaVinciOS.findByID({
                   collection: 'categories',
                   id: categoryId,
                   depth: 0,

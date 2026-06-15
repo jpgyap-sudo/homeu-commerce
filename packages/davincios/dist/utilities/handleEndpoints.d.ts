@@ -1,11 +1,11 @@
-import type { SanitizedConfig } from '../config/types.js';
+﻿import type { SanitizedConfig } from '../config/types.js';
 /**
  * Attaches the DaVinciOS REST API to any backend framework that uses Fetch Request/Response
  * like Next.js (app router), Remix, Bun, Hono.
  *
  * ### Example: Using Hono
  * ```ts
- * import { handleEndpoints } from 'DaVinciOS';
+ * import { handleEndpoints } from '@davincios/cms';
  * import { serve } from '@hono/node-server';
  * import { loadEnv } from 'DaVinciOS/node';
  *

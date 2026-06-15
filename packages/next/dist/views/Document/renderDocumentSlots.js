@@ -1,6 +1,6 @@
-import { ViewDescription } from '@davincios/ui';
+﻿import { ViewDescription } from '@davincios/ui';
 import { RenderServerComponent } from '@davincios/ui/elements/RenderServerComponent';
-import { hasDraftsEnabled } from 'davincios/shared';
+import { hasDraftsEnabled } from '@davincios/cms/shared';
 import { getDocumentPermissions } from './getDocumentPermissions.js';
 export const renderDocumentSlots = args => {
   const {

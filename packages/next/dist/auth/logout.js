@@ -1,7 +1,7 @@
-'use server';
+﻿'use server';
 
 import { cookies as getCookies, headers as nextHeaders } from 'next/headers.js';
-import { createLocalReq, getDaVinciOS, logoutOperation } from 'davincios';
+import { createLocalReq, getDaVinciOS, logoutOperation } from '@davincios/cms';
 import { getExistingAuthToken } from '../utilities/getExistingAuthToken.js';
 export async function logout({
   allSessions = false,

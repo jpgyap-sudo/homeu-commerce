@@ -1,5 +1,5 @@
-import { parseDocumentID } from 'davincios';
-import { formatAdminURL, isNumber } from 'davincios/shared';
+﻿import { parseDocumentID } from '@davincios/cms';
+import { formatAdminURL, isNumber } from '@davincios/cms/shared';
 import { AccountView } from '../Account/index.js';
 import { BrowseByFolder } from '../BrowseByFolder/index.js';
 import { CollectionFolderView } from '../CollectionFolders/index.js';

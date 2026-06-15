@@ -1,4 +1,4 @@
-import { localizeStatus as mongoLocalizeStatus } from './mongo/index.js';
+﻿import { localizeStatus as mongoLocalizeStatus } from './mongo/index.js';
 import { localizeStatus as sqlLocalizeStatus } from './sql/index.js';
 /**
  * Main entry point for localizeStatus migration.
@@ -9,7 +9,7 @@ import { localizeStatus as sqlLocalizeStatus } from './sql/index.js';
         if ('db' in args && 'sql' in args) {
             // SQL database (Postgres, SQLite, etc.)
             return sqlLocalizeStatus.up(args);
-        } else if ('DaVinciOS' in args && !('db' in args)) {
+        } else if ('@davincios/cms' in args && !('db' in args)) {
             // MongoDB
             return mongoLocalizeStatus.up(args);
         } else {
@@ -21,7 +21,7 @@ import { localizeStatus as sqlLocalizeStatus } from './sql/index.js';
         if ('db' in args && 'sql' in args) {
             // SQL database (Postgres, SQLite, etc.)
             return sqlLocalizeStatus.down(args);
-        } else if ('DaVinciOS' in args && !('db' in args)) {
+        } else if ('@davincios/cms' in args && !('db' in args)) {
             // MongoDB
             return mongoLocalizeStatus.down(args);
         } else {

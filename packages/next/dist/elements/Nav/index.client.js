@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { c as _c } from "react/compiler-runtime";
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
@@ -6,7 +6,7 @@ import { getTranslation } from '@davincios/translations';
 import { BrowseByFolderButton, Link, NavGroup, useConfig, useTranslation } from '@davincios/ui';
 import { EntityType } from '@davincios/ui/shared';
 import { usePathname } from 'next/navigation.js';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React, { Fragment } from 'react';
 const baseClass = 'nav';
 /**

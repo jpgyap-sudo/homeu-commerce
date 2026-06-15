@@ -1,6 +1,6 @@
-import { createHash } from 'crypto';
+﻿import { createHash } from 'crypto';
 import escapeHTML from 'escape-html';
-import { sanitizeUrl } from 'davincios/shared';
+import { sanitizeUrl } from '@davincios/cms/shared';
 export const LinkDiffHTMLConverterAsync = ({
   internalDocToHref
 }) => ({

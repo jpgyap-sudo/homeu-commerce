@@ -1,11 +1,11 @@
-/**
+﻿/**
  *
- * @deprecated use getObjectDotNotation from `'DaVinciOS/shared'` instead of `'DaVinciOS'`
+ * @deprecated use getObjectDotNotation from `'@davincios/cms/shared'` instead of `'@davincios/cms'`
  *
  * @example
  *
  * ```ts
- * import { getObjectDotNotation } from 'DaVinciOS/shared'
+ * import { getObjectDotNotation } from '@davincios/cms/shared'
  *
  * const obj = { a: { b: { c: 42 } } }
  * const value = getObjectDotNotation<number>(obj, 'a.b.c', 0) // value is 42

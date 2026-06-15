@@ -1,4 +1,4 @@
-import { formatAdminURL } from 'davincios/shared';
+﻿import { formatAdminURL } from '@davincios/cms/shared';
 import * as qs from 'qs-esm';
 export const handleAuthRedirect = ({
   config,

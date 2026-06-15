@@ -1,6 +1,6 @@
-import { jsx as _jsx } from "react/jsx-runtime";
+﻿import { jsx as _jsx } from "react/jsx-runtime";
 import { SortColumn } from '@davincios/ui';
-import { hasDraftsEnabled } from 'davincios/shared';
+import { hasDraftsEnabled } from '@davincios/cms/shared';
 import React from 'react';
 import { AutosaveCell } from './cells/AutosaveCell/index.js';
 import { CreatedAtCell } from './cells/CreatedAt/index.js';

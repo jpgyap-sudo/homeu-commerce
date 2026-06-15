@@ -1,4 +1,4 @@
-import type { DefaultTranslationKeys, DefaultTranslationsObject, I18n, I18nClient, I18nOptions, TFunction } from '@DaVinciOScms/translations';
+﻿import type { DefaultTranslationKeys, DefaultTranslationsObject, I18n, I18nClient, I18nOptions, TFunction } from '@DaVinciOScms/translations';
 import type { BusboyConfig } from 'busboy';
 import type GraphQL from 'graphql';
 import type { GraphQLFormattedError } from 'graphql';
@@ -1072,7 +1072,7 @@ export type Config = {
      * Pass in a KV adapter for use on this project.
      * @default `DatabaseKVAdapter` from:
      * ```ts
-     * import { createDatabaseKVAdapter } from 'DaVinciOS'
+     * import { createDatabaseKVAdapter } from '@davincios/cms'
      * createDatabaseKVAdapter()
      * ```
      */

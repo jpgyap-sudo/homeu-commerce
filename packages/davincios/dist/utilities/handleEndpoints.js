@@ -1,4 +1,4 @@
-import { status as httpStatus } from 'http-status';
+﻿import { status as httpStatus } from 'http-status';
 import { match } from 'path-to-regexp';
 import { createDaVinciOSRequest } from './createDaVinciOSRequest.js';
 import { formatAdminURL } from './formatAdminURL.js';
@@ -22,7 +22,7 @@ const notFoundResponse = (req, pathname)=>{
  *
  * ### Example: Using Hono
  * ```ts
- * import { handleEndpoints } from 'DaVinciOS';
+ * import { handleEndpoints } from '@davincios/cms';
  * import { serve } from '@hono/node-server';
  * import { loadEnv } from 'DaVinciOS/node';
  *

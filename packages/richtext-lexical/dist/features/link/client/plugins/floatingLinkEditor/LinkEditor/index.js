@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext.js';
@@ -8,7 +8,7 @@ import { getTranslation } from '@davincios/translations';
 import { CloseMenuIcon, EditIcon, ExternalLinkIcon, formatDrawerSlug, useConfig, useEditDepth, useLocale, useTranslation } from '@davincios/ui';
 import { requests } from '@davincios/ui/shared';
 import { $getSelection, $isLineBreakNode, $isRangeSelection, COMMAND_PRIORITY_HIGH, COMMAND_PRIORITY_LOW, getDOMSelection, KEY_ESCAPE_COMMAND, SELECTION_CHANGE_COMMAND } from 'lexical';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useEditorConfigContext } from '../../../../../../lexical/config/client/EditorConfigProvider.js';
 import { getSelectedNode } from '../../../../../../lexical/utils/getSelectedNode.js';

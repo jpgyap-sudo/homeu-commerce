@@ -1,10 +1,10 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { formatDate } from '@davincios/ui/shared';
 import { getClientConfig } from '@davincios/ui/utilities/getClientConfig';
 import { getClientSchemaMap } from '@davincios/ui/utilities/getClientSchemaMap';
 import { getSchemaMap } from '@davincios/ui/utilities/getSchemaMap';
 import { notFound } from 'next/navigation.js';
-import { hasDraftsEnabled } from 'davincios/shared';
+import { hasDraftsEnabled } from '@davincios/cms/shared';
 import React from 'react';
 import { DefaultVersionView } from './Default/index.js';
 import { fetchLatestVersion, fetchVersion, fetchVersions } from './fetchVersions.js';

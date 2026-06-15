@@ -1,6 +1,6 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { getTranslation } from '@davincios/translations';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 const baseClass = 'lexical-relationship-diff';
 export const RelationshipDiffHTMLConverterAsync = ({
   i18n,

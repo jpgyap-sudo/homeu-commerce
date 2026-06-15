@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { jsx as _jsx } from "react/jsx-runtime";
 import { Link, useConfig, useTranslation } from '@davincios/ui';
 import { formatDate } from '@davincios/ui/shared';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React from 'react';
 export const CreatedAtCell = t0 => {
   const {

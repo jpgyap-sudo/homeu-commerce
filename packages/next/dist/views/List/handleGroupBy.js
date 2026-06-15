@@ -1,6 +1,6 @@
-import { renderTable } from '@davincios/ui/rsc';
+﻿import { renderTable } from '@davincios/ui/rsc';
 import { formatDate } from '@davincios/ui/shared';
-import { flattenAllFields } from 'davincios';
+import { flattenAllFields } from '@davincios/cms';
 import { createSerializableValue } from './createSerializableValue.js';
 import { extractRelationshipDisplayValue } from './extractRelationshipDisplayValue.js';
 import { extractValueOrRelationshipID } from './extractValueOrRelationshipID.js';

@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
 import { c as _c } from "react/compiler-runtime";
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React from 'react';
 const baseClass = 'login__form';
 import { Form, FormSubmit, Link, PasswordField, useAuth, useConfig, useTranslation } from '@davincios/ui';
-import { formatAdminURL, getLoginOptions, getSafeRedirect } from 'davincios/shared';
+import { formatAdminURL, getLoginOptions, getSafeRedirect } from '@davincios/cms/shared';
 import { LoginField } from '../LoginField/index.js';
 export const LoginForm = t0 => {
   const $ = _c(23);

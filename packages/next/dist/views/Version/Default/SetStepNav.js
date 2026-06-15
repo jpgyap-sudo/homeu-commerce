@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { c as _c } from "react/compiler-runtime";
 import { getTranslation } from '@davincios/translations';
 import { useConfig, useDocumentTitle, useLocale, useStepNav, useTranslation } from '@davincios/ui';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import { useEffect } from 'react';
 export const SetStepNav = t0 => {
   const $ = _c(24);

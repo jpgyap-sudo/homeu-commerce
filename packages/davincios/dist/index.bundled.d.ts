@@ -1,4 +1,4 @@
-import { Locale as Locale$1 } from 'date-fns';
+﻿import { Locale as Locale$1 } from 'date-fns';
 import DataLoader from 'dataloader';
 import { URL } from 'url';
 import GraphQL, { GraphQLNonNull, GraphQLObjectType, GraphQLFormattedError, GraphQLInputObjectType, ExecutionResult, GraphQLSchema, ValidationRule } from 'graphql';
@@ -6377,7 +6377,7 @@ type Config = {
      * Pass in a KV adapter for use on this project.
      * @default `DatabaseKVAdapter` from:
      * ```ts
-     * import { createDatabaseKVAdapter } from 'DaVinciOS'
+     * import { createDatabaseKVAdapter } from '@davincios/cms'
      * createDatabaseKVAdapter()
      * ```
      */
@@ -9837,7 +9837,7 @@ type DaVinciOSRequestData = {
      * use either:
      *  1. `const data = await req.json()`
      *
-     *  2. import { addDataAndFileToRequest } from 'DaVinciOS'
+     *  2. import { addDataAndFileToRequest } from '@davincios/cms'
      *    `await addDataAndFileToRequest(req)`
      *
      * You should not expect this object to be the document data. It is the request data.
@@ -13085,7 +13085,7 @@ declare const canAccessAdmin: ({ req }: {
 /**
  * complete a transaction calling adapter db.commitTransaction and delete the transactionID from req
  */
-declare function commitTransaction(req: MarkRequired<Partial<DaVinciOSRequest>, 'DaVinciOS'>): Promise<void>;
+declare function commitTransaction(req: MarkRequired<Partial<DaVinciOSRequest>, '@davincios/cms'>): Promise<void>;
 
 /**
  * Returns a JSON Schema Type with 'null' added if the field is not required.
@@ -13375,12 +13375,12 @@ declare const getFieldByPath: ({ config, fields, includeRelationships, localized
 
 /**
  *
- * @deprecated use getObjectDotNotation from `'DaVinciOS/shared'` instead of `'DaVinciOS'`
+ * @deprecated use getObjectDotNotation from `'@davincios/cms/shared'` instead of `'@davincios/cms'`
  *
  * @example
  *
  * ```ts
- * import { getObjectDotNotation } from 'DaVinciOS/shared'
+ * import { getObjectDotNotation } from '@davincios/cms/shared'
  *
  * const obj = { a: { b: { c: 42 } } }
  * const value = getObjectDotNotation<number>(obj, 'a.b.c', 0) // value is 42
@@ -13403,7 +13403,7 @@ declare const getRequestLanguage: ({ config, cookies, headers, }: GetRequestLang
  *
  * ### Example: Using Hono
  * ```ts
- * import { handleEndpoints } from 'DaVinciOS';
+ * import { handleEndpoints } from '@davincios/cms';
  * import { serve } from '@hono/node-server';
  * import { loadEnv } from 'DaVinciOS/node';
  *
@@ -13448,7 +13448,7 @@ declare const headersWithCors: ({ headers, req }: CorsArgs) => Headers;
  * Starts a new transaction using the db adapter with a random id and then assigns it to the req.transaction
  * @returns true if beginning a transaction and false when req already has a transaction to use
  */
-declare function initTransaction(req: MarkRequired<Partial<DaVinciOSRequest>, 'DaVinciOS'>): Promise<boolean>;
+declare function initTransaction(req: MarkRequired<Partial<DaVinciOSRequest>, '@davincios/cms'>): Promise<boolean>;
 
 declare const isEntityHidden: ({ hidden, user, }: {
     hidden: SanitizedCollectionConfig["admin"]["hidden"] | SanitizedGlobalConfig["admin"]["hidden"];
@@ -13467,7 +13467,7 @@ declare const isValidID: (value: number | string, type: "number" | "ObjectID" | 
 /**
  * Rollback the transaction from the req using the db adapter and removes it from the req
  */
-declare function killTransaction(req: MarkRequired<Partial<DaVinciOSRequest>, 'DaVinciOS'>): Promise<void>;
+declare function killTransaction(req: MarkRequired<Partial<DaVinciOSRequest>, '@davincios/cms'>): Promise<void>;
 
 declare const logError: ({ err, DaVinciOS }: {
     err: unknown;
@@ -13829,7 +13829,7 @@ interface GeneratedTypes {
  *
  * @example
  * // In a plugin package's index.ts:
- * declare module 'DaVinciOS' {
+ * declare module '@davincios/cms' {
  *   interface RegisteredPlugins {
  *     'plugin-seo': SEOPluginOptions
  *   }

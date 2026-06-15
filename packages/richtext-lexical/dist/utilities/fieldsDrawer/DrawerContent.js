@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useLexicalEditable } from '@lexical/react/useLexicalEditable';
 import { Form, FormSubmit, RenderFields, useDocumentForm, useDocumentInfo, useServerFunctions, useTranslation } from '@davincios/ui';
 import { abortAndIgnore } from '@davincios/ui/shared';
-import { deepCopyObjectSimpleWithoutReactComponents } from 'davincios/shared';
+import { deepCopyObjectSimpleWithoutReactComponents } from '@davincios/cms/shared';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuid } from 'uuid';
 import { useEditorConfigContext } from '../../lexical/config/client/EditorConfigProvider.js';

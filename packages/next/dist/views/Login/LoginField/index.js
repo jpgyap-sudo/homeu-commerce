@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { c as _c } from "react/compiler-runtime";
 import { jsx as _jsx } from "react/jsx-runtime";
 import { EmailField, TextField, useTranslation } from '@davincios/ui';
-import { email, username } from 'davincios/shared';
+import { email, username } from '@davincios/cms/shared';
 import React from 'react';
 export const LoginField = t0 => {
   const $ = _c(11);

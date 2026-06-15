@@ -1,4 +1,4 @@
-/* eslint-disable no-console */ import fs from 'fs/promises';
+﻿/* eslint-disable no-console */ import fs from 'fs/promises';
 import process from 'node:process';
 import { iterateConfig } from './iterateConfig.js';
 import { addDaVinciOSComponentToImportMap } from './utilities/addDaVinciOSComponentToImportMap.js';
@@ -82,7 +82,7 @@ export async function writeImportMap({ componentMap, force, importMap, importMap
     }
     const importMapOutputFile = `${imports.join('\n')}
 
-/** @type import('DaVinciOS').ImportMap */
+/** @type import('@davincios/cms').ImportMap */
 export const importMap = {
 ${mapKeys.join(',\n')}
 }

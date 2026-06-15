@@ -1,6 +1,6 @@
-import { initI18n } from '@davincios/translations';
+﻿import { initI18n } from '@davincios/translations';
 import { headers as getHeaders } from 'next/headers.js';
-import { createLocalReq, executeAuthStrategies, getAccessResults, getDaVinciOS, getRequestLanguage, parseCookies } from 'davincios';
+import { createLocalReq, executeAuthStrategies, getAccessResults, getDaVinciOS, getRequestLanguage, parseCookies } from '@davincios/cms';
 import { getRequestLocale } from './getRequestLocale.js';
 import { selectiveCache } from './selectiveCache.js';
 // Create cache instances for different parts of our application

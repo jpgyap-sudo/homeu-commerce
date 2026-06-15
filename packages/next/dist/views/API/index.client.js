@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { CheckboxField, CopyToClipboard, Form, Gutter, MinimizeMaximizeIcon, NumberField, SetDocumentStepNav, toast, useConfig, useDocumentInfo, useLocale, useTranslation } from '@davincios/ui';
 import { useSearchParams } from 'next/navigation.js';
-import { formatAdminURL, hasDraftsEnabled } from 'davincios/shared';
+import { formatAdminURL, hasDraftsEnabled } from '@davincios/cms/shared';
 import * as React from 'react';
 import { LocaleSelector } from './LocaleSelector/index.js';
 import { RenderJSON } from './RenderJSON/index.js';

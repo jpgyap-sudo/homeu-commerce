@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import { c as _c } from "react/compiler-runtime";
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Button, LoadingOverlay, toast, useAuth, useConfig, useRouteTransition, useTranslation } from '@davincios/ui';
 import { useRouter } from 'next/navigation.js';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React, { useEffect } from 'react';
 const baseClass = 'logout';
 /**

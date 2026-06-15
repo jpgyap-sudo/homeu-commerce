@@ -1,6 +1,6 @@
-import { initI18n } from '@davincios/translations';
+﻿import { initI18n } from '@davincios/translations';
 import { cookies, headers } from 'next/headers.js';
-import { getRequestLanguage } from 'davincios';
+import { getRequestLanguage } from '@davincios/cms';
 /**
  * In the context of Next.js, this function initializes the i18n object for the current request.
  *

@@ -1,5 +1,5 @@
-import { resolveFilterOptions } from '@davincios/ui/rsc';
-import { fieldAffectsData, fieldHasSubFields, fieldIsHiddenOrDisabled, tabHasName } from 'davincios/shared';
+﻿import { resolveFilterOptions } from '@davincios/ui/rsc';
+import { fieldAffectsData, fieldHasSubFields, fieldIsHiddenOrDisabled, tabHasName } from '@davincios/cms/shared';
 export const resolveAllFilterOptions = async ({
   fields,
   pathPrefix,

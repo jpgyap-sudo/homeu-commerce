@@ -1,6 +1,6 @@
-import { getClientConfig } from '@davincios/ui/utilities/getClientConfig';
-import { canAccessAdmin, isEntityHidden, UnauthorizedError } from 'davincios';
-import { applyLocaleFiltering } from 'davincios/shared';
+﻿import { getClientConfig } from '@davincios/ui/utilities/getClientConfig';
+import { canAccessAdmin, isEntityHidden, UnauthorizedError } from '@davincios/cms';
+import { applyLocaleFiltering } from '@davincios/cms/shared';
 import { renderListView } from './index.js';
 export const renderListHandler = async args => {
   const {

@@ -1,5 +1,5 @@
-import { handleEndpoints } from 'davincios';
-import { formatAdminURL } from 'davincios/shared';
+﻿import { handleEndpoints } from '@davincios/cms';
+import { formatAdminURL } from '@davincios/cms/shared';
 import { generateOGImage } from './og/index.js';
 let initedOGEndpoint = false;
 const handlerBuilder = config => async (request, args) => {

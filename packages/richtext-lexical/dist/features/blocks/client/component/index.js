@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -7,7 +7,7 @@ import { getTranslation } from '@davincios/translations';
 import { Button, Collapsible, Drawer, EditDepthProvider, ErrorPill, Form, formatDrawerSlug, FormSubmit, Pill, RenderFields, SectionTitle, useConfig, useDocumentForm, useDocumentInfo, useEditDepth, useFormSubmitted, useServerFunctions, useTranslation } from '@davincios/ui';
 import { abortAndIgnore } from '@davincios/ui/shared';
 import { $getNodeByKey, SKIP_DOM_SELECTION_TAG } from 'lexical';
-import { deepCopyObjectSimpleWithoutReactComponents, reduceFieldsToValues } from 'davincios/shared';
+import { deepCopyObjectSimpleWithoutReactComponents, reduceFieldsToValues } from '@davincios/cms/shared';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { v4 as uuid } from 'uuid';
 import { useEditorConfigContext } from '../../../../lexical/config/client/EditorConfigProvider.js';

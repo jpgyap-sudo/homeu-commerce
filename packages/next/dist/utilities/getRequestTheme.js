@@ -1,4 +1,4 @@
-import { defaultTheme } from '@davincios/ui';
+﻿import { defaultTheme } from '@davincios/ui';
 const acceptedThemes = ['dark', 'light'];
 export const getRequestTheme = ({
   config,
@@ -8,7 +8,7 @@ export const getRequestTheme = ({
   if (config.admin.theme !== 'all' && acceptedThemes.includes(config.admin.theme)) {
     return config.admin.theme;
   }
-  const themeCookie = cookies.get(`${config.cookiePrefix || 'davincios'}-theme`);
+  const themeCookie = cookies.get(`${config.cookiePrefix || '@davincios/cms'}-theme`);
   const themeFromCookie = typeof themeCookie === 'string' ? themeCookie : themeCookie?.value;
   if (themeFromCookie && acceptedThemes.includes(themeFromCookie)) {
     return themeFromCookie;

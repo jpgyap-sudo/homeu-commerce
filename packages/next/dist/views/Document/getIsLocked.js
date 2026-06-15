@@ -1,5 +1,5 @@
-import { sanitizeID } from '@davincios/ui/shared';
-import { extractID } from 'davincios/shared';
+﻿import { sanitizeID } from '@davincios/ui/shared';
+import { extractID } from '@davincios/cms/shared';
 export const getIsLocked = async ({
   id,
   collectionConfig,

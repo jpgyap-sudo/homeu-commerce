@@ -1,5 +1,5 @@
-export const DaVinciOS_PACKAGE_LIST = [
-    'DaVinciOS',
+﻿export const DaVinciOS_PACKAGE_LIST = [
+    '@davincios/cms',
     '@davincios/bundler-vite',
     '@davincios/bundler-webpack',
     '@davincios/db-d1-sqlite',

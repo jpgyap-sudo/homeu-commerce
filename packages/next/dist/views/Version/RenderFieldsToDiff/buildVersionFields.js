@@ -1,7 +1,7 @@
-import { RenderServerComponent } from '@davincios/ui/elements/RenderServerComponent';
+﻿import { RenderServerComponent } from '@davincios/ui/elements/RenderServerComponent';
 import { dequal } from 'dequal/lite';
-import { MissingEditorProp } from 'davincios';
-import { fieldIsID, fieldShouldBeLocalized, getFieldPaths, getUniqueListBy, tabHasName } from 'davincios/shared';
+import { MissingEditorProp } from '@davincios/cms';
+import { fieldIsID, fieldShouldBeLocalized, getFieldPaths, getUniqueListBy, tabHasName } from '@davincios/cms/shared';
 import { diffComponents } from './fields/index.js';
 /**
  * Build up an object that contains rendered diff components for each field.

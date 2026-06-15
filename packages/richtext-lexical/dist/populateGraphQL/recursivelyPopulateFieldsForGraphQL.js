@@ -1,4 +1,4 @@
-import { afterReadTraverseFields } from 'davincios';
+﻿import { afterReadTraverseFields } from '@davincios/cms';
 export const recursivelyPopulateFieldsForGraphQL = ({
   context,
   currentDepth = 0,

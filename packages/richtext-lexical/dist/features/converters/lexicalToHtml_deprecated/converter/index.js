@@ -1,4 +1,4 @@
-import { createLocalReq } from 'davincios';
+﻿import { createLocalReq } from '@davincios/cms';
 import { hasText } from '../../../../validate/hasText.js';
 /**
  * @deprecated - will be removed in 4.0. Use the function exported from `@davincios/richtext-lexical/html` instead.

@@ -1,6 +1,6 @@
-import { hasSavePermission as getHasSavePermission, isEditing as getIsEditing } from '@davincios/ui/shared';
-import { docAccessOperation, docAccessOperationGlobal, logError } from 'davincios';
-import { hasDraftsEnabled } from 'davincios/shared';
+﻿import { hasSavePermission as getHasSavePermission, isEditing as getIsEditing } from '@davincios/ui/shared';
+import { docAccessOperation, docAccessOperationGlobal, logError } from '@davincios/cms';
+import { hasDraftsEnabled } from '@davincios/cms/shared';
 export const getDocumentPermissions = async args => {
   const {
     id,

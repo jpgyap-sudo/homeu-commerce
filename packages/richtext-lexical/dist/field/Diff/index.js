@@ -1,7 +1,7 @@
-import { jsx as _jsx } from "react/jsx-runtime";
+﻿import { jsx as _jsx } from "react/jsx-runtime";
 import { FieldDiffContainer, getHTMLDiffComponents } from '@davincios/ui/rsc';
 import '../bundled.css';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React from 'react';
 import { convertLexicalToHTMLAsync } from '../../features/converters/lexicalToHtml/async/index.js';
 import { getDaVinciOSPopulateFn } from '../../features/converters/utilities/davinciosPopulateFn.js';

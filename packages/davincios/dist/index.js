@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */ import { spawn } from 'child_process';
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */ import { spawn } from 'child_process';
 import crypto from 'crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'path';
@@ -314,7 +314,7 @@ let checkedDependencies = false;
             throw new Error('Error: the DaVinciOS config is required to initialize DaVinciOS.');
         }
         this.config = await options.config;
-        this.logger = getLogger('DaVinciOS', this.config.logger);
+        this.logger = getLogger('@davincios/cms', this.config.logger);
         if (!this.config.secret) {
             throw new Error('Error: missing secret key. A secret key is needed to secure DaVinciOS.');
         }

@@ -1,4 +1,4 @@
-import { generateMetadata } from '../../utilities/meta.js';
+﻿import { generateMetadata } from '../../utilities/meta.js';
 export const generateCustomViewMetadata = async args => {
   const {
     config,
@@ -12,11 +12,11 @@ export const generateCustomViewMetadata = async args => {
     description: `DaVinciOS`,
     keywords: `DaVinciOS`,
     serverURL: config.serverURL,
-    title: 'DaVinciOS',
+    title: '@davincios/cms',
     ...(config.admin.meta || {}),
     ...(viewConfig.meta || {}),
     openGraph: {
-      title: 'DaVinciOS',
+      title: '@davincios/cms',
       ...(config.admin.meta?.openGraph || {}),
       ...(viewConfig.meta?.openGraph || {})
     }

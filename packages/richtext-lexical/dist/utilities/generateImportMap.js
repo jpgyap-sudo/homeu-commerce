@@ -1,4 +1,4 @@
-import { genImportMapIterateFields } from 'davincios';
+﻿import { genImportMapIterateFields } from '@davincios/cms';
 export const getGenerateImportMap = args => ({
   addToImportMap,
   baseDir,

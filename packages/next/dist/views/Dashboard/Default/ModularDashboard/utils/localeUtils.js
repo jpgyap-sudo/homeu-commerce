@@ -1,4 +1,4 @@
-import { fieldAffectsData, fieldHasSubFields, tabHasName } from 'davincios/shared';
+﻿import { fieldAffectsData, fieldHasSubFields, tabHasName } from '@davincios/cms/shared';
 function isLocalized(field) {
   return 'localized' in field && Boolean(field.localized);
 }

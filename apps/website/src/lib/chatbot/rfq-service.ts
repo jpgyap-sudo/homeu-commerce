@@ -9,7 +9,7 @@
  * for admin panel visibility.
  */
 
-import { logTask } from '../../../../../tools/shared/central-logger.mjs'
+import { logTask } from '../central-logger.mjs'
 import { sendTelegramAlert } from './telegram-client'
 import { createSignal } from './lead-scorer'
 

@@ -1,4 +1,4 @@
-import { afterChangeTraverseFields, afterReadTraverseFields, beforeChangeTraverseFields, beforeValidateTraverseFields, checkDependencies, deepMergeSimple, withNullableJSONSchemaType } from 'davincios';
+﻿import { afterChangeTraverseFields, afterReadTraverseFields, beforeChangeTraverseFields, beforeValidateTraverseFields, checkDependencies, deepMergeSimple, withNullableJSONSchemaType } from '@davincios/cms';
 import { i18n } from './i18n.js';
 import { defaultEditorFeatures } from './lexical/config/server/default.js';
 import { populateLexicalPopulationPromises } from './populateGraphQL/populateLexicalPopulationPromises.js';
@@ -752,7 +752,7 @@ export { consolidateHTMLConverters, lexicalHTML } from './features/converters/le
 export { HTMLConverterFeature } from './features/converters/lexicalToHtml_deprecated/index.js';
 export { convertLexicalToMarkdown } from './features/converters/lexicalToMarkdown/index.js';
 export { convertMarkdownToLexical } from './features/converters/markdownToLexical/index.js';
-export { getDaVinciOSPopulateFn } from './features/converters/utilities/davinciosPopulateFn.js';
+export { getDaVinciOSPopulateFn } from './features/converters/utilities/daVinciOSPopulateFn.js';
 export { getRestPopulateFn } from './features/converters/utilities/restPopulateFn.js';
 export { DebugJsxConverterFeature } from './features/debug/jsxConverter/server/index.js';
 export { TestRecorderFeature } from './features/debug/testRecorder/server/index.js';

@@ -1,4 +1,4 @@
-import { createDataloaderCacheKey } from 'davincios';
+﻿import { createDataloaderCacheKey } from '@davincios/cms';
 export const populate = async ({
   id,
   collectionSlug,

@@ -1,7 +1,7 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { File } from '@davincios/ui/rsc';
 import { createHash } from 'crypto';
-import { formatFilesize } from 'davincios/shared';
+import { formatFilesize } from '@davincios/cms/shared';
 import React from 'react';
 const baseClass = 'lexical-upload-diff';
 export const UploadDiffHTMLConverterAsync = () => {

@@ -1,7 +1,7 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Button, Link } from '@davincios/ui';
 import { Translation } from '@davincios/ui/shared';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React from 'react';
 import { FormHeader } from '../../elements/FormHeader/index.js';
 import { ResetPasswordForm } from './ResetPasswordForm/index.js';

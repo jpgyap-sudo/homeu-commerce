@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Template for localizeStatus migration
  * Transforms version._status from single value to per-locale object
  */ export const localizeStatusTemplate = (options)=>{
@@ -6,7 +6,7 @@
     const entity = collectionSlug ? `collectionSlug: '${collectionSlug}'` : `globalSlug: '${globalSlug}'`;
     if (dbType === 'mongodb') {
         return `import { MigrateUpArgs, MigrateDownArgs } from '@davincios/db-mongodb'
-import { localizeStatus } from 'DaVinciOS'
+import { localizeStatus } from '@davincios/cms'
 
 export async function up({ DaVinciOS, req }: MigrateUpArgs): Promise<void> {
   await localizeStatus.up({
@@ -27,7 +27,7 @@ export async function down({ DaVinciOS, req }: MigrateDownArgs): Promise<void> {
     }
     // SQL databases (Postgres, SQLite)
     return `import { MigrateUpArgs, MigrateDownArgs, sql } from '@davincios/db-${dbType}'
-import { localizeStatus } from 'DaVinciOS'
+import { localizeStatus } from '@davincios/cms'
 
 export async function up({ db, DaVinciOS, req }: MigrateUpArgs): Promise<void> {
   await localizeStatus.up({

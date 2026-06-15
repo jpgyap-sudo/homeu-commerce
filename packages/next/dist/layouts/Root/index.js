@@ -1,9 +1,9 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { rtlLanguages } from '@davincios/translations';
 import { ProgressBar, RootProvider } from '@davincios/ui';
 import { getClientConfig } from '@davincios/ui/utilities/getClientConfig';
 import { cookies as nextCookies } from 'next/headers.js';
-import { applyLocaleFiltering } from 'davincios/shared';
+import { applyLocaleFiltering } from '@davincios/cms/shared';
 import React, { Suspense } from 'react';
 import { getNavPrefs } from '../../elements/Nav/getNavPrefs.js';
 import { getRequestTheme } from '../../utilities/getRequestTheme.js';
@@ -80,7 +80,7 @@ const RootLayoutContent = async ({
 
     const cookies = await nextCookies();
     cookies.set({
-      name: `${config.cookiePrefix || 'davincios'}-lng`,
+      name: `${config.cookiePrefix || '@davincios/cms'}-lng`,
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
       value: lang

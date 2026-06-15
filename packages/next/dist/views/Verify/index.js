@@ -1,5 +1,5 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { formatAdminURL } from 'davincios/shared';
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { formatAdminURL } from '@davincios/cms/shared';
 import React from 'react';
 import { Logo } from '../../elements/Logo/index.js';
 import { ToastAndRedirect } from './index.client.js';

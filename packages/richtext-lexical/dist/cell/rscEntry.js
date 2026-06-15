@@ -1,7 +1,7 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { getTranslation } from '@davincios/translations';
 import { Link } from '@davincios/ui';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React from 'react';
 function recurseEditorState(editorState, textContent, i = 0) {
   for (const node of editorState) {

@@ -1,7 +1,7 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { RenderServerComponent } from '@davincios/ui/elements/RenderServerComponent';
 import { redirect } from 'next/navigation.js';
-import { getSafeRedirect } from 'davincios/shared';
+import { getSafeRedirect } from '@davincios/cms/shared';
 import React, { Fragment } from 'react';
 import { Logo } from '../../elements/Logo/index.js';
 import { LoginForm } from './LoginForm/index.js';

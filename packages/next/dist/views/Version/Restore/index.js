@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { getTranslation } from '@davincios/translations';
 import { Button, ConfirmationModal, PopupList, toast, useConfig, useModal, useRouteTransition, useTranslation } from '@davincios/ui';
 import { requests } from '@davincios/ui/shared';
 import { useRouter } from 'next/navigation.js';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React, { Fragment, useCallback, useState } from 'react';
 const baseClass = 'restore-version';
 const modalSlug = 'restore-version';

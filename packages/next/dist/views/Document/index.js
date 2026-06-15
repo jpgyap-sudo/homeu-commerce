@@ -1,12 +1,12 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { DocumentInfoProvider, EditDepthProvider, HydrateAuthProvider, LivePreviewProvider } from '@davincios/ui';
 import { RenderServerComponent } from '@davincios/ui/elements/RenderServerComponent';
 import { handleLivePreview, handlePreview } from '@davincios/ui/rsc';
 import { isEditing as getIsEditing } from '@davincios/ui/shared';
 import { buildFormState } from '@davincios/ui/utilities/buildFormState';
 import { notFound, redirect } from 'next/navigation.js';
-import { isolateObjectProperty, logError } from 'davincios';
-import { formatAdminURL, hasAutosaveEnabled, hasDraftsEnabled } from 'davincios/shared';
+import { isolateObjectProperty, logError } from '@davincios/cms';
+import { formatAdminURL, hasAutosaveEnabled, hasDraftsEnabled } from '@davincios/cms/shared';
 import React from 'react';
 import { DocumentHeader } from '../../elements/DocumentHeader/index.js';
 import { getPreferences } from '../../utilities/getPreferences.js';

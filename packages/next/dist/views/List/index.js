@@ -1,9 +1,9 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { DefaultListView, HydrateAuthProvider, ListQueryProvider } from '@davincios/ui';
 import { RenderServerComponent } from '@davincios/ui/elements/RenderServerComponent';
 import { getColumns, renderFilters, renderTable, upsertPreferences } from '@davincios/ui/rsc';
 import { notFound } from 'next/navigation.js';
-import { appendUploadSelectFields, combineWhereConstraints, formatAdminURL, isNumber, mergeListSearchAndWhere, transformColumnsToPreferences, transformColumnsToSearchParams } from 'davincios/shared';
+import { appendUploadSelectFields, combineWhereConstraints, formatAdminURL, isNumber, mergeListSearchAndWhere, transformColumnsToPreferences, transformColumnsToSearchParams } from '@davincios/cms/shared';
 import React, { Fragment } from 'react';
 import { getDocumentPermissions } from '../Document/getDocumentPermissions.js';
 import { enrichDocsWithVersionStatus } from './enrichDocsWithVersionStatus.js';

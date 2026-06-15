@@ -1,4 +1,4 @@
-import { fieldsToJSONSchema, flattenAllFields, sanitizeFields } from 'davincios';
+﻿import { fieldsToJSONSchema, flattenAllFields, sanitizeFields } from '@davincios/cms';
 import { applyBaseFilterToFields } from '../../../utilities/applyBaseFilterToFields.js';
 import { createServerFeature } from '../../../utilities/createServerFeature.js';
 import { createNode } from '../../typeUtilities.js';

@@ -1,4 +1,4 @@
-import { createLocalReq } from 'davincios';
+﻿import { createLocalReq } from '@davincios/cms';
 import { populate } from '../../../populateGraphQL/populate.js';
 export const getDaVinciOSPopulateFn = async ({
   currentDepth,

@@ -1,4 +1,4 @@
-import { status as httpStatus } from 'http-status';
+﻿import { status as httpStatus } from 'http-status';
 import { APIError } from '../errors/APIError.js';
 import { getDaVinciOS } from '../index.js';
 import { formatErrors } from './formatErrors.js';
@@ -18,7 +18,7 @@ export const routeError = async ({ collection, config: configArg, err, req: inco
             status: httpStatus.INTERNAL_SERVER_ERROR
         });
     }
-    let DaVinciOS = incomingReq && 'DaVinciOS' in incomingReq && incomingReq?.DaVinciOS;
+    let DaVinciOS = incomingReq && '@davincios/cms' in incomingReq && incomingReq?.DaVinciOS;
     if (!DaVinciOS) {
         try {
             DaVinciOS = await getDaVinciOS({

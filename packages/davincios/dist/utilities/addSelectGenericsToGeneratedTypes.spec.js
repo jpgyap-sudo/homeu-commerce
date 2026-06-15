@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+﻿import { describe, it, expect } from 'vitest';
 import { addSelectGenericsToGeneratedTypes } from './addSelectGenericsToGeneretedTypes.js';
 const INPUT_AND_OUTPUT = [
     {
@@ -270,7 +270,7 @@ export interface Auth {
 }
 
 
-declare module 'DaVinciOS' {
+declare module '@davincios/cms' {
   // @ts-ignore
   export interface GeneratedTypes extends Config {}
 }
@@ -543,7 +543,7 @@ export interface Auth {
 }
 
 
-declare module 'DaVinciOS' {
+declare module '@davincios/cms' {
   // @ts-ignore
   export interface GeneratedTypes extends Config {}
 }

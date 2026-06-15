@@ -1,4 +1,4 @@
-import { checkDependencies as davinciosCheckDependencies } from 'davincios';
+﻿import { checkDependencies as davinciosCheckDependencies } from '@davincios/cms';
 const customReactVersionParser = version => {
   const [mainVersion, ...preReleases] = version.split('-');
   if (preReleases?.length === 3) {

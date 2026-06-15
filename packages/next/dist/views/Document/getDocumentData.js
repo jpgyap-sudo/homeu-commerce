@@ -1,5 +1,5 @@
-import { sanitizeID } from '@davincios/ui/shared';
-import { logError } from 'davincios';
+﻿import { sanitizeID } from '@davincios/ui/shared';
+import { logError } from '@davincios/cms';
 export const getDocumentData = async ({
   id: idArg,
   collectionSlug,

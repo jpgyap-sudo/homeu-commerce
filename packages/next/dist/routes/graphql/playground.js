@@ -1,6 +1,6 @@
-import { renderPlaygroundPage } from 'graphql-playground-html';
-import { createDaVinciOSRequest } from 'davincios';
-import { formatAdminURL } from 'davincios/shared';
+﻿import { renderPlaygroundPage } from 'graphql-playground-html';
+import { createDaVinciOSRequest } from '@davincios/cms';
+import { formatAdminURL } from '@davincios/cms/shared';
 export const GET = config => async request => {
   const req = await createDaVinciOSRequest({
     config,

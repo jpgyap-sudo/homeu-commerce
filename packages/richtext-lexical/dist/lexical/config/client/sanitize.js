@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import { deepMerge } from 'davincios/shared';
+import { deepMerge } from '@davincios/cms/shared';
 export const sanitizeClientFeatures = features => {
   const sanitized = {
     enabledFeatures: [],

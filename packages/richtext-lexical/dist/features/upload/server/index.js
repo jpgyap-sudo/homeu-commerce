@@ -1,4 +1,4 @@
-import { sanitizeFields } from 'davincios';
+﻿import { sanitizeFields } from '@davincios/cms';
 import { populate } from '../../../populateGraphQL/populate.js';
 import { createServerFeature } from '../../../utilities/createServerFeature.js';
 import { createNode } from '../../typeUtilities.js';

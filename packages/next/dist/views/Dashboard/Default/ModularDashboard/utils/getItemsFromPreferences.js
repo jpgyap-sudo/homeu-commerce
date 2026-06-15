@@ -1,4 +1,4 @@
-import { PREFERENCE_KEYS } from 'davincios/shared';
+﻿import { PREFERENCE_KEYS } from '@davincios/cms/shared';
 import { getPreferences } from '../../../../../utilities/getPreferences.js';
 export async function getItemsFromPreferences(davincios, user) {
   const savedPreferences = await getPreferences(PREFERENCE_KEYS.DASHBOARD_LAYOUT, davincios, user.id, user.collection);

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Taken & simplified from https://github.com/sindresorhus/conf/blob/main/source/index.ts
  *
  * MIT License
@@ -39,7 +39,7 @@ export class Conf {
             fileExtension: 'json',
             projectSuffix: 'nodejs'
         };
-        const cwd = envPaths('DaVinciOS', {
+        const cwd = envPaths('@davincios/cms', {
             suffix: options.projectSuffix
         }).config;
         this.#options = options;

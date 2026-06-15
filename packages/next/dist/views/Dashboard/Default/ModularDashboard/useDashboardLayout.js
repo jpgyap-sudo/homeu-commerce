@@ -1,6 +1,6 @@
-import { arrayMove } from '@dnd-kit/sortable';
+﻿import { arrayMove } from '@dnd-kit/sortable';
 import { ConfirmationModal, toast, useConfig, useModal, usePreferences, useServerFunctions, useTranslation } from '@davincios/ui';
-import { PREFERENCE_KEYS } from 'davincios/shared';
+import { PREFERENCE_KEYS } from '@davincios/cms/shared';
 import React, { useCallback, useEffect, useState } from 'react';
 import { RenderWidget } from './renderWidget/RenderWidget.js';
 export function useDashboardLayout(initialLayout) {

@@ -1,9 +1,9 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { DocumentInfoProvider, EditDepthProvider, HydrateAuthProvider } from '@davincios/ui';
 import { RenderServerComponent } from '@davincios/ui/elements/RenderServerComponent';
 import { buildFormState } from '@davincios/ui/utilities/buildFormState';
 import { notFound } from 'next/navigation.js';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import React from 'react';
 import { DocumentHeader } from '../../elements/DocumentHeader/index.js';
 import { getDocPreferences } from '../Document/getDocPreferences.js';

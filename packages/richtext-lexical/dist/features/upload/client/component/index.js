@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext.js';
@@ -6,7 +6,7 @@ import { useLexicalEditable } from '@lexical/react/useLexicalEditable';
 import { getTranslation } from '@davincios/translations';
 import { Button, formatDrawerSlug, Thumbnail, useConfig, useEditDepth, useDaVinciOSAPI, useTranslation } from '@davincios/ui';
 import { $getNodeByKey } from 'lexical';
-import { formatAdminURL, isImage } from 'davincios/shared';
+import { formatAdminURL, isImage } from '@davincios/cms/shared';
 import React, { useCallback, useId, useReducer, useRef, useState } from 'react';
 import { useEditorConfigContext } from '../../../../lexical/config/client/EditorConfigProvider.js';
 import { FieldsDrawer } from '../../../../utilities/fieldsDrawer/Drawer.js';

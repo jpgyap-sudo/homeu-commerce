@@ -1,7 +1,7 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+﻿import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Gutter, ListQueryProvider, SetDocumentStepNav } from '@davincios/ui';
 import { notFound } from 'next/navigation.js';
-import { formatAdminURL, hasDraftsEnabled, isNumber } from 'davincios/shared';
+import { formatAdminURL, hasDraftsEnabled, isNumber } from '@davincios/cms/shared';
 import React from 'react';
 import { fetchLatestVersion, fetchVersions } from '../Version/fetchVersions.js';
 import { VersionDrawerCreatedAtCell } from '../Version/SelectComparison/VersionDrawer/CreatedAtCell.js';

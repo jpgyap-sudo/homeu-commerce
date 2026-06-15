@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { c as _c } from "react/compiler-runtime";
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { EmailField, Form, FormSubmit, TextField, useConfig, useTranslation } from '@davincios/ui';
-import { email, formatAdminURL, text } from 'davincios/shared';
+import { email, formatAdminURL, text } from '@davincios/cms/shared';
 import React, { useState } from 'react';
 import { FormHeader } from '../../../elements/FormHeader/index.js';
 export const ForgotPasswordForm = () => {

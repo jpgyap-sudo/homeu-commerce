@@ -457,7 +457,7 @@ export function ChatWidget() {
           )}
 
           {/* Chat Messages (after lead gate) */}
-          {(state === 'chat_active' || state === 'showing_products' || state === 'greeting' || state === 'success' || state === 'error') && leadId && (
+          {(state === 'chat_active' || state === 'showing_products' || state === 'greeting' || state === 'submitting' || state === 'success' || state === 'error') && leadId && (
             <>
               <MessageList messages={messages} isTyping={isTyping} />
 

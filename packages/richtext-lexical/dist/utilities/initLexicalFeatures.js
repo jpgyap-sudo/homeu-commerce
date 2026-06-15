@@ -1,4 +1,4 @@
-import { getFromImportMap } from 'davincios/shared';
+﻿import { getFromImportMap } from '@davincios/cms/shared';
 export function initLexicalFeatures(args) {
   const clientFeatures = {};
   // turn args.resolvedFeatureMap into an array of [key, value] pairs, ordered by value.order, lowest order first:

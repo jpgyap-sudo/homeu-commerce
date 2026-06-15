@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { c as _c } from "react/compiler-runtime";
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Button, ConfirmationModal, toast, useConfig, useModal, useTranslation } from '@davincios/ui';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import * as qs from 'qs-esm';
 import { Fragment, useCallback } from 'react';
 const confirmResetModalSlug = 'confirm-reset-modal';

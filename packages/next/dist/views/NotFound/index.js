@@ -1,6 +1,6 @@
-import { jsx as _jsx } from "react/jsx-runtime";
+﻿import { jsx as _jsx } from "react/jsx-runtime";
 import { getVisibleEntities } from '@davincios/ui/shared';
-import { formatAdminURL } from 'davincios/shared';
+import { formatAdminURL } from '@davincios/cms/shared';
 import * as qs from 'qs-esm';
 import React from 'react';
 import { DefaultTemplate } from '../../templates/Default/index.js';

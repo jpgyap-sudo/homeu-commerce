@@ -1,5 +1,5 @@
-import { flattenAllFields, getFieldByPath, UnauthorizedError } from 'davincios';
-import { slugify as defaultSlugify } from 'davincios/shared';
+﻿import { flattenAllFields, getFieldByPath, UnauthorizedError } from '@davincios/cms';
+import { slugify as defaultSlugify } from '@davincios/cms/shared';
 /**
  * This server function is directly related to the {@link https://davincios.com/docs/fields/text#slug-field | Slug Field}.
  * This is a server function that is used to invoke the user's custom slugify function from the client.
