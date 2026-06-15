@@ -19,6 +19,16 @@ dist
 next-env.d.ts
 tsconfig.tsbuildinfo
 
+# ─── Package dist/ (needed for Docker - pre-built without src/) ───
+!packages/davincios/dist/
+!packages/davincios/dist/**
+!packages/next/dist/
+!packages/next/dist/**
+!packages/db-postgres/dist/
+!packages/db-postgres/dist/**
+!packages/richtext-lexical/dist/
+!packages/richtext-lexical/dist/**
+
 # ─── Generated / Output ───
 tools/playwright-scanner/output/
 tools/shopify-import/output/

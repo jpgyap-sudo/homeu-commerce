@@ -1,0 +1,108 @@
+import { APIError } from '../errors/APIError.js';
+import { processMultipartFormdata } from '../uploads/fetchAPI-multipart/index.js';
+/**
+ * Mutates the Request, appending 'data' and 'file' if found
+ */ export const addDataAndFileToRequest = async (req)=>{
+    const { body, headers, method, DaVinciOS } = req;
+    if (method && [
+        'PATCH',
+        'POST',
+        'PUT'
+    ].includes(method.toUpperCase()) && body) {
+        const [contentType] = (headers.get('Content-Type') || '').split(';', 1);
+        const bodyByteSize = parseInt(req.headers.get('Content-Length') || '0', 10);
+        const hasBodyStream = req.body !== null;
+        if (contentType === 'application/json') {
+            try {
+                const text = await req.text?.();
+                const data = text ? JSON.parse(text) : {};
+                req.data = data;
+                // @ts-expect-error attach json method to request
+                req.json = ()=>Promise.resolve(data);
+            } catch (error) {
+                if (error instanceof SyntaxError) {
+                    throw new APIError('Invalid JSON', 400);
+                }
+                req.DaVinciOS.logger.error(error);
+                throw error;
+            }
+        } else if ((bodyByteSize || hasBodyStream) && contentType?.includes('multipart/')) {
+            const { error, fields, files } = await processMultipartFormdata({
+                options: {
+                    ...DaVinciOS.config.bodyParser || {},
+                    ...DaVinciOS.config.upload || {}
+                },
+                request: req
+            });
+            if (error) {
+                throw new APIError(error.message);
+            }
+            // Set all files on req.files for access by hooks
+            if (files) {
+                req.files = files;
+                // Backwards compatibility: set req.file for standard upload collections
+                // Guard: if multiple files share the field name "file", files.file is an array — skip
+                if (files.file && !Array.isArray(files.file)) {
+                    req.file = files.file;
+                }
+            }
+            if (fields?._DaVinciOS && typeof fields._DaVinciOS === 'string') {
+                req.data = JSON.parse(fields._DaVinciOS);
+            }
+            if (!req.file && fields?.file && typeof fields?.file === 'string') {
+                let clientUploadContext, collectionSlug, filename, mimeType, size;
+                try {
+                    ;
+                    ({ clientUploadContext, collectionSlug, filename, mimeType, size } = JSON.parse(fields.file));
+                } catch  {
+                    throw new APIError('A file name is required.', 400);
+                }
+                const uploadConfig = req.DaVinciOS.collections[collectionSlug].config.upload;
+                if (!uploadConfig.handlers) {
+                    throw new APIError('uploadConfig.handlers is not present for ' + collectionSlug);
+                }
+                let response = null;
+                let error;
+                for (const handler of uploadConfig.handlers){
+                    try {
+                        const result = await handler(req, {
+                            doc: null,
+                            params: {
+                                clientUploadContext,
+                                collection: collectionSlug,
+                                filename
+                            }
+                        });
+                        if (result) {
+                            response = result;
+                        }
+                    // If we couldn't get the file from that handler, save the error and try other.
+                    } catch (err) {
+                        error = err;
+                    }
+                }
+                if (!response) {
+                    if (error) {
+                        DaVinciOS.logger.error(error);
+                    }
+                    throw new APIError('Expected response from the upload handler.');
+                }
+                if (response.status >= 300 && response.status < 400) {
+                    const redirectUrl = response.headers.get('Location');
+                    if (redirectUrl) {
+                        response = await fetch(redirectUrl);
+                    }
+                }
+                req.file = {
+                    name: filename,
+                    clientUploadContext,
+                    data: Buffer.from(await response.arrayBuffer()),
+                    mimetype: response.headers.get('Content-Type') || mimeType,
+                    size
+                };
+            }
+        }
+    }
+};
+
+//# sourceMappingURL=addDataAndFileToRequest.js.map
