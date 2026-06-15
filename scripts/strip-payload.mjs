@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Comprehensive sweep — removes ALL "payload" references from dist files.
- * Operates on .js, .d.ts, .cjs, .mjs files (NOT .js.map — those are skipped).
- * Also renames files on disk that still have "Payload" in their names.
+ * Operates on .js, .d.ts, .cjs, .mjs, .js.map, .d.ts.map files.
+ * Also renames files on disk that still have "Payload" or "payload" in their names.
  * TypeScript type names like PayloadRequest, PayloadComponent are preserved as-is
  * since they are still the correct exported type names from @davincios/cms.
  *
@@ -16,14 +16,36 @@ import { fileURLToPath } from 'url'
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const ROOT = join(__dirname, '..')
 
+// All dist directories that need processing
 const ROOTS = [
-  // During Docker build, packages are copied to node_modules/@davincios/
-  // These paths are relative to the project root (parent of scripts/)
+  // === Source packages (local development) ===
+  'packages/davincios/dist',
+  'packages/next/dist',
+  'packages/richtext-lexical/dist',
+  'packages/db-postgres/dist',
+
+  // === Dev node_modules copies ===
+  'apps/website/node_modules/@davincios/cms/dist',
+  'apps/website/node_modules/@davincios/next/dist',
+  'apps/website/node_modules/@davincios/richtext-lexical/dist',
+  'apps/website/node_modules/@davincios/db-postgres/dist',
+  'apps/website/node_modules/@davincios/ui/dist',
+  'apps/website/node_modules/@davincios/graphql/dist',
+  'apps/website/node_modules/@davincios/translations/dist',
+  'apps/website/node_modules/@davincios/drizzle/dist',
+
+  // === Docker build target paths (website is at root in Docker context) ===
   'website/node_modules/@davincios/cms/dist',
   'website/node_modules/@davincios/next/dist',
+  'website/node_modules/@davincios/richtext-lexical/dist',
+  'website/node_modules/@davincios/db-postgres/dist',
+  'website/node_modules/@davincios/ui/dist',
+  'website/node_modules/@davincios/graphql/dist',
+  'website/node_modules/@davincios/translations/dist',
+  'website/node_modules/@davincios/drizzle/dist',
 ]
 
-const EXTENSIONS = ['.js', '.d.ts', '.cjs', '.mjs']
+const EXTENSIONS = ['.js', '.d.ts', '.cjs', '.mjs', '.js.map', '.d.ts.map']
 
 // Track stats
 let totalFiles = 0
@@ -116,26 +138,20 @@ function replaceContent(content, filePath) {
   modified = modified.replace(/PAYLOAD_PATH/g, 'DAVINCIOS_PATH')
 
   // Pattern 6: Known renamed function names
-  // withPayload -> withDaVinciOS
   modified = modified.replace(/\bwithPayload\b/g, 'withDaVinciOS')
-  // getPayloadHMR -> getDaVinciOSHMR
   modified = modified.replace(/\bgetPayloadHMR\b/g, 'getDaVinciOSHMR')
-  // setPayloadAuthCookie -> setDaVinciOSAuthCookie
   modified = modified.replace(/\bsetPayloadAuthCookie\b/g, 'setDaVinciOSAuthCookie')
-  // generatePayloadCookie -> generateDaVinciOSCookie
   modified = modified.replace(/\bgeneratePayloadCookie\b/g, 'generateDaVinciOSCookie')
-  // checkPayloadDependencies -> checkDaVinciOSDependencies
   modified = modified.replace(/\bcheckPayloadDependencies\b/g, 'checkDaVinciOSDependencies')
-  // payloadPopulateFn -> daVinciOSPopulateFn  (or similar)
   modified = modified.replace(/\bpayloadPopulateFn\b/g, 'daVinciOSPopulateFn')
-  // payloadRequestCache -> daVinciOSRequestCache
   modified = modified.replace(/\bpayloadRequestCache\b/g, 'daVinciOSRequestCache')
-  // PAYLOAD_PACKAGE_LIST -> DaVinciOS_PACKAGE_LIST
   modified = modified.replace(/\bPAYLOAD_PACKAGE_LIST\b/g, 'DaVinciOS_PACKAGE_LIST')
-  // payloadPackageList -> DaVinciOSPackageList
   modified = modified.replace(/\bpayloadPackageList\b/g, 'DaVinciOSPackageList')
-  // withPayloadLegacy -> withDaVinciOSLegacy
   modified = modified.replace(/\bwithPayloadLegacy\b/g, 'withDaVinciOSLegacy')
+  modified = modified.replace(/\baddPayloadComponentToImportMap\b/g, 'addDaVinciOSComponentToImportMap')
+  modified = modified.replace(/\bparsePayloadComponent\b/g, 'parseDaVinciOSComponent')
+  modified = modified.replace(/\bcreatePayloadRequest\b/g, 'createDaVinciOSRequest')
+  modified = modified.replace(/\busePayloadAPI\b/g, 'useDaVinciOSAPI')
 
   // Pattern 7: getPayload function name -> getDaVinciOS
   // Careful: only match standalone getPayload, not PayloadRequest etc.
@@ -153,10 +169,31 @@ function replaceContent(content, filePath) {
   modified = modified.replace(/https?:\/\/(www\.)?payloadcms\.com/g, 'https://davincios.com')
 
   // Pattern 11: sourceMappingURL references to old filenames
+  modified = modified.replace(/\/\/# sourceMappingURL=withPayloadLegacy/g, '//# sourceMappingURL=withDaVinciOSLegacy')
   modified = modified.replace(/\/\/# sourceMappingURL=withPayload/g, '//# sourceMappingURL=withDaVinciOS')
   modified = modified.replace(/\/\/# sourceMappingURL=checkPayloadDependencies/g, '//# sourceMappingURL=checkDaVinciOSDependencies')
   modified = modified.replace(/\/\/# sourceMappingURL=payloadPackageList/g, '//# sourceMappingURL=DaVinciOSPackageList')
-  modified = modified.replace(/\/\/# sourceMappingURL=withPayloadLegacy/g, '//# sourceMappingURL=withDaVinciOSLegacy')
+  modified = modified.replace(/\/\/# sourceMappingURL=addPayloadComponentToImportMap/g, '//# sourceMappingURL=addDaVinciOSComponentToImportMap')
+  modified = modified.replace(/\/\/# sourceMappingURL=parsePayloadComponent/g, '//# sourceMappingURL=parseDaVinciOSComponent')
+  modified = modified.replace(/\/\/# sourceMappingURL=createPayloadRequest/g, '//# sourceMappingURL=createDaVinciOSRequest')
+  modified = modified.replace(/\/\/# sourceMappingURL=getPayloadHMR/g, '//# sourceMappingURL=getDaVinciOSHMR')
+  modified = modified.replace(/\/\/# sourceMappingURL=setPayloadAuthCookie/g, '//# sourceMappingURL=setDaVinciOSAuthCookie')
+  modified = modified.replace(/\/\/# sourceMappingURL=payloadPopulateFn/g, '//# sourceMappingURL=daVinciOSPopulateFn')
+  modified = modified.replace(/\/\/# sourceMappingURL=usePayloadAPI/g, '//# sourceMappingURL=useDaVinciOSAPI')
+
+  // Pattern 12: sourceMappingURL for .map files (JSON references)
+  // e.g., "sources":["createPayloadRequest.js"] -> "sources":["createDaVinciOSRequest.js"]
+  modified = modified.replace(/"payloadPackageList"/g, '"DaVinciOSPackageList"')
+  modified = modified.replace(/"withPayloadLegacy"/g, '"withDaVinciOSLegacy"')
+  modified = modified.replace(/"withPayload"/g, '"withDaVinciOS"')
+  modified = modified.replace(/"checkPayloadDependencies"/g, '"checkDaVinciOSDependencies"')
+  modified = modified.replace(/"addPayloadComponentToImportMap"/g, '"addDaVinciOSComponentToImportMap"')
+  modified = modified.replace(/"parsePayloadComponent"/g, '"parseDaVinciOSComponent"')
+  modified = modified.replace(/"createPayloadRequest"/g, '"createDaVinciOSRequest"')
+  modified = modified.replace(/"getPayloadHMR"/g, '"getDaVinciOSHMR"')
+  modified = modified.replace(/"setPayloadAuthCookie"/g, '"setDaVinciOSAuthCookie"')
+  modified = modified.replace(/"payloadPopulateFn"/g, '"daVinciOSPopulateFn"')
+  modified = modified.replace(/"usePayloadAPI"/g, '"useDaVinciOSAPI"')
 
   count = [...content].filter((_, i) => content[i] !== modified[i]).length
 
@@ -166,13 +203,28 @@ function replaceContent(content, filePath) {
 /**
  * Rename files on disk whose names still contain "Payload" or "payload" patterns.
  * This runs AFTER content replacement so imports already point to the new names.
+ *
+ * Entries are ORDERED from MOST specific to LEAST specific because the loop
+ * breaks on the first match (prevents partial/incorrect matches).
  */
 function renameFilesOnDisk(rootPath) {
-  const renameMap = {
-    'checkPayloadDependencies': 'checkDaVinciOSDependencies',
-    'payloadPackageList': 'DaVinciOSPackageList',
-    'withPayload': 'withDaVinciOS',
-  }
+  const renameMap = [
+    // MOST SPECIFIC FIRST — these must match before less-specific patterns
+    ['withPayloadLegacy', 'withDaVinciOSLegacy'],
+    ['withPayload', 'withDaVinciOS'],
+    ['addPayloadComponentToImportMap', 'addDaVinciOSComponentToImportMap'],
+    ['parsePayloadComponent', 'parseDaVinciOSComponent'],
+    ['createPayloadRequest', 'createDaVinciOSRequest'],
+    ['checkPayloadDependencies', 'checkDaVinciOSDependencies'],
+    ['payloadPackageList', 'DaVinciOSPackageList'],
+    ['payloadPopulateFn', 'daVinciOSPopulateFn'],
+    ['payload-favicon', 'davincios-favicon'],
+    ['payload-logo', 'davincios-logo'],
+    ['getPayloadHMR', 'getDaVinciOSHMR'],
+    ['setPayloadAuthCookie', 'setDaVinciOSAuthCookie'],
+    ['usePayloadAPI', 'useDaVinciOSAPI'],
+    ['Payload', 'DaVinciOS'],          // Generic catch-all for uppercase P
+  ]
 
   let renamedCount = 0
 
@@ -190,7 +242,7 @@ function renameFilesOnDisk(rootPath) {
           items.push(...subItems)
           // Check if this directory itself needs renaming
           let newName = entry.name
-          for (const [old, next] of Object.entries(renameMap)) {
+          for (const [old, next] of renameMap) {
             if (newName.includes(old)) {
               newName = newName.replace(old, next)
               break
@@ -202,7 +254,7 @@ function renameFilesOnDisk(rootPath) {
         } else {
           // Check if file needs renaming
           let newName = entry.name
-          for (const [old, next] of Object.entries(renameMap)) {
+          for (const [old, next] of renameMap) {
             if (newName.includes(old)) {
               newName = newName.replace(old, next)
               break
