@@ -1,5 +1,5 @@
 import './globals.css'
-import './components/chat/chat.css'
+import '../components/chat/chat.css'
 import { QuoteCartBadge } from '@/components/QuoteCart'
 import { ChatWidget } from '@/components/chat/ChatWidget'
 

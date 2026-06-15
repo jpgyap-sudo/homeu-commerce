@@ -17,6 +17,14 @@ RUN cd website && npm install && \
     echo "  Copied @davincios/next" && \
     echo "  Copied @davincios/db-postgres" && \
     echo "  Copied @davincios/richtext-lexical"
+
+# Strip remaining Payload references from copied dist files
+# The pre-built dist/ files in @davincios packages may still contain
+# Payload-branded function names, imports, and file names (e.g. withPayload,
+# checkPayloadDependencies, @payloadcms/*) that need to be renamed to DaVinciOS.
+COPY scripts/strip-payload.mjs ./scripts/strip-payload.mjs
+RUN node ./scripts/strip-payload.mjs
+
 COPY apps/website/src/ ./website/src/
 COPY apps/website/public/ ./website/public/
 RUN cd website && npm run build
