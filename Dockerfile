@@ -15,7 +15,7 @@ RUN cd website && npm install && \
     done
 COPY apps/website/src/ ./website/src/
 COPY apps/website/public/ ./website/public/
-RUN cd website && npm run build
+RUN cd website && NODE_OPTIONS=--preserve-symlinks npm run build
 
 # Stage 2: Production
 FROM node:20-alpine AS runner
