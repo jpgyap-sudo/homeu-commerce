@@ -5,7 +5,14 @@ WORKDIR /app
 # Copy all local packages and website source
 COPY packages/ ./packages/
 COPY apps/website/package.json apps/website/tsconfig.json apps/website/next.config.mjs ./website/
-RUN cd website && npm install
+RUN cd website && npm install && \
+    echo "Fixing broken npm symlinks for file: dependencies..." && \
+    cd node_modules/@davincios && \
+    for pkg in cms next db-postgres richtext-lexical; do \
+      if [ -L "$pkg" ]; then \
+        rm "$pkg" && ln -s "../../../packages/$pkg" "$pkg" && echo "  Fixed @davincios/$pkg"; \
+      fi; \
+    done
 COPY apps/website/src/ ./website/src/
 COPY apps/website/public/ ./website/public/
 RUN cd website && npm run build
