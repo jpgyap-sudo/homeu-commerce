@@ -6,16 +6,20 @@ WORKDIR /app
 COPY packages/ ./packages/
 COPY apps/website/package.json apps/website/tsconfig.json apps/website/next.config.mjs ./website/
 RUN cd website && npm install && \
-    echo "Fixing broken npm symlinks for file: dependencies..." && \
-    cd node_modules/@davincios && \
-    for pkg in cms next db-postgres richtext-lexical; do \
-      if [ -L "$pkg" ]; then \
-        rm "$pkg" && ln -s "../../../packages/$pkg" "$pkg" && echo "  Fixed @davincios/$pkg"; \
-      fi; \
-    done
+    echo "Replacing broken npm symlinks with direct copies for file: dependencies..." && \
+    rm -rf node_modules/@davincios && \
+    mkdir -p node_modules/@davincios && \
+    cp -r ../packages/davincios node_modules/@davincios/cms && \
+    cp -r ../packages/next node_modules/@davincios/next && \
+    cp -r ../packages/db-postgres node_modules/@davincios/db-postgres && \
+    cp -r ../packages/richtext-lexical node_modules/@davincios/richtext-lexical && \
+    echo "  Copied @davincios/cms" && \
+    echo "  Copied @davincios/next" && \
+    echo "  Copied @davincios/db-postgres" && \
+    echo "  Copied @davincios/richtext-lexical"
 COPY apps/website/src/ ./website/src/
 COPY apps/website/public/ ./website/public/
-RUN cd website && NODE_OPTIONS=--preserve-symlinks npm run build
+RUN cd website && npm run build
 
 # Stage 2: Production
 FROM node:20-alpine AS runner
