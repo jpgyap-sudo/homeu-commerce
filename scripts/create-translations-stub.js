@@ -129,9 +129,25 @@ fs.writeFileSync(path.join(pkgDir, 'utilities.js'), utilitiesCode);
 //   - error.validationError              (ValidationError)
 
 function makeLanguageStub(code) {
+  const displayNames = {
+    en: 'English', ar: 'العربية', az: 'Azərbaycan', bg: 'Български',
+    ca: 'Català', cs: 'Čeština', da: 'Dansk', de: 'Deutsch',
+    es: 'Español', et: 'Eesti', fa: 'فارسی', fr: 'Français',
+    he: 'עברית', hr: 'Hrvatski', hu: 'Magyar', hy: 'Հայերեն',
+    id: 'Bahasa Indonesia', is: 'Íslenska', it: 'Italiano',
+    ja: '日本語', ko: '한국어', lt: 'Lietuvių', lv: 'Latviešu',
+    my: 'မြန်မာ', nb: 'Norsk Bokmål', nl: 'Nederlands',
+    pl: 'Polski', pt: 'Português', ro: 'Română', rs: 'Српски',
+    rsLatin: 'Srpski', ru: 'Русский', sl: 'Slovenščina',
+    sv: 'Svenska', ta: 'தமிழ்', th: 'ไทย', tr: 'Türkçe',
+    uk: 'Українська', vi: 'Tiếng Việt', zh: '中文', zhTw: '繁體中文'
+  };
   return {
     code,
     translations: {
+      general: {
+        thisLanguage: displayNames[code] || code,
+      },
       error: {
         notAllowedToPerformAction: '',
         errorDeletingFile: '',

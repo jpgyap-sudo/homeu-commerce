@@ -2,13 +2,22 @@
 /**
  * Generate comprehensive stubs for @davincios/drizzle.
  * 
- * The @davincios/db-postgres adapter imports Payload-specific functions 
+ * The @davincios/db-postgres adapter imports DaVinciOS-specific functions
  * from @davincios/drizzle (index) and @davincios/drizzle/postgres.
- * These are adapter functions that wrap drizzle-orm with Payload CMS logic.
+ * These are adapter functions that wrap drizzle-orm with DaVinciOS logic.
  * 
- * Since we don't have the original @payloadcms/drizzle source, we create
+ * Since this workspace does not include the full @davincios/drizzle source, we create
  * minimal stubs that re-export from drizzle-orm where possible and provide
- * thin wrappers for Payload-specific operations.
+ * thin wrappers for DaVinciOS-specific operations.
+ * 
+ * IMPORTANT: All CRUD functions are called by the DaVinciOS runtime with a SINGLE
+ * config object argument, e.g.:
+ *   adapter.findOne({collection: 'users', where: {...}, req, select, ...})
+ * 
+ * The 'this' context is the database adapter object, which provides:
+ *   this.drizzle       - the drizzle-orm database instance
+ *   this.tableNameMap  - Map<string, Table> mapping collection slugs to Drizzle tables
+ *   this.tables        - object of all Drizzle tables
  */
 const fs = require('fs');
 const path = require('path');
@@ -35,23 +44,155 @@ fs.writeFileSync(path.join(pkgDir, 'package.json'), JSON.stringify(pkgJson, null
 // =============================================================================
 // index.js - Functions imported by @davincios/db-postgres from @davincios/drizzle
 // =============================================================================
-// These are adapter functions from the original @payloadcms/drizzle package.
+// These are adapter functions from the upstream drizzle integration.
 // We re-export from drizzle-orm where the symbols exist, and create thin
-// stubs for Payload-specific operations.
+// stubs for DaVinciOS-specific operations.
+//
+// CRITICAL: All CRUD functions receive a SINGLE config object as argument.
+// 'this' is the database adapter, providing:
+//   this.drizzle       - drizzle DB instance (set during connect)
+//   this.tableNameMap  - Map of collection slug -> Drizzle table
+//   this.tables        - raw tables object { slug: table }
 
 const indexCode = `'use strict';
+
+import { eq, and, or, sql, count as drizzleCount } from 'drizzle-orm';
 
 // Re-export all from drizzle-orm (provides: count, eq, and, or, sql, etc.)
 export * from 'drizzle-orm';
 
 // ============================================================================
-// Payload CMS Drizzle Adapter Functions
+// Helper: Resolve Drizzle table from config object
+// ============================================================================
+
+/**
+ * Resolve a Drizzle table reference from the collection slug.
+ * Uses this.tableNameMap (set during schema init) or falls back to this.tables.
+ * @param {object} config - The config object with {collection, ...} or {slug, ...} or {global, ...}
+ * @returns {{ db: object, table: object }} The drizzle DB instance and table reference
+ */
+function resolveTable(config) {
+  const db = this && this.drizzle;
+  if (!db) {
+    throw new Error('@davincios/drizzle: this.drizzle not available. DB not connected?');
+  }
+  const slug = config.collection || config.slug || config.global;
+  if (!slug) {
+    throw new Error('@davincios/drizzle: no collection/slug/global in config: ' + JSON.stringify(Object.keys(config)));
+  }
+  // Look up table from tableNameMap (Map<string, Table>) or tables object
+  let table = this.tableNameMap instanceof Map
+    ? this.tableNameMap.get(slug)
+    : this.tables?.[slug];
+  if (!table) {
+    // Fallback: try finding by key in this.tables
+    const tableKey = Object.keys(this.tables || {}).find(k => k === slug || k.endsWith('_' + slug));
+    table = tableKey ? this.tables[tableKey] : undefined;
+  }
+  if (!table) {
+    throw new Error('@davincios/drizzle: table not found for slug: ' + slug);
+  }
+  return { db, table };
+}
+
+// ============================================================================
+// Helper: Convert DaVinciOS where format to Drizzle conditions
+// ============================================================================
+
+/**
+ * Convert a DaVinciOS where clause to Drizzle SQL conditions.
+ * DaVinciOS format: { fieldName: { operator: value } }
+ * Supports: equals, not_equals, in, not_in, exists, not_exists,
+ *           greater_than, greater_than_equal, less_than, less_than_equal,
+ *           like, contains, and, or
+ * @param {object} where - DaVinciOS where object
+ * @param {object} table - Drizzle table reference
+ * @returns {object|undefined} Drizzle condition or undefined
+ */
+function convertWhere(where, table) {
+  if (!where || typeof where !== 'object') return undefined;
+
+  // Handle AND conditions
+  if (where.and && Array.isArray(where.and)) {
+    const conditions = where.and.map(c => convertWhere(c, table)).filter(Boolean);
+    if (conditions.length === 0) return undefined;
+    if (conditions.length === 1) return conditions[0];
+    return and(...conditions);
+  }
+
+  // Handle OR conditions
+  if (where.or && Array.isArray(where.or)) {
+    const conditions = where.or.map(c => convertWhere(c, table)).filter(Boolean);
+    if (conditions.length === 0) return undefined;
+    if (conditions.length === 1) return conditions[0];
+    return or(...conditions);
+  }
+
+  // Regular field conditions: { fieldName: { operator: value } }
+  const fieldNames = Object.keys(where).filter(k => k !== 'and' && k !== 'or');
+  if (fieldNames.length === 0) return undefined;
+
+  const conditions = fieldNames.map(fieldName => {
+    const condition = where[fieldName];
+    if (!condition || typeof condition !== 'object') {
+      // Simple value match: { fieldName: value }
+      const col = table[fieldName];
+      return col ? eq(col, condition) : undefined;
+    }
+
+    const operators = Object.keys(condition);
+    if (operators.length === 0) return undefined;
+
+    return operators.map(op => {
+      const value = condition[op];
+      const col = table[fieldName];
+      if (!col) return undefined;
+
+      switch (op) {
+        case 'equals':
+          return eq(col, value);
+        case 'not_equals':
+          return sql\`\${col} != \${value}\`;
+        case 'in':
+          return sql\`\${col} IN \${value}\`;
+        case 'not_in':
+          return sql\`\${col} NOT IN \${value}\`;
+        case 'exists':
+          return sql\`\${col} IS NOT NULL\`;
+        case 'not_exists':
+          return sql\`\${col} IS NULL\`;
+        case 'greater_than':
+          return sql\`\${col} > \${value}\`;
+        case 'greater_than_equal':
+          return sql\`\${col} >= \${value}\`;
+        case 'less_than':
+          return sql\`\${col} < \${value}\`;
+        case 'less_than_equal':
+          return sql\`\${col} <= \${value}\`;
+        case 'like':
+          return sql\`\${col} ILIKE \${'%' + value + '%'}\`;
+        case 'contains':
+          return sql\`\${col} @> \${JSON.stringify(value)}\`;
+        default:
+          // Unknown operator - try eq as fallback
+          return eq(col, value);
+      }
+    }).filter(Boolean);
+  }).flat().filter(Boolean);
+
+  if (conditions.length === 0) return undefined;
+  if (conditions.length === 1) return conditions[0];
+  return and(...conditions);
+}
+
+// ============================================================================
+// DaVinciOS Drizzle Adapter Functions
 // These are imported by @davincios/db-postgres/dist/index.js
 // ============================================================================
 
 // --- Transaction functions ---
 export async function beginTransaction(db, ctx) {
-  // Adapted from Payload's defaultBeginTransaction
+  // Adapted from DaVinciOS default transaction handling
   const tx = db.transaction;
   if (tx) return tx;
   // Fallback: drizzle-orm pools support .transaction()
@@ -73,125 +214,252 @@ export async function rollbackTransaction(db, id) {
 }
 
 // --- CRUD operations ---
-export async function create(db, table, data, ctx) {
+
+/**
+ * create - Called with a single config object.
+ * DaVinciOS calls: adapter.create({collection: slug, data: {...}, req, ...})
+ * 'this' is the adapter with this.drizzle (DB) and this.tableNameMap.
+ */
+export async function create(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const data = config.data || {};
   const [result] = await db.insert(table).values(data).returning();
   return result;
 }
 
-export async function createVersion(db, table, data, ctx) {
+export async function createVersion(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const data = config.data || {};
   const [result] = await db.insert(table).values(data).returning();
   return result;
 }
 
-export async function createGlobal(db, table, data, ctx) {
+export async function createGlobal(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const data = config.data || {};
   const [result] = await db.insert(table).values(data).returning();
   return result;
 }
 
-export async function createGlobalVersion(db, table, data, ctx) {
+export async function createGlobalVersion(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const data = config.data || {};
   const [result] = await db.insert(table).values(data).returning();
   return result;
 }
 
-export function find(db, table, condition, ctx) {
-  const q = db.select().from(table);
-  if (condition) q.where(condition);
+/**
+ * find - Called with a single config object.
+ * DaVinciOS calls: adapter.find({collection: slug, where: {...}, limit, page, sort, req, ...})
+ */
+export function find(config) {
+  const { db, table } = resolveTable.call(this, config);
+  let q = db.select().from(table);
+  const condition = convertWhere(config.where, table);
+  if (condition) q = q.where(condition);
+  if (config.limit) q = q.limit(config.limit);
+  if (config.offset) q = q.offset(config.offset);
+  if (config.sort) {
+    // Simple sort: 'fieldName' or '-fieldName'
+    const dir = config.sort.startsWith('-') ? 'desc' : 'asc';
+    const field = config.sort.replace(/^-/, '');
+    if (table[field]) {
+      q = dir === 'desc' ? q.orderBy(sql\`\${table[field]} DESC\`) : q.orderBy(sql\`\${table[field]} ASC\`);
+    }
+  }
   return q;
 }
 
-export function findOne(db, table, condition, ctx) {
-  const q = db.select().from(table);
-  if (condition) q.where(condition);
+/**
+ * findOne - Called with a single config object.
+ * DaVinciOS calls: adapter.findOne({collection: slug, where: {...}, req, select, ...})
+ */
+export function findOne(config) {
+  const { db, table } = resolveTable.call(this, config);
+  let q = db.select().from(table);
+  const condition = convertWhere(config.where, table);
+  if (condition) q = q.where(condition);
   return q.limit(1);
 }
 
-export function findDistinct(db, table, condition, ctx) {
-  const q = db.selectDistinct().from(table);
-  if (condition) q.where(condition);
+export function findDistinct(config) {
+  const { db, table } = resolveTable.call(this, config);
+  let q = db.selectDistinct().from(table);
+  const condition = convertWhere(config.where, table);
+  if (condition) q = q.where(condition);
   return q;
 }
 
-export function findGlobal(db, table, condition, ctx) {
-  const q = db.select().from(table);
-  if (condition) q.where(condition);
+/**
+ * findGlobal - Called with {slug: globalSlug, ...} instead of {collection: ...}
+ */
+export function findGlobal(config) {
+  const { db, table } = resolveTable.call(this, config);
+  let q = db.select().from(table);
+  const condition = convertWhere(config.where, table);
+  if (condition) q = q.where(condition);
   return q.limit(1);
 }
 
-export function findGlobalVersions(db, table, condition, ctx) {
-  const q = db.select().from(table);
-  if (condition) q.where(condition);
+export function findGlobalVersions(config) {
+  const { db, table } = resolveTable.call(this, config);
+  let q = db.select().from(table);
+  const condition = convertWhere(config.where, table);
+  if (condition) q = q.where(condition);
   return q;
 }
 
-export function findVersions(db, table, condition, ctx) {
-  const q = db.select().from(table);
-  if (condition) q.where(condition);
+export function findVersions(config) {
+  const { db, table } = resolveTable.call(this, config);
+  let q = db.select().from(table);
+  const condition = convertWhere(config.where, table);
+  if (condition) q = q.where(condition);
   return q;
 }
 
-export async function updateOne(db, table, condition, data, ctx) {
-  const [result] = await db.update(table).set(data).where(condition).returning();
+/**
+ * updateOne - Called with {collection: slug, where: {...}, data: {...}, req, ...}
+ */
+export async function updateOne(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const data = config.data || {};
+  const condition = convertWhere(config.where, table);
+  if (condition) {
+    const [result] = await db.update(table).set(data).where(condition).returning();
+    return result;
+  }
+  const [result] = await db.update(table).set(data).returning();
   return result;
 }
 
-export async function updateMany(db, table, condition, data, ctx) {
-  const results = await db.update(table).set(data).where(condition).returning();
+export async function updateMany(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const data = config.data || {};
+  const condition = convertWhere(config.where, table);
+  if (condition) {
+    const results = await db.update(table).set(data).where(condition).returning();
+    return results;
+  }
+  const results = await db.update(table).set(data).returning();
   return results;
 }
 
-export async function updateGlobal(db, table, condition, data, ctx) {
-  const [result] = await db.update(table).set(data).where(condition).returning();
+export async function updateGlobal(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const data = config.data || {};
+  const condition = convertWhere(config.where, table);
+  if (condition) {
+    const [result] = await db.update(table).set(data).where(condition).returning();
+    return result;
+  }
+  const [result] = await db.update(table).set(data).returning();
   return result;
 }
 
-export async function updateGlobalVersion(db, table, condition, data, ctx) {
-  const [result] = await db.update(table).set(data).where(condition).returning();
+export async function updateGlobalVersion(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const data = config.data || {};
+  const condition = convertWhere(config.where, table);
+  if (condition) {
+    const [result] = await db.update(table).set(data).where(condition).returning();
+    return result;
+  }
+  const [result] = await db.update(table).set(data).returning();
   return result;
 }
 
-export async function updateVersion(db, table, condition, data, ctx) {
-  const [result] = await db.update(table).set(data).where(condition).returning();
+export async function updateVersion(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const data = config.data || {};
+  const condition = convertWhere(config.where, table);
+  if (condition) {
+    const [result] = await db.update(table).set(data).where(condition).returning();
+    return result;
+  }
+  const [result] = await db.update(table).set(data).returning();
   return result;
 }
 
-export async function upsert(db, table, conflictTarget, data, ctx) {
-  const [result] = await db.insert(table).values(data).onConflictDoUpdate({ target: conflictTarget, set: data }).returning();
+export async function upsert(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const data = config.data || {};
+  const conflictTarget = config.where ? Object.keys(config.where).map(k => table[k]).filter(Boolean) : undefined;
+  if (conflictTarget && conflictTarget.length > 0) {
+    const [result] = await db.insert(table).values(data).onConflictDoUpdate({ target: conflictTarget, set: data }).returning();
+    return result;
+  }
+  const [result] = await db.insert(table).values(data).returning();
   return result;
 }
 
-export async function deleteOne(db, table, condition, ctx) {
-  const [result] = await db.delete(table).where(condition).returning();
+/**
+ * deleteOne - Called with {collection: slug, where: {...}, req, ...}
+ */
+export async function deleteOne(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const condition = convertWhere(config.where, table);
+  if (condition) {
+    const [result] = await db.delete(table).where(condition).returning();
+    return result;
+  }
+  const [result] = await db.delete(table).returning();
   return result;
 }
 
-export async function deleteMany(db, table, condition, ctx) {
-  const results = await db.delete(table).where(condition).returning();
+export async function deleteMany(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const condition = convertWhere(config.where, table);
+  if (condition) {
+    const results = await db.delete(table).where(condition).returning();
+    return results;
+  }
+  const results = await db.delete(table).returning();
   return results;
 }
 
-export async function deleteVersions(db, table, condition, ctx) {
-  const results = await db.delete(table).where(condition).returning();
+export async function deleteVersions(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const condition = convertWhere(config.where, table);
+  if (condition) {
+    const results = await db.delete(table).where(condition).returning();
+    return results;
+  }
+  const results = await db.delete(table).returning();
   return results;
 }
 
 // --- Count operations ---
-export async function count(db, table, condition, ctx) {
-  // Override re-export from drizzle-orm to match Payload signature
-  const rows = await db.select({ count: fn.count() }).from(table);
+export async function count(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const condition = convertWhere(config.where, table);
   if (condition) {
-    // Re-query with condition
+    const rows = await db.select({ count: drizzleCount() }).from(table).where(condition);
+    return Number(rows?.[0]?.count ?? 0);
   }
-  return rows?.[0]?.count ?? 0;
+  const rows = await db.select({ count: drizzleCount() }).from(table);
+  return Number(rows?.[0]?.count ?? 0);
 }
 
-export async function countVersions(db, table, condition, ctx) {
-  const rows = await db.select({ count: fn.count() }).from(table);
-  return rows?.[0]?.count ?? 0;
+export async function countVersions(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const condition = convertWhere(config.where, table);
+  if (condition) {
+    const rows = await db.select({ count: drizzleCount() }).from(table).where(condition);
+    return Number(rows?.[0]?.count ?? 0);
+  }
+  const rows = await db.select({ count: drizzleCount() }).from(table);
+  return Number(rows?.[0]?.count ?? 0);
 }
 
-export async function countGlobalVersions(db, table, condition, ctx) {
-  const rows = await db.select({ count: fn.count() }).from(table);
-  return rows?.[0]?.count ?? 0;
+export async function countGlobalVersions(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const condition = convertWhere(config.where, table);
+  if (condition) {
+    const rows = await db.select({ count: drizzleCount() }).from(table).where(condition);
+    return Number(rows?.[0]?.count ?? 0);
+  }
+  const rows = await db.select({ count: drizzleCount() }).from(table);
+  return Number(rows?.[0]?.count ?? 0);
 }
 
 // --- Migration functions ---
@@ -259,17 +527,25 @@ export const operatorMap = {
   near: 'near'
 };
 
-export function queryDrafts(db, table, condition, ctx) {
+export function queryDrafts(config) {
+  const { db, table } = resolveTable.call(this, config);
   return db.select().from(table);
 }
 
-export async function updateJobs(db, table, condition, data, ctx) {
-  const results = await db.update(table).set(data).where(condition).returning();
+export async function updateJobs(config) {
+  const { db, table } = resolveTable.call(this, config);
+  const data = config.data || {};
+  const condition = convertWhere(config.where, table);
+  if (condition) {
+    const results = await db.update(table).set(data).where(condition).returning();
+    return results;
+  }
+  const results = await db.update(table).set(data).returning();
   return results;
 }
 
 // Count (re-exported from drizzle-orm but we provide a compat alias)
-export { count as drizzleCount } from 'drizzle-orm';
+export { drizzleCount };
 `;
 
 fs.writeFileSync(path.join(pkgDir, 'index.js'), indexCode);
@@ -285,7 +561,7 @@ const postgresCode = `'use strict';
 export * from 'drizzle-orm/node-postgres';
 
 // ============================================================================
-// Payload CMS Postgres-specific Adapter Functions
+// DaVinciOS Postgres-specific Adapter Functions
 // ============================================================================
 
 export function columnToCodeConverter(col) {
@@ -304,11 +580,22 @@ export function countDistinct(db, table, column, condition) {
 
 export async function createDatabase(db, dbName) {
   // Database creation requires raw SQL
-  await db.execute(fn.sql(\`CREATE DATABASE \\\\\${dbName}\`));
+  await db.execute(fn.sql(\`CREATE DATABASE \\\${dbName}\`));
 }
 
 export function createExtensions(db, extensions) {
-  return extensions.map(ext => ({ name: ext, installed: true }));
+  // When called as adapter.createExtensions(), 'this' is the adapter
+  // and 'extensions' is the second arg (undefined when called as method).
+  // Read from this.extensions if available, else from the extensions arg.
+  const exts = extensions || (this && this.extensions) || [];
+  if (Array.isArray(exts)) {
+    return exts.map(ext => ({ name: ext, installed: true }));
+  }
+  // If exts is an object (like {uuidOssp: true}), convert to array
+  if (typeof exts === 'object') {
+    return Object.keys(exts).map(name => ({ name, installed: true }));
+  }
+  return [];
 }
 
 export function createJSONQuery(db, table, column, path) {
@@ -359,6 +646,6 @@ export async function requireDrizzleKit() {
 
 fs.writeFileSync(path.join(pkgDir, 'postgres.js'), postgresCode);
 
-console.log('Created @davincios/drizzle with Payload adapter stubs');
+console.log('Created @davincios/drizzle with fixed DaVinciOS adapter stubs');
 console.log('  - index.js: ' + (indexCode.match(/export (async )?function/g) || []).length + ' exports');
-console.log('  - postgres.js: ' + (postgresCode.match(/export (async )?function/g) || []).length + ' exports');
+console.log('  - CRITICAL FIX: All CRUD ops now accept config objects and use this.drizzle + this.tableNameMap');

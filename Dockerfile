@@ -130,10 +130,13 @@ RUN cd website && node ../scripts/create-drizzle-stub.js
 RUN cd website && node ../scripts/create-translations-stub.js
 
 # The pre-built dist/ files in @davincios packages may still contain
-# Payload-branded function names, imports, and file names (e.g. withPayload,
-# checkPayloadDependencies, @payloadcms/*) that need to be renamed to DaVinciOS.
-COPY scripts/strip-payload.mjs ./scripts/strip-payload.mjs
-RUN node ./scripts/strip-payload.mjs
+# Legacy upstream function names, imports, and file names are normalized to DaVinciOS.
+COPY scripts/strip-legacy-brand.mjs ./scripts/strip-legacy-brand.mjs
+RUN node ./scripts/strip-legacy-brand.mjs
+
+# Accept NEXT_PUBLIC_SITE_URL at build time for correct og:image URLs
+ARG NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 
 COPY apps/website/src/ ./website/src/
 COPY apps/website/public/ ./website/public/

@@ -6,8 +6,8 @@ this repository.
 
 ## Naming
 
-This project's CMS is **DaVinciOS** (a rebranded Payload CMS v3.85.1).
-Always call it "DaVinciOS" — never "Payload" — in code, docs, comments, and
+This project's CMS is **DaVinciOS**.
+Always call it "DaVinciOS" in code, docs, comments, and
 conversation.
 
 ## CDN Media: DigitalOcean Spaces (`do-spaces`)
