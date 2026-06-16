@@ -38,11 +38,13 @@ export default buildConfig({
     serverURL,
     'https://store.homeu.ph',
     'https://admin.homeu.ph',
+    'https://admin.homeatelier.ph',
   ],
   csrf: [
     serverURL,
     'https://store.homeu.ph',
     'https://admin.homeu.ph',
+    'https://admin.homeatelier.ph',
   ],
   // Security: cookie configuration for admin auth
   cookiePrefix: 'homeu',
