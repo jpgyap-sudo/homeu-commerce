@@ -1,7 +1,7 @@
 /**
  * Product Search Engine (MVP)
  *
- * Searches the DaVinciOS product catalog by text, tags, category,
+ * Searches the product catalog by text, tags, category,
  * materials, colors, and style. MVP uses keyword matching.
  * Phase 2 will add pgvector embeddings for semantic + visual search.
  *
@@ -10,7 +10,7 @@
  *   const results = await searchByAttributes({ category: 'Dining Chair', style: ['modern'], color: ['beige'] })
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+import { find } from '../db'
 
 export interface ProductResult {
   id: string
@@ -44,15 +44,11 @@ export interface SearchOptions {
   excludeIds?: string[]
 }
 
-// ── Search from DaVinciOS API ─────────────────────────────────
+// ── Search from DB ─────────────────────────────────────────────
 
-async function fetchProducts(searchParams?: string): Promise<any[]> {
+async function fetchProducts(): Promise<any[]> {
   try {
-    const url = `${API_BASE}/api/products${searchParams || ''}?limit=50&depth=1`
-    const res = await fetch(url, { next: { revalidate: 30 } })
-    if (!res.ok) return []
-    const data = await res.json()
-    return data?.docs || data || []
+    return await find('products', {}, { limit: 50, orderBy: 'title ASC' })
   } catch {
     return []
   }

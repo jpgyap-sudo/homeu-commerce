@@ -9,7 +9,7 @@ const COOKIE_NAME = 'homeu_admin_session'
 const SESSION_DURATION = 60 * 60 * 24 // 24 hours
 
 // ============================================================
-// Password hashing with bcrypt (replaces Payload CMS PBKDF2)
+// Password hashing with bcrypt
 // ============================================================
 
 export async function hashPassword(password: string): Promise<string> {
@@ -90,7 +90,7 @@ export async function authenticateAdmin(
 ): Promise<{ user: SessionUser; token: string } | { error: string }> {
   // Look up user
   const { rows } = await query(
-    `SELECT id, email, name, role, password_hash, salt, hash
+    `SELECT id, email, name, role, password_hash
      FROM customers
      WHERE email = $1 AND role = 'admin' AND status = 'active'
      LIMIT 1`,
@@ -102,46 +102,26 @@ export async function authenticateAdmin(
     return { error: 'Invalid email or password' }
   }
 
-  // Check password_hash first (bcrypt), fall back to Payload PBKDF2 hash
-  let valid = false
-  if (user.password_hash) {
-    valid = await verifyPassword(password, user.password_hash)
-  } else if (user.hash && user.salt) {
-    // Legacy Payload CMS PBKDF2 fallback
-    const crypto = await import('crypto')
-    return new Promise((resolve) => {
-      crypto.pbkdf2(password, user.salt, 25000, 512, 'sha256', (err, hashBuffer) => {
-        if (err) return resolve({ error: 'Authentication error' })
-        const storedHash = Buffer.from(user.hash, 'hex')
-        if (
-          hashBuffer.length === storedHash.length &&
-          crypto.timingSafeEqual(hashBuffer, storedHash)
-        ) {
-          resolve(createAdminSession(user))
-        } else {
-          resolve({ error: 'Invalid email or password' })
-        }
-      })
-    })
-  } else {
+  // Verify password using bcrypt
+  if (!user.password_hash) {
     return { error: 'No password set for this account' }
   }
 
+  const valid = await verifyPassword(password, user.password_hash)
   if (!valid) {
     return { error: 'Invalid email or password' }
   }
 
-  return createAdminSession(user)
+  // Create session
+  const token = await createSession({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  })
 
-  function createAdminSession(user: any) {
-    return createSession({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    }).then((token) => ({
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
-      token,
-    }))
+  return {
+    user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    token,
   }
 }

@@ -2,7 +2,7 @@
  * Customer Sync Engine
  *
  * Bridges the gap between chatbot leads (chatbot.leads) and
- * registered customer accounts (DaVinciOS customers collection).
+ * registered customer accounts (customers table).
  *
  * Sync flows:
  *   1. Visitor chats → lead created → email checked against customers → link if match
@@ -12,9 +12,15 @@
  *
  * This ensures admin sees the full customer journey:
  *   Anonymous visitor → Chat Lead → Lead + Customer (linked) → RFQ → Quotation
+ *
+ * Dependencies:
+ *   - DB helpers (query, findOne, find) from lib/db
+ *   - Auth session from lib/auth
+ *   - chatbot.leads and customers tables
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+import { query, findOne, find } from '../db'
+import { getSession } from '../auth'
 
 export interface CustomerProfile {
   id: string
@@ -25,22 +31,16 @@ export interface CustomerProfile {
   status?: string
 }
 
-// ── 1. Find existing customer by email via DaVinciOS API ─────
+// ── 1. Find existing customer by email ─────────────────────────
 
 export async function findCustomerByEmail(email: string): Promise<CustomerProfile | null> {
   if (!email?.trim()) return null
   try {
-    const res = await fetch(`${API_BASE}/api/customers?where[email][equals]=${encodeURIComponent(email.trim())}&depth=0&limit=1`, {
-      next: { revalidate: 0 },
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    const doc = data?.docs?.[0]
-    if (doc?.id) {
-      return { id: doc.id, name: doc.name, email: doc.email, phone: doc.phone, status: doc.status }
-    }
-    return null
-  } catch {
+    const row = await findOne('customers', { email: email.trim().toLowerCase() })
+    if (!row) return null
+    return { id: String(row.id), name: row.name, email: row.email, phone: row.phone, status: row.status }
+  } catch (err) {
+    console.error('[customer-sync] findCustomerByEmail error:', err instanceof Error ? err.message : err)
     return null
   }
 }
@@ -50,15 +50,11 @@ export async function findCustomerByEmail(email: string): Promise<CustomerProfil
 export async function findLeadByEmail(email: string): Promise<{ id: string; name: string } | null> {
   if (!email?.trim()) return null
   try {
-    // Query the chatbot.leads table via API or direct DB query
-    // For MVP, we check via the leads endpoint
-    const res = await fetch(`${API_BASE}/api/chat/leads/lookup?email=${encodeURIComponent(email.trim())}`, {
-      next: { revalidate: 0 },
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    return data?.lead || null
-  } catch {
+    const row = await findOne('chatbot.leads', { email: email.trim().toLowerCase() })
+    if (!row) return null
+    return { id: String(row.id), name: row.name || '' }
+  } catch (err) {
+    console.error('[customer-sync] findLeadByEmail error:', err instanceof Error ? err.message : err)
     return null
   }
 }
@@ -68,13 +64,13 @@ export async function findLeadByEmail(email: string): Promise<{ id: string; name
 export async function linkLeadToCustomer(leadId: string, customerId: string): Promise<boolean> {
   if (!leadId || !customerId) return false
   try {
-    const res = await fetch(`${API_BASE}/api/chat/leads/link`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ leadId, customerId }),
-    })
-    return res.ok
-  } catch {
+    await query(
+      'UPDATE chatbot.leads SET customer_id = $1, status = $2, updated_at = NOW() WHERE id = $3',
+      [customerId, 'linked', leadId]
+    )
+    return true
+  } catch (err) {
+    console.error('[customer-sync] linkLeadToCustomer error:', err instanceof Error ? err.message : err)
     return false
   }
 }
@@ -95,7 +91,8 @@ export async function syncChatSessionWithCustomer(leadId: string, email: string)
       return { linked, customer, customerId: customer.id }
     }
     return { linked: false }
-  } catch {
+  } catch (err) {
+    console.error('[customer-sync] syncChatSessionWithCustomer error:', err instanceof Error ? err.message : err)
     return { linked: false }
   }
 }
@@ -104,16 +101,14 @@ export async function syncChatSessionWithCustomer(leadId: string, email: string)
 
 export async function getLoggedInCustomer(): Promise<CustomerProfile | null> {
   try {
-    const res = await fetch(`${API_BASE}/api/customers/me`, {
-      credentials: 'include',
-      next: { revalidate: 0 },
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    const user = (data?.user || data?.customer || data) as CustomerProfile
-    if (user?.id) return user
-    return null
-  } catch {
+    const session = await getSession()
+    if (!session?.id) return null
+
+    const row = await findOne('customers', { id: Number(session.id) })
+    if (!row) return null
+    return { id: String(row.id), name: row.name, email: row.email, phone: row.phone, status: row.status }
+  } catch (err) {
+    console.error('[customer-sync] getLoggedInCustomer error:', err instanceof Error ? err.message : err)
     return null
   }
 }
@@ -128,25 +123,21 @@ export async function promoteLeadToCustomer(leadData: {
   companyName?: string
 }): Promise<{ success: boolean; customerId?: string; error?: string }> {
   try {
-    const res = await fetch(`${API_BASE}/api/customers`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: leadData.name,
-        email: leadData.email,
-        phone: leadData.mobile,
-        status: 'lead',
-        notes: leadData.buyerType
+    const { rows } = await query(
+      `INSERT INTO customers (name, email, phone, status, notes, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+       RETURNING id`,
+      [
+        leadData.name,
+        leadData.email.trim().toLowerCase(),
+        leadData.mobile,
+        'lead',
+        leadData.buyerType
           ? `Lead from chatbot. Buyer type: ${leadData.buyerType}${leadData.companyName ? `, Company: ${leadData.companyName}` : ''}`
           : 'Lead from chatbot',
-      }),
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      return { success: false, error: (err as any).errors?.[0]?.message || 'Failed to create customer' }
-    }
-    const data = await res.json()
-    return { success: true, customerId: data?.doc?.id || data?.id }
+      ]
+    )
+    return { success: true, customerId: String(rows[0]?.id) }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
@@ -171,13 +162,9 @@ export function mergeLeadWithCustomer(lead: Record<string, unknown>, customer: C
 export async function getCustomerRFQHistory(customerId: string): Promise<any[]> {
   if (!customerId) return []
   try {
-    const res = await fetch(`${API_BASE}/api/rfq-requests?where[customer][equals]=${customerId}&depth=0&limit=20&sort=-createdAt`, {
-      next: { revalidate: 0 },
-    })
-    if (!res.ok) return []
-    const data = await res.json()
-    return data?.docs || []
-  } catch {
+    return await find('rfq_requests', { customer: customerId }, { limit: 20, orderBy: 'created_at DESC' })
+  } catch (err) {
+    console.error('[customer-sync] getCustomerRFQHistory error:', err instanceof Error ? err.message : err)
     return []
   }
 }

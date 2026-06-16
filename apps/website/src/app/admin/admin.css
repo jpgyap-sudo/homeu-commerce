@@ -1,69 +1,241 @@
-/* ========================================================================
-   HomeU Custom Admin Styles
-   ======================================================================== */
+/* ==========================================================================
+   HomeU Admin — DaVinciOS Operations Console
+   Premium luxury admin design system
+   ========================================================================== */
 
 :root {
-  --admin-bg: #0d1410;
-  --admin-card: #ffffff;
-  --admin-accent: #1a6d3e;
-  --admin-accent-hover: #238c51;
-  --admin-text: #151a17;
-  --admin-text-muted: #667168;
-  --admin-line: #d9e0d7;
-  --admin-error: #b42318;
+  /* Brand palette */
+  --admin-bg-dark: #141312;
+  --admin-bg-warm: #f7f5f0;
+  --admin-bg-card: #ffffff;
+  --admin-text-primary: #1a1917;
+  --admin-text-secondary: #7d7a75;
+  --admin-text-muted: #a09c96;
+  --admin-line: #e3e0d9;
+  --admin-line-strong: #c9c5bd;
+  --admin-accent: #b8975a;
+  --admin-accent-light: #dfcfa8;
+  --admin-accent-dark: #8f7450;
+  --admin-error-bg: #fef2e8;
+  --admin-error-border: #e8c9b0;
+  --admin-error-text: #8f4e2a;
+  --admin-success: #5a8f6a;
   --admin-font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --admin-radius: 12px;
+  --admin-shadow: 0 20px 60px rgba(20, 19, 18, 0.08), 0 8px 24px rgba(20, 19, 18, 0.04);
 }
 
-/* Login page */
-.admin-login-page {
+/* ========================================================================
+   LOGIN PAGE — Two-Column Luxury Layout
+   ========================================================================== */
+
+/* Main shell — fills viewport */
+.admin-login-shell {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: var(--admin-font);
+  color: var(--admin-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========================================================================
+   LEFT PANEL — Brand Showcase (45%)
+   ========================================================================== */
+
+.admin-login-brand-panel {
+  display: none;
+  position: relative;
+  width: 45%;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 120% 60% at 30% 20%, rgba(184, 151, 90, 0.12), transparent 60%),
+    radial-gradient(ellipse 80% 50% at 70% 80%, rgba(184, 151, 90, 0.06), transparent 50%),
+    linear-gradient(175deg, #1a1917 0%, #141312 35%, #1e1c1a 65%, #121110 100%);
+  color: #f7f5f0;
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .admin-login-brand-panel {
+    display: flex;
+  }
+}
+
+.admin-login-brand-panel-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px 44px;
+  height: 100%;
+}
+
+/* Decorative geometric pattern overlay */
+.admin-login-brand-pattern {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image:
+    linear-gradient(30deg, #f7f5f0 12%, transparent 12.5%, transparent 87%, #f7f5f0 87.5%),
+    linear-gradient(150deg, #f7f5f0 12%, transparent 12.5%, transparent 87%, #f7f5f0 87.5%),
+    linear-gradient(30deg, #f7f5f0 12%, transparent 12.5%, transparent 87%, #f7f5f0 87.5%),
+    linear-gradient(150deg, #f7f5f0 12%, transparent 12.5%, transparent 87%, #f7f5f0 87.5%),
+    linear-gradient(60deg, rgba(247, 245, 240, 0.08) 25%, transparent 25.5%, transparent 75%, rgba(247, 245, 240, 0.08) 75.5%);
+  background-size: 80px 140px;
+}
+
+/* DaVinciOS Logo */
+.admin-login-brand-header {
+  position: relative;
+  z-index: 1;
+  padding-top: 24px;
+}
+
+.admin-login-daVinci-logo {
+  color: #f7f5f0;
+  height: 38px;
+  width: auto;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
+}
+
+/* Brand message section */
+.admin-login-brand-message {
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
+  margin-bottom: auto;
+  max-width: 380px;
+}
+
+.admin-login-brand-message h2 {
+  margin: 0 0 16px;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: #f7f5f0;
+}
+
+.admin-login-brand-message p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: rgba(247, 245, 240, 0.6);
+  font-weight: 400;
+}
+
+/* Decorative divider */
+.admin-login-brand-divider {
+  position: relative;
+  z-index: 1;
+  width: 48px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--admin-accent), transparent);
+  margin: 0;
+}
+
+/* Brand footer */
+.admin-login-brand-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+
+.admin-login-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border: 0.5px solid rgba(247, 245, 240, 0.2);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: rgba(247, 245, 240, 0.5);
+  text-transform: uppercase;
+  background: rgba(247, 245, 240, 0.04);
+}
+
+.admin-login-brand-version {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(247, 245, 240, 0.3);
+  letter-spacing: 0.04em;
+}
+
+/* ========================================================================
+   RIGHT PANEL — Login Form (55%)
+   ========================================================================== */
+
+.admin-login-form-panel {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--admin-bg-warm);
   min-height: 100vh;
-  min-height: 100dvh;
-  background:
-    radial-gradient(ellipse 140% 80% at 20% 20%, rgba(34, 115, 75, 0.08), transparent 70%),
-    radial-gradient(ellipse 120% 60% at 80% 80%, rgba(198, 146, 61, 0.06), transparent 60%),
-    linear-gradient(165deg, #0d1410 0%, #151a17 40%, #1a221d 70%, #101612 100%);
-  padding: 24px;
-  font-family: var(--admin-font);
 }
 
-.admin-login-card {
+@media (min-width: 1024px) {
+  .admin-login-form-panel {
+    width: 55%;
+  }
+}
+
+.admin-login-form-panel-inner {
   width: 100%;
-  max-width: 400px;
-  background: rgba(255, 255, 255, 0.97);
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 24px 80px rgba(0, 0, 0, 0.45),
-    0 8px 24px rgba(0, 0, 0, 0.2);
-  padding: 40px 36px 36px;
-  animation: login-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 420px;
+  padding: 40px 32px;
 }
 
-@keyframes login-enter {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.admin-login-brand {
+/* Mobile brand (hidden on desktop) */
+.admin-login-mobile-brand {
   display: flex;
   justify-content: center;
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  color: var(--admin-text);
+  margin-bottom: 40px;
+  color: var(--admin-text-primary);
+}
+
+@media (min-width: 1024px) {
+  .admin-login-mobile-brand {
+    display: none;
+  }
+}
+
+/* Login card */
+.admin-login-card {
+  background: var(--admin-bg-card);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  padding: 40px 36px 36px;
+  box-shadow: var(--admin-shadow);
 }
 
 .admin-login-title {
-  margin: 0 0 24px;
-  font-size: 18px;
+  margin: 0 0 4px;
+  font-size: 22px;
   font-weight: 600;
-  text-align: center;
-  color: var(--admin-text);
+  letter-spacing: -0.01em;
+  color: var(--admin-text-primary);
 }
+
+.admin-login-subtitle {
+  margin: 0 0 28px;
+  font-size: 14px;
+  color: var(--admin-text-secondary);
+  line-height: 1.5;
+}
+
+/* ========================================================================
+   LOGIN FORM
+   ========================================================================== */
 
 .admin-login-form {
   display: flex;
@@ -71,79 +243,257 @@
   gap: 20px;
 }
 
+/* Error alert */
 .admin-login-error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 10px 14px;
-  color: var(--admin-error);
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--admin-error-bg);
+  border: 1px solid var(--admin-error-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--admin-error-text);
+  font-size: 13px;
+  line-height: 1.45;
+  animation: login-error-in 0.25s ease-out;
 }
 
+@keyframes login-error-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Field */
 .admin-login-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
+.admin-login-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .admin-login-field label {
   font-size: 12px;
   font-weight: 600;
-  color: var(--admin-text-muted);
+  color: var(--admin-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
-.admin-login-field input {
-  padding: 12px 14px;
+.admin-login-forgot-link {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--admin-accent);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.admin-login-forgot-link:hover {
+  color: var(--admin-accent-dark);
+  text-decoration: underline;
+}
+
+/* Input wrapper with icon */
+.admin-login-input-wrap {
+  position: relative;
+}
+
+.admin-login-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--admin-text-muted);
+  pointer-events: none;
+  transition: color 180ms ease;
+}
+
+.admin-login-input-wrap:focus-within .admin-login-input-icon {
+  color: var(--admin-accent);
+}
+
+/* Input styling */
+.admin-login-input-wrap input {
+  width: 100%;
+  padding: 13px 14px 13px 42px;
   font-size: 15px;
   font-family: var(--admin-font);
-  color: var(--admin-text);
-  background: #f7f9f6;
+  color: var(--admin-text-primary);
+  background: #f9f8f5;
   border: 1.5px solid var(--admin-line);
   border-radius: 10px;
   outline: none;
   transition: all 180ms ease;
+  box-sizing: border-box;
 }
 
-.admin-login-field input:focus {
+.admin-login-input-wrap input::placeholder {
+  color: var(--admin-text-muted);
+  opacity: 0.7;
+}
+
+.admin-login-input-wrap input:hover {
+  background: #f7f5f0;
+  border-color: var(--admin-line-strong);
+}
+
+.admin-login-input-wrap input:focus {
   background: #ffffff;
   border-color: var(--admin-accent);
-  box-shadow: 0 0 0 3px rgba(26, 109, 62, 0.15);
+  box-shadow: 0 0 0 3px rgba(184, 151, 90, 0.15);
 }
 
+/* Password toggle button */
+.admin-login-password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  transition: all 150ms ease;
+  padding: 0;
+}
+
+.admin-login-password-toggle:hover {
+  background: var(--admin-bg-warm);
+  color: var(--admin-text-secondary);
+}
+
+/* Submit button */
 .admin-login-submit {
   width: 100%;
-  padding: 13px 24px;
+  padding: 14px 24px;
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 600;
   font-family: var(--admin-font);
-  letter-spacing: 0.02em;
-  background: linear-gradient(180deg, #1e7a47, #0f4f2b);
+  letter-spacing: 0.01em;
+  background: var(--admin-accent);
   border: none;
   border-radius: 10px;
   color: #ffffff;
   cursor: pointer;
   transition: all 180ms ease;
-  box-shadow: 0 4px 14px rgba(26, 109, 62, 0.35);
+  box-shadow: 0 4px 14px rgba(184, 151, 90, 0.3);
+  margin-top: 4px;
 }
 
 .admin-login-submit:hover {
-  background: linear-gradient(180deg, #238c51, #13562e);
-  box-shadow: 0 6px 20px rgba(26, 109, 62, 0.45);
+  background: var(--admin-accent-dark);
+  box-shadow: 0 6px 20px rgba(184, 151, 90, 0.4);
   transform: translateY(-1px);
 }
 
-.admin-login-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
+.admin-login-submit:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(184, 151, 90, 0.25);
 }
 
-/* Dashboard */
+.admin-login-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Submit button inner content */
+.admin-login-submit-text,
+.admin-login-submit-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.admin-login-spinner {
+  animation: login-spin 0.8s linear infinite;
+}
+
+@keyframes login-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Footer text */
+.admin-login-footer-text {
+  margin: 24px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--admin-text-muted);
+}
+
+.admin-login-footer-text a {
+  color: var(--admin-accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.admin-login-footer-text a:hover {
+  color: var(--admin-accent-dark);
+  text-decoration: underline;
+}
+
+/* ========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 1023px) {
+  .admin-login-form-panel-inner {
+    max-width: 100%;
+    padding: 32px 24px;
+  }
+
+  .admin-login-card {
+    padding: 32px 28px 28px;
+    border-radius: 10px;
+  }
+
+  .admin-login-title {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-login-form-panel {
+    align-items: flex-start;
+    padding-top: 32px;
+  }
+
+  .admin-login-card {
+    padding: 28px 20px 24px;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .admin-login-form-panel-inner {
+    padding: 0 0 32px;
+  }
+
+  .admin-login-subtitle {
+    font-size: 13px;
+  }
+}
+
+/* ========================================================================
+   DASHBOARD
+   ========================================================================== */
+
 .admin-dashboard {
   font-family: var(--admin-font);
-  color: var(--admin-text);
+  color: var(--admin-text-primary);
   padding: 32px;
   max-width: 1200px;
   margin: 0 auto;
@@ -167,17 +517,17 @@
 }
 
 .admin-dashboard-card {
-  background: var(--admin-card);
+  background: var(--admin-bg-card);
   border: 1px solid var(--admin-line);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(21, 26, 23, 0.04);
+  box-shadow: 0 2px 8px rgba(20, 19, 18, 0.04);
 }
 
 .admin-dashboard-card h2 {
   font-size: 14px;
   font-weight: 600;
-  color: var(--admin-text-muted);
+  color: var(--admin-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin: 0 0 8px;
@@ -186,5 +536,5 @@
 .admin-dashboard-card .count {
   font-size: 32px;
   font-weight: 700;
-  color: var(--admin-text);
+  color: var(--admin-text-primary);
 }

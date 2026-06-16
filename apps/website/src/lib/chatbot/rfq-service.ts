@@ -2,19 +2,17 @@
  * RFQ Cart Service
  *
  * Manages RFQ cart operations: add/remove items, submit RFQ,
- * sync with DaVinciOS admin panel, send Telegram alerts.
+ * send Telegram alerts.
  *
  * Uses the chatbot schema (chatbot.rfq_carts, chatbot.rfq_items)
- * and also submits to the existing DaVinciOS RFQRequests collection
- * for admin panel visibility.
+ * and inserts RFQ requests into the rfq_requests table.
  */
 
 import { logTask } from '../central-logger.mjs'
 import { sendTelegramAlert } from './telegram-client'
 import { createSignal } from './lead-scorer'
 import { addItemToCart, syncCartItems, clearCart, submitCart } from './cart-service'
-
-const API_BASE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+import { query } from '../db'
 
 export interface RFQItemInput {
   productId: string
@@ -114,32 +112,31 @@ export async function syncRFQCart(
 
 export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
   try {
-    // POST to existing DaVinciOS RFQRequests API
-    const res = await fetch(`${API_BASE}/api/rfq-requests`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        customerName: '', // Will be filled from lead data
-        email: '',
-        phone: '',
-        deliveryLocation: input.deliveryLocation,
-        projectType: input.projectType,
-        notes: input.notes,
-        items: input.items.map(item => ({
-          product: item.productId,
-          productTitleSnapshot: item.productTitle,
-          unitPriceSnapshot: item.referencePrice || 0,
+    // Insert into rfq_requests table directly
+    const { rows } = await query(
+      `INSERT INTO rfq_requests (lead_id, customer_name, email, phone, delivery_location, project_type, notes, items, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+       RETURNING id`,
+      [
+        input.leadId || null,
+        input.leadId || '',          // customerName — will be enriched from lead data
+        '',                           // email — will be enriched from lead data
+        '',                           // phone — will be enriched from lead data
+        input.deliveryLocation || '',
+        input.projectType || '',
+        input.notes || '',
+        JSON.stringify(input.items.map(item => ({
+          productId: item.productId,
+          productTitle: item.productTitle,
+          referencePrice: item.referencePrice || 0,
           quantity: item.quantity,
-        })),
-      }),
-    })
+          notes: item.notes,
+        }))),
+        'new',
+      ]
+    )
 
-    if (!res.ok) {
-      const err = await res.text().catch(() => '')
-      return { success: false, error: `API error: ${err.slice(0, 200)}` }
-    }
-
-    const data = await res.json()
+    const rfqCartId = String(rows[0]?.id || '')
 
     // Mark server-side cart as submitted
     try {
@@ -166,10 +163,10 @@ export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
       status: 'completed',
       summary: `RFQ submitted: ${input.items.length} items for lead ${input.leadId}`,
       files: ['apps/website/src/lib/chatbot/rfq-service.ts'],
-      verification: 'RFQ created in DaVinciOS admin',
+      verification: 'RFQ created in rfq_requests table',
     })
 
-    return { success: true, rfqCartId: data?.doc?.id || data?.id }
+    return { success: true, rfqCartId }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     return { success: false, error: msg }

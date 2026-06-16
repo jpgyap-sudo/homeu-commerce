@@ -165,10 +165,38 @@ export default function AdminQuotationsPage() {
         </div>
       )}
 
-      {/* Loading */}
+      {/* Loading — skeleton UI */}
       {loading && (
-        <div style={{ textAlign: 'center', padding: 40, color: '#666' }}>
-          Loading quotations...
+        <div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #ddd' }}>
+                  <th style={{ textAlign: 'left', padding: '10px 12px' }}>Quotation #</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px' }}>Customer</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px' }}>Contact</th>
+                  <th style={{ textAlign: 'right', padding: '10px 12px' }}>Amount</th>
+                  <th style={{ textAlign: 'center', padding: '10px 12px' }}>Status</th>
+                  <th style={{ textAlign: 'center', padding: '10px 12px' }}>Valid Until</th>
+                  <th style={{ textAlign: 'center', padding: '10px 12px' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: '10px 12px' }}><div style={{ width: 100, height: 14, background: '#eee', borderRadius: 4 }} /></td>
+                    <td style={{ padding: '10px 12px' }}><div style={{ width: 120, height: 14, background: '#eee', borderRadius: 4 }} /></td>
+                    <td style={{ padding: '10px 12px' }}><div style={{ width: 150, height: 14, background: '#eee', borderRadius: 4 }} /></td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right' }}><div style={{ width: 80, height: 14, background: '#eee', borderRadius: 4, marginLeft: 'auto' }} /></td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}><div style={{ width: 60, height: 14, background: '#eee', borderRadius: 4, margin: '0 auto' }} /></td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}><div style={{ width: 60, height: 14, background: '#eee', borderRadius: 4, margin: '0 auto' }} /></td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}><div style={{ width: 80, height: 14, background: '#eee', borderRadius: 4, margin: '0 auto' }} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ textAlign: 'center', color: '#999', fontSize: 13, marginTop: 12 }}>Loading quotations...</p>
         </div>
       )}
 
@@ -291,8 +319,8 @@ export default function AdminQuotationsPage() {
 
       {/* Back link */}
       <p style={{ marginTop: 32, textAlign: 'center' }}>
-        <Link href="/" style={{ color: '#666', fontSize: 14 }}>
-          &larr; Back to Home
+        <Link href="/admin" style={{ color: '#666', fontSize: 14 }}>
+          &larr; Back to Dashboard
         </Link>
       </p>
     </main>
