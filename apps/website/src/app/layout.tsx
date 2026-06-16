@@ -1,9 +1,31 @@
 import './globals.css'
 import '../components/chat/chat.css'
+import { headers } from 'next/headers'
 import { QuoteCartBadge } from '@/components/QuoteCart'
 import { ChatWidget } from '@/components/chat/ChatWidget'
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+/**
+ * HomeU Root Layout
+ * 
+ * Renders the base HTML structure. For storefront pages (non-admin domains),
+ * it includes the site header and chat widget. The DaVinciOS admin route group
+ * uses AdminLayout which adds admin-specific providers WITHOUT nesting
+ * additional <html>/<body> tags (avoiding React Error #418).
+ */
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const headersList = await headers()
+  const host = headersList.get('host') || ''
+  const isAdminDomain = host.startsWith('admin.')
+
+  // Only render the storefront header/ChatWidget when NOT on the admin domain
+  if (isAdminDomain) {
+    return (
+      <html lang="en">
+        <body>{children}</body>
+      </html>
+    )
+  }
+
   return (
     <html lang="en">
       <body>

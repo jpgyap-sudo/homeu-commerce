@@ -16,12 +16,19 @@ const secret = process.env.DAVINCIOS_SECRET || ''
 
 export default buildConfig({
   admin: {
+    theme: 'light',
+    components: {
+      graphics: {
+        Logo: 'apps/website/src/components/admin/DaVinciOSAdminLogo.tsx#DaVinciOSAdminLogo',
+      },
+    },
     meta: {
       title: 'HomeU Admin',
       titleSuffix: ' - HomeU Admin',
       description: 'HomeU catalog, customer, RFQ, media, page, and redirect operations.',
       applicationName: 'HomeU Admin',
     },
+  },
   },
   editor: lexicalEditor(),
   collections: [Products, Categories, Customers, RFQRequests, Media, Pages, Redirects, Quotations],

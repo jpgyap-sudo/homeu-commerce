@@ -2,7 +2,7 @@ import config from '@DaVinciOS-config'
 import '@davincios/next/css'
 import './admin-theme.css'
 import type { ServerFunctionClient } from '@davincios/cms'
-import { handleServerFunctions, RootLayout } from '@davincios/next/layouts'
+import { handleServerFunctions, AdminLayout } from '@davincios/next/layouts'
 import React from 'react'
 import { importMap } from './admin/importMap'
 
@@ -20,9 +20,9 @@ const serverFunction: ServerFunctionClient = async function (args) {
 }
 
 const Layout = ({ children }: Args) => (
-  <RootLayout config={config} importMap={importMap} serverFunction={serverFunction}>
+  <AdminLayout config={config} importMap={importMap} serverFunction={serverFunction}>
     {children}
-  </RootLayout>
+  </AdminLayout>
 )
 
 export default Layout
