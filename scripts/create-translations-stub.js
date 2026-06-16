@@ -74,6 +74,23 @@ export function initI18n({ config, context, language } = {}) {
 // RTL languages list (empty by default)
 export const rtlLanguages = [];
 
+// date-fns locale import stub (used by TranslationProvider)
+export function importDateFNSLocale(localeCode) {
+  return null;
+}
+
+// Translation function stub (used by TranslationProvider)
+// Handles both string keys and objects with {key, translations, vars}
+export function t(key) {
+  if (typeof key === 'object' && key !== null) {
+    return key.key || '';
+  }
+  return key || '';
+}
+
+// date-fns locale map stub
+export const dateFNSLocales = {};
+
 /**
  * Extracts the primary language code from an Accept-Language header.
  * @param {string} acceptLanguage - e.g. "en-US,en;q=0.9,fr;q=0.8"
