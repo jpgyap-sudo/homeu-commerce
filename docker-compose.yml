@@ -26,7 +26,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_SITE_URL=https://store.homeu.ph
+        - NEXT_PUBLIC_SITE_URL=https://store.homeatelier.ph
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
@@ -37,7 +37,7 @@ services:
       - .env
     environment:
       - DATABASE_URI=postgres://homeu:homeu_local_password@postgres:5432/homeu
-      - NEXT_PUBLIC_SITE_URL=https://store.homeu.ph
+      - NEXT_PUBLIC_SITE_URL=https://store.homeatelier.ph
       - ADMIN_PUBLIC_SERVER_URL=https://admin.homeatelier.ph
       - JWT_SECRET=homeu-admin-secret-change-in-production-abc123xyz
       - OLLAMA_BASE_URL=http://ollama:11434
