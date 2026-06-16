@@ -55,15 +55,12 @@ Keep the response concise and professional.
 `
 
     // Call Ollama model with a 15-second timeout
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15000)
-    const response = await ollama.generate({
+    const response = await (ollama.generate as any)({
       model: OLLAMA_MODEL,
       prompt,
       stream: false,
-      signal: controller.signal,
+      signal: AbortSignal.timeout(15000),
     })
-    clearTimeout(timeout)
 
     return response.response
   } catch (error) {

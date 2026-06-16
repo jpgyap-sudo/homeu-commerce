@@ -2,6 +2,8 @@
 
 import { generateCategorySeoDescription, generateSeoTitle } from '../lib/seo/generateSeoDescription'
 import type { CollectionConfig } from '../types/davincios'
+import { anyone } from '../access/anyone'
+import { adminUsers } from '../access/admin'
 
 export const Categories = {
   slug: 'categories',
@@ -19,13 +21,16 @@ export const Categories = {
   },
   hooks: {
     beforeValidate: [
-      ({ data }) => {
+      ({ data }: { data: Record<string, unknown> | undefined }) => {
         if (!data) return data
-        if (!data.seoTitle?.trim() && data.title) {
-          data.seoTitle = generateSeoTitle(data.title)
+        const title = data.title as string | undefined
+        const seoTitle = data.seoTitle as string | undefined
+        const seoDescription = data.seoDescription as string | undefined
+        if (!seoTitle?.trim() && title) {
+          data.seoTitle = generateSeoTitle(title)
         }
-        if (!data.seoDescription?.trim() && data.title) {
-          data.seoDescription = generateCategorySeoDescription(data.title)
+        if (!seoDescription?.trim() && title) {
+          data.seoDescription = generateCategorySeoDescription(title)
         }
         return data
       },

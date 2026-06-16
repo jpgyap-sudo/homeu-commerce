@@ -7,7 +7,7 @@ interface AnalyticsData {
   leadVolume: { date: string; count: number }[]
   conversionFunnel: { stage: string; count: number; color: string }[]
   topProducts: { title: string; count: number }[]
-  salesByBuyerType: { type: string; count: number; total: number }[]
+  salesByBuyerType: { type: string; count: number; total?: number }[]
   rfqPipeline: { status: string; count: number; color: string }[]
   dailyMessages: { date: string; count: number }[]
   summary: {

@@ -2,7 +2,7 @@
  * GET /api/categories      — Categories listing
  * POST /api/categories     — Create a new category
  *
- * Replaces the PayloadCMS auto-generated /api/categories endpoint.
+ * Custom API endpoint for categories CRUD operations.
  */
 
 import { NextRequest, NextResponse } from 'next/server'

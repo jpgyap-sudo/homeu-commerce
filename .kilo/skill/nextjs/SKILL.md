@@ -50,8 +50,7 @@ apps/website/
 
 | File | Purpose |
 |------|---------|
-| [`daVinciOS.config.ts`](apps/website/src/daVinciOS.config.ts) | CMS config: collections, DB connection, CORS, CSRF, cookie settings |
-| [`next.config.mjs`](apps/website/next.config.mjs) | Next.js config: standalone output, image remote patterns, DaVinciOS integration |
+| [`next.config.mjs`](apps/website/next.config.mjs) | Next.js config: standalone output, image remote patterns |
 | [`Dockerfile`](Dockerfile) | Multi-stage production build (Node 20 Alpine) |
 | [`docker-compose.yml`](docker-compose.yml) | PostgreSQL + website containers |
 | [`.env.example`](.env.example) | Environment variables template |

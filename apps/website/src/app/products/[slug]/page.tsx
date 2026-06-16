@@ -65,7 +65,8 @@ export default function ProductDetailPage() {
 
   // Load related products once product data is available
   useEffect(() => {
-    if (!product) return
+    const currentProduct = product
+    if (!currentProduct) return
 
     async function loadRelated() {
       setRelatedLoading(true)
@@ -74,14 +75,14 @@ export default function ProductDetailPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            query: product.title,
+            query: currentProduct!.title,
             limit: 4,
           }),
         })
         if (res.ok) {
           const data = await res.json()
           const recs = (data.recommendations || [])
-            .filter((r: any) => r.productId !== product.id)
+            .filter((r: any) => r.productId !== currentProduct!.id)
             .slice(0, 4)
           // Fetch full product data for each recommendation
           if (recs.length > 0) {

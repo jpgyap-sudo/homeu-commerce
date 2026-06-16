@@ -601,7 +601,7 @@ ${audit.slice(-20).map(c => `  • GET ${c.url.substring(0, 100)}`).join('\n')}`
         })) || [],
       }))
 
-      const DaVinciOSPath = path.resolve(__dirname, '..', 'shopify-import', 'output', 'DaVinciOS-products.json')
+      const DaVinciOSPath = path.resolve(__dirname, '..', 'shopify-import', 'output', 'products.json')
       fs.writeFileSync(DaVinciOSPath, JSON.stringify(DaVinciOSProducts, null, 2))
 
       const summary = exportData.summary

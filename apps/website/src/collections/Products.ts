@@ -4,6 +4,8 @@ import { generateProductSeoDescription, generateSeoTitle } from '../lib/seo/gene
 import { extractPlainText } from '../lib/seo/extractPlainText'
 import type { CollectionConfig } from '../types/davincios'
 import { findOne } from '../lib/db'
+import { anyone } from '../access/anyone'
+import { adminUsers } from '../access/admin'
 
 export const Products = {
   slug: 'products',
@@ -21,21 +23,26 @@ export const Products = {
   },
   hooks: {
     beforeValidate: [
-      async ({ data, req }) => {
+      async ({ data }: { data: Record<string, unknown> | undefined }) => {
         if (!data || !data.title) return data
 
-        if (!data.seoTitle?.trim()) {
-          data.seoTitle = generateSeoTitle(data.title)
+        const title = data.title as string
+        const seoTitle = data.seoTitle as string | undefined
+        const seoDescription = data.seoDescription as string | undefined
+
+        if (!seoTitle?.trim()) {
+          data.seoTitle = generateSeoTitle(title)
         }
 
-        if (!data.seoDescription?.trim()) {
+        if (!seoDescription?.trim()) {
           let categoryTitle: string | undefined
           if (data.category) {
-            const categoryId = typeof data.category === 'object' ? data.category?.id : data.category
+            const category = data.category as string | { id: string }
+            const categoryId = typeof category === 'object' ? category?.id : category
             if (categoryId) {
               try {
-                const category = await findOne('categories', { id: categoryId })
-                categoryTitle = category?.title
+                const cat = await findOne('categories', { id: categoryId })
+                categoryTitle = cat?.title
               } catch {
                 // category lookup is best-effort; fall back without it
               }
@@ -43,8 +50,8 @@ export const Products = {
           }
 
           data.seoDescription = generateProductSeoDescription({
-            title: data.title,
-            description: extractPlainText(data.description),
+            title,
+            description: extractPlainText(data.description as string | undefined),
             categoryTitle,
           })
         }
@@ -92,7 +99,7 @@ export const Products = {
       label: 'Inventory',
       admin: {
         position: 'sidebar',
-        condition: (_, siblingData) => siblingData?.inventoryTracked === true,
+        condition: (_: unknown, siblingData: Record<string, unknown>) => siblingData?.inventoryTracked === true,
       },
     },
     {

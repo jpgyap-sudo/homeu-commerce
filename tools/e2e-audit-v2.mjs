@@ -33,7 +33,7 @@ async function main() {
   const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
   const page = await browser.newPage({ ignoreHTTPSErrors: true });
 
-  await page.goto('https://admin.homeu.ph/admin/login', { waitUntil: 'networkidle', timeout: 30000 });
+  await page.goto(BASE + '/admin/login', { waitUntil: 'networkidle', timeout: 30000 });
   await page.waitForTimeout(5000);
 
   const state = await page.evaluate(() => {

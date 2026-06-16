@@ -4,11 +4,14 @@ Persistent, repo-level notes for any coding agent/extension (Claude Code,
 Codex, Kilo Code, Blackbox, SuperRoo VS Code, Roo Cline, etc.) working in
 this repository.
 
-## Naming
+## Naming & Architecture
 
-This project's CMS is **DaVinciOS**.
-Always call it "DaVinciOS" in code, docs, comments, and
-conversation.
+This project's CMS / backend is **DaVinciOS**.
+Always call it "DaVinciOS" in code, docs, comments, and conversation.
+
+**Architecture relationship:**
+- **DaVinciOS** = The backend CMS/system. It provides the admin panel (admin.homeu.ph), collections (Products, Categories, Customers, RFQRequests, etc.), API endpoints, database schema, and content management infrastructure. It is the engine that powers the website.
+- **HomeU (HOMEU.PH)** = The customer-facing brand/website. It is the frontend that DaVinciOS serves content to. Customers see HomeU at store.homeu.ph (Next.js frontend). HomeU is the showroom; DaVinciOS is the engine.
 
 ## CDN Media: DigitalOcean Spaces (`do-spaces`)
 
@@ -57,6 +60,57 @@ Tools exposed: `s3_list_buckets`, `s3_list_objects`, `s3_get_object`,
 
 See the skill doc above for the full example config and rationale.
 
+## 🛑 Preflight Sweep — MANDATORY Before ANY Build or Deploy
+
+**This is a HARD GATE. Do NOT skip it. Do NOT force-build through errors.**
+
+Before `npm run build`, `next build`, `docker build`, `docker-compose up`,
+`deployer_build`, `deployer_deploy`, or any VPS deploy — you MUST run the
+preflight sweep and achieve a clean PASS.
+
+### Required Workflow Before Build/Deploy
+
+1. **Run `node tools/shared/preflight-sweep.mjs --full`**
+2. **If PASS** → proceed to Git Sync Gate below, then build/deploy
+3. **If BLOCK** → fix ALL blockers, re-run sweep, repeat until clean
+4. **If WARN** → fix warnings if time permits; non-blocking for build
+
+### What the Sweep Checks
+
+| Phase | Check | Time |
+|-------|-------|------|
+| 0 | Environment sanity (Node version, env files, env vars) | 30s |
+| 1 | Dependency audit (missing packages, stale aliases) | 1min |
+| 2 | TypeScript compilation (zero errors required) | 2min |
+| 3 | Import resolution (all local imports resolve) | 1min |
+| 4 | API wiring (route consumers have matching routes) | 2min |
+| 5 | Database schema alignment (tables match code) | 1min |
+| 6 | Brand sweep (no Payload CMS / stale DaVinciOS refs) | 1min |
+| 7 | Dead file cleanup (stale artifacts removed) | 30s |
+| 8 | Build dry-run (only after phases 0-7 pass) | 1min |
+
+### Sweep Exit Codes
+
+| Code | Meaning | Action |
+|------|---------|--------|
+| 0 | All clean | Proceed to Git Sync Gate → build/deploy |
+| 1 | Warnings only | Fix if time permits; may proceed |
+| 2 | BLOCKED | **HALT. Fix all. Re-sweep.** Do NOT force build. |
+
+### Quick Sweep (pre-commit)
+
+```bash
+node tools/shared/preflight-sweep.mjs --quick   # phases 0, 1, 2, 6 only
+```
+
+**Violation:** Attempting to build or deploy without a clean sweep PASS is
+a violation of this gate. Agents that bypass the sweep will have their
+deploy blocked.
+
+Full instructions: [`.kilo/skill/preflight-sweep/SKILL.md`](.kilo/skill/preflight-sweep/SKILL.md)
+
+---
+
 ## ⚠️ Git Sync Gate — MANDATORY Before Deploy
 
 This repository enforces a **Git Sync Gate** before ANY deployment operation.
@@ -64,10 +118,14 @@ The Deployer Agent checks local ↔ origin sync before allowing deploys.
 
 ### Required Workflow Before Deploy
 
-1. **Commit** all work (`git add` + `git commit`)
-2. **Run `deployer_sync_check`** — checks dirty files, fetch, ahead/behind, auto-repair
-3. **If it passes** — proceed with `deployer_deploy`, `deployer_deploy_pending`, or `deployer_build`
-4. **If it blocks** — fix the reported issues first, then retry
+**Complete build/deploy sequence (all steps mandatory):**
+
+1. **Run Preflight Sweep** — `node tools/shared/preflight-sweep.mjs --full` → must PASS (exit 0)
+2. **Fix all sweep blockers** — re-run sweep until clean
+3. **Commit** all work (`git add` + `git commit`)
+4. **Run `deployer_sync_check`** — checks dirty files, fetch, ahead/behind, auto-repair
+5. **If sync passes** — proceed with `deployer_build`, `deployer_deploy`, or `deployer_deploy_pending`
+6. **If sync blocks** — fix the reported issues first, then retry
 
 The deploy tools (`deployer_build`, `deployer_deploy`, `deployer_deploy_pending`)
 **automatically** run the sync gate and will BLOCK with an error if sync fails.

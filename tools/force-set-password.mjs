@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { execSync } from "child_process";
 
-// Use EXACT Payload CMS hashing algorithm
+// Use PBKDF2 password hashing algorithm
 const password = "DaVinciOS";
 
 // Step 1: Generate salt (32 random bytes as hex)

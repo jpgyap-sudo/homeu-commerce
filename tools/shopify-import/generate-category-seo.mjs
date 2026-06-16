@@ -16,7 +16,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const FILE = path.join(__dirname, 'output', 'DaVinciOS-categories.json')
+const FILE = path.join(__dirname, 'output', 'categories.json')
 
 const BRAND = 'HomeU.ph'
 

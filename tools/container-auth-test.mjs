@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-// Simulate exactly what Payload CMS authenticateLocalStrategy does
+// Simulate PBKDF2 password verification
 async function authenticate(doc, password) {
   try {
     const { hash, salt } = doc;

@@ -2,7 +2,7 @@
  * GET /api/products    — Product listing with search/filter/pagination
  * POST /api/products   — Create a new product
  *
- * Replaces the PayloadCMS auto-generated /api/products endpoint.
+ * Custom API endpoint for products CRUD operations.
  */
 
 import { NextRequest, NextResponse } from 'next/server'

@@ -54,23 +54,19 @@ const spaces = new S3Client({
 })
 ```
 
-## Wiring into DaVinciOS's `media` collection (future work)
+## Wiring DigitalOcean Spaces into HomeU media uploads
 
-DaVinciOS (rebranded Payload CMS v3.85) supports an S3-compatible storage
-adapter package (`@payloadcms/storage-s3`, aliased here as
-`@DaVinciOScms/storage-s3` if/when added). To make uploads in the `media`
-collection go straight to Spaces instead of local disk:
+HomeU Commerce uses direct S3-compatible uploads via the `@aws-sdk/client-s3`
+package for media storage. Media files uploaded through the admin panel are
+stored directly in DigitalOcean Spaces and served via CDN.
 
-1. `npm install @aws-sdk/client-s3 @DaVinciOScms/storage-s3` (or the upstream
-   `@payloadcms/storage-s3` if the alias package isn't published yet — check
-   `packages/davincios` for the aliasing pattern used elsewhere).
-2. In `apps/website/src/daVinciOS.config.ts`, add the plugin to the `plugins`
-   array, configured with `bucket: process.env.DO_SPACES_BUCKET`,
-   `region: process.env.DO_SPACES_REGION`, `endpoint:
-   process.env.DO_SPACES_ORIGIN_ENDPOINT`, and credentials from
-   `DO_SPACES_KEY` / `DO_SPACES_SECRET`, scoped to the `media` collection.
-3. Set the collection's public URL generation to use
-   `DO_SPACES_CDN_ENDPOINT` so admin-uploaded media is served via the CDN.
+1. Ensure `@aws-sdk/client-s3` is installed in `apps/website/package.json`.
+2. Media upload routes (`apps/website/src/app/api/media/`) use the
+   `DO_SPACES_*` environment variables for S3 operations, with the bucket
+   configured via `DO_SPACES_BUCKET`, region via `DO_SPACES_REGION`, and
+   credentials from `DO_SPACES_KEY` / `DO_SPACES_SECRET`.
+3. Public URLs are generated using `DO_SPACES_CDN_ENDPOINT` so uploaded
+   media is served through the CDN.
 
 Not yet implemented — this is the natural next step once basic Spaces access
 is verified.

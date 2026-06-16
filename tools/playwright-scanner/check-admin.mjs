@@ -295,7 +295,6 @@ async function main() {
   const hasError = /error|failed|cannot|not found|404|internal server/i.test(allHtml);
   const hasNextData = /__NEXT_DATA__/i.test(allHtml);
   const hasDaVinciOS = /DaVinciOS|davincios/i.test(allHtml);
-  const hasPayload = /payload|cms/i.test(allHtml);
   const hasWebpack = /webpack/i.test(allHtml);
 
   // Check if admin loads properly
@@ -320,7 +319,6 @@ async function main() {
     hasError,
     hasNextData,
     hasDaVinciOS,
-    hasPayload,
     hasWebpack,
     adminHasContent,
     consoleErrorCount: consoleErrors.length,

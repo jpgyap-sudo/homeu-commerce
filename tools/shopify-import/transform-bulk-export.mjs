@@ -19,7 +19,7 @@ import readline from 'readline'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const INPUT_FILE = path.join(__dirname, 'output', 'raw', 'products-bulk.jsonl')
-const OUTPUT_FILE = path.join(__dirname, 'output', 'DaVinciOS-products.json')
+const OUTPUT_FILE = path.join(__dirname, 'output', 'products.json')
 
 function gidType(gid) {
   const match = /^gid:\/\/shopify\/(\w+)\//.exec(gid || '')

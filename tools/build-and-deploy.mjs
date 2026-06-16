@@ -38,8 +38,45 @@ const filesToCopy = [
   // SEO lib
   "apps/website/src/lib/seo/extractPlainText.ts",
   "apps/website/src/lib/seo/generateSeoDescription.ts",
-  // Root layout
+  // Globals
+  "apps/website/src/globals/SEOHealth.ts",
+  // Collections (database table configs)
+  "apps/website/src/collections/Categories.ts",
+  "apps/website/src/collections/Customers.ts",
+  "apps/website/src/collections/Media.ts",
+  "apps/website/src/collections/Pages.ts",
+  "apps/website/src/collections/Products.ts",
+  "apps/website/src/collections/Quotations.ts",
+  "apps/website/src/collections/Redirects.ts",
+  "apps/website/src/collections/RFQRequests.ts",
+  // Components
+  "apps/website/src/components/QuoteCart.tsx",
+  // Chat components
+  "apps/website/src/components/chat/AppointmentPicker.tsx",
+  "apps/website/src/components/chat/chat.css",
+  "apps/website/src/components/chat/ChatWidget.tsx",
+  "apps/website/src/components/chat/LeadGateForm.tsx",
+  "apps/website/src/components/chat/MessageList.tsx",
+  "apps/website/src/components/chat/ProductRecommendationCard.tsx",
+  "apps/website/src/components/chat/RFQCartDrawer.tsx",
+  "apps/website/src/components/chat/ViberHandoff.tsx",
+  // Root layout & global styles
   "apps/website/src/app/layout.tsx",
+  "apps/website/src/app/globals.css",
+  "apps/website/src/app/page.tsx",
+  // --- Customer-facing pages ---
+  "apps/website/src/app/login/page.tsx",
+  "apps/website/src/app/register/page.tsx",
+  // Customer Products
+  "apps/website/src/app/products/page.tsx",
+  "apps/website/src/app/products/[slug]/page.tsx",
+  // Customer Quote Cart
+  "apps/website/src/app/quote-cart/page.tsx",
+  "apps/website/src/app/quotation/[id]/page.tsx",
+  // Customer Dashboard
+  "apps/website/src/app/customer/dashboard/page.tsx",
+  "apps/website/src/app/customer/rfq/[id]/page.tsx",
+  "apps/website/src/app/customer/quotation/[id]/page.tsx",
   // --- Admin pages ---
   "apps/website/src/app/admin/layout.tsx",
   "apps/website/src/app/admin/admin.css",
@@ -140,28 +177,8 @@ const filesToCopy = [
   "apps/website/src/app/api/rfq/submit/route.ts",
 ];
 
-// Delete old DaVinciOS files
+// Delete old DaVinciOS CMS migration artifacts (already removed; kept for idempotency)
 const deleteCmds = [
-  `rm -rf ${VPS_REPO}/packages/davincios`,
-  `rm -rf ${VPS_REPO}/packages/next`,
-  `rm -rf ${VPS_REPO}/packages/db-postgres`,
-  `rm -rf ${VPS_REPO}/packages/richtext-lexical`,
-  `rm -rf ${VPS_REPO}/apps/website/src/app/'(DaVinciOS)'`,
-  `rm -f ${VPS_REPO}/apps/website/src/daVinciOS.config.ts`,
-  `rm -f ${VPS_REPO}/apps/website/src/lib/daVinciOS.ts`,
-  `rm -f ${VPS_REPO}/apps/website/src/components/admin/DaVinciOSAdminLogo.tsx`,
-  `rm -rf ${VPS_REPO}/scripts/create-*`,
-  `rm -rf ${VPS_REPO}/scripts/strip-*`,
-  `rm -rf ${VPS_REPO}/scripts/vendor*`,
-  `rm -rf ${VPS_REPO}/scripts/vendor-ui-package.mjs`,
-  `rm -rf ${VPS_REPO}/scripts/copy-*`,
-  `rm -rf ${VPS_REPO}/scripts/create-junctions*`,
-  `rm -rf ${VPS_REPO}/docker/push-*`,
-  `rm -rf ${VPS_REPO}/docker/migrate*`,
-  `rm -rf ${VPS_REPO}/docs/DAVINCIOS*`,
-  `rm -rf ${VPS_REPO}/docs/davincios*`,
-  `rm -rf ${VPS_REPO}/plans/full-davincios*`,
-  `rm -rf ${VPS_REPO}/plans/replace-in-dir*`,
 ];
 
 // Collect all unique parent dirs for mkdir

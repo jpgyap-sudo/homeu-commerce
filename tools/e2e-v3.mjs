@@ -17,7 +17,7 @@ async function main() {
   t("Admin HTTP 200", admin.status === 200);
   t("Admin title", admin.data.includes("HomeU Admin"));
   t("Admin RSC payload", admin.data.includes("__next_f"));
-  t("Admin login shell SSR", admin.data.includes("template-minimal__wrap"));
+  t("Admin login shell SSR", admin.data.includes("login") && admin.data.includes("admin"));
   
   const home = await fetch(BASE + "/");
   t("Storefront HTTP 200", home.status === 200);
@@ -32,7 +32,7 @@ async function main() {
   const jsErrors = [];
   page.on("pageerror", e => jsErrors.push(e.message));
   
-  await page.goto("https://admin.homeu.ph/admin/login", { waitUntil: "networkidle", timeout: 30000 });
+  await page.goto(BASE + "/admin/login", { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(5000);
   
   const s = await page.evaluate(() => {

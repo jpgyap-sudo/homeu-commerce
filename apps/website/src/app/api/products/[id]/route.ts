@@ -3,7 +3,7 @@
  * PATCH /api/products/[id] — Update product
  * DELETE /api/products/[id] — Delete product
  *
- * Replaces the PayloadCMS auto-generated /api/products/:id endpoint.
+ * Custom API endpoint for single-product CRUD operations.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -13,10 +13,10 @@ import { query } from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
 
     const result = await query(
       `SELECT p.*,
@@ -72,10 +72,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
 
     // Build SET clause dynamically from allowed fields
@@ -129,10 +129,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
 
     // Check product exists
     const existing = await query('SELECT id FROM products WHERE id = $1', [id])

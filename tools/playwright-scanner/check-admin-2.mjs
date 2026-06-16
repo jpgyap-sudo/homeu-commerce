@@ -122,8 +122,8 @@ async function main() {
   const themeIssue = state.htmlTheme === '[object Object]';
   if (themeIssue) {
     console.log('\n🚩 THEME BUG: data-theme is "[object Object]" instead of "light"/"dark"');
-    console.log('   This is caused by defaultTheme={"colors":{}} in @davincios/ui');
-    console.log('   Fix: Set admin: { theme: "light" } in daVinciOS.config.ts');
+    console.log('   This is caused by a theme configuration issue in the admin layout.');
+    console.log('   Fix: Check the admin layout theme provider or CSS variable configuration.');
   }
 
   // Save results
@@ -145,8 +145,7 @@ async function main() {
   } else if (themeIssue) {
     console.log('📛 VERDICT: Theme bug detected - this causes hydration failure');
     console.log('   The login form is empty because React hydration bails out due to');
-    console.log('   data-theme="[object Object]" mismatch. The fix is to set');
-    console.log('   admin: { theme: "light" } in daVinciOS.config.ts on the VPS.');
+    console.log('   data-theme="[object Object]" mismatch.');
   } else {
     console.log('⚪ VERDICT: Check full report for details');
   }

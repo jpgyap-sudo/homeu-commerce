@@ -1,6 +1,8 @@
 // Schema definition - kept for reference
 
 import type { CollectionConfig } from '../types/davincios'
+import { anyone } from '../access/anyone'
+import { adminUsers } from '../access/admin'
 
 export const Quotations = {
   slug: 'quotations',
@@ -288,7 +290,7 @@ export const Quotations = {
         date: {
           pickerAppearance: 'dayAndTime',
         },
-        condition: (_, siblingData) => siblingData?.status === 'sent' || siblingData?.status === 'accepted' || siblingData?.status === 'rejected',
+        condition: (_: unknown, siblingData: Record<string, unknown>) => siblingData?.status === 'sent' || siblingData?.status === 'accepted' || siblingData?.status === 'rejected',
       },
     },
     {
@@ -302,7 +304,7 @@ export const Quotations = {
       label: 'Sent Via',
       admin: {
         position: 'sidebar',
-        condition: (_, siblingData) => siblingData?.status === 'sent' || siblingData?.status === 'accepted' || siblingData?.status === 'rejected',
+        condition: (_: unknown, siblingData: Record<string, unknown>) => siblingData?.status === 'sent' || siblingData?.status === 'accepted' || siblingData?.status === 'rejected',
       },
     },
     {

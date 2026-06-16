@@ -1,6 +1,8 @@
 // Schema definition - kept for reference
 
 import type { CollectionConfig } from '../types/davincios'
+import { anyone } from '../access/anyone'
+import { adminUsers } from '../access/admin'
 
 export const Redirects = {
   slug: 'redirects',

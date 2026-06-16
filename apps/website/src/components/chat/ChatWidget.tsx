@@ -8,8 +8,25 @@ import { RFQCartDrawer } from './RFQCartDrawer'
 import { AppointmentPicker } from './AppointmentPicker'
 import { ViberHandoff } from './ViberHandoff'
 import { getQuoteCart, addToQuoteCart, setQuoteCartLeadId } from '@/components/QuoteCart'
-import { getLoggedInCustomer, type CustomerProfile } from '@/lib/chatbot/customer-sync'
 import './chat.css'
+
+interface CustomerProfile {
+  id: string
+  name?: string
+  email?: string
+  phone?: string
+  company?: string
+}
+
+async function getLoggedInCustomer(): Promise<CustomerProfile | null> {
+  try {
+    const res = await fetch('/api/customers/me')
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
 
 // ── State Machine ─────────────────────────────────────────────
 

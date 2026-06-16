@@ -39,9 +39,9 @@ function loadJSON(filename) {
 async function main() {
   console.log('=== DaVinciOS CMS Import Tool ===\n')
 
-  const products = loadJSON('DaVinciOS-products.json')
-  const categories = loadJSON('DaVinciOS-categories.json')
-  const pages = loadJSON('DaVinciOS-pages.json')
+  const products = loadJSON('products.json')
+  const categories = loadJSON('categories.json')
+  const pages = loadJSON('pages.json')
   const navigation = loadJSON('navigation.json')
 
   // Summary

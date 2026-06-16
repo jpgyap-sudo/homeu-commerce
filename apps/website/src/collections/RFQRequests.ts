@@ -1,6 +1,8 @@
 // Schema definition - kept for reference
 
 import type { CollectionConfig } from '../types/davincios'
+import { anyone } from '../access/anyone'
+import { adminUsers } from '../access/admin'
 
 export const RFQRequests = {
   slug: 'rfq-requests',
@@ -72,7 +74,7 @@ export const RFQRequests = {
         date: {
           pickerAppearance: 'dayAndTime',
         },
-        condition: (data, siblingData) => {
+        condition: (_data: unknown, siblingData: Record<string, unknown>) => {
           return siblingData?.status === 'quotation_sent' || siblingData?.status === 'closed_won' || siblingData?.status === 'closed_lost'
         },
       },
@@ -88,7 +90,7 @@ export const RFQRequests = {
       label: 'Quotation Sent Via',
       admin: {
         position: 'sidebar',
-        condition: (data, siblingData) => {
+        condition: (_data: unknown, siblingData: Record<string, unknown>) => {
           return siblingData?.status === 'quotation_sent' || siblingData?.status === 'closed_won' || siblingData?.status === 'closed_lost'
         },
       },
@@ -110,7 +112,7 @@ export const RFQRequests = {
         date: {
           pickerAppearance: 'dayAndTime',
         },
-        condition: (data, siblingData) => {
+        condition: (_data: unknown, siblingData: Record<string, unknown>) => {
           return siblingData?.status === 'closed_won' || siblingData?.status === 'closed_lost'
         },
       },
@@ -121,7 +123,7 @@ export const RFQRequests = {
       label: 'Closing Notes / Reason',
       admin: {
         position: 'sidebar',
-        condition: (data, siblingData) => {
+        condition: (_data: unknown, siblingData: Record<string, unknown>) => {
           return siblingData?.status === 'closed_won' || siblingData?.status === 'closed_lost'
         },
       },

@@ -4,7 +4,7 @@
  * Server component that displays a paginated, searchable, filterable,
  * and sortable table of products from the `products` table.
  *
- * Uses `@/lib/db` helpers directly — no PayloadCMS, no REST API.
+ * Uses `@/lib/db` helpers directly for database access.
  */
 
 import { getSession } from '@/lib/auth'

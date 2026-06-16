@@ -1,7 +1,7 @@
 import http from "http";
 import crypto from "crypto";
 
-// Payload CMS password hashing: pbkdf2 with sha512, 250k iterations
+// Password hashing: pbkdf2 with sha512, 250k iterations
 const password = "DaVinciOS";
 const salt = crypto.randomBytes(32).toString("hex");
 const hash = crypto
