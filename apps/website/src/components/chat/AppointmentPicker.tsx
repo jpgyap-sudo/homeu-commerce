@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 
 interface AppointmentPickerProps {
   leadId: string
@@ -10,12 +10,54 @@ interface AppointmentPickerProps {
   onCancel: () => void
 }
 
+const HARDCODED_CATEGORIES = [
+  'Dining Chairs',
+  'Sofas',
+  'Tables',
+  'Lighting',
+  'Bedroom',
+  'Storage',
+  'Rugs',
+  'Ceiling Fans',
+  'Wall Panels',
+]
+
+interface CategoryOption {
+  id: string
+  title: string
+}
+
 export function AppointmentPicker({ leadId, conversationId, onSuccess, onError, onCancel }: AppointmentPickerProps) {
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [visitors, setVisitors] = useState(1)
   const [category, setCategory] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [categories, setCategories] = useState<CategoryOption[]>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await fetch('/api/categories?limit=100')
+        if (!res.ok) throw new Error('Failed to load categories')
+        const data = await res.json()
+        const docs: { id: string; title: string }[] = data.docs || []
+        if (docs.length > 0) {
+          setCategories(docs.map(c => ({ id: c.id, title: c.title })))
+        } else {
+          // API returned empty — use hardcoded fallback
+          setCategories(HARDCODED_CATEGORIES.map((title, i) => ({ id: `fallback-${i}`, title })))
+        }
+      } catch {
+        // API unavailable — use hardcoded fallback
+        setCategories(HARDCODED_CATEGORIES.map((title, i) => ({ id: `fallback-${i}`, title })))
+      } finally {
+        setCategoriesLoading(false)
+      }
+    }
+    loadCategories()
+  }, [])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -70,15 +112,13 @@ export function AppointmentPicker({ leadId, conversationId, onSuccess, onError, 
         Categories of Interest (optional)
         <select value={category} onChange={e => setCategory(e.target.value)}>
           <option value="">All categories</option>
-          <option value="Dining Chairs">Dining Chairs</option>
-          <option value="Sofas">Sofas</option>
-          <option value="Tables">Tables</option>
-          <option value="Lighting">Lighting</option>
-          <option value="Bedroom">Bedroom</option>
-          <option value="Storage">Storage</option>
-          <option value="Rugs">Rugs</option>
-          <option value="Ceiling Fans">Ceiling Fans</option>
-          <option value="Wall Panels">Wall Panels</option>
+          {categoriesLoading ? (
+            <option value="" disabled>Loading categories...</option>
+          ) : (
+            categories.map(cat => (
+              <option key={cat.id} value={cat.title}>{cat.title}</option>
+            ))
+          )}
         </select>
       </label>
 

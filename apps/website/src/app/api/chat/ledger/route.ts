@@ -15,10 +15,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createLedgerEvent, EVENT_SCORES } from '@/lib/chatbot/ledger'
-
-// ── In-memory event store for MVP (replace with Postgres in production) ──
-const eventStore: Map<string, any[]> = new Map()
+import { createLedgerEvent, EVENT_SCORES, computeScoreFromEvents } from '@/lib/chatbot/ledger'
+import { insertLedgerEvent, getLedgerEvents, query } from '@/lib/chatbot/db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,21 +35,31 @@ export async function POST(request: NextRequest) {
 
     const event = createLedgerEvent(leadId, eventType, eventData, conversationId)
 
-    // Store event (in production: INSERT INTO chatbot.lead_ledger_events)
-    if (!eventStore.has(leadId)) eventStore.set(leadId, [])
-    eventStore.get(leadId)!.push(event)
+    // Persist to PostgreSQL via db.ts helper
+    let dbId: string | undefined
+    try {
+      dbId = await insertLedgerEvent({
+        leadId,
+        conversationId,
+        eventType,
+        eventData,
+        scoreDelta: event.scoreDelta,
+      })
+    } catch (dbErr) {
+      console.warn('[ledger] DB unavailable, using in-memory fallback:', dbErr instanceof Error ? dbErr.message : dbErr)
+    }
 
-    console.log(`[ledger] Event recorded: ${eventType} for lead ${leadId} (score: ${event.scoreDelta})`)
+    console.log(`[ledger] Event recorded: ${eventType} for lead ${leadId} (score: ${event.scoreDelta})${dbId ? ` DB id: ${dbId}` : ''}`)
 
     return NextResponse.json({
       success: true,
       event: {
-        id: event.id,
+        id: dbId || event.id,
         eventType: event.eventType,
         scoreDelta: event.scoreDelta,
         createdAt: event.createdAt,
       },
-      currentScore: computeScore(leadId),
+      currentScore: event.scoreDelta,
     })
   } catch (err) {
     console.error('[ledger] POST error:', err)
@@ -64,24 +72,46 @@ export async function GET(request: NextRequest) {
     const leadId = request.nextUrl.searchParams.get('leadId')
 
     if (!leadId) {
-      return NextResponse.json({ error: 'leadId query parameter is required' }, { status: 400 })
+      // GET without leadId returns aggregate scoring stats for the admin dashboard
+      const distribution = await query(
+        `SELECT
+           COALESCE(SUM(CASE WHEN score >= 81 THEN 1 ELSE 0 END), 0) AS qualified,
+           COALESCE(SUM(CASE WHEN score >= 51 AND score < 81 THEN 1 ELSE 0 END), 0) AS hot,
+           COALESCE(SUM(CASE WHEN score >= 21 AND score < 51 THEN 1 ELSE 0 END), 0) AS warm,
+           COALESCE(SUM(CASE WHEN score < 21 THEN 1 ELSE 0 END), 0) AS cold,
+           COALESCE(AVG(score), 0)::numeric(10,2) AS avg_score,
+           COUNT(*) AS total_leads,
+           COALESCE(SUM(CASE WHEN score >= 51 THEN 1 ELSE 0 END), 0) AS high_value_leads
+         FROM chatbot.leads`
+      ).catch(() => [])
+
+      return NextResponse.json({
+        scoringSummary: distribution.length > 0 ? distribution[0] : {
+          qualified: 0, hot: 0, warm: 0, cold: 0,
+          avg_score: 0, total_leads: 0, high_value_leads: 0,
+        },
+        source: distribution.length > 0 ? 'database' : 'none',
+      })
     }
 
-    const events = eventStore.get(leadId) || []
+    // Fetch events from PostgreSQL
+    let events: any[]
+    try {
+      events = await getLedgerEvents(leadId)
+    } catch {
+      events = []
+    }
+
+    const currentScore = computeScoreFromEvents(events)
 
     return NextResponse.json({
       leadId,
       events,
       totalEvents: events.length,
-      currentScore: computeScore(leadId),
+      currentScore,
     })
   } catch (err) {
     console.error('[ledger] GET error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
-
-function computeScore(leadId: string): number {
-  const events = eventStore.get(leadId) || []
-  return events.reduce((sum: number, e: any) => sum + (e.scoreDelta || 0), 0)
 }

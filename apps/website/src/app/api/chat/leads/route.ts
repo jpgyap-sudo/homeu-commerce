@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSignal } from '@/lib/chatbot/lead-scorer'
 import { findCustomerByEmail, linkLeadToCustomer } from '@/lib/chatbot/customer-sync'
 import { insertLead, insertConversation, insertLedgerEvent } from '@/lib/chatbot/db'
+import { sendTelegramAlert } from '@/lib/chatbot/telegram-client'
 
 export async function POST(request: NextRequest) {
   try {
@@ -118,6 +119,20 @@ export async function POST(request: NextRequest) {
       sourcePage: sourcePage || null,
       customerLinked,
       customerId: resolvedCustomerId,
+    })
+
+    // ── Telegram Alert ──────────────────────────────────────────
+    sendTelegramAlert({
+      eventType: 'NEW_LEAD',
+      leadId,
+      conversationId,
+      leadName: name.trim(),
+      mobile: mobile.trim(),
+      email: email.trim(),
+      buyerType: buyerType || undefined,
+      summary: `New lead from ${sourcePage || 'website'} — ${isExistingCustomer ? 'returning customer' : 'new visitor'}`,
+    }).catch((err: Error) => {
+      console.warn('[chatbot] Telegram alert failed (non-critical):', err.message)
     })
 
     // Scoring signals — extra points for customers

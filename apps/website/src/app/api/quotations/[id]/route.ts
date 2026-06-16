@@ -1,33 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { default as DaVinciOSConfig } from '@DaVinciOS-config'
-import { getDaVinciOSClient } from '@/lib/daVinciOS'
+import { query } from '@/lib/db'
 
-/**
- * GET /api/quotations/[id]
- * Fetch a single quotation by ID.
- */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
-    const daVinciOS = await getDaVinciOSClient(DaVinciOSConfig)
-
-    const quotation = await daVinciOS.findByID({
-      collection: 'quotations',
-      id,
-      depth: 2,
-    })
-
-    if (!quotation) {
-      return NextResponse.json(
-        { error: 'Quotation not found' },
-        { status: 404 }
-      )
+    const result = await query('SELECT * FROM quotations WHERE id = $1', [id])
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
     }
-
-    return NextResponse.json(quotation)
+    return NextResponse.json(result.rows[0])
   } catch (error: any) {
     console.error('Quotation GET error:', error)
     return NextResponse.json(
@@ -37,26 +21,28 @@ export async function GET(
   }
 }
 
-/**
- * PATCH /api/quotations/[id]
- * Update a quotation.
- */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
-    const daVinciOS = await getDaVinciOSClient(DaVinciOSConfig)
     const body = await request.json()
-
-    const quotation = await daVinciOS.update({
-      collection: 'quotations',
-      id,
-      data: body,
-    })
-
-    return NextResponse.json({ success: true, quotation })
+    const fields = Object.keys(body)
+    if (fields.length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+    }
+    const sets = fields.map((f, i) => `"${f}" = $${i + 1}`).join(', ')
+    const values = fields.map((f) => body[f])
+    values.push(id)
+    const result = await query(
+      `UPDATE quotations SET ${sets}, updated_at = NOW() WHERE id = $${values.length} RETURNING *`,
+      values
+    )
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
+    }
+    return NextResponse.json(result.rows[0])
   } catch (error: any) {
     console.error('Quotation PATCH error:', error)
     return NextResponse.json(
@@ -66,23 +52,16 @@ export async function PATCH(
   }
 }
 
-/**
- * DELETE /api/quotations/[id]
- * Delete a quotation.
- */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
-    const daVinciOS = await getDaVinciOSClient(DaVinciOSConfig)
-
-    await daVinciOS.delete({
-      collection: 'quotations',
-      id,
-    })
-
+    const result = await query('DELETE FROM quotations WHERE id = $1 RETURNING id', [id])
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
+    }
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Quotation DELETE error:', error)

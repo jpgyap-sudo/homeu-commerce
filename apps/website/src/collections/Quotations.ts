@@ -1,5 +1,6 @@
-import type { CollectionConfig } from '@davincios/cms'
-import { adminUsers, anyone } from '../access/admin'
+// Schema definition - kept for reference
+
+import type { CollectionConfig } from '../types/davincios'
 
 export const Quotations = {
   slug: 'quotations',

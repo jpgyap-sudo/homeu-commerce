@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { Where } from '@davincios/cms'
-import { default as DaVinciOSConfig } from '@DaVinciOS-config'
-import { getDaVinciOSClient } from '@/lib/daVinciOS'
+import { query } from '@/lib/db'
 
-/**
- * GET /api/quotations?limit=10&page=1&status=draft&search=...
- * Fetch quotations with optional filters.
- */
 export async function GET(request: NextRequest) {
   try {
-    const daVinciOS = await getDaVinciOSClient(DaVinciOSConfig)
     const { searchParams } = new URL(request.url)
-
     const limit = parseInt(searchParams.get('limit') || '10')
     const page = parseInt(searchParams.get('page') || '1')
     const status = searchParams.get('status')
@@ -19,39 +11,44 @@ export async function GET(request: NextRequest) {
     const rfqId = searchParams.get('rfq')
     const customerId = searchParams.get('customer')
 
-    // Build where clause
-    const where: Where = {}
+    const conditions: string[] = []
+    const params: any[] = []
 
     if (status) {
-      where.status = { equals: status }
+      conditions.push(`status = $${params.length + 1}`)
+      params.push(status)
     }
-
     if (rfqId) {
-      where.rfq = { equals: rfqId }
+      conditions.push(`rfq_id = $${params.length + 1}`)
+      params.push(rfqId)
     }
-
     if (customerId) {
-      where.customer = { equals: customerId }
+      conditions.push(`customer_id = $${params.length + 1}`)
+      params.push(customerId)
     }
-
     if (search) {
-      where.or = [
-        { quotationNumber: { contains: search } },
-        { customerName: { contains: search } },
-        { email: { contains: search } },
-      ]
+      conditions.push(`(quotation_number ILIKE $${params.length + 1} OR customer_name ILIKE $${params.length + 1} OR email ILIKE $${params.length + 1})`)
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`)
     }
 
-    const result = await daVinciOS.find({
-      collection: 'quotations',
+    const where = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''
+    const offset = (page - 1) * limit
+
+    const countResult = await query(`SELECT COUNT(*) FROM quotations ${where}`, params)
+    const totalDocs = parseInt(countResult.rows[0].count)
+
+    const dataResult = await query(
+      `SELECT * FROM quotations ${where} ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, limit, offset]
+    )
+
+    return NextResponse.json({
+      docs: dataResult.rows,
+      totalDocs,
       limit,
       page,
-      where,
-      sort: '-createdAt',
-      depth: 2,
+      totalPages: Math.ceil(totalDocs / limit),
     })
-
-    return NextResponse.json(result)
   } catch (error: any) {
     console.error('Quotations GET error:', error)
     return NextResponse.json(
@@ -61,29 +58,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * POST /api/quotations
- * Create a new quotation. Optionally auto-generate quotation number.
- */
 export async function POST(request: NextRequest) {
   try {
-    const daVinciOS = await getDaVinciOSClient(DaVinciOSConfig)
     const body = await request.json()
 
-    // Auto-generate quotation number if not provided
-    if (!body.quotationNumber) {
-      const countResult = await daVinciOS.find({
-        collection: 'quotations',
-        limit: 1,
-        sort: '-createdAt',
-        pagination: false,
-      })
-      const nextNum = (countResult.totalDocs || 0) + 1
-      const year = new Date().getFullYear()
-      body.quotationNumber = `Q-${year}-${String(nextNum).padStart(4, '0')}`
-    }
-
-    // Validate required fields
     if (!body.customerName || !body.phone) {
       return NextResponse.json(
         { error: 'Missing required fields: customerName and phone are required' },
@@ -91,12 +69,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const quotation = await daVinciOS.create({
-      collection: 'quotations',
-      data: body,
-    })
+    const countResult = await query('SELECT COUNT(*) FROM quotations')
+    const nextNum = parseInt(countResult.rows[0].count) + 1
+    const year = new Date().getFullYear()
+    const quotationNumber = body.quotationNumber || `Q-${year}-${String(nextNum).padStart(4, '0')}`
 
-    return NextResponse.json({ success: true, quotation }, { status: 201 })
+    const result = await query(
+      `INSERT INTO quotations (quotation_number, customer_name, email, phone, status, notes, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *`,
+      [
+        quotationNumber,
+        body.customerName || '',
+        body.email || '',
+        body.phone || '',
+        body.status || 'draft',
+        body.notes || '',
+      ]
+    )
+
+    return NextResponse.json({ success: true, quotation: result.rows[0] }, { status: 201 })
   } catch (error: any) {
     console.error('Quotations POST error:', error)
     return NextResponse.json(

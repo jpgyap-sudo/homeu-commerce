@@ -8,6 +8,7 @@ interface DashboardCounts {
   customers: number
   categories: number
   rfqRequests: number
+  redirects: number
   leads: number
   conversations: number
   messages: number
@@ -24,6 +25,15 @@ interface DashboardCounts {
     source_page: string | null
     created_at: string
   }>
+  scoringSummary: {
+    hot: number
+    warm: number
+    cold: number
+    qualified: number
+    avg_score: number
+    total_leads: number
+    high_value_leads: number
+  }
 }
 
 async function loadDashboardData(): Promise<DashboardCounts> {
@@ -33,16 +43,19 @@ async function loadDashboardData(): Promise<DashboardCounts> {
       customerCount,
       categoryCount,
       rfqCount,
+      redirectCount,
       leadCount,
       conversationCount,
       messageCount,
       appointmentCount,
       recentLeadsResult,
+      scoringSummaryResult,
     ] = await Promise.all([
       query('SELECT COUNT(*) as count FROM products').then(r => Number(r.rows[0]?.count || 0)),
       query('SELECT COUNT(*) as count FROM customers').then(r => Number(r.rows[0]?.count || 0)),
       query('SELECT COUNT(*) as count FROM categories').then(r => Number(r.rows[0]?.count || 0)),
       query('SELECT COUNT(*) as count FROM rfq_requests').then(r => Number(r.rows[0]?.count || 0)),
+      query('SELECT COUNT(*) as count FROM redirects').then(r => Number(r.rows[0]?.count || 0)),
       query('SELECT COUNT(*) as count FROM chatbot.leads').then(r => Number(r.rows[0]?.count || 0)),
       query('SELECT COUNT(*) as count FROM chatbot.conversations').then(r => Number(r.rows[0]?.count || 0)),
       query('SELECT COUNT(*) as count FROM chatbot.messages').then(r => Number(r.rows[0]?.count || 0)),
@@ -53,13 +66,27 @@ async function loadDashboardData(): Promise<DashboardCounts> {
          ORDER BY created_at DESC
          LIMIT 5`
       ),
+      query(
+        `SELECT
+           COALESCE(SUM(CASE WHEN score >= 81 THEN 1 ELSE 0 END), 0) AS qualified,
+           COALESCE(SUM(CASE WHEN score >= 51 AND score < 81 THEN 1 ELSE 0 END), 0) AS hot,
+           COALESCE(SUM(CASE WHEN score >= 21 AND score < 51 THEN 1 ELSE 0 END), 0) AS warm,
+           COALESCE(SUM(CASE WHEN score < 21 THEN 1 ELSE 0 END), 0) AS cold,
+           COALESCE(AVG(score), 0)::numeric(10,2) AS avg_score,
+           COUNT(*) AS total_leads,
+           COALESCE(SUM(CASE WHEN score >= 51 THEN 1 ELSE 0 END), 0) AS high_value_leads
+         FROM chatbot.leads`
+      ),
     ])
+
+    const scoringRow = scoringSummaryResult.rows[0] || {}
 
     return {
       products: productCount,
       customers: customerCount,
       categories: categoryCount,
       rfqRequests: rfqCount,
+      redirects: redirectCount,
       leads: leadCount,
       conversations: conversationCount,
       messages: messageCount,
@@ -76,12 +103,22 @@ async function loadDashboardData(): Promise<DashboardCounts> {
         source_page: row.source_page,
         created_at: row.created_at,
       })),
+      scoringSummary: {
+        qualified: Number(scoringRow.qualified || 0),
+        hot: Number(scoringRow.hot || 0),
+        warm: Number(scoringRow.warm || 0),
+        cold: Number(scoringRow.cold || 0),
+        avg_score: Number(scoringRow.avg_score || 0),
+        total_leads: Number(scoringRow.total_leads || 0),
+        high_value_leads: Number(scoringRow.high_value_leads || 0),
+      },
     }
   } catch {
     return {
-      products: 0, customers: 0, categories: 0, rfqRequests: 0,
+      products: 0, customers: 0, categories: 0, rfqRequests: 0, redirects: 0,
       leads: 0, conversations: 0, messages: 0, appointments: 0,
       recentLeads: [],
+      scoringSummary: { hot: 0, warm: 0, cold: 0, qualified: 0, avg_score: 0, total_leads: 0, high_value_leads: 0 },
     }
   }
 }
@@ -155,6 +192,10 @@ export default async function AdminDashboardPage() {
             <h2>RFQ Requests</h2>
             <a href="/admin/rfq" className="count-link">{data.rfqRequests}</a>
           </div>
+          <div className="admin-dashboard-card">
+            <h2>Redirects</h2>
+            <a href="/admin/redirects" className="count-link">{data.redirects}</a>
+          </div>
         </div>
       </section>
 
@@ -177,6 +218,38 @@ export default async function AdminDashboardPage() {
           <div className="admin-dashboard-card">
             <h2>Appointments</h2>
             <div className="count">{data.appointments}</div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Lead Scoring Summary ─────────────────────────────── */}
+      <section style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 13, fontWeight: 600, color: '#667168', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Lead Scoring Overview</h2>
+        <div className="admin-dashboard-cards">
+          <div className="admin-dashboard-card" style={{ borderLeft: '4px solid #e74b16' }}>
+            <h2>🔥 Hot Leads</h2>
+            <div className="count">{data.scoringSummary.hot}</div>
+            <div style={{ fontSize: 11, color: '#667168', marginTop: 4 }}>Score 51–80</div>
+          </div>
+          <div className="admin-dashboard-card" style={{ borderLeft: '4px solid #1a6d3e' }}>
+            <h2>✅ Qualified</h2>
+            <div className="count">{data.scoringSummary.qualified}</div>
+            <div style={{ fontSize: 11, color: '#667168', marginTop: 4 }}>Score 81+</div>
+          </div>
+          <div className="admin-dashboard-card" style={{ borderLeft: '4px solid #d4a017' }}>
+            <h2>🟡 Warm</h2>
+            <div className="count">{data.scoringSummary.warm}</div>
+            <div style={{ fontSize: 11, color: '#667168', marginTop: 4 }}>Score 21–50</div>
+          </div>
+          <div className="admin-dashboard-card" style={{ borderLeft: '4px solid #667168' }}>
+            <h2>🔵 Cold</h2>
+            <div className="count">{data.scoringSummary.cold}</div>
+            <div style={{ fontSize: 11, color: '#667168', marginTop: 4 }}>Score 0–20</div>
+          </div>
+          <div className="admin-dashboard-card" style={{ borderLeft: '4px solid #e74b16' }}>
+            <h2>📊 Avg Score</h2>
+            <div className="count">{data.scoringSummary.avg_score}</div>
+            <div style={{ fontSize: 11, color: '#667168', marginTop: 4 }}>{data.scoringSummary.high_value_leads} high-value leads</div>
           </div>
         </div>
       </section>
@@ -283,6 +356,11 @@ export default async function AdminDashboardPage() {
           <a href="/admin/customers" className="admin-quick-action-card">
             <span className="admin-quick-action-icon">🏢</span>
             <span className="admin-quick-action-label">Customers</span>
+            <span className="admin-quick-action-arrow">→</span>
+          </a>
+          <a href="/admin/redirects" className="admin-quick-action-card">
+            <span className="admin-quick-action-icon">🔀</span>
+            <span className="admin-quick-action-label">Redirects</span>
             <span className="admin-quick-action-arrow">→</span>
           </a>
         </div>

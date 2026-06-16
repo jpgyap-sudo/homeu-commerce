@@ -1,7 +1,9 @@
-import type { CollectionConfig } from '@davincios/cms'
-import { adminUsers, anyone } from '../access/admin'
+// Schema definition - kept for reference
+
 import { generateProductSeoDescription, generateSeoTitle } from '../lib/seo/generateSeoDescription'
 import { extractPlainText } from '../lib/seo/extractPlainText'
+import type { CollectionConfig } from '../types/davincios'
+import { findOne } from '../lib/db'
 
 export const Products = {
   slug: 'products',
@@ -32,11 +34,7 @@ export const Products = {
             const categoryId = typeof data.category === 'object' ? data.category?.id : data.category
             if (categoryId) {
               try {
-                const category = await req.DaVinciOS.findByID({
-                  collection: 'categories',
-                  id: categoryId,
-                  depth: 0,
-                })
+                const category = await findOne('categories', { id: categoryId })
                 categoryTitle = category?.title
               } catch {
                 // category lookup is best-effort; fall back without it

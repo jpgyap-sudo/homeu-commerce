@@ -1,5 +1,6 @@
-import type { CollectionConfig } from '@davincios/cms'
-import { adminUsers, anyone } from '../access/admin'
+// Schema definition - kept for reference
+
+import type { CollectionConfig } from '../types/davincios'
 
 export const Customers = {
   slug: 'customers',
@@ -75,7 +76,7 @@ export const Customers = {
       ],
       admin: {
         position: 'sidebar',
-        description: 'Admin and staff can manage the DaVinciOS backend. Customers only use the storefront account area.',
+        description: 'Admin and staff can manage the backend. Customers only use the storefront account area.',
       },
     },
     {

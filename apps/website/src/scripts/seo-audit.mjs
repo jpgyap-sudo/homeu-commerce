@@ -7,7 +7,7 @@
  * against what's actually in the local Postgres DB, checks SEO-critical
  * fields, and cross-checks redirect coverage. Writes a report consumed by
  * apps/website/src/scripts/seed-seo-health.mjs (which pushes it into the
- * "seo-health" DaVinciOS global so it shows up in /admin).
+ * "seo-health" global (table: seo_health) so it shows up in /admin).
  *
  * Usage: node src/scripts/seo-audit.mjs
  */

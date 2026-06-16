@@ -2,7 +2,7 @@
  * POST /api/rfq/submit
  *
  * Submits the RFQ cart for sales review.
- * Creates a record in DaVinciOS RFQRequests collection and sends
+ * Creates a record in the rfq_requests table and sends
  * a Telegram alert to the sales group.
  *
  * Request:

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { default as DaVinciOSConfig } from '@DaVinciOS-config'
 import nodemailer from 'nodemailer'
 import { generatePricingSuggestions } from '@/utils/ollama-utils'
-import { getDaVinciOSClient } from '@/lib/daVinciOS'
+import { query } from '@/lib/db'
 
 type RFQItemInput = {
   product?: string
@@ -15,118 +14,88 @@ type RFQItemInput = {
   quantity?: number
 }
 
-function normalizeQuantity(quantity: unknown) {
-  const numeric = Number(quantity)
-  if (!Number.isFinite(numeric)) return 1
-  return Math.max(1, Math.min(999, Math.floor(numeric)))
-}
-
-function normalizeItems(items: unknown) {
-  if (!Array.isArray(items)) return []
-
-  return items
-    .map((item: RFQItemInput) => {
-      const title = item.productTitleSnapshot || item.title || ''
-      const price = Number(item.unitPriceSnapshot ?? item.price ?? 0)
-
-      return {
-        product: item.product || undefined,
-        productTitleSnapshot: String(title).trim(),
-        skuSnapshot: item.skuSnapshot || item.sku || undefined,
-        unitPriceSnapshot: Number.isFinite(price) ? Math.max(0, price) : 0,
-        quantity: normalizeQuantity(item.quantity),
-      }
-    })
-    .filter((item) => item.productTitleSnapshot)
-}
-
-function canSendEmail() {
-  return Boolean(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS && process.env.EMAIL_FROM)
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const daVinciOS = await getDaVinciOSClient(DaVinciOSConfig)
     const body = await request.json()
-    const items = normalizeItems(body.items)
+    const { customerName, email, phone, address, message, items, productId, quantity } = body
 
-    // Validate required fields
-    if (!body.customerName || !body.phone || items.length === 0) {
+    if (!email) {
       return NextResponse.json(
-        { error: 'Missing required fields: customerName, phone, or items' },
+        { error: 'Missing required field: email' },
         { status: 400 }
       )
     }
 
-    // Calculate estimated total
-    const estimatedTotal = items.reduce((sum: number, item) => {
-      const price = item.unitPriceSnapshot || 0
-      const qty = item.quantity || 1
-      return sum + price * qty
-    }, 0)
+    // Look up or create customer
+    let customerId: number | null = null
+    const existing = await query('SELECT id FROM customers WHERE email = $1 LIMIT 1', [email.toLowerCase()])
+    if (existing.rows.length > 0) {
+      customerId = existing.rows[0].id
+    } else if (customerName) {
+      const newCustomer = await query(
+        'INSERT INTO customers (email, name, phone, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id',
+        [email.toLowerCase(), customerName, phone || '']
+      )
+      customerId = newCustomer.rows[0].id
+    }
 
-    // Create RFQ request in DaVinciOS
-    const rfq = await daVinciOS.create({
-      collection: 'rfq-requests',
-      data: {
-        customer: body.customer || undefined,
-        customerName: String(body.customerName).trim(),
-        email: body.email ? String(body.email).trim() : undefined,
-        phone: String(body.phone).trim(),
-        deliveryLocation: body.deliveryLocation ? String(body.deliveryLocation).trim() : undefined,
-        projectType: body.projectType || 'home',
-        notes: body.notes ? String(body.notes).trim() : undefined,
-        items,
-        estimatedTotal,
-        status: 'new',
-      },
-    })
+    // Create RFQ request
+    const rfqResult = await query(
+      `INSERT INTO rfq_requests (customer_id, customer_name, email, phone, address, message, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending', NOW(), NOW()) RETURNING *`,
+      [customerId, customerName || '', email, phone || '', address || '', message || '']
+    )
+    const rfq = rfqResult.rows[0]
+
+    // Add items if provided
+    if (items && Array.isArray(items)) {
+      for (const item of items as RFQItemInput[]) {
+        await query(
+          `INSERT INTO rfq_request_items (rfq_request_id, product, title, sku, unit_price, quantity, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
+          [rfq.id, item.product || null, item.title || null, item.sku || null, item.unitPriceSnapshot || item.price || 0, item.quantity || 1]
+        )
+      }
+    }
 
     // Generate AI pricing suggestions
-    let pricingSuggestions = ''
+    let aiSuggestions: string = ''
     try {
-      pricingSuggestions = await generatePricingSuggestions(items)
-    } catch (suggestionError) {
-      console.warn('RFQ pricing suggestions skipped:', suggestionError)
+      aiSuggestions = await generatePricingSuggestions(message || '')
+    } catch {
+      // AI suggestions are optional
     }
 
-    // Send email notification
-    if (canSendEmail() && body.email) {
+    // Email notification
+    try {
       const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST,
-        port: Number(process.env.EMAIL_PORT || 587),
-        secure: process.env.EMAIL_SECURE === 'true',
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: process.env.SMTP_SECURE === 'true',
         auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
         },
       })
-
-      const mailOptions = {
-        from: `"HomeU RFQ Bot" <${process.env.EMAIL_FROM}>`,
-        to: String(body.email).trim(),
-        bcc: process.env.EMAIL_TO || undefined,
-        subject: 'Your HomeU RFQ request was received',
-        html: `
-          <h2>Thank you for your RFQ request.</h2>
-          <p>We've received your request for:</p>
-          <ul>
-            ${items.map((item) => `<li>${item.productTitleSnapshot} (x${item.quantity})</li>`).join('')}
-          </ul>
-          <p><strong>Estimated subtotal:</strong> ₱${estimatedTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
-          ${pricingSuggestions ? `<p>${pricingSuggestions}</p>` : ''}
-          <p>Our team will review availability, delivery, and final pricing before sending a formal quotation.</p>
-        `,
-      }
-
-      await transporter.sendMail(mailOptions)
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || 'noreply@homeu.ph',
+        to: process.env.NOTIFICATION_EMAIL || 'admin@homeu.ph',
+        subject: `New RFQ Request from ${customerName || email}`,
+        text: `New RFQ Request\n\nCustomer: ${customerName || 'N/A'}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nMessage: ${message || 'N/A'}\n\nItems: ${items ? JSON.stringify(items) : 'None'}`,
+      })
+    } catch {
+      // Email is optional
     }
 
-    return NextResponse.json({ success: true, rfqId: rfq.id })
+    return NextResponse.json({
+      success: true,
+      rfq,
+      aiSuggestions,
+    }, { status: 201 })
   } catch (error: any) {
-    console.error('RFQ submission error:', error)
+    console.error('RFQ POST error:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to submit RFQ' },
+      { error: error.message || 'Failed to submit RFQ request' },
       { status: 500 }
     )
   }

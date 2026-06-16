@@ -2,9 +2,8 @@
  * Seed Postgres (categories -> pages -> products) directly from the
  * transformed Shopify export in tools/shopify-import/output/.
  *
- * Bypasses DaVinciOS's Local API (blocked by a DaVinciOS@3.85 / @next/env@16
- * ESM interop bug) and writes straight to the tables DaVinciOS's
- * postgres adapter already created, matching apps/website/src/collections/*.
+ * Writes directly to the PostgreSQL tables, matching
+ * apps/website/src/collections/* schemas.
  *
  * Usage: node src/scripts/seed-postgres.mjs [--limit N]
  */
@@ -178,9 +177,9 @@ async function main() {
   const client = new pg.Client({ connectionString: process.env.DATABASE_URI })
   await client.connect()
 
-  const categories = loadJSON('DaVinciOS-categories.json') ?? []
-  const pages = loadJSON('DaVinciOS-pages.json') ?? []
-  const products = loadJSON('DaVinciOS-products.json') ?? []
+  const categories = loadJSON('categories.json') ?? []
+  const pages = loadJSON('pages.json') ?? []
+  const products = loadJSON('products.json') ?? []
 
   // 1. Categories
   console.log(`\n=== Categories (${categories.length}) ===`)

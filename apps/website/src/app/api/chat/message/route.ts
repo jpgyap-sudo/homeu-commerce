@@ -21,6 +21,8 @@ import {
   RFQ_QUANTITY_QUESTION, APPOINTMENT_MESSAGE, ERROR_AI_TIMEOUT, ERROR_GENERIC,
 } from '@/lib/chatbot/prompts'
 import { createSignal } from '@/lib/chatbot/lead-scorer'
+import { insertMessage } from '@/lib/chatbot/db'
+import { sendTelegramAlert } from '@/lib/chatbot/telegram-client'
 
 const VIBER_NUMBER = process.env.SALES_VIBER_NUMBER || '+639171234567'
 
@@ -161,6 +163,15 @@ export async function POST(request: NextRequest) {
         reply = `You can reach our sales team on Viber: ${VIBER_NUMBER}\n\nWould you also like me to prepare an RFQ for you before you call?`
         actions.push('OFFER_VIBER', 'OFFER_RFQ')
         quickReplies.push('Prepare RFQ', 'Book showroom visit')
+        // ── Telegram Alert ────────────────────────────────────────
+        sendTelegramAlert({
+          eventType: 'ESCALATION',
+          leadId: leadId || '',
+          conversationId: conversationId || '',
+          leadName: leadId || '',
+          mobile: '',
+          summary: `Visitor requested Viber handoff: "${message.trim().substring(0, 100)}"`,
+        }).catch(() => {})
         break
       }
 
@@ -169,13 +180,15 @@ export async function POST(request: NextRequest) {
         reply = `I understand. Let me connect you with our sales team who can assist you personally.`
         actions.push('ESCALATE_HUMAN')
         quickReplies.push('Contact sales on Viber', 'Send inquiry to admin')
-        break
-      }
-
-      case 'CUSTOM_FURNITURE': {
-        reply = `For custom or bespoke furniture, our design team would be happy to help. I'll connect you with a sales representative.`
-        actions.push('ESCALATE_HUMAN')
-        quickReplies.push('Contact sales on Viber', 'Describe your custom needs')
+        // ── Telegram Alert ────────────────────────────────────────
+        sendTelegramAlert({
+          eventType: 'ESCALATION',
+          leadId: leadId || '',
+          conversationId: conversationId || '',
+          leadName: leadId || '',
+          mobile: '',
+          summary: `Visitor escalated: "${classified.intent}" — "${message.trim().substring(0, 100)}"`,
+        }).catch(() => {})
         break
       }
 
@@ -211,6 +224,36 @@ export async function POST(request: NextRequest) {
         quickReplies.push('Find a product', 'Request quotation', 'Book showroom visit', 'Contact sales on Viber')
         break
       }
+    }
+
+    // ── Persist messages to PostgreSQL ───────────────────────
+    if (conversationId) {
+      // Persist visitor message
+      insertMessage({
+        conversationId,
+        senderType: 'visitor',
+        content: message.trim(),
+        messageType: 'text',
+        metadata: { intent: classified.intent, currentPage },
+      }).catch((err: Error) => {
+        console.error('[chatbot] Failed to persist visitor message:', err.message)
+      })
+
+      // Persist bot reply
+      insertMessage({
+        conversationId,
+        senderType: 'bot',
+        content: reply,
+        messageType: 'text',
+        metadata: {
+          actions,
+          intent: classified.intent,
+          productRecommendations: productRecommendations.length > 0 ? productRecommendations.map(r => r.productId) : undefined,
+          quickReplies,
+        },
+      }).catch((err: Error) => {
+        console.error('[chatbot] Failed to persist bot reply:', err.message)
+      })
     }
 
     return NextResponse.json({
