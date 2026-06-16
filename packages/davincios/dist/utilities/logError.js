@@ -1,7 +1,8 @@
-export const logError = ({ err, DaVinciOS })=>{
+export const logError = ({ err, DaVinciOS, davincios })=>{
+    const dv = DaVinciOS || davincios;
     let level = 'error';
-    if (err && typeof err === 'object' && 'name' in err && typeof err.name === 'string' && typeof DaVinciOS.config.loggingLevels[err.name] !== 'undefined') {
-        level = DaVinciOS.config.loggingLevels[err.name];
+    if (err && typeof err === 'object' && 'name' in err && typeof err.name === 'string' && typeof dv.config.loggingLevels[err.name] !== 'undefined') {
+        level = dv.config.loggingLevels[err.name];
     }
     if (level) {
         const logObject = {};
@@ -10,7 +11,7 @@ export const logError = ({ err, DaVinciOS })=>{
         } else {
             logObject.err = err;
         }
-        DaVinciOS.logger[level](logObject);
+        dv.logger[level](logObject);
     }
 };
 

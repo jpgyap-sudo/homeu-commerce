@@ -8,6 +8,11 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "build:classify": "powershell -ExecutionPolicy Bypass -File C:/Users/user/.superroo/skills/minimal-docker-image-build/scripts/classify-build-impact.ps1 -Repo .",
+    "build:website": "npm run build -w apps/website",
+    "build:docker:builder": "docker build --target builder -t davincios-website:builder .",
+    "build:docker:image": "docker build -t davincios-website:local .",
+    "compose:config": "docker compose config",
     "dev": "npm run dev -w apps/website",
     "lint": "npm run lint --workspaces --if-present",
     "clean": "npm run clean --workspaces --if-present"

@@ -70,13 +70,13 @@ const VPS = {
   tailscale: {
     host: '100.64.175.88',
     user: 'root',
-    key: 'C:\\Users\\User\\.ssh\\id_superroo_vps',
+    key: 'C:\\Users\\user\\.ssh\\id_superroo_vps',
     priority: 1,
   },
   public: {
     host: '104.248.225.250',
     user: 'root',
-    key: 'C:\\Users\\User\\.ssh\\id_superroo_vps',
+    key: 'C:\\Users\\user\\.ssh\\id_superroo_vps',
     priority: 2,
   },
   vpsMcpPort: 3457,

@@ -1,13 +1,17 @@
 import { logError } from '../utilities/logError.js';
 import { mergeHeaders } from '../utilities/mergeHeaders.js';
+// Resolve the davincios instance from args, supporting both
+// lowercase (initReq.js) and PascalCase (operations/auth.js) callers.
+const resolveDaVinciOS = (args)=> args.davincios || args.DaVinciOS;
 export const executeAuthStrategies = async (args)=>{
     let result = {
         user: null
     };
-    if (!args.DaVinciOS.authStrategies?.length) {
+    const davincios = resolveDaVinciOS(args);
+    if (!davincios?.authStrategies?.length) {
         return result;
     }
-    for (const strategy of args.DaVinciOS.authStrategies){
+    for (const strategy of davincios.authStrategies){
         // add the configured AuthStrategy `name` to the strategy function args
         args.strategyName = strategy.name;
         args.isGraphQL = Boolean(args.isGraphQL);
@@ -21,7 +25,7 @@ export const executeAuthStrategies = async (args)=>{
         } catch (err) {
             logError({
                 err,
-                DaVinciOS: args.DaVinciOS
+                davincios
             });
         }
         if (result.user) {
