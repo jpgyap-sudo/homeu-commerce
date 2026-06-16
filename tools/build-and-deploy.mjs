@@ -49,6 +49,9 @@ const filesToCopy = [
   "apps/website/src/collections/Quotations.ts",
   "apps/website/src/collections/Redirects.ts",
   "apps/website/src/collections/RFQRequests.ts",
+  // Access control
+  "apps/website/src/access/admin.ts",
+  "apps/website/src/access/anyone.ts",
   // Components
   "apps/website/src/components/QuoteCart.tsx",
   // Chat components
@@ -78,6 +81,7 @@ const filesToCopy = [
   "apps/website/src/app/customer/rfq/[id]/page.tsx",
   "apps/website/src/app/customer/quotation/[id]/page.tsx",
   // --- Admin pages ---
+  "apps/website/src/app/admin/AdminSidebar.tsx",
   "apps/website/src/app/admin/layout.tsx",
   "apps/website/src/app/admin/admin.css",
   "apps/website/src/app/admin/page.tsx",
