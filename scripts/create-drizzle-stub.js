@@ -90,7 +90,8 @@ function resolveTable(config) {
     table = tableKey ? this.tables[tableKey] : undefined;
   }
   if (!table) {
-    throw new Error('@davincios/drizzle: table not found for slug: ' + slug);
+    // Table not in schema yet — return null so callers can handle gracefully
+    return null;
   }
   return { db, table };
 }
@@ -274,13 +275,19 @@ export function find(config) {
  * findOne - Called with a single config object.
  * DaVinciOS calls: adapter.findOne({collection: slug, where: {...}, req, select, ...})
  */
-export function findOne(config) {
-  const { db, table } = resolveTable.call(this, config);
-  let q = db.select().from(table);
-  const condition = convertWhere(config.where, table);
-  if (condition) q = q.where(condition);
-  return q.limit(1);
-}
+  export function findOne(config) {
+    const resolved = resolveTable.call(this, config);
+    if (!resolved) {
+      const slug = config.collection || config.slug || config.global;
+      console.warn('@davincios/drizzle: table not found for slug:', slug, '— returning undefined');
+      return undefined;
+    }
+    const { db, table } = resolved;
+    let q = db.select().from(table);
+    const condition = convertWhere(config.where, table);
+    if (condition) q = q.where(condition);
+    return q.limit(1);
+  }
 
 export function findDistinct(config) {
   const { db, table } = resolveTable.call(this, config);
