@@ -100,7 +100,6 @@ RUN cd website && \
     cp -r ../packages/next node_modules/@davincios/next && \
     cp -r ../packages/db-postgres node_modules/@davincios/db-postgres && \
     cp -r ../packages/richtext-lexical node_modules/@davincios/richtext-lexical && \
-=======
     echo "  Replaced @davincios/cms, next, db-postgres, richtext-lexical" && \
     echo "" && \
     echo "=== Step 4: Create stub packages for missing @davincios/* dependencies ===" && \
@@ -130,7 +129,6 @@ RUN cd website && node ../scripts/create-ui-stub.js
 RUN cd website && node ../scripts/create-drizzle-stub.js
 RUN cd website && node ../scripts/create-translations-stub.js
 
->>>>>>> eada38a4dfc6b6a73130f42c42eb11bc8e767428
 # The pre-built dist/ files in @davincios packages may still contain
 # Legacy upstream function names, imports, and file names are normalized to DaVinciOS.
 COPY scripts/strip-legacy-brand.mjs ./scripts/strip-legacy-brand.mjs
