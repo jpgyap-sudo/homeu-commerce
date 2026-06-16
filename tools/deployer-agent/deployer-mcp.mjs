@@ -1066,16 +1066,24 @@ async function main() {
           state.errors.forEach(e => console.log(`  ${e}`))
         }
 
-        // Auto-repair
+        let repair = null
         if (state.dirty.length > 0 || state.behindCount > 0 || state.aheadCount > 0) {
           console.log(`\n🔧 Auto-repairing...`)
-          const repair = await autoRepairSync(state)
+          repair = await autoRepairSync(state)
           console.log(`  Stashed: ${repair.stashed}`)
           console.log(`  Pulled:  ${repair.pulled}`)
           console.log(`  Pushed:  ${repair.pushed}`)
           if (repair.errors.length > 0) {
             console.log(`  Errors:  ${repair.errors.join(', ')}`)
           }
+        }
+
+        // Persist sync state to database
+        try {
+          await recordSyncState(state, repair)
+          console.log(`\n📝 Sync state recorded in database`)
+        } catch (dbErr) {
+          console.error(`\n⚠️  Could not record sync state: ${dbErr.message}`)
         }
 
         const isClean = state.dirty.length === 0 && state.behindCount === 0
@@ -1108,7 +1116,9 @@ async function main() {
           const sha = r.last_synced_sha?.slice(0, 12) || '?'
           const by = (r.synced_by || '?').slice(0, 16)
           const status = r.status || '?'
-          const time = r.last_sync_time?.slice(0, 19) || '?'
+          const time = r.last_sync_time instanceof Date
+            ? r.last_sync_time.toISOString().slice(0, 19).replace('T', ' ')
+            : String(r.last_sync_time || '?').slice(0, 19)
           console.log(`  ${sha} ${status.padEnd(8)} by ${by.padEnd(16)} ${time}`)
           if (r.dirty_count > 0 || r.ahead_count > 0 || r.behind_count > 0) {
             console.log(`    → dirty:${r.dirty_count} ahead:${r.ahead_count} behind:${r.behind_count}`)
