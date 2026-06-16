@@ -17,10 +17,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const host = headersList.get('host') || ''
   const isAdminDomain = host.startsWith('admin.')
 
-  // Only render the storefront header/ChatWidget when NOT on the admin domain
+  // For admin domain: minimal html/body with light theme (DaVinciOS admin CSS needs data-theme)
   if (isAdminDomain) {
     return (
-      <html lang="en">
+      <html lang="en" data-theme="light">
         <body>{children}</body>
       </html>
     )
