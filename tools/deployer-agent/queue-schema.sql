@@ -53,8 +53,41 @@ CREATE TABLE IF NOT EXISTS deployer_extensions (
   metadata JSONB
 );
 
+-- ════════════════════════════════════════════════════════════
+-- GIT SYNC STATE — Tracks local↔origin sync for all extensions
+-- ════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS deployer_sync_state (
+  id SERIAL PRIMARY KEY,
+  last_synced_sha VARCHAR(40) NOT NULL,
+  last_sync_time TIMESTAMPTZ DEFAULT NOW(),
+  synced_by VARCHAR(100) NOT NULL,           -- which extension checked
+  status VARCHAR(20) DEFAULT 'synced',       -- synced, dirty, behind, ahead, blocked, error
+  ahead_count INTEGER DEFAULT 0,             -- commits ahead of origin
+  behind_count INTEGER DEFAULT 0,            -- commits behind origin
+  dirty_count INTEGER DEFAULT 0,             -- uncommitted files
+  stash_created BOOLEAN DEFAULT FALSE,       -- whether stash was needed
+  error_message TEXT,
+  details TEXT,
+  UNIQUE(last_synced_sha, synced_by)
+);
+
+-- ════════════════════════════════════════════════════════════
+-- DEPLOYER GATE RULES — Which extensions must sync before deploy
+-- ════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS deployer_gate_rules (
+  id SERIAL PRIMARY KEY,
+  extension_id VARCHAR(100) UNIQUE NOT NULL,
+  extension_name VARCHAR(100),
+  last_seen TIMESTAMPTZ DEFAULT NOW(),
+  sync_required BOOLEAN DEFAULT TRUE,        -- MUST pass sync check before deploy
+  auto_sync BOOLEAN DEFAULT TRUE,            -- auto-stash/pull/push on check
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_queue_status ON deployer_queue(status, priority);
 CREATE INDEX IF NOT EXISTS idx_queue_created ON deployer_queue(created_at);
 CREATE INDEX IF NOT EXISTS idx_locks_key ON deployer_locks(lock_key);
 CREATE INDEX IF NOT EXISTS idx_history_commit ON deployer_history(commit_sha);
+CREATE INDEX IF NOT EXISTS idx_sync_time ON deployer_sync_state(last_sync_time);
+CREATE INDEX IF NOT EXISTS idx_sync_sha ON deployer_sync_state(last_synced_sha);

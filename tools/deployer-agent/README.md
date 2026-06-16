@@ -1,18 +1,92 @@
 # 🚀 Deployer Agent
 
-Central coordination for **ALL** coding extensions (Roo, Claude, Blackbox, Codex, etc.).
-Prevents duplicate runs, queues deployments, tracks locks, and **guarantees no committed work is left behind**.
+Central coordination for **ALL** coding extensions (Roo, Claude, Blackbox, Codex, Kilo Code, etc.).
+Prevents duplicate runs, queues deployments, tracks locks, enforces **git sync before deploy**,
+and **guarantees no committed work is left behind**.
 
-## Core Philosophy: Persistence
+## Core Philosophy: Persistence + Sync Gate
 
 Multiple AI coding extensions work on this repository simultaneously. Each extension commits
-code independently. The Deployer Agent's **persistence guarantee** ensures that:
+code independently. The Deployer Agent provides two guarantees:
 
-> ✅ **Every commit from every extension gets deployed — nothing falls through the cracks.**
+> ✅ **Sync Gate** — Before ANY deploy, the agent checks local ↔ origin sync (dirty files, ahead/behind). Blocks deploy if out of sync. Auto-repairs when possible.
+>
+> ✅ **Persistence** — Every commit from every extension gets deployed — nothing falls through the cracks.
 
 The agent tracks the **last deployed commit SHA** in the database, then compares it against
 the current git log on the VPS. Any commits newer than the last deployment are flagged as
 **"pending"** and can be deployed in bulk.
+
+## Git Sync Gate (NEW)
+
+### Why It Exists
+
+Multiple AI coding extensions can leave the local repo in an inconsistent state:
+- **Uncommitted files** — an extension made changes but forgot to commit
+- **Unpushed commits** — local is ahead of origin (e.g., proxy blocked push)
+- **Behind origin** — another extension pushed but you haven't pulled
+
+The **Sync Gate** catches ALL of these before any deploy operation.
+
+### How It Works
+
+Every call to `deployer_deploy`, `deployer_deploy_pending`, or `deployer_build` **automatically** runs the sync gate first:
+
+```
+Extension calls deploy → SYNC GATE activates:
+  1. git status --porcelain        → any dirty files?
+  2. git fetch origin              → can we reach GitHub?
+     ↓ (if fails, retry via HTTP proxy at 127.0.0.1:10809)
+  3. git rev-list HEAD..origin     → behind? → auto pull --rebase
+  4. git rev-list origin..HEAD     → ahead?  → auto push
+  5. git stash (if dirty)          → save work, pull, pop stash
+  6. Record sync state in DB       → deployer_sync_state table
+  7. PASS → proceed with deploy
+     BLOCK → return error with guidance
+```
+
+### Sync Gate TTL
+
+The gate caches the sync result for **5 minutes**. If you call deploy again within 5 minutes,
+it skips re-checking (unless you use `force: true`).
+
+### Manual Sync Check
+
+Extensions can also call `deployer_sync_check` directly:
+
+```javascript
+// Check sync state and auto-repair
+const result = await callTool('deployer_sync_check', {
+  force: true,       // Force re-check (skip 5-min cache)
+  auto_repair: true  // Auto-stash, pull, push (default: true)
+})
+
+// Result:
+// {
+//   "passed": true,
+//   "sha": "a1b2c3d4e5f6",
+//   "branch": "master",
+//   "details": {
+//     "dirtyFiles": 0,
+//     "aheadCount": 0,
+//     "behindCount": 0,
+//     "fetchOk": true,
+//     "pushOk": true
+//   },
+//   "autoRepair": null,
+//   "errors": []
+// }
+```
+
+### Sync Status Dashboard
+
+See what ALL extensions' sync states look like:
+
+```javascript
+const status = await callTool('deployer_sync_status', { limit: 10 })
+// Shows: current local state + last N sync records from all extensions
+// Including: who checked, when, status, dirty count, errors
+```
 
 ## Centralized Logging
 
@@ -121,11 +195,17 @@ node tools/deployer-agent/deployer-mcp.mjs --deploy
 # Show queue
 node tools/deployer-agent/deployer-mcp.mjs --queue
 
-# [NEW] Show pending commits from ALL extensions
+# Show pending commits from ALL extensions
 node tools/deployer-agent/deployer-mcp.mjs --pending
 
-# [NEW] Deploy ALL pending commits from ALL extensions
+# Deploy ALL pending commits from ALL extensions
 node tools/deployer-agent/deployer-mcp.mjs --deploy-pending
+
+# [NEW] Run git sync check (LOCAL only — checks dirty, ahead, behind)
+node tools/deployer-agent/deployer-mcp.mjs --sync-check
+
+# [NEW] Show sync status dashboard for ALL extensions
+node tools/deployer-agent/deployer-mcp.mjs --sync-status
 ```
 
 ### MCP Tools Available
@@ -133,15 +213,17 @@ node tools/deployer-agent/deployer-mcp.mjs --deploy-pending
 | Tool | Description |
 |------|-------------|
 | `deployer_status` | Queue status, locks, last deployment, VPS health |
-| `deployer_build` | Queue Docker build (deduplicated, locked) |
-| `deployer_deploy` | Queue full deploy: pull → build → restart |
+| **🔒 `deployer_sync_check`** | **[MANDATORY GATE] Check local↔origin sync. Auto-repair. Called automatically by deploy tools.** |
+| **🔒 `deployer_sync_status`** | **Sync dashboard for ALL extensions — current state + last N records** |
+| `deployer_build` | Queue Docker build — **runs sync gate first** |
+| `deployer_deploy` | Queue full deploy: git pull → build → restart — **runs sync gate first** |
 | `deployer_sync` | Queue Shopify → Central Brain sync |
 | `deployer_scan` | Queue Playwright site scan |
 | `deployer_queue_list` | List all active queue items |
 | `deployer_vps_test` | Test VPS connectivity (all methods) |
 | `deployer_health` | Quick health check: homepage, admin, postgres |
-| ✅ **`deployer_pending`** | **Check ALL pending commits from ANY coding extension** — compares git log vs last deployed SHA. Returns author, date, message, and files changed. |
-| ✅ **`deployer_deploy_pending`** | **Deploy ALL pending commits from ANY coding extension** — checks for un-deployed commits, then runs full deploy cycle for everything at once. This is the recommended way to ensure no work is left behind. |
+| ✅ **`deployer_pending`** | **Check ALL pending commits from ANY coding extension** |
+| ✅ **`deployer_deploy_pending`** | **Deploy ALL pending commits — runs sync gate first** |
 
 ### Using `deployer_pending` (Recommended for all extensions)
 

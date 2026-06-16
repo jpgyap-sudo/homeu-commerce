@@ -411,6 +411,367 @@ async function processQueue() {
 }
 
 // =============================================
+// GIT SYNC CHECK ENGINE
+// Runs LOCAL git commands to verify local ↔ origin sync.
+// Auto-repairs: stash dirty → fetch → pull → push → pop stash.
+// Called as a mandatory gate before ANY deploy operation.
+// =============================================
+
+const SYNC_GATE_TTL_MINUTES = 5  // Re-check if last sync is older than this
+
+/**
+ * Run a local git command and return { success, output, error }.
+ */
+function localGit(args, options = {}) {
+  try {
+    const result = execSync(`git ${args}`, {
+      cwd: PROJECT_DIR,
+      encoding: 'utf-8',
+      timeout: options.timeout || 30000,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      ...(options.env ? { env: { ...process.env, ...options.env } } : {}),
+    })
+    return { success: true, output: result.trim() }
+  } catch (err) {
+    return {
+      success: false,
+      output: err.stdout?.toString()?.trim() || '',
+      error: err.stderr?.toString()?.trim() || err.message,
+    }
+  }
+}
+
+/**
+ * Full local git sync check — runs locally (not on VPS).
+ * Returns detailed state: dirty files, ahead/behind counts, current SHA.
+ */
+async function checkLocalGitState() {
+  const state = {
+    sha: null,
+    branch: null,
+    dirty: [],
+    aheadCount: 0,
+    behindCount: 0,
+    fetchOk: false,
+    pushOk: false,
+    errors: [],
+    timestamp: new Date().toISOString(),
+  }
+
+  // 1. Get current SHA and branch
+  const shaResult = localGit('rev-parse HEAD')
+  if (shaResult.success) {
+    state.sha = shaResult.output
+  } else {
+    state.errors.push(`rev-parse failed: ${shaResult.error}`)
+  }
+
+  const branchResult = localGit('rev-parse --abbrev-ref HEAD')
+  if (branchResult.success) {
+    state.branch = branchResult.output
+  } else {
+    state.errors.push(`branch detection failed: ${branchResult.error}`)
+  }
+
+  // 2. Check for dirty/uncommitted files
+  const statusResult = localGit('status --porcelain')
+  if (statusResult.success && statusResult.output) {
+    state.dirty = statusResult.output.split('\n').filter(l => l.trim())
+  }
+
+  // 3. Fetch origin (with proxy fallback if needed)
+  const fetchResult = localGit('fetch origin', { timeout: 60000 })
+  state.fetchOk = fetchResult.success
+  if (!fetchResult.success) {
+    // Retry with HTTP proxy for Git (some networks block port 443)
+    const proxyFetch = localGit(
+      '-c http.proxy=http://127.0.0.1:10809 fetch origin',
+      { timeout: 60000, env: { GIT_TRACE: '0' } }
+    )
+    if (proxyFetch.success) {
+      state.fetchOk = true
+      state.errors.push('fetch needed proxy fallback (http://127.0.0.1:10809)')
+    } else {
+      state.errors.push(`fetch failed: ${fetchResult.error}`)
+      // Try with GIT_SSL_NO_VERIFY as last resort
+      const sslFetch = localGit(
+        '-c http.sslVerify=false -c http.proxy=http://127.0.0.1:10809 fetch origin',
+        { timeout: 60000 }
+      )
+      if (sslFetch.success) {
+        state.fetchOk = true
+        state.errors.push('fetch needed SSL-disabled proxy fallback')
+      } else {
+        state.errors.push(`fetch failed (all methods): ${sslFetch.error?.slice(0, 200)}`)
+      }
+    }
+  }
+
+  // 4. Check ahead/behind counts (only if fetch succeeded)
+  if (state.fetchOk && state.branch) {
+    const behindResult = localGit(`rev-list --count HEAD..origin/${state.branch}`)
+    if (behindResult.success) {
+      state.behindCount = parseInt(behindResult.output) || 0
+    }
+
+    const aheadResult = localGit(`rev-list --count origin/${state.branch}..HEAD`)
+    if (aheadResult.success) {
+      state.aheadCount = parseInt(aheadResult.output) || 0
+    }
+
+    // Check if push would work (test with --dry-run)
+    if (state.aheadCount > 0) {
+      const pushCheck = localGit(`push --dry-run origin ${state.branch}`, { timeout: 30000 })
+      state.pushOk = pushCheck.success
+      if (!pushCheck.success) {
+        // Retry push check with proxy
+        const proxyPush = localGit(
+          `-c http.proxy=http://127.0.0.1:10809 push --dry-run origin ${state.branch}`,
+          { timeout: 30000 }
+        )
+        if (proxyPush.success) {
+          state.pushOk = true
+          state.errors.push('push-dry-run needed proxy')
+        }
+      }
+    } else {
+      state.pushOk = true  // nothing to push
+    }
+  }
+
+  return state
+}
+
+/**
+ * Auto-repair sync issues:
+ * - Dirty files → stash them
+ * - Behind origin → pull --rebase
+ * - Ahead of origin → push
+ * - Returns { repaired, stashed, pulled, pushed, errors }
+ */
+async function autoRepairSync(state) {
+  const result = { repaired: false, stashed: false, pulled: false, pushed: false, errors: [] }
+  const stashedRef = []
+
+  // 1. Stash dirty files
+  if (state.dirty.length > 0) {
+    const stashResult = localGit(
+      `stash push -m "auto-sync-${Date.now()}" --include-untracked`
+    )
+    if (stashResult.success) {
+      result.stashed = true
+      stashedRef.push('stash@{0}')
+      console.error(`📦 Stashed ${state.dirty.length} dirty file(s)`)
+    } else {
+      result.errors.push(`stash failed: ${stashResult.error?.slice(0, 150)}`)
+    }
+  }
+
+  // 2. Pull if behind
+  if (state.behindCount > 0 && state.branch) {
+    const pullResult = localGit(`pull --rebase origin ${state.branch}`, { timeout: 120000 })
+    if (pullResult.success) {
+      result.pulled = true
+      console.error(`⬇️  Pulled ${state.behindCount} commit(s) from origin/${state.branch}`)
+    } else {
+      // Try pull with proxy
+      const proxyPull = localGit(
+        `-c http.proxy=http://127.0.0.1:10809 pull --rebase origin ${state.branch}`,
+        { timeout: 120000 }
+      )
+      if (proxyPull.success) {
+        result.pulled = true
+        console.error(`⬇️  Pulled ${state.behindCount} commit(s) via proxy`)
+      } else {
+        result.errors.push(`pull failed: ${proxyPull.error?.slice(0, 200)}`)
+      }
+    }
+  }
+
+  // 3. Push if ahead
+  if (state.aheadCount > 0 && state.pushOk && state.branch) {
+    const pushResult = localGit(`push origin ${state.branch}`, { timeout: 60000 })
+    if (pushResult.success) {
+      result.pushed = true
+      console.error(`⬆️  Pushed ${state.aheadCount} commit(s) to origin/${state.branch}`)
+    } else {
+      // Try push with proxy
+      const proxyPush = localGit(
+        `-c http.proxy=http://127.0.0.1:10809 push origin ${state.branch}`,
+        { timeout: 60000 }
+      )
+      if (proxyPush.success) {
+        result.pushed = true
+        console.error(`⬆️  Pushed ${state.aheadCount} commit(s) via proxy`)
+      } else {
+        result.errors.push(`push failed: ${proxyPush.error?.slice(0, 200)}`)
+      }
+    }
+  }
+
+  // 4. Pop stash if we stashed anything
+  if (result.stashed) {
+    const popResult = localGit('stash pop')
+    if (popResult.success) {
+      console.error(`📦 Popped stash — dirty files restored`)
+    } else {
+      result.errors.push(`stash pop failed: ${popResult.error?.slice(0, 150)}`)
+    }
+  }
+
+  result.repaired = result.stashed || result.pulled || result.pushed
+  return result
+}
+
+/**
+ * Record sync state to PostgreSQL.
+ */
+async function recordSyncState(state, repairResult) {
+  try {
+    const pool = await getPg()
+    await pool.query(
+      `INSERT INTO deployer_sync_state
+       (last_synced_sha, synced_by, status, ahead_count, behind_count, dirty_count,
+        stash_created, error_message, details)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        state.sha || 'unknown',
+        EXTENSION_ID,
+        state.errors.length > 0 ? 'error' : (state.dirty.length > 0 ? 'dirty' : 'synced'),
+        state.aheadCount || 0,
+        state.behindCount || 0,
+        state.dirty.length || 0,
+        repairResult?.stashed || false,
+        state.errors.join('; ') || null,
+        JSON.stringify({
+          branch: state.branch,
+          dirty: state.dirty,
+          repair: repairResult ? {
+            stashed: repairResult.stashed,
+            pulled: repairResult.pulled,
+            pushed: repairResult.pushed,
+          } : null,
+          timestamp: state.timestamp,
+        }),
+      ]
+    )
+    // Also register/update this extension in the gate rules table
+    await pool.query(
+      `INSERT INTO deployer_gate_rules (extension_id, extension_name, last_seen, sync_required, auto_sync)
+       VALUES ($1, $2, NOW(), TRUE, TRUE)
+       ON CONFLICT (extension_id) DO UPDATE SET last_seen = NOW()`,
+      [EXTENSION_ID, `Extension ${EXTENSION_ID.slice(0, 12)}`]
+    )
+  } catch (err) {
+    console.error(`⚠️  Failed to record sync state: ${err.message}`)
+  }
+}
+
+/**
+ * Get the last sync state from PostgreSQL.
+ */
+async function getLastSyncState() {
+  try {
+    const pool = await getPg()
+    const result = await pool.query(
+      `SELECT * FROM deployer_sync_state ORDER BY last_sync_time DESC LIMIT 5`
+    )
+    return result.rows
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Check if the last sync is stale (older than SYNC_GATE_TTL_MINUTES).
+ */
+async function isSyncStale() {
+  try {
+    const pool = await getPg()
+    const result = await pool.query(
+      `SELECT last_sync_time FROM deployer_sync_state
+       WHERE synced_by = $1
+       ORDER BY last_sync_time DESC LIMIT 1`,
+      [EXTENSION_ID]
+    )
+    if (result.rows.length === 0) return true
+    const lastSync = new Date(result.rows[0].last_sync_time)
+    const elapsed = (Date.now() - lastSync.getTime()) / 1000 / 60
+    return elapsed > SYNC_GATE_TTL_MINUTES
+  } catch {
+    return true  // If we can't check, assume stale
+  }
+}
+
+/**
+ * ENFORCE SYNC GATE — Called by deploy/build tools before proceeding.
+ * Runs full sync check + auto-repair. Returns { passed, state, repair, message }.
+ * If passed=false, the calling tool MUST block the operation.
+ */
+async function enforceSyncGate(options = {}) {
+  const force = options.force === true
+  const skipIfRecent = options.skipIfRecent !== false
+
+  console.error('🔒 SYNC GATE: Checking local git state...')
+
+  // Skip check if recent sync exists and not forced
+  if (!force && skipIfRecent) {
+    const stale = await isSyncStale()
+    if (!stale) {
+      console.error('✅ SYNC GATE: Last sync is recent (< 5 min old), skipping check')
+      return { passed: true, skipped: true, message: 'Sync check skipped — last sync is still fresh.' }
+    }
+  }
+
+  // Run the sync check
+  const state = await checkLocalGitState()
+
+  // Auto-repair if needed
+  let repairResult = null
+  if (state.dirty.length > 0 || state.behindCount > 0 || state.aheadCount > 0) {
+    repairResult = await autoRepairSync(state)
+
+    // Re-check state after repair
+    if (repairResult.repaired) {
+      const newState = await checkLocalGitState()
+      state.sha = newState.sha
+      state.dirty = newState.dirty
+      state.aheadCount = newState.aheadCount
+      state.behindCount = newState.behindCount
+    }
+  }
+
+  // Record to DB
+  await recordSyncState(state, repairResult)
+
+  // Determine pass/fail
+  const isClean = state.dirty.length === 0 && state.behindCount === 0
+  const canPush = state.aheadCount === 0 || state.pushOk
+  const passed = isClean && canPush && state.fetchOk
+
+  // Build message
+  const parts = []
+  if (state.dirty.length > 0) parts.push(`${state.dirty.length} dirty file(s)`)
+  if (state.behindCount > 0) parts.push(`${state.behindCount} behind origin`)
+  if (state.aheadCount > 0 && !state.pushOk) parts.push(`${state.aheadCount} ahead but push blocked`)
+  if (!state.fetchOk) parts.push('fetch failed')
+  const issues = parts.length > 0 ? ` Issues: ${parts.join(', ')}.` : ''
+
+  const summary = passed
+    ? `✅ Sync check passed — ${state.sha?.slice(0, 12)} on ${state.branch}`
+    : `❌ Sync check FAILED.${issues}`
+
+  return {
+    passed,
+    state,
+    repair: repairResult,
+    message: summary,
+    sha: state.sha,
+    branch: state.branch,
+  }
+}
+
+// =============================================
 // DEPLOYMENT EXECUTOR
 // =============================================
 
@@ -495,6 +856,20 @@ const TOOLS = [
     inputSchema: { type: 'object', properties: {} },
   },
   {
+    name: 'deployer_build_local',
+    description: 'Run a Docker build LOCALLY (not on VPS). Uses the Build Agent for PostgreSQL-coordinated locking shared across all extensions. Supports builder-stage (default) or full image.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        target: {
+          type: 'string',
+          enum: ['builder', 'full'],
+          description: 'Build target: "builder" (faster, default) or "full" (production image)',
+        },
+      },
+    },
+  },
+  {
     name: 'deployer_deploy',
     description: 'Queue a full deploy: git pull → build → restart → health check. Acquires deploy lock.',
     inputSchema: { type: 'object', properties: {} },
@@ -523,6 +898,39 @@ const TOOLS = [
     name: 'deployer_health',
     description: 'Quick health check: homepage, admin panel, postgres',
     inputSchema: { type: 'object', properties: {} },
+  },
+  // ═══════════════════════════════════════════════════════
+  // SYNC GATE TOOLS — Local↔origin sync check (MANDATORY before deploy)
+  // ═══════════════════════════════════════════════════════
+  {
+    name: 'deployer_sync_check',
+    description: '[MANDATORY GATE] Check local git state and sync with origin before deploying. Runs LOCALLY: checks dirty files, fetches origin, computes ahead/behind, auto-repairs (stash→pull→push→pop), records to DB. ALL extensions MUST call this before deploy_deploy, deploy_deploy_pending, or deploy_build — those tools call this automatically. Use force=true to skip TTL cache.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        force: {
+          type: 'boolean',
+          description: 'Force re-check even if recent sync exists (< 5 min)',
+        },
+        auto_repair: {
+          type: 'boolean',
+          description: 'Auto-repair issues (stash, pull, push). Default: true',
+        },
+      },
+    },
+  },
+  {
+    name: 'deployer_sync_status',
+    description: 'Show the last N sync check results from ALL coding extensions. Includes: last synced SHA, status (synced/dirty/behind/ahead/error), ahead/behind counts, dirty file count, timestamp, and which extension performed the check. Use this to see if any extension is out of compliance.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Number of recent sync records to show (default: 10)',
+        },
+      },
+    },
   },
   // ═══════════════════════════════════════════════════════
   // PERSISTENCE TOOLS — Ensure NO committed work is missed
@@ -637,6 +1045,81 @@ async function main() {
     process.exit(0)
   }
 
+  if (args.includes('--sync-check')) {
+    (async () => {
+      try {
+        console.log('\n🔍 GIT SYNC CHECK\n══════════════════')
+        const state = await checkLocalGitState()
+        console.log(`Branch:     ${state.branch}`)
+        console.log(`SHA:        ${state.sha?.slice(0, 12)}`)
+        console.log(`Dirty:      ${state.dirty.length} file(s)`)
+        console.log(`Ahead:      ${state.aheadCount} commit(s)`)
+        console.log(`Behind:     ${state.behindCount} commit(s)`)
+        console.log(`Fetch OK:   ${state.fetchOk}`)
+        console.log(`Push OK:    ${state.pushOk}`)
+        if (state.dirty.length > 0) {
+          console.log(`\n📄 Dirty files:`)
+          state.dirty.forEach(f => console.log(`  ${f}`))
+        }
+        if (state.errors.length > 0) {
+          console.log(`\n⚠️  Warnings:`)
+          state.errors.forEach(e => console.log(`  ${e}`))
+        }
+
+        // Auto-repair
+        if (state.dirty.length > 0 || state.behindCount > 0 || state.aheadCount > 0) {
+          console.log(`\n🔧 Auto-repairing...`)
+          const repair = await autoRepairSync(state)
+          console.log(`  Stashed: ${repair.stashed}`)
+          console.log(`  Pulled:  ${repair.pulled}`)
+          console.log(`  Pushed:  ${repair.pushed}`)
+          if (repair.errors.length > 0) {
+            console.log(`  Errors:  ${repair.errors.join(', ')}`)
+          }
+        }
+
+        const isClean = state.dirty.length === 0 && state.behindCount === 0
+        console.log(`\n${isClean ? '✅ SYNC OK' : '❌ SYNC ISSUES'}`)
+      } catch (err) { console.error(`Error: ${err.message}`) }
+      process.exit(0)
+    })()
+    return
+  }
+
+  if (args.includes('--sync-status')) {
+    (async () => {
+      try {
+        console.log('\n📊 SYNC STATUS DASHBOARD\n═══════════════════════')
+        const currentState = await checkLocalGitState()
+        console.log(`\n📍 CURRENT LOCAL STATE:`)
+        console.log(`  Branch:     ${currentState.branch}`)
+        console.log(`  SHA:        ${currentState.sha?.slice(0, 12)}`)
+        console.log(`  Dirty:      ${currentState.dirty.length} file(s)`)
+        console.log(`  Ahead:      ${currentState.aheadCount}`)
+        console.log(`  Behind:     ${currentState.behindCount}`)
+        console.log(`  Fetch OK:   ${currentState.fetchOk}`)
+
+        const records = await getLastSyncState()
+        console.log(`\n📜 RECENT SYNC RECORDS (${records.length}):`)
+        if (records.length === 0) {
+          console.log('  (no records yet — run deployer_sync_check first)')
+        }
+        for (const r of records) {
+          const sha = r.last_synced_sha?.slice(0, 12) || '?'
+          const by = (r.synced_by || '?').slice(0, 16)
+          const status = r.status || '?'
+          const time = r.last_sync_time?.slice(0, 19) || '?'
+          console.log(`  ${sha} ${status.padEnd(8)} by ${by.padEnd(16)} ${time}`)
+          if (r.dirty_count > 0 || r.ahead_count > 0 || r.behind_count > 0) {
+            console.log(`    → dirty:${r.dirty_count} ahead:${r.ahead_count} behind:${r.behind_count}`)
+          }
+        }
+      } catch (err) { console.error(`Error: ${err.message}`) }
+      process.exit(0)
+    })()
+    return
+  }
+
   // MCP SERVER MODE
   const server = new Server(
     { name: 'homeu-deployer-agent', version: '1.0.0' },
@@ -676,6 +1159,11 @@ async function main() {
         }
 
         case 'deployer_build': {
+          // 🔒 SYNC GATE: Must pass sync check before building
+          const gate = await enforceSyncGate()
+          if (!gate.passed) {
+            return { content: [{ type: 'text', text: `❌ SYNC GATE BLOCKED: ${gate.message}\n\nFix the sync issues first, then retry. Use deployer_sync_check for details.` }] }
+          }
           const lock = await acquireLock(LOCKS.BUILD, 600)
           if (!lock) {
             const task = await enqueueTask('build', {}, 1)
@@ -692,6 +1180,11 @@ async function main() {
         }
 
         case 'deployer_deploy': {
+          // 🔒 SYNC GATE: Must pass sync check before deploying
+          const gate = await enforceSyncGate()
+          if (!gate.passed) {
+            return { content: [{ type: 'text', text: `❌ SYNC GATE BLOCKED: ${gate.message}\n\nFix the sync issues first, then retry. Use deployer_sync_check for details.` }] }
+          }
           const lock = await acquireLock(LOCKS.DEPLOY, 600)
           if (!lock) {
             const task = await enqueueTask('deploy', {}, 1)
@@ -707,11 +1200,49 @@ async function main() {
           } finally { await releaseLock(LOCKS.DEPLOY) }
         }
 
+
+        case 'deployer_build_local': {
+          const target = args?.target || 'builder'
+          try {
+            const buildAgentPath = path.resolve(PROJECT_DIR, 'tools/build-agent/build-agent.mjs')
+            if (!fs.existsSync(buildAgentPath)) {
+              return { content: [{ type: 'text', text: `❌ Build Agent not found at ${buildAgentPath}. Run 'npm install' in tools/build-agent/ first.` }] }
+            }
+            console.error('[deployer-mcp] Running local build (' + target + ') via Build Agent...')
+            const buildAgentResult = execSync(
+              `node "${buildAgentPath}"${target === 'full' ? ' --full' : ''}`,
+              {
+                cwd: PROJECT_DIR,
+                encoding: 'utf-8',
+                timeout: 900000,
+                stdio: ['pipe', 'pipe', 'pipe'],
+                env: { ...process.env, BUILD_AGENT_ID: 'deployer-mcp-' + EXTENSION_ID },
+              }
+            )
+            try {
+              const result = JSON.parse(buildAgentResult.trim())
+              return {
+                content: [{
+                  type: 'text',
+                  text: result.success
+                    ? '✅ Local build succeeded (' + result.duration + 's)\nImage: ' + result.imageTag + '\n' + result.summary
+                    : '❌ Local build failed\n' + result.summary,
+                }],
+              }
+            } catch {
+              return { content: [{ type: 'text', text: '✅ Local build output:\n' + buildAgentResult.trim() }] }
+            }
+          } catch (err) {
+            return { content: [{ type: 'text', text: '❌ Local build error: ' + (err.message?.slice(0, 500) || '') }] }
+          }
+        }
+
         case 'deployer_sync': {
           return executeAndReport('sync', 'Sync', executeSync)
         }
 
         case 'deployer_scan': {
+
           return executeAndReport('scan', 'Scan', executeScan)
         }
 
@@ -750,6 +1281,102 @@ async function main() {
         }
 
         // ═══════════════════════════════════════════════════════════
+        // SYNC GATE TOOL HANDLERS
+        // ═══════════════════════════════════════════════════════════
+
+        case 'deployer_sync_check': {
+          const force = args?.force === true
+          const autoRepair = args?.auto_repair !== false
+          console.error(`🔍 Running sync check (force=${force}, auto_repair=${autoRepair})...`)
+
+          // Run raw check first for detailed reporting
+          const rawState = await checkLocalGitState()
+
+          // Run the gate (which includes auto-repair if enabled)
+          const gateResult = await enforceSyncGate({ force: true, skipIfRecent: false })
+
+          // After repair, re-check state
+          let finalState = rawState
+          if (gateResult.repair?.repaired) {
+            finalState = await checkLocalGitState()
+          }
+
+          const response = {
+            passed: gateResult.passed,
+            sha: finalState.sha?.slice(0, 12) || 'unknown',
+            branch: finalState.branch || 'unknown',
+            message: gateResult.message,
+            details: {
+              dirtyFiles: finalState.dirty.length,
+              dirtyList: finalState.dirty.slice(0, 20),
+              aheadCount: finalState.aheadCount,
+              behindCount: finalState.behindCount,
+              fetchOk: finalState.fetchOk,
+              pushOk: finalState.pushOk,
+            },
+            autoRepair: gateResult.repair ? {
+              stashed: gateResult.repair.stashed,
+              pulled: gateResult.repair.pulled,
+              pushed: gateResult.repair.pushed,
+            } : null,
+            errors: finalState.errors,
+            timestamp: finalState.timestamp,
+          }
+
+          // If not passed and has errors, provide guidance
+          if (!gateResult.passed) {
+            response.guidance = [
+              '🔧 To fix:',
+              finalState.dirty.length > 0 ? '  • Commit or stash your dirty files' : null,
+              finalState.behindCount > 0 ? '  • Run `git pull --rebase` to catch up with origin' : null,
+              !finalState.fetchOk ? '  • Check your network/proxy settings (try: git -c http.proxy=http://127.0.0.1:10809 fetch)' : null,
+              finalState.aheadCount > 0 && !finalState.pushOk ? '  • Run `git push` or check your credentials' : null,
+              '  • Then call deployer_sync_check again',
+            ].filter(Boolean).join('\n')
+          }
+
+          return { content: [{ type: 'text', text: JSON.stringify(response, null, 2) }] }
+        }
+
+        case 'deployer_sync_status': {
+          const limit = args?.limit || 10
+          const records = await getLastSyncState()
+          const recentRecords = records.slice(0, Math.min(limit, 50))
+
+          // Also check current local state for comparison
+          const currentState = await checkLocalGitState()
+
+          const response = {
+            currentLocal: {
+              sha: currentState.sha?.slice(0, 12) || 'unknown',
+              branch: currentState.branch || 'unknown',
+              dirtyFiles: currentState.dirty.length,
+              aheadCount: currentState.aheadCount,
+              behindCount: currentState.behindCount,
+              fetchOk: currentState.fetchOk,
+            },
+            recentSyncRecords: recentRecords.map(r => ({
+              sha: r.last_synced_sha?.slice(0, 12),
+              syncedBy: r.synced_by?.slice(0, 16),
+              status: r.status,
+              aheadCount: r.ahead_count,
+              behindCount: r.behind_count,
+              dirtyCount: r.dirty_count,
+              stashCreated: r.stash_created,
+              time: r.last_sync_time,
+              error: r.error_message,
+            })),
+            summary: currentState.dirty.length > 0 || currentState.behindCount > 0
+              ? '⚠️  Local state is out of sync — run deployer_sync_check'
+              : currentState.aheadCount > 0 && !currentState.fetchOk
+                ? '⚠️  Local has unpushed commits and fetch failed'
+                : '✅ Local state is clean and in sync',
+          }
+
+          return { content: [{ type: 'text', text: JSON.stringify(response, null, 2) }] }
+        }
+
+        // ═══════════════════════════════════════════════════════════
         // PERSISTENCE TOOL HANDLERS
         // ═══════════════════════════════════════════════════════════
 
@@ -772,7 +1399,13 @@ async function main() {
         }
 
         case 'deployer_deploy_pending': {
-          // First check what's pending
+          // 🔒 SYNC GATE: Must pass sync check before deploying pending commits
+          const gate = await enforceSyncGate()
+          if (!gate.passed) {
+            return { content: [{ type: 'text', text: `❌ SYNC GATE BLOCKED: ${gate.message}\n\nFix the sync issues first, then retry. Use deployer_sync_check for details.` }] }
+          }
+
+          // Then check what's pending on VPS
           const pendingCheck = await checkPendingCommits()
           if (!pendingCheck.success) {
             return { content: [{ type: 'text', text: `❌ Cannot check pending: ${pendingCheck.error}` }] }
