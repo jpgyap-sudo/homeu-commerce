@@ -156,6 +156,14 @@
     "build-chatbot": {
       "description": "🤖 Build the HomeU Concierge chatbot: load skill guide and build all components",
       "prompt": "Load the concierge-chatbot skill. Run the concierge-builder agent to build the full chatbot system: 1) Database schema, 2) AI provider layer, 3) Chat API endpoints, 4) Chat widget UI components, 5) Layout integration, 6) Telegram notifications."
+    },
+    "build-docker": {
+      "description": "🐳 Run a Docker build (builder stage) with PostgreSQL locking. All agents use this same command.",
+      "prompt": "Run the build agent to verify the Docker build compiles: node tools/build-agent/build-agent.mjs. This triggers a builder-stage build with PostgreSQL locking shared across all coding extensions. Results are logged to memory/task-log.jsonl. Check the output JSON for success/failure and duration."
+    },
+    "build-docker-full": {
+      "description": "🐳 Run a full Docker production image build with PostgreSQL locking.",
+      "prompt": "Run the build agent for a full production Docker build: node tools/build-agent/build-agent.mjs --full. This triggers a production image build with PostgreSQL locking shared across all coding extensions. Results are logged to memory/task-log.jsonl."
     }
   }
 }

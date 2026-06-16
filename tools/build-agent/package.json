@@ -1,0 +1,16 @@
+{
+  "name": "homeu-build-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Build Agent — Coordinates Docker builds across all coding extensions (Kilo, Claude, Codex, Blackbox, Roo). Handles local builds with PostgreSQL locking, centralized logging, and multi-extension coordination.",
+  "main": "build-agent.mjs",
+  "scripts": {
+    "build": "node build-agent.mjs",
+    "build-full": "node build-agent.mjs --target full",
+    "status": "node build-agent.mjs --status"
+  },
+  "dependencies": {
+    "pg": "^8.14.1"
+  }
+}

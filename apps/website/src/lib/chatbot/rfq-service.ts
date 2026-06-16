@@ -12,6 +12,7 @@
 import { logTask } from '../central-logger.mjs'
 import { sendTelegramAlert } from './telegram-client'
 import { createSignal } from './lead-scorer'
+import { addItemToCart, syncCartItems, clearCart, submitCart } from './cart-service'
 
 const API_BASE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
@@ -52,12 +53,21 @@ export async function addItemToRFQCart(
   item: RFQItemInput
 ): Promise<RFQResult> {
   try {
-    // In MVP, we use the existing QuoteCart localStorage approach
-    // Phase 2 will persist to chatbot.rfq_carts table via API
-    // For now, the client-side QuoteCart handles local storage,
-    // and we return success to confirm receipt.
+    const result = await addItemToCart(leadId, {
+      productId: item.productId,
+      productTitle: item.productTitle,
+      referencePrice: item.referencePrice,
+      quantity: item.quantity,
+      notes: item.notes,
+      acceptsAlternatives: item.acceptsAlternatives,
+      matchType: item.matchType,
+    })
 
-    console.log(`[chatbot] Item added to RFQ cart:`, {
+    if (!result.success) {
+      return { success: false, error: result.error }
+    }
+
+    console.log(`[chatbot] Item added to RFQ cart (persisted):`, {
       leadId,
       conversationId,
       productId: item.productId,
@@ -67,6 +77,36 @@ export async function addItemToRFQCart(
     return { success: true }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Failed to add item' }
+  }
+}
+
+// ── Sync Full Cart ────────────────────────────────────────────
+
+/**
+ * Full cart sync — replaces all server-side items with the client's items.
+ * Called by the QuoteCart component when leadId is available.
+ */
+export async function syncRFQCart(
+  leadId: string,
+  items: RFQItemInput[]
+): Promise<RFQResult> {
+  try {
+    await syncCartItems(
+      leadId,
+      items.map((item) => ({
+        productId: item.productId,
+        productTitle: item.productTitle,
+        referencePrice: item.referencePrice,
+        quantity: item.quantity,
+        notes: item.notes,
+        acceptsAlternatives: item.acceptsAlternatives,
+        matchType: item.matchType,
+      }))
+    )
+
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to sync cart' }
   }
 }
 
@@ -100,6 +140,13 @@ export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
     }
 
     const data = await res.json()
+
+    // Mark server-side cart as submitted
+    try {
+      await submitCart(input.leadId)
+    } catch {
+      // Best-effort
+    }
 
     // Send Telegram alert
     await sendTelegramAlert({

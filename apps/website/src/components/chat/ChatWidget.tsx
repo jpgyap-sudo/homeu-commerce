@@ -7,7 +7,7 @@ import { ProductRecommendationCard, type ProductRec } from './ProductRecommendat
 import { RFQCartDrawer } from './RFQCartDrawer'
 import { AppointmentPicker } from './AppointmentPicker'
 import { ViberHandoff } from './ViberHandoff'
-import { getQuoteCart, addToQuoteCart } from '@/components/QuoteCart'
+import { getQuoteCart, addToQuoteCart, setQuoteCartLeadId } from '@/components/QuoteCart'
 import { getLoggedInCustomer, type CustomerProfile } from '@/lib/chatbot/customer-sync'
 import './chat.css'
 
@@ -137,6 +137,7 @@ export function ChatWidget() {
         const data = await res.json()
         setLeadId(data.leadId)
         setConversationId(data.conversationId)
+        setQuoteCartLeadId(data.leadId) // Persist for server-side cart sync
       }
     } catch {
       // Silent fail — chat still works without lead session
@@ -187,6 +188,7 @@ export function ChatWidget() {
     setLeadData(data)
     setLeadId(result.leadId)
     setConversationId(result.conversationId)
+    setQuoteCartLeadId(result.leadId) // Persist for server-side cart sync
     addSystemMessage(`Connected as ${data.name}`)
     addBotMessage(`Thanks, ${data.name.split(' ')[0]}! How can I help you today? You can describe what you need, upload a photo, or browse our catalog.`)
     setQuickReplies(['Find a product', 'Upload a photo', 'Request quotation', 'Book showroom visit'])

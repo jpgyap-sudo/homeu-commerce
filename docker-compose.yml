@@ -38,7 +38,8 @@ services:
     environment:
       - DATABASE_URI=postgres://homeu:homeu_local_password@postgres:5432/homeu
       - NEXT_PUBLIC_SITE_URL=https://store.homeu.ph
-      - DAVINCIOS_PUBLIC_SERVER_URL=https://store.homeu.ph
+      - ADMIN_PUBLIC_SERVER_URL=https://admin.homeatelier.ph
+      - JWT_SECRET=homeu-admin-secret-change-in-production-abc123xyz
       - OLLAMA_BASE_URL=http://ollama:11434
       - AI_PROVIDER=ollama
       - OLLAMA_MODEL=qwen3:4b

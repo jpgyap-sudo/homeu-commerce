@@ -97,3 +97,15 @@ automatically run the sync gate and will **BLOCK** if sync fails.
 **Do not bypass the sync gate.** If blocked, fix the git state first.
 
 See [`tools/deployer-agent/README.md`](tools/deployer-agent/README.md) for full details.
+
+## 📋 Gap Log — MUST Read Before Coding
+
+A comprehensive **Gap Log** is maintained at [`docs/GAP_LOG.md`](docs/GAP_LOG.md).
+
+**Before starting any coding task**, check the Gap Log for known issues in the area you're modifying. This prevents duplicate work and ensures awareness of systemic issues.
+
+Rules:
+- **Before coding:** Read [`docs/GAP_LOG.md`](docs/GAP_LOG.md) to check if a gap already exists for your work area.
+- **After discovering a new gap:** Add it to the Gap Log with all required fields (ID, files, type, status, description, impact, root cause, fix guidance).
+- **After fixing a gap:** Update its status to `✅ Resolved` and add a `ResolvedBy` note with date and agent name.
+- **Priority levels:** 🔴 Critical (fix immediately), 🟠 High (next sprint), 🟡 Medium (backlog), 🔵 Low (polish).

@@ -25,9 +25,6 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@DaVinciOS-config": [
-        "./src/daVinciOS.config.ts"
       ]
     }
   },

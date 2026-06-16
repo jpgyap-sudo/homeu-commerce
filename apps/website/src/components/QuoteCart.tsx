@@ -29,6 +29,7 @@ type QuoteForm = {
 
 const CART_KEY = 'homeu_quote_cart'
 const CART_EVENT = 'homeu_quote_cart_changed'
+const CART_LEAD_ID_KEY = 'homeu_lead_id'
 
 function normalizeQuantity(quantity: number) {
   if (!Number.isFinite(quantity)) return 1
@@ -90,6 +91,120 @@ export function clearQuoteCart() {
   saveQuoteCart([])
 }
 
+// ── Lead ID helpers (shared between chat widget and quote cart) ──
+
+export function getQuoteCartLeadId(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return localStorage.getItem(CART_LEAD_ID_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setQuoteCartLeadId(leadId: string | null) {
+  if (typeof window === 'undefined') return
+  try {
+    if (leadId) {
+      localStorage.setItem(CART_LEAD_ID_KEY, leadId)
+    } else {
+      localStorage.removeItem(CART_LEAD_ID_KEY)
+    }
+  } catch {
+    // Silently fail
+  }
+}
+
+// ── Server-side sync ──────────────────────────────────────────
+
+/**
+ * Sync the current localStorage cart to the server.
+ * Requires a leadId. No-op if leadId is not available.
+ */
+export async function syncCartToServer(): Promise<void> {
+  const leadId = getQuoteCartLeadId()
+  if (!leadId) return
+
+  const items = getQuoteCart()
+  try {
+    await fetch('/api/cart/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        leadId,
+        items: items.map((item) => ({
+          productId: item.productId,
+          productTitle: item.title,
+          sku: item.sku,
+          referencePrice: item.price,
+          quantity: item.quantity,
+        })),
+      }),
+    })
+  } catch (err) {
+    console.warn('[quotecart] Server sync failed (will retry on next mutation):', err)
+  }
+}
+
+/**
+ * Fetch the server-side cart for the current leadId and merge it into
+ * localStorage. Client items take priority (most recent session wins).
+ * Call this when the QuoteCartExperience mounts and a leadId is available.
+ */
+export async function fetchServerCart(): Promise<void> {
+  const leadId = getQuoteCartLeadId()
+  if (!leadId) return
+
+  try {
+    const res = await fetch(`/api/cart/sync?leadId=${encodeURIComponent(leadId)}`)
+    if (!res.ok) return
+
+    const data = await res.json()
+    if (!Array.isArray(data.items) || data.items.length === 0) return
+
+    const serverItems: QuoteItem[] = data.items.map((item: any) => ({
+      productId: item.productId,
+      title: item.productTitle,
+      sku: item.sku || undefined,
+      price: typeof item.referencePrice === 'number' ? item.referencePrice : undefined,
+      quantity: normalizeQuantity(item.quantity),
+    }))
+
+    // Merge: if client has items, those take priority (keep both, deduplicate by productId)
+    const clientItems = getQuoteCart()
+    if (clientItems.length === 0) {
+      // No client items — use server items
+      saveQuoteCart(serverItems)
+    } else {
+      // Merge: add server items that don't exist in client
+      const clientProductIds = new Set(clientItems.map((i) => i.productId))
+      const newServerItems = serverItems.filter((i: QuoteItem) => !clientProductIds.has(i.productId))
+      if (newServerItems.length > 0) {
+        saveQuoteCart([...clientItems, ...newServerItems])
+      }
+    }
+  } catch (err) {
+    console.warn('[quotecart] Failed to fetch server cart:', err)
+  }
+}
+
+/**
+ * Delete the server-side cart for the current leadId.
+ * Called when the user clears their cart.
+ */
+export async function clearServerCart(): Promise<void> {
+  const leadId = getQuoteCartLeadId()
+  if (!leadId) return
+
+  try {
+    await fetch(`/api/cart/sync?leadId=${encodeURIComponent(leadId)}`, { method: 'DELETE' })
+  } catch {
+    // Best-effort
+  }
+}
+
+// ── Components ────────────────────────────────────────────────
+
 export function QuoteCartBadge() {
   const [count, setCount] = useState(0)
 
@@ -130,6 +245,16 @@ export function QuoteCartExperience() {
   useEffect(() => {
     setItems(getQuoteCart())
 
+    // If we have a leadId, fetch server cart to merge any items the user
+    // may have added on another device or in a previous session
+    const leadId = getQuoteCartLeadId()
+    if (leadId) {
+      fetchServerCart().then(() => {
+        // Re-read items after server merge
+        setItems(getQuoteCart())
+      })
+    }
+
     async function hydrateCustomer() {
       try {
         const res = await fetch('/api/customers/me', { credentials: 'include' })
@@ -163,6 +288,9 @@ export function QuoteCartExperience() {
     setItems(nextItems)
     saveQuoteCart(nextItems)
     setSuccessId('')
+
+    // Sync to server in the background
+    syncCartToServer()
   }
 
   function changeQuantity(productId: string, quantity: number) {
@@ -223,6 +351,9 @@ export function QuoteCartExperience() {
       setSuccessId(data.rfqId || '')
       clearQuoteCart()
       setItems([])
+
+      // Clear server cart too
+      clearServerCart()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit RFQ.')
     } finally {

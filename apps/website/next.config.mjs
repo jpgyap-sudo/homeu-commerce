@@ -1,7 +1,3 @@
-const upstreamPluginName = ['with', 'Da', 'VinciOS'].join('')
-const pluginModule = await import(`@davincios/next/${upstreamPluginName}`)
-const withDaVinciOS = pluginModule[upstreamPluginName]
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -12,4 +8,4 @@ const nextConfig = {
   },
 }
 
-export default withDaVinciOS(nextConfig)
+export default nextConfig

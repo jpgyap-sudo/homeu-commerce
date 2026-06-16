@@ -1,0 +1,190 @@
+/* ========================================================================
+   HomeU Custom Admin Styles
+   ======================================================================== */
+
+:root {
+  --admin-bg: #0d1410;
+  --admin-card: #ffffff;
+  --admin-accent: #1a6d3e;
+  --admin-accent-hover: #238c51;
+  --admin-text: #151a17;
+  --admin-text-muted: #667168;
+  --admin-line: #d9e0d7;
+  --admin-error: #b42318;
+  --admin-font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Login page */
+.admin-login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 140% 80% at 20% 20%, rgba(34, 115, 75, 0.08), transparent 70%),
+    radial-gradient(ellipse 120% 60% at 80% 80%, rgba(198, 146, 61, 0.06), transparent 60%),
+    linear-gradient(165deg, #0d1410 0%, #151a17 40%, #1a221d 70%, #101612 100%);
+  padding: 24px;
+  font-family: var(--admin-font);
+}
+
+.admin-login-card {
+  width: 100%;
+  max-width: 400px;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 24px 80px rgba(0, 0, 0, 0.45),
+    0 8px 24px rgba(0, 0, 0, 0.2);
+  padding: 40px 36px 36px;
+  animation: login-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes login-enter {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.admin-login-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  color: var(--admin-text);
+}
+
+.admin-login-title {
+  margin: 0 0 24px;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--admin-text);
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-login-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--admin-error);
+  font-size: 14px;
+}
+
+.admin-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-login-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.admin-login-field input {
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: var(--admin-font);
+  color: var(--admin-text);
+  background: #f7f9f6;
+  border: 1.5px solid var(--admin-line);
+  border-radius: 10px;
+  outline: none;
+  transition: all 180ms ease;
+}
+
+.admin-login-field input:focus {
+  background: #ffffff;
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 3px rgba(26, 109, 62, 0.15);
+}
+
+.admin-login-submit {
+  width: 100%;
+  padding: 13px 24px;
+  font-size: 15px;
+  font-weight: 650;
+  font-family: var(--admin-font);
+  letter-spacing: 0.02em;
+  background: linear-gradient(180deg, #1e7a47, #0f4f2b);
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 180ms ease;
+  box-shadow: 0 4px 14px rgba(26, 109, 62, 0.35);
+}
+
+.admin-login-submit:hover {
+  background: linear-gradient(180deg, #238c51, #13562e);
+  box-shadow: 0 6px 20px rgba(26, 109, 62, 0.45);
+  transform: translateY(-1px);
+}
+
+.admin-login-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Dashboard */
+.admin-dashboard {
+  font-family: var(--admin-font);
+  color: var(--admin-text);
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-dashboard h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.admin-dashboard p {
+  color: var(--admin-text-muted);
+  margin: 0 0 32px;
+}
+
+.admin-dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.admin-dashboard-card {
+  background: var(--admin-card);
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(21, 26, 23, 0.04);
+}
+
+.admin-dashboard-card h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px;
+}
+
+.admin-dashboard-card .count {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--admin-text);
+}

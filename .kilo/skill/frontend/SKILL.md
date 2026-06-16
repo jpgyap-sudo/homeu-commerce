@@ -213,6 +213,15 @@ cd apps/website && npm run build
 cd apps/website && npm run lint
 ```
 
+## Docker Build Verification
+
+Any agent can verify the Docker build compiles by running:
+```bash
+node tools/build-agent/build-agent.mjs
+```
+
+This uses PostgreSQL locks shared across all coding extensions (Kilo, Claude, Codex, Blackbox, Roo). See `docs/BUILD_COORDINATION.md` for full details.
+
 ## Verification
 
 ```bash

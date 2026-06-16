@@ -1,9 +1,33 @@
 import { Ollama } from 'ollama'
 
-// Initialize Ollama client
-const ollama = new Ollama({ host: 'http://localhost:11434' })
+// Initialize Ollama client with a short request timeout
+const OLLAMA_HOST = process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3:4b'
+const ollama = new Ollama({ host: OLLAMA_HOST })
+
+/**
+ * Quick health-check: ping Ollama before making expensive generate calls.
+ * Returns true if Ollama is reachable within 3 seconds.
+ */
+async function isOllamaReachable(): Promise<boolean> {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 3000)
+    const res = await fetch(`${OLLAMA_HOST}/api/tags`, { signal: controller.signal })
+    clearTimeout(timeout)
+    return res.ok
+  } catch {
+    return false
+  }
+}
 
 export async function generatePricingSuggestions(items: any[]) {
+  // Fast-fail if Ollama is not running
+  if (!(await isOllamaReachable())) {
+    console.warn('[ollama-utils] Ollama not reachable — skipping pricing suggestions')
+    return 'Pricing suggestions unavailable at this time.'
+  }
+
   try {
     // Prepare prompt for Ollama
     const productList = items
@@ -30,12 +54,16 @@ Please provide:
 Keep the response concise and professional.
 `
 
-    // Call Ollama model
+    // Call Ollama model with a 15-second timeout
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
     const response = await ollama.generate({
-      model: 'llama3.2:3b', // or whatever model you have installed
+      model: OLLAMA_MODEL,
       prompt,
       stream: false,
+      signal: controller.signal,
     })
+    clearTimeout(timeout)
 
     return response.response
   } catch (error) {

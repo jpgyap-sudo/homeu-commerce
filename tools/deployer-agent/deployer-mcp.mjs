@@ -711,6 +711,7 @@ async function isSyncStale() {
 async function enforceSyncGate(options = {}) {
   const force = options.force === true
   const skipIfRecent = options.skipIfRecent !== false
+  const autoRepair = options.auto_repair !== false
 
   console.error('🔒 SYNC GATE: Checking local git state...')
 
@@ -726,9 +727,9 @@ async function enforceSyncGate(options = {}) {
   // Run the sync check
   const state = await checkLocalGitState()
 
-  // Auto-repair if needed
+  // Auto-repair if needed (skipped if auto_repair=false)
   let repairResult = null
-  if (state.dirty.length > 0 || state.behindCount > 0 || state.aheadCount > 0) {
+  if (autoRepair && (state.dirty.length > 0 || state.behindCount > 0 || state.aheadCount > 0)) {
     repairResult = await autoRepairSync(state)
 
     // Re-check state after repair
@@ -741,8 +742,13 @@ async function enforceSyncGate(options = {}) {
     }
   }
 
-  // Record to DB
-  await recordSyncState(state, repairResult)
+  // Record to DB (best-effort — don't block if DB is down)
+  try {
+    await recordSyncState(state, repairResult)
+  } catch (dbErr) {
+    console.error(`⚠️  Sync state DB write failed (non-blocking): ${dbErr.message}`)
+    state.errors.push(`DB write failed: ${dbErr.message}`)
+  }
 
   // Determine pass/fail
   const isClean = state.dirty.length === 0 && state.behindCount === 0
@@ -1299,17 +1305,17 @@ async function main() {
           const autoRepair = args?.auto_repair !== false
           console.error(`🔍 Running sync check (force=${force}, auto_repair=${autoRepair})...`)
 
-          // Run raw check first for detailed reporting
-          const rawState = await checkLocalGitState()
+          // Run the gate (includes sync check + optional auto-repair)
+          // Respect the force flag from user input — if not forced and a recent
+          // sync exists (< 5 min), the TTL cache is used to skip re-checking.
+          const gateResult = await enforceSyncGate({
+            force: force,
+            skipIfRecent: !force,
+            auto_repair: autoRepair,
+          })
 
-          // Run the gate (which includes auto-repair if enabled)
-          const gateResult = await enforceSyncGate({ force: true, skipIfRecent: false })
-
-          // After repair, re-check state
-          let finalState = rawState
-          if (gateResult.repair?.repaired) {
-            finalState = await checkLocalGitState()
-          }
+          // Use state from gate result (already re-checked after repair)
+          const finalState = gateResult.state
 
           const response = {
             passed: gateResult.passed,

@@ -1,8 +1,9 @@
 /**
  * POST /api/chat/leads
  *
- * Creates a new lead record. This must be called before the visitor
- * can freely chat, upload images, or submit RFQs.
+ * Creates a new lead record in PostgreSQL (chatbot.leads) and opens
+ * a chat conversation (chatbot.conversations). This must be called
+ * before the visitor can freely chat, upload images, or submit RFQs.
  *
  * Auto-syncs with customer accounts:
  *   - If customerId provided (logged-in user), links lead to that customer
@@ -19,6 +20,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSignal } from '@/lib/chatbot/lead-scorer'
 import { findCustomerByEmail, linkLeadToCustomer } from '@/lib/chatbot/customer-sync'
+import { insertLead, insertConversation, insertLedgerEvent } from '@/lib/chatbot/db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,10 +42,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Consent is required to proceed' }, { status: 400 })
     }
 
-    // In production, INSERT INTO chatbot.leads
-    // For MVP, generate IDs
-    const leadId = crypto.randomUUID?.() || `lead-${Date.now()}`
-    const conversationId = crypto.randomUUID?.() || `conv-${Date.now()}`
+    // ── Persist lead to PostgreSQL ────────────────────────────
+    let leadId: string
+    let conversationId: string
+
+    try {
+      leadId = await insertLead({
+        name,
+        email,
+        mobile,
+        buyerType,
+        companyName,
+        sourcePage,
+        consent,
+        daVinciosCustomerId: customerId,
+        metadata: {
+          sourcePage: sourcePage || null,
+          buyerType: buyerType || null,
+          companyName: companyName || null,
+        },
+      })
+
+      conversationId = await insertConversation({
+        leadId,
+        status: 'active',
+        deviceInfo: {
+          userAgent: request.headers.get('user-agent') || undefined,
+        },
+      })
+
+      console.log(`[chatbot] Lead ${leadId} persisted to DB, conversation ${conversationId}`)
+    } catch (dbErr) {
+      // Fallback: generate IDs if DB is unavailable (graceful degradation)
+      console.warn('[chatbot] DB unavailable, falling back to generated IDs:', dbErr)
+      leadId = crypto.randomUUID?.() || `lead-${Date.now()}`
+      conversationId = crypto.randomUUID?.() || `conv-${Date.now()}`
+    }
 
     // ── Customer Sync ──────────────────────────────────────────
     let customerLinked = false

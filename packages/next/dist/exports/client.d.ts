@@ -1,5 +1,0 @@
-export { DefaultNavClient } from '../elements/Nav/index.client.js';
-export { NavHamburger } from '../elements/Nav/NavHamburger/index.js';
-export { NavWrapper } from '../elements/Nav/NavWrapper/index.js';
-export { FolderTypeField, QueryPresetsAccessCell, QueryPresetsColumnField, QueryPresetsColumnsCell, QueryPresetsGroupByCell, QueryPresetsGroupByField, QueryPresetsWhereCell, QueryPresetsWhereField, SlugField, } from '@payloadcms/ui';
-//# sourceMappingURL=client.d.ts.map
