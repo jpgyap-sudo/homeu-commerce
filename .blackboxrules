@@ -1,0 +1,99 @@
+# HomeU Commerce Blackbox Rules
+
+## Blackbox Native Coding Route
+
+Use the native Blackbox workflow for coding in this repo. Do not route coding,
+planning, file edits, or tool execution through local Ollama. Prefer the
+Blackbox built-in `minimax-m2` provider/model and Blackbox's built-in tools.
+Do not switch to `blackbox-pro`, Kimi, or Ollama unless the user explicitly
+asks to test that provider again.
+
+SuperRoo ecosystem features are still active out-of-band:
+
+- Append task updates to `memory/task-log.jsonl`.
+- Append bug findings and fixes to `memory/bug-log.jsonl`.
+- Let Codex/Kilo/Claude record Codex Brain lessons, risk records, and ML
+  outcomes after meaningful work.
+- Run lesson sync and ML training/sync from shell when requested.
+
+Do not interpret "use SuperRoo memory" as "use Ollama for coding." Blackbox
+codes natively; SuperRoo observes, records, summarizes, and syncs.
+
+## Workspace Reality Check
+
+This repo is not empty. If environment details say "No files found", do not
+trust that snapshot. Immediately use a file-listing tool or command from:
+
+```powershell
+Get-ChildItem -Force
+git ls-files
+rg --files
+```
+
+If the provider fails with `BAD_DECRYPT`, quota, auth, transport, or streaming
+errors, stop that provider path and report the exact error once. Do not switch
+to Ollama for coding unless the user explicitly asks for that route again.
+
+Do not narrate "I need to use a tool" more than once. If a tool is needed, call
+it. If the tool is unavailable, state the blocker once and use the shell
+fallback commands above.
+
+## Central Logs
+
+All coding extensions must append meaningful work to these repo-local logs:
+
+- `memory/task-log.jsonl` for tasks, updates, and completed changes.
+- `memory/bug-log.jsonl` for bugs found, fixes attempted, and verified fixes.
+
+Use the centralized logger utility for consistent logging:
+
+```javascript
+import { logTask, logBug } from './tools/shared/central-logger.mjs';
+
+// Log tasks
+await logTask({
+  agent: 'blackbox',  // or codex, kilo-code, claude, etc.
+  status: 'active',  // active, completed, blocked
+  summary: 'What was done or is in progress',
+  files: ['affected-file.js'],
+  verification: 'Tests passed, command output verified'
+});
+
+// Log bugs
+await logBug({
+  agent: 'blackbox',
+  status: 'found',  // found, fixed
+  summary: 'Bug description',
+  files: ['buggy-file.js'],
+  verification: 'Error reproduced, fix applied'
+});
+```
+
+Use append-only JSON Lines. Do not rewrite prior entries. Each entry should
+include:
+
+- `timestamp` in ISO 8601 format.
+- `agent` such as `blackbox`, `codex`, `kilo-code`, or `claude`.
+- `status` such as `active`, `completed`, `blocked`, `found`, or `fixed`.
+- `summary` with the concrete change or bug.
+- `files` as an array of touched or relevant paths.
+- `verification` with tests, commands, or evidence, when available.
+
+Also update the global SuperRoo task/bug memory when available, but the
+repo-local JSONL files are the durable source for this project.
+
+## ⚠️ Git Sync Gate — MANDATORY Before Deploy
+
+This repository has a **Git Sync Gate** enforced by the Deployer Agent.
+Before calling ANY deploy operation, you MUST ensure local ↔ origin sync:
+
+1. **Run `deployer_sync_check`** — checks dirty files, ahead/behind, auto-repairs
+2. **If it fails** — fix the issues (commit/push/pull) and retry
+3. **Then** call `deployer_deploy`, `deployer_deploy_pending`, or `deployer_build`
+
+The deploy tools (`deployer_build`, `deployer_deploy`, `deployer_deploy_pending`)
+automatically run the sync gate and will **BLOCK** if sync fails.
+
+**Do not bypass the sync gate.** If blocked, fix the git state first.
+
+See [`tools/deployer-agent/README.md`](tools/deployer-agent/README.md) for full details.

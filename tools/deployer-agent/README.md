@@ -87,8 +87,20 @@ const status = await callTool('deployer_sync_status', { limit: 10 })
 // Shows: current local state + last N sync records from all extensions
 // Including: who checked, when, status, dirty count, errors
 ```
+### Registering Extensions
+
+All known coding extensions should be registered in the `deployer_gate_rules` table.
+Run the seed script against the Central Brain PostgreSQL once:
+
+```bash
+psql $DATABASE_URI -f tools/deployer-agent/seed-gate-rules.sql
+```
+
+Extensions are also auto-registered when they call `deployer_sync_check` (via
+`ON CONFLICT UPDATE` in `recordSyncState()`).
 
 ## Centralized Logging
+
 
 All deployments and issues should be logged to the centralized logs:
 

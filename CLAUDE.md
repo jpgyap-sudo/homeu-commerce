@@ -56,3 +56,36 @@ Tools exposed: `s3_list_buckets`, `s3_list_objects`, `s3_get_object`,
 `s3_put_object` / `s3_delete_object`, disabled by default).
 
 See the skill doc above for the full example config and rationale.
+
+## ⚠️ Git Sync Gate — MANDATORY Before Deploy
+
+This repository enforces a **Git Sync Gate** before ANY deployment operation.
+The Deployer Agent checks local ↔ origin sync before allowing deploys.
+
+### Required Workflow Before Deploy
+
+1. **Commit** all work (`git add` + `git commit`)
+2. **Run `deployer_sync_check`** — checks dirty files, fetch, ahead/behind, auto-repair
+3. **If it passes** — proceed with `deployer_deploy`, `deployer_deploy_pending`, or `deployer_build`
+4. **If it blocks** — fix the reported issues first, then retry
+
+The deploy tools (`deployer_build`, `deployer_deploy`, `deployer_deploy_pending`)
+**automatically** run the sync gate and will BLOCK with an error if sync fails.
+
+### How The Sync Gate Works
+
+```
+1. git status --porcelain        → any dirty files?
+2. git fetch origin              → can we reach GitHub?
+   ↓ (if fails, retry via HTTP proxy at 127.0.0.1:10809)
+3. git rev-list HEAD..origin     → behind? → auto pull --rebase
+4. git rev-list origin..HEAD     → ahead?  → auto push
+5. git stash (if dirty)          → save work, pull, pop stash
+6. Record sync state in DB       → deployer_sync_state table
+7. PASS → proceed with deploy
+   BLOCK → return error with guidance
+```
+
+**Do not bypass the sync gate.** If blocked, fix the git state first.
+
+See [`tools/deployer-agent/README.md`](tools/deployer-agent/README.md) for full details.
