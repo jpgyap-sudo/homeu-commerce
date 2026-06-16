@@ -26,11 +26,15 @@ RUN cd website && \
     echo "=== Step 2: Install ALL transitive dependencies from @davincios packages ===" && \
     echo "  (npm v10+ does NOT walk file: linked package dependency trees)" && \
     npm install --no-save \
+      @date-fns/tz@1.2.0 \
       @dnd-kit/core@6.3.1 \
       @dnd-kit/modifiers@9.0.0 \
       @dnd-kit/sortable@10.0.0 \
+      @dnd-kit/utilities@3.2.2 \
       @faceless-ui/modal@3.0.0 \
       @faceless-ui/scroll-info@2.0.0 \
+      @faceless-ui/window-info@3.0.1 \
+      @monaco-editor/react@4.7.0 \
       @lexical/clipboard@0.41.0 \
       @lexical/headless@0.41.0 \
       @lexical/html@0.41.0 \
@@ -50,6 +54,8 @@ RUN cd website && \
       bson-objectid@2.0.4 \
       busboy@^1.6.0 \
       ci-info@^4.1.0 \
+      clsx@^2.1.1 \
+      date-fns@4.1.0 \
       console-table-printer@2.12.1 \
       croner@10.0.1 \
       csstype@3.1.3 \
@@ -85,9 +91,17 @@ RUN cd website && \
       range-parser@1.2.1 \
       react-error-boundary@4.1.2 \
       sanitize-filename@1.6.3 \
+      scheduler@0.25.0 \
+      sonner@^1.7.2 \
       sass@1.77.4 \
       to-snake-case@1.0.0 \
       ts-essentials@10.0.3 \
+      use-context-selector@2.0.0 \
+      md5@2.3.0 \
+      object-to-formdata@4.5.1 \
+      react-datepicker@7.6.0 \
+      react-image-crop@10.1.8 \
+      react-select@5.9.0 \
       tsx@4.22.4 \
       undici@7.24.4 \
       uuid@13.0.2 \
