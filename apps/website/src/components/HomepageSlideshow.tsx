@@ -6,11 +6,13 @@ import Image from 'next/image'
 
 interface Slide {
   image: string
+  heading?: string
+  subheading?: string
   buttonLabel?: string
   buttonLink?: string
 }
 
-const SLIDES: Slide[] = [
+const DEFAULT_SLIDES: Slide[] = [
   {
     image: 'https://cdn.shopify.com/s/files/1/0559/7377/3476/files/b77cb11ff1.webp?v=1697613842',
     buttonLabel: 'Shop Sofa',
@@ -33,12 +35,13 @@ const SLIDES: Slide[] = [
 
 const AUTOROTATE_SPEED = 3000
 
-export function HomepageSlideshow() {
+export function HomepageSlideshow({ slides }: { slides?: Slide[] }) {
+  const SLIDES = slides && slides.length > 0 ? slides : DEFAULT_SLIDES
   const [current, setCurrent] = useState(0)
   const [paused, setPaused] = useState(false)
 
-  const next = useCallback(() => setCurrent(c => (c + 1) % SLIDES.length), [])
-  const prev = useCallback(() => setCurrent(c => (c - 1 + SLIDES.length) % SLIDES.length), [])
+  const next = useCallback(() => setCurrent(c => (c + 1) % SLIDES.length), [SLIDES.length])
+  const prev = useCallback(() => setCurrent(c => (c - 1 + SLIDES.length) % SLIDES.length), [SLIDES.length])
 
   useEffect(() => {
     if (paused) return
@@ -69,11 +72,15 @@ export function HomepageSlideshow() {
               sizes="100vw"
               unoptimized
             />
-            {slide.buttonLabel && slide.buttonLink && (
+            {(slide.heading || slide.subheading || (slide.buttonLabel && slide.buttonLink)) && (
               <div className="slideshow__overlay">
-                <Link href={slide.buttonLink} className="btn btn--primary slideshow__btn">
-                  {slide.buttonLabel}
-                </Link>
+                {slide.heading && <h2 className="slideshow__heading">{slide.heading}</h2>}
+                {slide.subheading && <p className="slideshow__subheading">{slide.subheading}</p>}
+                {slide.buttonLabel && slide.buttonLink && (
+                  <Link href={slide.buttonLink} className="btn btn--primary slideshow__btn">
+                    {slide.buttonLabel}
+                  </Link>
+                )}
               </div>
             )}
           </div>

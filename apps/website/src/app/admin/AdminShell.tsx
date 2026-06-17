@@ -75,6 +75,18 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           </Link>
 
           <div className="luxe-sidebar-section">Content</div>
+          <Link href="/admin/theme" className={`luxe-sidebar-link ${isActive('/admin/theme') ? 'active' : ''}`}>
+            <span className="luxe-sidebar-icon">◭</span>
+            Theme
+          </Link>
+          <Link href="/admin/blogs" className={`luxe-sidebar-link ${isActive('/admin/blogs') ? 'active' : ''}`}>
+            <span className="luxe-sidebar-icon">✎</span>
+            Blogs
+          </Link>
+          <Link href="/admin/navigation" className={`luxe-sidebar-link ${isActive('/admin/navigation') ? 'active' : ''}`}>
+            <span className="luxe-sidebar-icon">☰</span>
+            Navigation
+          </Link>
           <Link href="/admin/pages" className={`luxe-sidebar-link ${isActive('/admin/pages') ? 'active' : ''}`}>
             <span className="luxe-sidebar-icon">◈</span>
             Pages
