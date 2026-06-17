@@ -1,22 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════════
    DaVinciOS Command Center — Luxury Admin Design System
-   ═══════════════════════════════════════════════════════════════════════
 
-   Color Philosophy:
-     Deep navy conveys authority and precision — the command center.
-     Warm gold accents suggest heritage, luxury, and craftsmanship.
-     Crisp whites and warm grays create breathing room for data.
-     Emerald/Merlot signals deliver status without harshness.
-
-   Type Philosophy:
-     Playfair Display — refined serif for headings. Heritage, luxury.
-     Inter — clean geometric sans for body. Precision, clarity.
-     JetBrains Mono — data tables & numbers. Technical, exact.
-
-   Spacing: 4px base grid. Every value is a multiple of 4.
-   ═══════════════════════════════════════════════════════════════════════ */
-
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500&family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,300;1,14..32,400&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+   Typography loaded via <link> in admin/layout.tsx:
+     Playfair Display — serif headings
+     Inter — body text
+     JetBrains Mono — data / numbers
 
 /* ── Design Tokens ─────────────────────────────────────────────────── */
 

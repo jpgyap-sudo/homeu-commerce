@@ -4,25 +4,25 @@
    ========================================================================== */
 
 :root {
-  /* Brand palette */
-  --admin-bg-dark: #141312;
-  --admin-bg-warm: #f7f5f0;
+  /* Brand palette — aligned with DaVinciOS Command Center luxury theme */
+  --admin-bg-dark: #0c1524;
+  --admin-bg-warm: #f5f2ed;
   --admin-bg-card: #ffffff;
-  --admin-text-primary: #1a1917;
-  --admin-text-secondary: #7d7a75;
-  --admin-text-muted: #a09c96;
-  --admin-line: #e3e0d9;
-  --admin-line-strong: #c9c5bd;
-  --admin-accent: #b8975a;
-  --admin-accent-light: #dfcfa8;
-  --admin-accent-dark: #8f7450;
-  --admin-error-bg: #fef2e8;
-  --admin-error-border: #e8c9b0;
-  --admin-error-text: #8f4e2a;
-  --admin-success: #5a8f6a;
-  --admin-font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --admin-radius: 12px;
-  --admin-shadow: 0 20px 60px rgba(20, 19, 18, 0.08), 0 8px 24px rgba(20, 19, 18, 0.04);
+  --admin-text-primary: #171717;
+  --admin-text-secondary: #475569;
+  --admin-text-muted: #94a3b8;
+  --admin-line: #ebe5dc;
+  --admin-line-strong: #d9cfc3;
+  --admin-accent: #c9a050;
+  --admin-accent-light: #dec684;
+  --admin-accent-dark: #8c7d6b;
+  --admin-error-bg: #fff1f2;
+  --admin-error-border: #fecdd3;
+  --admin-error-text: #be123c;
+  --admin-success: #059669;
+  --admin-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --admin-radius: 10px;
+  --admin-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
 }
 
 /* ========================================================================
@@ -344,7 +344,7 @@
 .admin-login-input-wrap input:focus {
   background: #ffffff;
   border-color: var(--admin-accent);
-  box-shadow: 0 0 0 3px rgba(184, 151, 90, 0.15);
+  box-shadow: 0 0 0 3px rgba(201, 160, 80, 0.15);
 }
 
 /* Password toggle button */
@@ -386,19 +386,19 @@
   color: #ffffff;
   cursor: pointer;
   transition: all 180ms ease;
-  box-shadow: 0 4px 14px rgba(184, 151, 90, 0.3);
+  box-shadow: 0 4px 14px rgba(201, 160, 80, 0.3);
   margin-top: 4px;
 }
 
 .admin-login-submit:hover {
   background: var(--admin-accent-dark);
-  box-shadow: 0 6px 20px rgba(184, 151, 90, 0.4);
+  box-shadow: 0 6px 20px rgba(201, 160, 80, 0.4);
   transform: translateY(-1px);
 }
 
 .admin-login-submit:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(184, 151, 90, 0.25);
+  box-shadow: 0 2px 8px rgba(201, 160, 80, 0.25);
 }
 
 .admin-login-submit:disabled {
