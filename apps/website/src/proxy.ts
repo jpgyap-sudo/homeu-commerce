@@ -18,6 +18,11 @@ const COOKIE_NAME = 'homeu_admin_session'
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // All /admin/* requests get an internal header so the root layout
+  // can detect admin routes even on localhost (where host != admin.*)
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-is-admin', '1')
+
   // Allow public admin routes
   if (
     pathname === '/admin/login' ||
@@ -25,7 +30,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/api/') // API routes handle their own auth
   ) {
-    return NextResponse.next()
+    return NextResponse.next({ request: { headers: requestHeaders } })
   }
 
   // Also allow static assets and public files
@@ -33,7 +38,7 @@ export async function proxy(request: NextRequest) {
     pathname.match(/\.(ico|png|svg|jpg|jpeg|webp|css|js|woff2?)$/) ||
     pathname.startsWith('/admin/login')
   ) {
-    return NextResponse.next()
+    return NextResponse.next({ request: { headers: requestHeaders } })
   }
 
   // Check for session cookie
@@ -48,7 +53,7 @@ export async function proxy(request: NextRequest) {
   // Verify JWT
   try {
     await jwtVerify(token, JWT_SECRET)
-    return NextResponse.next()
+    return NextResponse.next({ request: { headers: requestHeaders } })
   } catch {
     // Token invalid or expired — clear it and redirect
     const response = NextResponse.redirect(new URL('/admin/login', request.url))

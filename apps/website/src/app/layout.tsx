@@ -19,9 +19,11 @@ export const metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers()
   const host = headersList.get('host') || ''
+  const isAdmin = headersList.get('x-is-admin') === '1'
 
-  // Admin domains: minimal pass-through (admin pages have their own layout)
-  if (host.startsWith('admin.')) {
+  // Admin: minimal pass-through (admin pages have their own layout)
+  // Matched by subdomain (production) OR proxy header (localhost dev)
+  if (host.startsWith('admin.') || isAdmin) {
     return (
       <html lang="en" data-theme="light">
         <body>{children}</body>
