@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
 import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
+import LiveVisitors from '@/components/LiveVisitors'
 
 interface DashboardCounts {
   products: number
@@ -178,7 +179,10 @@ export default async function AdminDashboardPage() {
   return (
     <div className="admin-dashboard">
       <h1>Welcome, {session.name || session.email}</h1>
-      <p>HomeU Operations Console — <strong>{session.role}</strong> — {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <p style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <span>HomeU Operations Console — <strong>{session.role}</strong> — {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        <LiveVisitors variant="badge" />
+      </p>
 
       {/* ── Core Metrics ─────────────────────────────────────── */}
       <section>

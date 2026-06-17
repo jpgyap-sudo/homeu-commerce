@@ -2,6 +2,7 @@ import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
 import { unstable_cache } from 'next/cache'
+import LiveVisitors from '@/components/LiveVisitors'
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -362,6 +363,11 @@ export default async function AdminAnalyticsPage() {
         <span style={{ fontSize: 12, color: '#a09c96', paddingTop: 4 }}>
           Updated {new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
         </span>
+      </div>
+
+      {/* Live visitor counter */}
+      <div style={{ marginBottom: 24 }}>
+        <LiveVisitors variant="card" />
       </div>
 
       {/* ── TODAY SNAPSHOT ─────────────────────────────────── */}
