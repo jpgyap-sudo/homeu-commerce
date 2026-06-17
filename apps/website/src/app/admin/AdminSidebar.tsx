@@ -25,7 +25,19 @@ const NAV_GROUPS: NavGroup[] = [
     icon: '📊',
     items: [
       { href: '/admin/dashboard',  label: 'Dashboard',  icon: '🏠' },
-      { href: '/admin/analytics',  label: 'Analytics',  icon: '📈' },
+    ],
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics',
+    icon: '📈',
+    items: [
+      { href: '/admin/analytics',           label: 'Overview',        icon: '📊' },
+      { href: '/admin/analytics/traffic',   label: 'Traffic',         icon: '👁️' },
+      { href: '/admin/analytics/leads',     label: 'Leads & CRM',     icon: '👤' },
+      { href: '/admin/analytics/pipeline',  label: 'Sales Pipeline',  icon: '💰' },
+      { href: '/admin/analytics/products',  label: 'Products',        icon: '🛋️' },
+      { href: '/admin/analytics/reports',   label: 'Reports',         icon: '📋' },
     ],
   },
   {

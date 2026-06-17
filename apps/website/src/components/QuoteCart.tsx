@@ -8,6 +8,8 @@ export type QuoteItem = {
   sku?: string
   price?: number
   quantity: number
+  imageUrl?: string
+  slug?: string
 }
 
 type CustomerProfile = {
@@ -56,6 +58,8 @@ export function getQuoteCart(): QuoteItem[] {
         sku: typeof item.sku === 'string' ? item.sku : undefined,
         price: typeof item.price === 'number' ? item.price : undefined,
         quantity: normalizeQuantity(Number(item.quantity) || 1),
+        imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : undefined,
+        slug: typeof item.slug === 'string' ? item.slug : undefined,
       }))
   } catch {
     return []
@@ -284,6 +288,10 @@ export function QuoteCartExperience() {
   )
   const totalQuantity = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items])
 
+  function lineTotal(item: QuoteItem): number {
+    return (item.price || 0) * item.quantity
+  }
+
   function syncItems(nextItems: QuoteItem[]) {
     setItems(nextItems)
     saveQuoteCart(nextItems)
@@ -363,133 +371,278 @@ export function QuoteCartExperience() {
 
   return (
     <main className="quote-cart-shell">
+      {/* Breadcrumb */}
+      <nav className="quote-cart-breadcrumb" aria-label="Breadcrumb">
+        <a href="/products">&larr; Continue Shopping</a>
+        <span>/</span>
+        <span>Request for Quotation</span>
+      </nav>
+
+      {/* Hero */}
       <section className="quote-cart-hero">
         <div>
-          <p className="eyebrow">HomeU RFQ cart</p>
-          <h1>Build a furniture quote request</h1>
+          <p className="eyebrow">HomeU RFQ Cart</p>
+          <h1>Request a quotation</h1>
           <p>
-            Review quantities, add delivery details, and send one clean request to the HomeU team.
+            Review your selected items, tell us about your project, and receive a formal quotation
+            from the HomeU team.
           </p>
         </div>
-        <div className="quote-cart-summary" aria-label="Quote cart summary">
+        <div className="quote-cart-summary-hero" aria-label="Cart summary">
           <strong>{totalQuantity}</strong>
-          <span>{totalQuantity === 1 ? 'item' : 'items'} selected</span>
-          <span>{subtotal > 0 ? `Estimated ₱${subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : 'Final pricing by quotation'}</span>
+          <span>{totalQuantity === 1 ? 'item' : 'items'}</span>
+          {subtotal > 0 && (
+            <span className="quote-cart-subtotal-hero">
+              Est. ₱{subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+            </span>
+          )}
         </div>
       </section>
 
+      {/* Progress Steps */}
+      <div className="quote-cart-steps">
+        <div className="quote-cart-step quote-cart-step--active">
+          <span className="step-number">1</span>
+          <span className="step-label">Review Items</span>
+        </div>
+        <div className="step-divider" />
+        <div className="quote-cart-step">
+          <span className="step-number">2</span>
+          <span className="step-label">Contact Details</span>
+        </div>
+        <div className="step-divider" />
+        <div className="quote-cart-step">
+          <span className="step-number">3</span>
+          <span className="step-label">Submit RFQ</span>
+        </div>
+      </div>
+
       {successId ? (
         <section className="quote-cart-success" role="status">
-          <h2>RFQ submitted</h2>
-          <p>Your request is now in the HomeU backend. Reference: RFQ #{successId.slice(-6).toUpperCase()}</p>
+          <div className="quote-cart-success-icon">✅</div>
+          <h2>RFQ Submitted Successfully</h2>
+          <p>
+            Your request is now in the HomeU queue.
+            Reference: <strong>RFQ #{successId.slice(-6).toUpperCase()}</strong>
+          </p>
           <div className="quote-cart-actions">
-            <a href={`/customer/rfq/${successId}`}>View RFQ status</a>
-            <a href="/products">Continue browsing</a>
+            <a href={`/customer/rfq/${successId}`} className="primary-button">Track RFQ Status</a>
+            <a href="/products">Continue Browsing</a>
           </div>
         </section>
       ) : null}
 
       <div className="quote-cart-grid">
+        {/* Left: Cart Items */}
         <section className="quote-cart-panel" aria-labelledby="quote-items-title">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Selected products</p>
-              <h2 id="quote-items-title">Quote items</h2>
+              <p className="eyebrow">Your Selection</p>
+              <h2 id="quote-items-title">
+                {items.length === 0 ? 'Quote Items' : `${totalQuantity} item${totalQuantity !== 1 ? 's' : ''}`}
+              </h2>
             </div>
-            {items.length > 0 ? (
+            {items.length > 0 && (
               <button type="button" className="text-button" onClick={() => syncItems([])}>
-                Clear all
+                Clear All
               </button>
-            ) : null}
+            )}
           </div>
 
           {items.length === 0 ? (
             <div className="quote-cart-empty">
-              <h3>No products in your quote cart yet</h3>
-              <p>Add products from the catalog and come back here to submit a request.</p>
-              <a href="/products">Browse products</a>
+              <div className="quote-cart-empty-icon">🛋️</div>
+              <h3>Your quote cart is empty</h3>
+              <p>Browse our furniture catalog and add items to request a quotation.</p>
+              <a href="/products">Browse Products</a>
             </div>
           ) : (
             <div className="quote-cart-lines">
               {items.map((item) => (
                 <article className="quote-cart-line" key={item.productId}>
-                  <div>
-                    <h3>{item.title}</h3>
-                    <p>{item.sku ? `SKU ${item.sku}` : 'Catalog item'}</p>
-                    <strong>
-                      {item.price ? `₱${item.price.toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : 'Price by quote'}
-                    </strong>
-                  </div>
-                  <div className="line-controls">
-                    <label>
-                      Qty
-                      <input
-                        min={1}
-                        max={999}
-                        type="number"
-                        value={item.quantity}
-                        onChange={(event) => changeQuantity(item.productId, Number(event.target.value))}
+                  {/* Product thumbnail */}
+                  <div className="quote-cart-line-image">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        loading="lazy"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
-                    </label>
-                    <button type="button" onClick={() => removeItem(item.productId)}>
-                      Remove
+                    ) : (
+                      <div className="quote-cart-line-image-placeholder">🛋️</div>
+                    )}
+                  </div>
+
+                  {/* Product info */}
+                  <div className="quote-cart-line-info">
+                    <h3>
+                      {item.slug ? (
+                        <a href={`/products/${item.slug}`}>{item.title}</a>
+                      ) : (
+                        item.title
+                      )}
+                    </h3>
+                    {item.sku && <p className="quote-cart-line-sku">SKU: {item.sku}</p>}
+                    {item.price ? (
+                      <span className="quote-cart-line-unit-price">
+                        ₱{item.price.toLocaleString('en-PH', { minimumFractionDigits: 2 })} each
+                      </span>
+                    ) : (
+                      <span className="quote-cart-line-unit-price">Price by quotation</span>
+                    )}
+                  </div>
+
+                  {/* Quantity stepper */}
+                  <div className="quote-cart-line-qty">
+                    <button
+                      type="button"
+                      className="qty-btn"
+                      onClick={() => changeQuantity(item.productId, item.quantity - 1)}
+                      disabled={item.quantity <= 1}
+                      aria-label="Decrease quantity"
+                    >
+                      −
+                    </button>
+                    <span className="qty-value">{item.quantity}</span>
+                    <button
+                      type="button"
+                      className="qty-btn"
+                      onClick={() => changeQuantity(item.productId, item.quantity + 1)}
+                      disabled={item.quantity >= 999}
+                      aria-label="Increase quantity"
+                    >
+                      +
                     </button>
                   </div>
+
+                  {/* Line subtotal */}
+                  <div className="quote-cart-line-subtotal">
+                    <span className="subtotal-label">Subtotal</span>
+                    <strong>
+                      {item.price
+                        ? `₱${lineTotal(item).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
+                        : '—'}
+                    </strong>
+                  </div>
+
+                  {/* Remove */}
+                  <button
+                    type="button"
+                    className="quote-cart-line-remove"
+                    onClick={() => removeItem(item.productId)}
+                    aria-label={`Remove ${item.title}`}
+                    title="Remove"
+                  >
+                    ✕
+                  </button>
                 </article>
               ))}
             </div>
           )}
         </section>
 
-        <form className="quote-cart-panel quote-form" onSubmit={submitRFQ}>
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Request details</p>
-              <h2>Contact and delivery</h2>
+        {/* Right: Contact Form + Order Summary (sticky) */}
+        <aside className="quote-cart-sidebar">
+          <div className="quote-cart-sidebar-sticky">
+            {/* Order Summary */}
+            <div className="quote-cart-order-summary">
+              <h3>Order Summary</h3>
+              <div className="order-summary-rows">
+                <div className="order-summary-row">
+                  <span>Items ({totalQuantity})</span>
+                  <span>{subtotal > 0 ? `₱${subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '—'}</span>
+                </div>
+                <div className="order-summary-row">
+                  <span>Delivery</span>
+                  <span className="order-summary-note">Quoted separately</span>
+                </div>
+                <div className="order-summary-row order-summary-total">
+                  <span>Estimated Total</span>
+                  <span>{subtotal > 0 ? `₱${subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '—'}</span>
+                </div>
+              </div>
+              <p className="order-summary-disclaimer">
+                Final pricing, delivery fees, and availability will be confirmed in your formal quotation.
+              </p>
             </div>
+
+            {/* Contact Form */}
+            <form className="quote-form" onSubmit={submitRFQ}>
+              <h3>Contact Details</h3>
+
+              <label>
+                Full Name <span className="required">*</span>
+                <input
+                  value={form.customerName}
+                  onChange={(e) => updateForm('customerName', e.target.value)}
+                  placeholder="Juan dela Cruz"
+                  required
+                />
+              </label>
+              <label>
+                Phone Number <span className="required">*</span>
+                <input
+                  value={form.phone}
+                  onChange={(e) => updateForm('phone', e.target.value)}
+                  placeholder="+63 9XX XXX XXXX"
+                  required
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => updateForm('email', e.target.value)}
+                  placeholder="juan@example.com"
+                />
+              </label>
+              <label>
+                Delivery Location
+                <input
+                  value={form.deliveryLocation}
+                  onChange={(e) => updateForm('deliveryLocation', e.target.value)}
+                  placeholder="City, province, or building address"
+                />
+              </label>
+              <label>
+                Project Type
+                <select value={form.projectType} onChange={(e) => updateForm('projectType', e.target.value)}>
+                  <option value="home">Home</option>
+                  <option value="condo">Condo</option>
+                  <option value="restaurant">Restaurant</option>
+                  <option value="hotel">Hotel</option>
+                  <option value="office">Office</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+              <label>
+                Notes / Special Requests
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => updateForm('notes', e.target.value)}
+                  placeholder="Preferred timeline, finishes, dimensions, or any questions for the HomeU team"
+                  rows={3}
+                />
+              </label>
+
+              {error && <p className="quote-form-error" role="alert">{error}</p>}
+
+              <button
+                className="primary-button quote-submit-btn"
+                type="submit"
+                disabled={submitting || items.length === 0}
+              >
+                {submitting ? 'Submitting...' : 'Submit Request for Quotation'}
+              </button>
+
+              <p className="quote-form-note">
+                No payment required. HomeU will review and send a formal quotation with final pricing.
+              </p>
+            </form>
           </div>
-
-          <label>
-            Full name
-            <input value={form.customerName} onChange={(event) => updateForm('customerName', event.target.value)} required />
-          </label>
-          <label>
-            Phone
-            <input value={form.phone} onChange={(event) => updateForm('phone', event.target.value)} required />
-          </label>
-          <label>
-            Email
-            <input type="email" value={form.email} onChange={(event) => updateForm('email', event.target.value)} />
-          </label>
-          <label>
-            Delivery location
-            <input value={form.deliveryLocation} onChange={(event) => updateForm('deliveryLocation', event.target.value)} placeholder="City, province, building, or site" />
-          </label>
-          <label>
-            Project type
-            <select value={form.projectType} onChange={(event) => updateForm('projectType', event.target.value)}>
-              <option value="home">Home</option>
-              <option value="condo">Condo</option>
-              <option value="restaurant">Restaurant</option>
-              <option value="hotel">Hotel</option>
-              <option value="office">Office</option>
-              <option value="other">Other</option>
-            </select>
-          </label>
-          <label>
-            Notes
-            <textarea value={form.notes} onChange={(event) => updateForm('notes', event.target.value)} placeholder="Preferred delivery date, finishes, site constraints, or special requests" />
-          </label>
-
-          {error ? <p className="quote-form-error" role="alert">{error}</p> : null}
-
-          <button className="primary-button" type="submit" disabled={submitting || items.length === 0}>
-            {submitting ? 'Submitting RFQ...' : 'Submit RFQ'}
-          </button>
-          <p className="quote-form-note">
-            HomeU will review availability, delivery, and final pricing before sending a formal quotation.
-          </p>
-        </form>
+        </aside>
       </div>
     </main>
   )
