@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const INPUT_FILE = path.join(__dirname, 'output', 'raw', 'collections.json')
-const OUTPUT_FILE = path.join(__dirname, 'output', 'categories.json')
+const OUTPUT_FILE = path.join(__dirname, 'output', 'DaVinciOS-categories.json')
 const STORE_DOMAIN = 'homeu.ph'
 
 function main() {

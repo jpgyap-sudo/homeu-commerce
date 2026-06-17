@@ -12,9 +12,9 @@
  *   tools/shopify-import/input/images/        - Product images folder
  * 
  * Output:
- *   tools/shopify-import/output/products.json
- *   tools/shopify-import/output/categories.json
- *   tools/shopify-import/output/pages.json
+ *   tools/shopify-import/output/DaVinciOS-products.json
+ *   tools/shopify-import/output/DaVinciOS-categories.json
+ *   tools/shopify-import/output/DaVinciOS-pages.json
  *   tools/shopify-import/output/media.json
  *   tools/shopify-import/output/navigation.json
  *   tools/shopify-import/output/301-redirect-map.csv
@@ -210,7 +210,7 @@ async function main() {
     const DaVinciOSProducts = generateDaVinciOSData(products, imageMap)
 
     fs.writeFileSync(
-      path.join(OUTPUT_DIR, 'products.json'),
+      path.join(OUTPUT_DIR, 'DaVinciOS-products.json'),
       JSON.stringify(DaVinciOSProducts, null, 2)
     )
     fs.writeFileSync(

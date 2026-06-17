@@ -177,9 +177,9 @@ async function main() {
   const client = new pg.Client({ connectionString: process.env.DATABASE_URI })
   await client.connect()
 
-  const categories = loadJSON('categories.json') ?? []
-  const pages = loadJSON('pages.json') ?? []
-  const products = loadJSON('products.json') ?? []
+  const categories = loadJSON('DaVinciOS-categories.json') ?? []
+  const pages = loadJSON('DaVinciOS-pages.json') ?? []
+  const products = loadJSON('DaVinciOS-products.json') ?? []
 
   // 1. Categories
   console.log(`\n=== Categories (${categories.length}) ===`)

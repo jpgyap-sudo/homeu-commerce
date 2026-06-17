@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const INPUT_FILE = path.join(__dirname, 'output', 'raw', 'pages.json')
-const OUTPUT_FILE = path.join(__dirname, 'output', 'pages.json')
+const OUTPUT_FILE = path.join(__dirname, 'output', 'DaVinciOS-pages.json')
 const STORE_DOMAIN = 'homeu.ph'
 
 function main() {

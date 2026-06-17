@@ -53,9 +53,9 @@ function nonEmpty(v) {
 async function main() {
   loadEnv()
 
-  const products = loadJSON('daVinciOS-products.json')
-  const categories = loadJSON('daVinciOS-categories.json')
-  const pages = loadJSON('daVinciOS-pages.json')
+  const products = loadJSON('DaVinciOS-products.json')
+  const categories = loadJSON('DaVinciOS-categories.json')
+  const pages = loadJSON('DaVinciOS-pages.json')
   const redirects = loadJSON('redirects.json')
 
   const client = new pg.Client({ connectionString: process.env.DATABASE_URI })

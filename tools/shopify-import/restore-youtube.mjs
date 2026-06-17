@@ -37,7 +37,7 @@ const client = new Client({ connectionString: process.env.DATABASE_URI })
 await client.connect()
 
 // Load original (pre-CDN) products.json for original HTML descriptions with iframes
-const products = JSON.parse(fs.readFileSync(path.join(OUTPUT, 'products.json'), 'utf8'))
+const products = JSON.parse(fs.readFileSync(path.join(OUTPUT, 'DaVinciOS-products.json'), 'utf8'))
 
 // Extract YouTube video IDs from original HTML descriptions
 const slugToYtIds = {}

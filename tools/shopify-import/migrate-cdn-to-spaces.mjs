@@ -27,9 +27,9 @@ const OUTPUT_DIR = path.join(__dirname, 'output')
 const MANIFEST_PATH = path.join(OUTPUT_DIR, 'cdn-migration-manifest.json')
 
 const INPUT_FILES = [
-  'products.json',
-  'categories.json',
-  'pages.json',
+  'DaVinciOS-products.json',
+  'DaVinciOS-categories.json',
+  'DaVinciOS-pages.json',
 ]
 
 const SHOPIFY_CDN_REGEX = /https:\/\/cdn\.shopify\.com\/[^\s"'<>\\)]+/g
