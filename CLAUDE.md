@@ -10,14 +10,14 @@ This project's CMS / backend is **DaVinciOS** — think of it as "my Shopify adm
 Always call it "DaVinciOS" in code, docs, comments, and conversation.
 
 **Analogy:** Just like Shopify has a customer-facing storefront + a Shopify
-admin backend, HomeU has **HomeU.PH** (storefront, at store.homeu.ph) +
-**DaVinciOS** (admin backend, at admin.homeu.ph). DaVinciOS manages products,
-collections, customers, RFQs, quotations, pages, media, redirects, and SEO
-— same role Shopify Admin plays for a Shopify store.
+admin backend, HomeU has **HomeU.PH** (storefront, at store.homeatelier.ph) +
+**DaVinciOS** (admin backend, at admin.homeatelier.ph). DaVinciOS manages
+products, collections, customers, RFQs, quotations, pages, media,
+redirects, and SEO — same role Shopify Admin plays for a Shopify store.
 
 **Architecture relationship:**
-- **DaVinciOS** = The backend CMS/system. It provides the admin panel (admin.homeu.ph), collections (Products, Categories, Customers, RFQRequests, etc.), API endpoints, database schema, and content management infrastructure. It is the engine that powers the website.
-- **HomeU (HOMEU.PH)** = Home Atelier = the customer-facing furniture brand/website. These three names are the same company. It is the frontend that DaVinciOS serves content to. Customers see HomeU at store.homeu.ph (Next.js frontend). HomeU is the showroom; DaVinciOS is the engine. The `homeatelier` name appears in infra (DigitalOcean Spaces bucket `homeatelierspaces`, domains `*.homeatelier.ph`).
+- **DaVinciOS** = The backend CMS/system. It provides the admin panel (admin.homeatelier.ph), collections (Products, Categories, Customers, RFQRequests, etc.), API endpoints, database schema, and content management infrastructure. It is the engine that powers the website.
+- **HomeU (HOMEU.PH)** = Home Atelier = the customer-facing furniture brand/website. These three names are the same company. It is the frontend that DaVinciOS serves content to. Customers see HomeU at store.homeatelier.ph (Next.js frontend). HomeU is the showroom; DaVinciOS is the engine. The `homeatelier` name appears in infra (DigitalOcean Spaces bucket `homeatelierspaces`, domains `*.homeatelier.ph`).
 
 **Framework removal (2026-06):** The original DaVinciOS framework runtime
 (npm packages, `req.DaVinciOS.*` API, PayloadCMS adapter) was removed and
