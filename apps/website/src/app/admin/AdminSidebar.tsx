@@ -1,17 +1,18 @@
 'use client'
 
 const NAV_ITEMS = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
-  { href: '/admin/products', label: 'Products', icon: '🛋️' },
-  { href: '/admin/categories', label: 'Categories', icon: '📂' },
-  { href: '/admin/customers', label: 'Customers', icon: '🏢' },
-  { href: '/admin/rfq', label: 'RFQ Requests', icon: '📋' },
-  { href: '/admin/quotations', label: 'Quotations', icon: '📄' },
-  { href: '/admin/collections/leads', label: 'Leads', icon: '👤' },
-  { href: '/admin/collections/appointments', label: 'Appointments', icon: '📅' },
-  { href: '/admin/media', label: 'Media', icon: '🖼️' },
-  { href: '/admin/pages', label: 'Pages', icon: '📝' },
-  { href: '/admin/redirects', label: 'Redirects', icon: '🔀' },
+  { href: '/admin/dashboard',   label: 'Dashboard',    icon: '📊' },
+  { href: '/admin/workflows',   label: 'Workflows',    icon: '⚡' },
+  { href: '/admin/products',     label: 'Products',     icon: '🛋️' },
+  { href: '/admin/categories',   label: 'Categories',   icon: '📂' },
+  { href: '/admin/customers',    label: 'Customers',    icon: '🏢' },
+  { href: '/admin/rfq',          label: 'RFQ Requests', icon: '📋' },
+  { href: '/admin/quotations',   label: 'Quotations',   icon: '📄' },
+  { href: '/admin/collections/leads',        label: 'Leads',        icon: '👤' },
+  { href: '/admin/collections/appointments',  label: 'Appointments', icon: '📅' },
+  { href: '/admin/media',        label: 'Media',       icon: '🖼️' },
+  { href: '/admin/pages',        label: 'Pages',       icon: '📝' },
+  { href: '/admin/redirects',    label: 'Redirects',   icon: '🔀' },
 ]
 
 export default function AdminSidebar() {
