@@ -248,12 +248,10 @@ export default async function AdminMediaListPage({ searchParams }: ListPageProps
                   border: '1px solid #d9e0d7',
                   borderRadius: 12,
                   overflow: 'hidden',
-                  transition: 'box-shadow 150ms ease',
                   display: 'flex',
                   flexDirection: 'column',
                 }}
-                onMouseOver={e => (e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.08)')}
-                onMouseOut={e => (e.currentTarget.style.boxShadow = 'none')}
+                className="media-card"
               >
                 {/* Thumbnail */}
                 <div style={{
