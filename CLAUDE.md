@@ -6,12 +6,27 @@ this repository.
 
 ## Naming & Architecture
 
-This project's CMS / backend is **DaVinciOS**.
+This project's CMS / backend is **DaVinciOS** — think of it as "my Shopify admin."
 Always call it "DaVinciOS" in code, docs, comments, and conversation.
+
+**Analogy:** Just like Shopify has a customer-facing storefront + a Shopify
+admin backend, HomeU has **HomeU.PH** (storefront, at store.homeu.ph) +
+**DaVinciOS** (admin backend, at admin.homeu.ph). DaVinciOS manages products,
+collections, customers, RFQs, quotations, pages, media, redirects, and SEO
+— same role Shopify Admin plays for a Shopify store.
 
 **Architecture relationship:**
 - **DaVinciOS** = The backend CMS/system. It provides the admin panel (admin.homeu.ph), collections (Products, Categories, Customers, RFQRequests, etc.), API endpoints, database schema, and content management infrastructure. It is the engine that powers the website.
 - **HomeU (HOMEU.PH)** = The customer-facing brand/website. It is the frontend that DaVinciOS serves content to. Customers see HomeU at store.homeu.ph (Next.js frontend). HomeU is the showroom; DaVinciOS is the engine.
+
+**Framework removal (2026-06):** The original DaVinciOS framework runtime
+(npm packages, `req.DaVinciOS.*` API, PayloadCMS adapter) was removed and
+replaced with a custom stack (direct `pg` queries, `jose` JWT, `bcryptjs`,
+custom Next.js API routes). The **name** DaVinciOS remains. The **framework**
+is gone. References to `@davincios/cms`, `req.DaVinciOS`, PayloadCMS
+internals, or DaVinciOS npm packages are stale. References to "DaVinciOS
+collections", "DaVinciOS admin", "DaVinciOS backend" are correct and
+intentional — they refer to the conceptual system, not the old framework.
 
 ## CDN Media: DigitalOcean Spaces (`do-spaces`)
 
