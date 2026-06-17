@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
+import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
 
 interface AnalyticsData {
@@ -10,12 +11,14 @@ interface AnalyticsData {
   salesByBuyerType: { type: string; count: number; total?: number }[]
   rfqPipeline: { status: string; count: number; color: string }[]
   dailyMessages: { date: string; count: number }[]
+  topPages: { path: string; views: number; visitors: number }[]
   summary: {
     totalLeads: number
     totalRFQs: number
     totalQuotations: number
     totalAppointments: number
     totalMessages: number
+    totalPageViews: number
     conversionRate: string
   }
 }
@@ -30,6 +33,7 @@ async function loadAnalytics(): Promise<AnalyticsData> {
       rfqStatusResult,
       messageVolumeResult,
       statsResult,
+      pageViewResult,
     ] = await Promise.all([
       // Lead volume by day (last 14 days)
       query(`
@@ -86,7 +90,17 @@ async function loadAnalytics(): Promise<AnalyticsData> {
           (SELECT COUNT(*) FROM chatbot.rfq_carts WHERE status != 'draft') as total_rfqs,
           (SELECT COUNT(*) FROM rfq_requests) as total_quotations,
           (SELECT COUNT(*) FROM chatbot.appointments) as total_appointments,
-          (SELECT COUNT(*) FROM chatbot.messages) as total_messages
+          (SELECT COUNT(*) FROM chatbot.messages) as total_messages,
+          (SELECT COUNT(*) FROM page_views) as total_page_views
+      `),
+      // Top pages by views (last 7 days)
+      query(`
+        SELECT path, COUNT(*) as views, COUNT(DISTINCT visitor_id) as visitors
+        FROM page_views
+        WHERE created_at >= NOW() - INTERVAL '7 days'
+        GROUP BY path
+        ORDER BY views DESC
+        LIMIT 10
       `),
     ])
 
@@ -122,12 +136,18 @@ async function loadAnalytics(): Promise<AnalyticsData> {
         date: r.date ? new Date(r.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '',
         count: Number(r.count),
       })),
+      topPages: pageViewResult.rows.map((r: any) => ({
+        path: r.path || '',
+        views: Number(r.views),
+        visitors: Number(r.visitors),
+      })),
       summary: {
         totalLeads,
         totalRFQs,
         totalQuotations: Number(stats.total_quotations || 0),
         totalAppointments: Number(stats.total_appointments || 0),
         totalMessages: Number(stats.total_messages || 0),
+        totalPageViews: Number(stats.total_page_views || 0),
         conversionRate: totalLeads > 0 ? ((totalRFQs / totalLeads) * 100).toFixed(1) : '0.0',
       },
     }
@@ -140,10 +160,18 @@ async function loadAnalytics(): Promise<AnalyticsData> {
       salesByBuyerType: [],
       rfqPipeline: [],
       dailyMessages: [],
-      summary: { totalLeads: 0, totalRFQs: 0, totalQuotations: 0, totalAppointments: 0, totalMessages: 0, conversionRate: '0.0' },
+      topPages: [],
+      summary: { totalLeads: 0, totalRFQs: 0, totalQuotations: 0, totalAppointments: 0, totalMessages: 0, totalPageViews: 0, conversionRate: '0.0' },
     }
   }
 }
+
+// Cached wrapper: 120-second TTL (analytics queries are heavier, cache longer)
+const getCachedAnalytics = unstable_cache(
+  loadAnalytics,
+  ['admin-analytics-data'],
+  { revalidate: 120, tags: ['admin-analytics'] }
+)
 
 function HorizontalBar({ value, max, color, label }: { value: number; max: number; color: string; label: string }) {
   const pct = max > 0 ? (value / max) * 100 : 0
@@ -166,7 +194,7 @@ export default async function AdminAnalyticsPage() {
     redirect('/admin/login')
   }
 
-  const data = await loadAnalytics()
+  const data = await getCachedAnalytics()
   const maxProductCount = data.topProducts.length > 0 ? Math.max(...data.topProducts.map(p => p.count)) : 1
   const maxLeadVolume = data.leadVolume.length > 0 ? Math.max(...data.leadVolume.map(d => d.count)) : 1
   const maxMessages = data.dailyMessages.length > 0 ? Math.max(...data.dailyMessages.map(d => d.count)) : 1
@@ -187,6 +215,7 @@ export default async function AdminAnalyticsPage() {
         <SummaryCard label="Appointments" value={data.summary.totalAppointments} icon="📅" color="#9b59b6" />
         <SummaryCard label="Messages" value={data.summary.totalMessages} icon="💬" color="#667168" />
         <SummaryCard label="Lead → RFQ Rate" value={data.summary.conversionRate + '%'} icon="📈" color="#e74b16" />
+        <SummaryCard label="Page Views" value={data.summary.totalPageViews} icon="👁️" color="#1a5bb5" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
@@ -299,6 +328,36 @@ export default async function AdminAnalyticsPage() {
                   }} />
                   <div style={{ fontSize: 10, color: '#667168', marginTop: 4, transform: 'rotate(-45deg)', whiteSpace: 'nowrap', transformOrigin: 'left' }}>
                     {d.date}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Most Viewed Pages */}
+        <Card title="👁️ Most Viewed Pages (Last 7 Days)">
+          {data.topPages.length === 0 ? (
+            <EmptyChart msg="No page view data yet" />
+          ) : (
+            <div>
+              {data.topPages.map((p, i) => (
+                <div key={i} style={{ marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                    <span style={{ color: '#151a17', fontSize: 12, wordBreak: 'break-all' }}>{p.path}</span>
+                    <span style={{ color: '#667168', fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap' }}>
+                      {p.views} views · {p.visitors} unique
+                    </span>
+                  </div>
+                  <div style={{ background: '#e5e7eb', borderRadius: 6, height: 16, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${data.topPages.length > 0 ? (p.views / Math.max(...data.topPages.map(x => x.views))) * 100 : 0}%`,
+                      background: '#1a5bb5',
+                      height: '100%',
+                      borderRadius: 6,
+                      opacity: 0.7,
+                      transition: 'width 0.5s',
+                    }} />
                   </div>
                 </div>
               ))}

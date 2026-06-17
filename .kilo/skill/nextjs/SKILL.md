@@ -227,10 +227,10 @@ docker build -f docker/build.Dockerfile -t homeu-build .
 ### Existing Agent Instructions
 | Agent | File |
 |-------|------|
-| Frontend Builder Agent | [`agents/frontend-builder-agent.md`](agents/frontend-builder-agent.md) |
-| Planner Agent | [`agents/planner-agent.md`](agents/planner-agent.md) |
-| QA Agent | [`agents/qa-agent.md`](agents/qa-agent.md) |
-| SEO Agent | [`agents/seo-agent.md`](agents/seo-agent.md) |
+| Frontend Builder Agent | [`agents/3-build/frontend-builder-agent.md`](agents/3-build/frontend-builder-agent.md) |
+| Planner Agent | [`agents/1-plan/planner-agent.md`](agents/1-plan/planner-agent.md) |
+| QA Agent | [`agents/5-qa/qa-agent.md`](agents/5-qa/qa-agent.md) |
+| SEO Agent | [`agents/4-content-seo/seo-agent.md`](agents/4-content-seo/seo-agent.md) |
 
 ### Tools
 | Tool | Path |

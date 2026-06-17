@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { updateTaskStatus } from '@/lib/workflows'
+import { revalidateTag } from 'next/cache'
 
 export async function PATCH(request: NextRequest) {
   const session = await getSession()
@@ -25,6 +26,9 @@ export async function PATCH(request: NextRequest) {
     if (!success) {
       return NextResponse.json({ error: 'Failed to update task' }, { status: 500 })
     }
+
+    // Invalidate workflows cache so the updated status reflects immediately
+    revalidateTag('admin-workflows', 'default')
 
     return NextResponse.json({ success: true })
   } catch (e) {

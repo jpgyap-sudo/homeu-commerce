@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { renderLexical } from '@/lib/renderLexical'
 
 interface Product {
   id: string
@@ -112,7 +113,7 @@ export default function ProductDetailPage() {
     if (!product) return
 
     try {
-      const existing = JSON.parse(localStorage.getItem('quoteCart') || '[]')
+      const existing = JSON.parse(localStorage.getItem('homeu_quote_cart') || '[]')
       const existingIds = new Set(existing.map((i: any) => i.productId))
       if (!existingIds.has(product.id)) {
         existing.push({
@@ -123,11 +124,11 @@ export default function ProductDetailPage() {
           imageUrl: product.imageUrl,
           quantity,
         })
-        localStorage.setItem('quoteCart', JSON.stringify(existing))
+        localStorage.setItem('homeu_quote_cart', JSON.stringify(existing))
       }
       setAddedToCart(true)
       // Dispatch custom event for cart badge update
-      window.dispatchEvent(new CustomEvent('quote-cart-update'))
+      window.dispatchEvent(new CustomEvent('homeu_quote_cart_changed'))
     } catch {
       // localStorage not available
     }
@@ -254,11 +255,10 @@ export default function ProductDetailPage() {
 
           {/* Description */}
           {product.description && (
-            <div className="product-detail-description">
-              {product.description.split('\n').map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
-            </div>
+            <div
+              className="product-detail-description"
+              dangerouslySetInnerHTML={{ __html: renderLexical(product.description) }}
+            />
           )}
 
           {/* Materials */}

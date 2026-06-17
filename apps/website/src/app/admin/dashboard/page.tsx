@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
+import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
 
 interface DashboardCounts {
@@ -123,6 +124,13 @@ async function loadDashboardData(): Promise<DashboardCounts> {
   }
 }
 
+// Cached wrapper: 60-second TTL prevents redundant DB queries on rapid page refreshes
+const getCachedDashboardData = unstable_cache(
+  loadDashboardData,
+  ['admin-dashboard-data'],
+  { revalidate: 60, tags: ['admin-dashboard'] }
+)
+
 function formatDate(iso: string): string {
   try {
     return new Date(iso).toLocaleDateString('en-PH', {
@@ -165,7 +173,7 @@ export default async function AdminDashboardPage() {
     redirect('/admin/login')
   }
 
-  const data = await loadDashboardData()
+  const data = await getCachedDashboardData()
 
   return (
     <div className="admin-dashboard">

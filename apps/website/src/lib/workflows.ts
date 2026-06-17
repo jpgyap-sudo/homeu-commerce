@@ -181,59 +181,110 @@ async function getFeatureDefinitions(): Promise<any[]> {
 
 /**
  * Load complete workflow summary for all features.
- * Returns both aggregated data and inline auto-generated tasks.
+ *
+ * Uses batched parallelism: all feature data and all tasks are fetched
+ * in a single parallel wave instead of sequential per-feature N+1 queries.
+ * Cuts ~41 sequential round-trips down to ~3 parallel ones.
  */
 export async function loadWorkflowSummary(): Promise<WorkflowSummary> {
   const definitions = await getFeatureDefinitions()
-  const features: FeatureWorkflow[] = []
 
-  for (const def of definitions) {
-    const slug = def.slug
-    const fq = FEATURE_QUERIES[slug]
+  // ── Fetch ALL feature stats in parallel ─────────────────────
+  const featureDataResults = await Promise.all(
+    definitions.map(async (def) => {
+      const slug = def.slug
+      const fq = FEATURE_QUERIES[slug]
 
-    let totalCount = 0
-    let statusDist: Record<string, number> = {}
-    let lastUpd: string | null = null
+      if (!fq) {
+        return { slug, totalCount: 0, statusDist: {} as Record<string, number>, lastUpd: null as string | null }
+      }
 
-    if (fq) {
+      // For chatbot-schema features: count and status dist both come from
+      // the same GROUP BY query; for standard tables: count + status dist are separate.
+      if (fq.schema) {
+        const [dist, last] = await Promise.all([
+          chatbotStatusDistribution(fq.schema, fq.table),
+          lastUpdated(fq.table),
+        ])
+        return {
+          slug,
+          totalCount: Object.values(dist).reduce((a, b) => a + b, 0),
+          statusDist: dist,
+          lastUpd: last,
+        }
+      }
+
       const [count, dist, last] = await Promise.all([
-        fq.schema
-          ? chatbotStatusDistribution(fq.schema, fq.table)
-          : Promise.resolve(undefined).then(() => countTable(fq.table)),
-        fq.schema ? Promise.resolve({}) : statusDistribution(fq.table, fq.statusCol || 'status'),
+        countTable(fq.table),
+        statusDistribution(fq.table, fq.statusCol || 'status'),
         lastUpdated(fq.table),
       ])
+      return { slug, totalCount: count, statusDist: dist, lastUpd: last }
+    })
+  )
 
-      if (fq.schema) {
-        statusDist = count as Record<string, number>
-        totalCount = Object.values(statusDist).reduce((a, b) => a + b, 0)
-        lastUpd = last
-      } else {
-        totalCount = count as number
-        statusDist = dist
-        lastUpd = last
-      }
+  const dataBySlug = new Map(featureDataResults.map(d => [d.slug, d]))
+
+  // ── Fetch ALL tasks in ONE query ────────────────────────────
+  const allSlugs = definitions.map(d => d.slug)
+  let allTasksBySlug: Map<string, WorkflowTask[]> = new Map()
+  try {
+    const r = await query(
+      `SELECT id, title, description, status, priority, assignee,
+              due_date, metadata, sort_order, is_automated,
+              completed_at, created_at, updated_at, feature_slug
+       FROM workflow_tasks
+       WHERE feature_slug = ANY($1::text[])
+       ORDER BY feature_slug, sort_order ASC, created_at DESC`,
+      [allSlugs]
+    )
+    for (const row of r.rows) {
+      const slug = row.feature_slug
+      if (!allTasksBySlug.has(slug)) allTasksBySlug.set(slug, [])
+      allTasksBySlug.get(slug)!.push({
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        status: row.status,
+        priority: row.priority,
+        assignee: row.assignee,
+        dueDate: row.due_date ? String(row.due_date) : null,
+        metadata: typeof row.metadata === 'object' ? row.metadata : {},
+        sortOrder: row.sort_order,
+        isAutomated: row.is_automated,
+        completedAt: row.completed_at ? String(row.completed_at) : null,
+        createdAt: String(row.created_at),
+        updatedAt: String(row.updated_at),
+      })
     }
+  } catch {
+    // If tasks table doesn't exist or query fails, proceed with empty tasks
+  }
 
-    const tasks = await getTasksForFeature(slug)
+  // ── Assemble features ───────────────────────────────────────
+  const features: FeatureWorkflow[] = []
+  for (const def of definitions) {
+    const slug = def.slug
+    const data = dataBySlug.get(slug) || { totalCount: 0, statusDist: {} as Record<string, number>, lastUpd: null as string | null }
+    let tasks = allTasksBySlug.get(slug) || []
 
     // Auto-generate a task if feature has data but no tasks defined
-    if (tasks.length === 0 && totalCount > 0) {
-      tasks.push({
-        id: 0,
+    if (tasks.length === 0 && data.totalCount > 0) {
+      tasks = [{
+        id: -1, // negative to avoid collision with real IDs
         title: `Review ${def.title.toLowerCase()} data`,
-        description: `${totalCount} ${def.title.toLowerCase()} record(s) exist. Verify data quality and completeness.`,
+        description: `${data.totalCount} ${def.title.toLowerCase()} record(s) exist. Verify data quality and completeness.`,
         status: 'pending',
         priority: 'medium',
         assignee: null,
         dueDate: null,
-        metadata: { count: totalCount },
+        metadata: { count: data.totalCount },
         sortOrder: 0,
         isAutomated: true,
         completedAt: null,
         createdAt: '',
         updatedAt: '',
-      })
+      }]
     }
 
     features.push({
@@ -243,9 +294,9 @@ export async function loadWorkflowSummary(): Promise<WorkflowSummary> {
       description: def.description || '',
       category: def.category || 'other',
       sortOrder: def.sort_order,
-      totalCount,
-      statusDistribution: statusDist,
-      lastUpdated: lastUpd,
+      totalCount: data.totalCount,
+      statusDistribution: data.statusDist,
+      lastUpdated: data.lastUpd,
       tasks,
       completionPercent: computeCompletion(tasks),
     })

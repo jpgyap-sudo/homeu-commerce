@@ -1,5 +1,6 @@
 import './admin.css'
 import AdminSidebar from './AdminSidebar'
+import PageViewTracker from '@/components/PageViewTracker'
 
 export default function AdminLayout({
   children,
@@ -9,6 +10,7 @@ export default function AdminLayout({
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--admin-bg, #f4f6f4)' }}>
       <AdminSidebar />
+      <PageViewTracker />
       {/* Main Content */}
       <main style={{ flex: 1, minWidth: 0 }}>
         {children}

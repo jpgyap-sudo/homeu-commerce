@@ -35,27 +35,27 @@
     },
     "planner": {
       "description": "Analyze migration state and prioritize next tasks",
-      "file": "agents/planner-agent.md"
+      "file": "agents/1-plan/planner-agent.md"
     },
     "shopify-auditor": {
       "description": "Cross-reference Shopify data from scanner vs MCP vs export",
-      "file": "agents/shopify-auditor-agent.md"
+      "file": "agents/2-audit/shopify-auditor-agent.md"
     },
     "seo": {
       "description": "SEO metadata validation and improvement suggestions",
-      "file": "agents/seo-agent.md"
+      "file": "agents/4-content-seo/seo-agent.md"
     },
     "frontend-builder": {
       "description": "Build Next.js frontend components matching Shopify design",
-      "file": "agents/frontend-builder-agent.md"
+      "file": "agents/3-build/frontend-builder-agent.md"
     },
     "qa": {
       "description": "Quality assurance: broken links, screenshots, Lighthouse, forms",
-      "file": "agents/qa-agent.md"
+      "file": "agents/5-qa/qa-agent.md"
     },
     "content": {
       "description": "Draft and improve product descriptions, landing pages, blog posts",
-      "file": "agents/content-agent.md"
+      "file": "agents/4-content-seo/content-agent.md"
     },
     "deployer": {
       "description": "🚀 Central deploy coordinator: locks, queues, and executes deploys across multiple coding extensions. Prevents duplicate runs. Uses Tailscale SSH + VPS MCP fallback.",
@@ -63,11 +63,11 @@
     },
     "concierge-builder": {
       "description": "Build and maintain the HomeU Concierge chatbot: widget UI, API endpoints, AI integration, lead capture, RFQ cart sync, Telegram alerts, appointment booking",
-      "file": "agents/concierge-builder-agent.md"
+      "file": "agents/3-build/concierge-builder-agent.md"
     },
     "website-designer": {
       "description": "Design premium UI for HomeU: login pages, admin backend, customer frontend, design system, and UX improvements",
-      "file": "agents/website-designer-agent.md"
+      "file": "agents/3-build/website-designer-agent.md"
     }
   },
   "skills": {

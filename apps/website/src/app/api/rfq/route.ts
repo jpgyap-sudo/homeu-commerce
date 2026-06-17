@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 import { generatePricingSuggestions } from '@/utils/ollama-utils'
 import { query } from '@/lib/db'
+import { getSession } from '@/lib/auth'
 
 type RFQItemInput = {
   product?: string
@@ -12,6 +13,93 @@ type RFQItemInput = {
   unitPriceSnapshot?: number
   price?: number
   quantity?: number
+}
+
+/**
+ * GET /api/rfq — list RFQ requests (admin only)
+ * Query params: ?limit=50&offset=0&status=new&search=...
+ */
+export async function GET(request: NextRequest) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const { searchParams } = request.nextUrl
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 200)
+    const offset = parseInt(searchParams.get('offset') || '0')
+    const status = searchParams.get('status') || ''
+    const search = searchParams.get('search') || ''
+    const id = searchParams.get('id')
+
+    // Single RFQ detail
+    if (id) {
+      const r = await query(
+        `SELECT r.*, c.name as customer_name, c.email as customer_email, c.phone as customer_phone
+         FROM rfq_requests r
+         LEFT JOIN customers c ON r.customer_id = c.id
+         WHERE r.id = $1`,
+        [parseInt(id)]
+      )
+      if (r.rows.length === 0) {
+        return NextResponse.json({ error: 'RFQ not found' }, { status: 404 })
+      }
+      // Fetch items
+      const items = await query(
+        `SELECT * FROM rfq_request_items WHERE rfq_request_id = $1 ORDER BY id`,
+        [parseInt(id)]
+      )
+      return NextResponse.json({ ...r.rows[0], items: items.rows })
+    }
+
+    // List query
+    const conditions: string[] = []
+    const values: any[] = []
+    let idx = 0
+
+    if (status) {
+      idx++
+      conditions.push(`r.status = $${idx}`)
+      values.push(status)
+    }
+    if (search) {
+      idx++
+      conditions.push(
+        `(LOWER(COALESCE(r.customer_name,'')) LIKE LOWER($${idx}) OR LOWER(COALESCE(r.email,'')) LIKE LOWER($${idx}))`
+      )
+      values.push(`%${search}%`)
+    }
+
+    const whereSQL = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+    const countRes = await query(
+      `SELECT COUNT(*) as total FROM rfq_requests r ${whereSQL}`,
+      values
+    )
+    const total = parseInt(countRes.rows[0]?.total || '0')
+
+    idx++
+    const rows = await query(
+      `SELECT r.*, c.name as customer_name, c.email as customer_email, c.phone as customer_phone
+       FROM rfq_requests r
+       LEFT JOIN customers c ON r.customer_id = c.id
+       ${whereSQL}
+       ORDER BY r.created_at DESC
+       LIMIT $${idx} OFFSET $${idx + 1}`,
+      [...values, limit, offset]
+    )
+
+    return NextResponse.json({
+      rfqs: rows.rows,
+      total,
+      limit,
+      offset,
+    })
+  } catch (error: any) {
+    console.error('RFQ GET error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 }
 
 export async function POST(request: NextRequest) {

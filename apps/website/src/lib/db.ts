@@ -9,18 +9,24 @@ function getPool(): Pool {
       process.env.DATABASE_URI ||
       process.env.DB_URI ||
       'postgres://homeu:homeu@localhost:5432/homeu'
-    pool = new Pool({ connectionString, max: 10 })
+    pool = new Pool({
+      connectionString,
+      max: 20,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 30000,
+      allowExitOnIdle: true,
+    })
   }
   return pool
 }
 
+/**
+ * Execute a SQL query using the connection pool directly.
+ * pool.query() handles connection acquisition & release internally,
+ * avoiding per-query connect/release round-trips.
+ */
 export async function query(sql: string, params?: any[]): Promise<QueryResult> {
-  const client = await getPool().connect()
-  try {
-    return await client.query(sql, params)
-  } finally {
-    client.release()
-  }
+  return getPool().query(sql, params)
 }
 
 export async function findOne(

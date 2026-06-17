@@ -20,6 +20,19 @@ All agents registered in `.kilo/kilo.json` with corresponding skills in `.kilo/s
 | `frontend-builder` | Kilo | — | Frontend components |
 | `qa` | Kilo | — | Quality assurance |
 | `content` | Kilo | — | Content drafting |
+| `concierge-builder` | Kilo | — | Chatbot construction |
+| `website-designer` | Kilo | — | UI/UX design |
+| `deployer` | Kilo | — | Deploy coordination |
+
+## Agent Categories (by migration phase)
+
+| Phase | Directory | Agents |
+|-------|-----------|--------|
+| 1. Plan | `1-plan/` | `planner-agent.md` |
+| 2. Audit | `2-audit/` | `shopify-auditor-agent.md` |
+| 3. Build | `3-build/` | `frontend-builder-agent.md`, `frontend-developer-agent.md`, `website-designer-agent.md`, `concierge-builder-agent.md` |
+| 4. Content & SEO | `4-content-seo/` | `content-agent.md`, `seo-agent.md`, `seo-manager-agent.md` |
+| 5. QA | `5-qa/` | `qa-agent.md` |
 
 ## File Locations
 
@@ -45,13 +58,23 @@ All agents registered in `.kilo/kilo.json` with corresponding skills in `.kilo/s
     ├── theme-migration/SKILL.md
     └── security-audit/SKILL.md
 
-agents/                    # Agent prompt templates (registered via path)
-├── planner-agent.md
-├── shopify-auditor-agent.md
-├── seo-agent.md
-├── frontend-builder-agent.md
-├── qa-agent.md
-└── content-agent.md
+agents/                    # Agent prompt templates (registered via path) — organized by migration phase
+├── README.md
+├── 1-plan/
+│   └── planner-agent.md
+├── 2-audit/
+│   └── shopify-auditor-agent.md
+├── 3-build/
+│   ├── frontend-builder-agent.md
+│   ├── frontend-developer-agent.md
+│   ├── website-designer-agent.md
+│   └── concierge-builder-agent.md
+├── 4-content-seo/
+│   ├── content-agent.md
+│   ├── seo-agent.md
+│   └── seo-manager-agent.md
+└── 5-qa/
+    └── qa-agent.md
 
 tools/                     # Agent tools
 ├── migration-brain/       # Central Brain

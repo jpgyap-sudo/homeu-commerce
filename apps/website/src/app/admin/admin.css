@@ -825,3 +825,171 @@
   font-size: 12px;
   color: var(--admin-text-secondary);
 }
+
+/* ========================================================================
+   SIDEBAR — Grouped Navigation
+   ========================================================================== */
+
+.admin-sidebar {
+  width: 250px;
+  min-width: 250px;
+  background: #151a17;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  font-family: var(--admin-font, Inter, sans-serif);
+}
+
+/* Branding */
+.admin-sidebar-brand {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.admin-sidebar-logo {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.admin-sidebar-subtitle {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 4px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Navigation container */
+.admin-sidebar-nav {
+  flex: 1;
+  padding: 8px 0;
+}
+
+/* ── Nav Group ───────────────────────────────────────── */
+
+.admin-nav-group {
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.admin-nav-group:last-child {
+  border-bottom: none;
+}
+
+/* Group header button */
+.admin-nav-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: rgba(255,255,255,0.45);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: color 0.15s;
+}
+
+.admin-nav-group-header:hover {
+  color: rgba(255,255,255,0.7);
+}
+
+.admin-nav-group--active .admin-nav-group-header {
+  color: rgba(255,255,255,0.8);
+}
+
+.admin-nav-group-icon {
+  font-size: 13px;
+  width: 18px;
+  text-align: center;
+}
+
+.admin-nav-group-label {
+  flex: 1;
+}
+
+.admin-nav-group-chevron {
+  font-size: 9px;
+  transition: transform 0.2s ease;
+  opacity: 0.5;
+}
+
+/* Group items container */
+.admin-nav-group-items {
+  overflow: hidden;
+  max-height: 500px;
+  opacity: 1;
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+  padding-bottom: 4px;
+}
+
+.admin-nav-group-items--collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-bottom: 0;
+}
+
+/* ── Nav Item ─────────────────────────────────────────── */
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px 9px 34px;
+  color: rgba(255,255,255,0.6);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+  position: relative;
+}
+
+.admin-nav-item:hover {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+}
+
+.admin-nav-item--active {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border-left-color: #b8975a;
+  font-weight: 600;
+}
+
+.admin-nav-item-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+}
+
+.admin-nav-item-label {
+  flex: 1;
+}
+
+.admin-nav-item-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #b8975a;
+  flex-shrink: 0;
+}
+
+/* Footer */
+.admin-sidebar-footer {
+  padding: 14px 20px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 11px;
+  color: rgba(255,255,255,0.25);
+}
