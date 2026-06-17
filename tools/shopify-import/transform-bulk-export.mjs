@@ -70,7 +70,9 @@ async function main() {
 
   const STORE_DOMAIN = 'homeu.ph'
 
-  const DaVinciOSProducts = [...products.values()].map(p => {
+  const DaVinciOSProducts = [...products.values()]
+    .filter(p => p.status === 'ACTIVE' && (images.get(p.id) || []).length > 0)
+    .map(p => {
     const pVariants = variants.get(p.id) || []
     const pImages = images.get(p.id) || []
     const pCollections = collections.get(p.id) || []

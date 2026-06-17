@@ -7,15 +7,15 @@ const JWT_SECRET = new TextEncoder().encode(
 const COOKIE_NAME = 'homeu_admin_session'
 
 /**
- * Middleware: protects all /admin/* routes except /admin/login.
+ * Proxy: protects all /admin/* routes except /admin/login.
  *
  * Verifies the homeu_admin_session JWT cookie on every request.
  * Redirects unauthenticated users to /admin/login.
  * This is a belt-and-suspenders approach — individual pages also
- * call getSession(), but middleware prevents the page from rendering
+ * call getSession(), but the proxy prevents the page from rendering
  * at all if the cookie is missing or invalid.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Allow public admin routes
