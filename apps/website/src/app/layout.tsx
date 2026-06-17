@@ -5,6 +5,7 @@ import { QuoteCartBadge } from '@/components/QuoteCart'
 import { ChatWidget } from '@/components/chat/ChatWidget'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
+import { getMainNav } from '@/lib/navigation'
 import siteConfig from '@/data/site-config.json'
 
 export const metadata = {
@@ -32,6 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   // Storefront: full Debut-themed layout
+  const mainNav = await getMainNav()
   return (
     <html lang="en">
       <head>
@@ -49,7 +51,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script src="https://cdn.judge.me/widget.js" async={true}></script>
       </head>
       <body>
-        <SiteHeader />
+        <SiteHeader nav={mainNav} />
         <main id="MainContent" className="content-for-layout" role="main" tabIndex={-1}>
           {children}
         </main>

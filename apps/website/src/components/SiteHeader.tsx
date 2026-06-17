@@ -9,13 +9,14 @@ import siteConfig from '@/data/site-config.json'
 type NavItem = {
   title: string
   href: string
-  type: string
+  type?: string
   children: NavItem[]
 }
 
-export function SiteHeader() {
+export function SiteHeader({ nav }: { nav?: NavItem[] }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const navItems: NavItem[] = nav && nav.length > 0 ? nav : (navigation.main as NavItem[])
 
   return (
     <div data-section-type="header-section">
@@ -52,7 +53,7 @@ export function SiteHeader() {
         {/* ── Main nav (desktop) ── */}
         <nav className="site-nav small--hide" id="SiteNav" aria-label="Main navigation">
           <ul className="site-nav__linklist navlinks" role="list">
-            {(navigation.main as NavItem[]).map((item) => (
+            {navItems.map((item) => (
               <li
                 key={item.href + item.title}
                 className={`site-nav__item${item.children.length > 0 ? ' site-nav__item--has-dropdown' : ''}`}
@@ -134,7 +135,7 @@ export function SiteHeader() {
         {mobileOpen && (
           <nav id="MobileNav" className="mobile-nav-wrapper" aria-label="Mobile navigation">
             <ul className="mobile-nav" role="list">
-              {(navigation.main as NavItem[]).map((item) => (
+              {navItems.map((item) => (
                 <li key={item.title} className="mobile-nav__item">
                   <div className="mobile-nav__link-wrapper">
                     <Link
