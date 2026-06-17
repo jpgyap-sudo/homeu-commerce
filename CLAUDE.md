@@ -17,7 +17,7 @@ collections, customers, RFQs, quotations, pages, media, redirects, and SEO
 
 **Architecture relationship:**
 - **DaVinciOS** = The backend CMS/system. It provides the admin panel (admin.homeu.ph), collections (Products, Categories, Customers, RFQRequests, etc.), API endpoints, database schema, and content management infrastructure. It is the engine that powers the website.
-- **HomeU (HOMEU.PH)** = The customer-facing brand/website. It is the frontend that DaVinciOS serves content to. Customers see HomeU at store.homeu.ph (Next.js frontend). HomeU is the showroom; DaVinciOS is the engine.
+- **HomeU (HOMEU.PH)** = Home Atelier = the customer-facing furniture brand/website. These three names are the same company. It is the frontend that DaVinciOS serves content to. Customers see HomeU at store.homeu.ph (Next.js frontend). HomeU is the showroom; DaVinciOS is the engine. The `homeatelier` name appears in infra (DigitalOcean Spaces bucket `homeatelierspaces`, domains `*.homeatelier.ph`).
 
 **Framework removal (2026-06):** The original DaVinciOS framework runtime
 (npm packages, `req.DaVinciOS.*` API, PayloadCMS adapter) was removed and
