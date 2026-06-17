@@ -10,25 +10,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 
-// ── GET ──────────────────────────────────────────────────────────────
+// ── GET (public — no auth required for storefront reads) ─────────────
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
     const { id } = await params
 
     const result = await query(
       `SELECT p.*,
               (SELECT row_to_json(c.*) FROM categories c WHERE c.id = p.category_id) as category,
-              (SELECT json_agg(row_to_json(pi.*)) FROM (SELECT * FROM product_images WHERE product_id = p.id ORDER BY sort_order) pi) as images
+              (SELECT json_agg(row_to_json(pi.*) ORDER BY pi.sort_order)
+               FROM product_images pi WHERE pi.product_id = p.id) as images
        FROM products p
-       WHERE p.id = $1 OR p.slug = $1
+       WHERE p.slug = $1 OR p.id::text = $1
        LIMIT 1`,
       [id]
     )
@@ -37,35 +34,30 @@ export async function GET(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
 
-    const product = result.rows[0]
+    const p = result.rows[0]
+    const images = p.images || []
 
     return NextResponse.json({
-      id: product.id,
-      title: product.title,
-      slug: product.slug,
-      sku: product.sku,
-      price: product.price,
-      salePrice: product.sale_price,
-      showPrice: product.show_price,
-      priceNote: product.price_note,
-      description: product.description,
-      status: product.status,
-      vendor: product.vendor,
-      productType: product.product_type,
-      inventoryTracked: product.inventory_tracked,
-      inventoryQuantity: product.inventory_quantity,
-      salesChannel: product.sales_channel,
-      dimensions: product.dimensions,
-      materials: product.materials,
-      category_id: product.category_id,
-      category: product.category,
-      seoTitle: product.seo_title,
-      seoDescription: product.seo_description,
-      images: product.images || [],
-      imageUrl: product.images?.[0]?.url || product.image_url || null,
-      tags: product.tags,
-      createdAt: product.created_at,
-      updatedAt: product.updated_at,
+      id: p.id,
+      title: p.title,
+      slug: p.slug,
+      sku: p.sku,
+      // Normalise price: display price is sale_price if set, otherwise price
+      price: p.sale_price || p.price,
+      originalPrice: p.price,
+      salePrice: p.sale_price,
+      showPrice: p.show_price,
+      priceNote: p.price_note,
+      description: p.description,
+      dimensions: p.dimensions,
+      materials: p.materials,
+      category: p.category,
+      seoTitle: p.seo_title,
+      seoDescription: p.seo_description,
+      images,
+      imageUrl: images[0]?.url || null,
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
     })
   } catch (err) {
     console.error('[api/products/:id] GET error:', err)

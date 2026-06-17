@@ -1,6 +1,6 @@
 /**
- * GET /api/categories      — Categories listing
- * POST /api/categories     — Create a new category
+ * GET /api/categories      — Categories listing (public)
+ * POST /api/categories     — Create a new category (auth required)
  *
  * Custom API endpoint for categories CRUD operations.
  */
@@ -9,20 +9,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 
-// ── GET ──────────────────────────────────────────────────────────────
+// ── GET (public — no auth required for storefront reads) ─────────────
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
     const { searchParams } = new URL(request.url)
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
     const result = await query(
-      'SELECT * FROM categories ORDER BY title ASC LIMIT $1 OFFSET $2',
+      `SELECT c.*,
+        COALESCE(m.url, c.image_url) as image_url
+       FROM categories c
+       LEFT JOIN media m ON c.image_id = m.id
+       ORDER BY c.title ASC
+       LIMIT $1 OFFSET $2`,
       [limit, offset]
     )
 
@@ -58,12 +59,10 @@ export async function POST(request: NextRequest) {
     }
     const body = await request.json()
 
-    // Validate required fields
     if (!body.title || !body.title.trim()) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
-    // Auto-generate slug if not provided
     let slug = body.slug?.trim()
     if (!slug) {
       slug = body.title
@@ -74,7 +73,6 @@ export async function POST(request: NextRequest) {
         .replace(/^-|-$/g, '') || 'untitled'
     }
 
-    // Ensure slug uniqueness
     let finalSlug = slug
     let slugCounter = 1
     while (true) {

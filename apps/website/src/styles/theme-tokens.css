@@ -1,0 +1,52 @@
+/**
+ * theme-tokens.css
+ * Auto-generated from Shopify Debut theme settings_data.json
+ * These variables mirror the exact brand settings from the live Shopify store.
+ *
+ * Usage: import this AFTER globals.css to override/extend variables.
+ * The :root vars here are the Debut palette. The existing globals.css vars
+ * (--brand, --bg, etc.) are the HomeU redesign palette — both are available.
+ */
+
+/* ── Debut Brand Fonts ──────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600&family=Cardo:wght@400;700&display=swap');
+
+:root {
+  /* Debut palette — 1:1 from Shopify settings_data.json */
+  --debut-text:                #3a3a3a;
+  --debut-body-text:           #333232;
+  --debut-body-bg:             #ffffff;
+  --debut-button:              #3a3a3a;
+  --debut-button-text:         #ffffff;
+  --debut-button-border:       #3a3a3a;
+  --debut-sale:                #EA0606;
+  --debut-borders:             #ebebeb;
+  --debut-input-bg:            #ffffff;
+  --debut-input-text:          #000000;
+  --debut-input-border:        #cccccc;
+  --debut-overlay:             #685858;
+  --debut-overlay-text:        #ffffff;
+  --debut-header-bg:           #3a3a3a;
+  --debut-header-text:         #ffffff;
+  --debut-footer-bg:           #f6f6f6;
+  --debut-footer-text:         #333232;
+
+  /* Debut typography */
+  --debut-font-heading:        'Crimson Text', Georgia, serif;
+  --debut-font-body:           'Cardo', Georgia, serif;
+  --debut-font-heading-size:   29px;
+}
+
+/* ── Apply Debut fonts to the site ──────────────────────────────────────── */
+body {
+  font-family: var(--debut-font-body);
+}
+
+h1, h2, h3, h4, h5, h6,
+.site-logo,
+.product-detail-title,
+.product-card h3,
+.hero-title,
+.section-title {
+  font-family: var(--debut-font-heading);
+}

@@ -1,6 +1,6 @@
 /**
- * GET /api/products    — Product listing with search/filter/pagination
- * POST /api/products   — Create a new product
+ * GET /api/products    — Product listing with search/filter/pagination (public)
+ * POST /api/products   — Create a new product (auth required)
  *
  * Custom API endpoint for products CRUD operations.
  */
@@ -9,18 +9,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 
-// ── GET (existing) ───────────────────────────────────────────────────
+// ── GET (public — no auth required for storefront reads) ─────────────
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
     const category = searchParams.get('category') || ''
-    const status = searchParams.get('status') || ''
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
     const orderBy = searchParams.get('orderBy') || 'title ASC'
@@ -32,27 +27,22 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       paramIndex++
-      conditions.push(`(LOWER(title) LIKE LOWER($${paramIndex}) OR LOWER(description) LIKE LOWER($${paramIndex}))`)
+      conditions.push(`(LOWER(p.title) LIKE LOWER($${paramIndex}) OR LOWER(p.description::text) LIKE LOWER($${paramIndex}))`)
       values.push(`%${search}%`)
     }
 
     if (category) {
       paramIndex++
-      conditions.push(`EXISTS (SELECT 1 FROM categories c WHERE c.id = products.category_id AND LOWER(c.title) = LOWER($${paramIndex}))`)
+      // Match by slug (URL param) OR title (legacy)
+      conditions.push(`EXISTS (SELECT 1 FROM categories c WHERE c.id = p.category_id AND (LOWER(c.slug) = LOWER($${paramIndex}) OR LOWER(c.title) = LOWER($${paramIndex})))`)
       values.push(category)
-    }
-
-    if (status) {
-      paramIndex++
-      conditions.push(`status = $${paramIndex}`)
-      values.push(status)
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
     // Count total
     const countResult = await query(
-      `SELECT COUNT(*) as total FROM products ${whereClause}`,
+      `SELECT COUNT(*) as total FROM products p ${whereClause}`,
       values
     )
     const total = parseInt(countResult.rows[0]?.total || '0', 10)
@@ -62,10 +52,10 @@ export async function GET(request: NextRequest) {
     const productsResult = await query(
       `SELECT p.*,
               (SELECT row_to_json(c.*) FROM categories c WHERE c.id = p.category_id) as category,
-              (SELECT json_agg(row_to_json(pi.*)) FROM (SELECT * FROM product_images WHERE product_id = p.id ORDER BY sort_order) pi) as images
+              (SELECT json_agg(row_to_json(pi.*) ORDER BY pi.sort_order) FROM product_images pi WHERE pi.product_id = p.id) as images
        FROM products p
        ${whereClause}
-       ORDER BY ${safeOrderBy}
+       ORDER BY p.${safeOrderBy}
        LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`,
       [...values, limit, offset]
     )
@@ -116,23 +106,17 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await query(
-      `INSERT INTO products (title, slug, sku, status, vendor, product_type, price, sale_price, show_price, price_note, inventory_tracked, inventory_quantity, sales_channel, description, dimensions, materials, category_id, seo_title, seo_description, updated_at, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), NOW())
+      `INSERT INTO products (title, slug, sku, price, sale_price, show_price, price_note, description, dimensions, materials, category_id, seo_title, seo_description, updated_at, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
        RETURNING *`,
       [
         body.title.trim(),
         finalSlug,
         body.sku?.trim() || null,
-        body.status || 'draft',
-        body.vendor?.trim() || 'HOMEU.PH',
-        body.product_type?.trim() || null,
         body.price != null ? parseFloat(body.price) : null,
         body.sale_price != null ? parseFloat(body.sale_price) : null,
         body.show_price !== false,
         body.price_note?.trim() || null,
-        body.inventory_tracked === true,
-        parseInt(body.inventory_quantity) || 0,
-        body.sales_channel || 'online-store',
         body.description || null,
         body.dimensions?.trim() || null,
         body.materials?.trim() || null,
@@ -151,7 +135,6 @@ export async function POST(request: NextRequest) {
         title: product.title,
         slug: product.slug,
         sku: product.sku,
-        status: product.status,
         price: product.price,
         salePrice: product.sale_price,
         createdAt: product.created_at,
@@ -173,12 +156,10 @@ function formatProduct(row: any) {
     description: row.description,
     price: row.sale_price || row.price,
     originalPrice: row.price,
-    status: row.status,
     category: row.category,
     images: row.images || [],
-    imageUrl: row.images?.[0]?.url || row.image_url || null,
+    imageUrl: row.images?.[0]?.url || null,
     materials: row.materials,
-    tags: row.tags,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

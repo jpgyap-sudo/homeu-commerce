@@ -1,23 +1,36 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { renderLexical } from '@/lib/renderLexical'
+import { addToQuoteCart } from '@/components/QuoteCart'
+
+interface ProductImage {
+  id?: string
+  url: string
+  alt?: string
+  sort_order?: number
+}
 
 interface Product {
   id: string
   title: string
   slug: string
-  description?: string
+  description?: any
   price?: number
   originalPrice?: number
+  salePrice?: number
+  showPrice?: boolean
+  priceNote?: string
   imageUrl?: string
   category?: { id: string; title: string; slug: string }
-  images?: { id: string; url: string; alt?: string; sort_order?: number }[]
+  images?: ProductImage[]
   materials?: string
-  tags?: string[]
-  status?: string
+  dimensions?: string
+  seoTitle?: string
+  seoDescription?: string
 }
 
 interface RelatedProduct {
@@ -26,339 +39,307 @@ interface RelatedProduct {
   slug: string
   price?: number
   imageUrl?: string
-  category?: { id: string; title: string; slug: string }
+  category?: { title: string; slug: string }
 }
 
 export default function ProductDetailPage() {
   const params = useParams()
+  const router = useRouter()
+  const slug = params?.slug as string
+
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [addedToCart, setAddedToCart] = useState(false)
-  const [relatedProducts, setRelatedProducts] = useState<RelatedProduct[]>([])
-  const [relatedLoading, setRelatedLoading] = useState(false)
+  const [related, setRelated] = useState<RelatedProduct[]>([])
 
   useEffect(() => {
-    async function loadProduct() {
-      try {
-        const slug = params?.slug
-        if (!slug) throw new Error('Product not found')
+    if (!slug) return
+    setLoading(true)
+    setError('')
+    setSelectedImage(0)
+    setAddedToCart(false)
 
-        const res = await fetch(`/api/products/${slug}`)
-        if (!res.ok) {
-          if (res.status === 404) throw new Error('Product not found')
-          throw new Error('Failed to load product')
-        }
-
-        const data: Product = await res.json()
+    fetch(`/api/products/${slug}`)
+      .then(res => {
+        if (res.status === 404) throw new Error('Product not found')
+        if (!res.ok) throw new Error('Failed to load product')
+        return res.json()
+      })
+      .then((data: Product) => {
         setProduct(data)
-      } catch (err: any) {
-        setError(err.message || 'Failed to load product')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadProduct()
-  }, [params?.slug])
-
-  // Load related products once product data is available
-  useEffect(() => {
-    const currentProduct = product
-    if (!currentProduct) return
-
-    async function loadRelated() {
-      setRelatedLoading(true)
-      try {
-        const res = await fetch('/api/products/recommend', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: currentProduct!.title,
-            limit: 4,
-          }),
-        })
-        if (res.ok) {
-          const data = await res.json()
-          const recs = (data.recommendations || [])
-            .filter((r: any) => r.productId !== currentProduct!.id)
-            .slice(0, 4)
-          // Fetch full product data for each recommendation
-          if (recs.length > 0) {
-            const fetched = await Promise.all(
-              recs.map(async (r: any) => {
-                try {
-                  const pr = await fetch(`/api/products/${r.productId}`)
-                  if (pr.ok) return pr.json()
-                } catch { /* skip */ }
-                return null
-              })
-            )
-            setRelatedProducts(fetched.filter(Boolean))
-          }
+        // Load related products from same category
+        if (data.category?.slug) {
+          fetch(`/api/products?category=${data.category.slug}&limit=5`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => {
+              if (d?.docs) {
+                setRelated(d.docs.filter((p: any) => p.slug !== slug).slice(0, 4))
+              }
+            })
+            .catch(() => {})
         }
-      } catch {
-        // Related products are optional
-      } finally {
-        setRelatedLoading(false)
-      }
-    }
-
-    loadRelated()
-  }, [product])
+      })
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false))
+  }, [slug])
 
   function handleAddToCart() {
     if (!product) return
-
-    try {
-      const existing = JSON.parse(localStorage.getItem('homeu_quote_cart') || '[]')
-      const existingIds = new Set(existing.map((i: any) => i.productId))
-      if (!existingIds.has(product.id)) {
-        existing.push({
-          productId: product.id,
-          title: product.title,
-          slug: product.slug,
-          price: product.price,
-          imageUrl: product.imageUrl,
-          quantity,
-        })
-        localStorage.setItem('homeu_quote_cart', JSON.stringify(existing))
-      }
-      setAddedToCart(true)
-      // Dispatch custom event for cart badge update
-      window.dispatchEvent(new CustomEvent('homeu_quote_cart_changed'))
-    } catch {
-      // localStorage not available
-    }
+    addToQuoteCart({
+      productId: product.id,
+      title: product.title,
+      slug: product.slug,
+      price: product.price,
+      imageUrl: product.imageUrl || product.images?.[0]?.url,
+      quantity,
+    })
+    setAddedToCart(true)
+    window.dispatchEvent(new CustomEvent('homeu_quote_cart_changed'))
   }
 
+  // ── Loading ────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <main className="product-detail-shell">
-        <div className="detail-loading">
-          <div className="detail-loading-image" />
-          <div className="detail-loading-info">
-            <div className="skeleton-line" />
-            <div className="skeleton-line medium" />
-            <div className="skeleton-line small" />
-            <div className="skeleton-line small" />
-            <div className="skeleton-line small" />
-            <div style={{ height: 24 }} />
-            <div className="skeleton-line" style={{ width: 200 }} />
+      <div className="page-width" style={{ padding: '40px 24px' }}>
+        <div className="product-detail-loading">
+          <div className="product-detail-loading__gallery" />
+          <div className="product-detail-loading__info">
+            {[180, 120, 80, 80, 200].map((w, i) => (
+              <div key={i} className="skeleton-line" style={{ width: w, marginBottom: 16 }} />
+            ))}
           </div>
         </div>
-        <p style={{ textAlign: 'center', color: 'var(--muted)', marginTop: 20 }}>
-          Loading product...
-        </p>
-      </main>
+      </div>
     )
   }
 
+  // ── Error ──────────────────────────────────────────────────────────
   if (error || !product) {
     return (
-      <main className="product-detail-shell">
-        <div className="products-empty">
-          <p>{error || 'Product not found'}</p>
-          <p className="sub">
-            The product you're looking for may have been removed or is not yet available.
-          </p>
-          <Link href="/products" style={{
-            display: 'inline-block',
-            padding: '10px 24px',
-            background: 'var(--brand)',
-            color: '#fff',
-            borderRadius: 8,
-            textDecoration: 'none',
-            fontSize: 14,
-            fontWeight: 700,
-          }}>
-            &larr; Browse Products
-          </Link>
-        </div>
-      </main>
+      <div className="page-width" style={{ padding: '80px 24px', textAlign: 'center' }}>
+        <h1 style={{ fontFamily: 'var(--debut-font-heading)', fontSize: 32, marginBottom: 16 }}>
+          {error || 'Product not found'}
+        </h1>
+        <Link href="/products" className="btn btn--primary">Browse Products</Link>
+      </div>
     )
   }
 
-  const images = product.images?.length
+  const images: ProductImage[] = product.images?.length
     ? product.images
-    : (product.imageUrl ? [{ url: product.imageUrl }] : [])
-  const currentImage = images[selectedImage]
+    : product.imageUrl ? [{ url: product.imageUrl }] : []
+  const activeImg = images[selectedImage]
 
+  const descHtml = product.description
+    ? renderLexical(
+        typeof product.description === 'string'
+          ? product.description
+          : JSON.stringify(product.description)
+      )
+    : ''
+
+  // ── Detail layout ──────────────────────────────────────────────────
   return (
-    <main className="product-detail-shell">
+    <>
       {/* Breadcrumb */}
-      <div className="product-breadcrumb">
-        <Link href="/">Home</Link>
-        <span className="product-breadcrumb-sep">/</span>
-        <Link href="/products">Products</Link>
-        <span className="product-breadcrumb-sep">/</span>
-        <span className="product-breadcrumb-current">{product.title}</span>
-      </div>
+      <nav className="breadcrumb page-width" aria-label="Breadcrumb">
+        <ol className="breadcrumb__list">
+          <li><Link href="/">Home</Link></li>
+          <li aria-hidden>/</li>
+          {product.category && (
+            <>
+              <li>
+                <Link href={`/products?category=${product.category.slug}`}>
+                  {product.category.title}
+                </Link>
+              </li>
+              <li aria-hidden>/</li>
+            </>
+          )}
+          <li aria-current="page">{product.title}</li>
+        </ol>
+      </nav>
 
-      {/* Product Detail */}
-      <div className="product-detail-layout">
-        {/* Image Gallery */}
-        <div>
-          <div
-            className="product-detail-image"
-            style={currentImage?.url ? {
-              background: `url(${currentImage.url}) center/cover`,
-            } : undefined}
-          >
-            {!currentImage?.url && 'No image available'}
+      {/* Main layout */}
+      <div className="page-width product-detail">
+        {/* Gallery */}
+        <div className="product-detail__gallery">
+          <div className="product-detail__main-image">
+            {activeImg?.url ? (
+              <Image
+                src={activeImg.url}
+                alt={activeImg.alt || product.title}
+                fill
+                style={{ objectFit: 'contain' }}
+                sizes="(max-width: 768px) 100vw, 50vw"
+                unoptimized
+                priority
+              />
+            ) : (
+              <div className="product-detail__no-image">No image available</div>
+            )}
           </div>
 
-          {/* Thumbnails */}
           {images.length > 1 && (
-            <div className="product-thumbnails">
+            <div className="product-detail__thumbnails">
               {images.map((img, idx) => (
                 <button
                   key={idx}
                   onClick={() => setSelectedImage(idx)}
-                  className={`product-thumbnail${idx === selectedImage ? ' active' : ''}`}
-                  style={img.url ? {
-                    background: `url(${img.url}) center/cover`,
-                  } : undefined}
+                  className={`product-detail__thumb${idx === selectedImage ? ' active' : ''}`}
                   aria-label={`View image ${idx + 1}`}
-                />
+                >
+                  <Image
+                    src={img.url}
+                    alt={img.alt || `${product.title} ${idx + 1}`}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    sizes="80px"
+                    unoptimized
+                  />
+                </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Product Info */}
-        <div>
+        {/* Info panel */}
+        <div className="product-detail__info">
           {product.category && (
-            <p className="product-detail-category">{product.category.title}</p>
-          )}
-
-          <h1 className="product-detail-title">{product.title}</h1>
-
-          {product.price != null && (
-            <p className="product-detail-price">
-              ₱{product.price.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-              {product.originalPrice && product.originalPrice > product.price && (
-                <span style={{
-                  fontSize: 18,
-                  color: 'var(--muted)',
-                  fontWeight: 400,
-                  textDecoration: 'line-through',
-                  marginLeft: 12,
-                }}>
-                  ₱{product.originalPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-                </span>
-              )}
+            <p className="product-detail__vendor">
+              <Link href={`/products?category=${product.category.slug}`}>
+                {product.category.title}
+              </Link>
             </p>
           )}
 
-          {/* Description */}
-          {product.description && (
-            <div
-              className="product-detail-description"
-              dangerouslySetInnerHTML={{ __html: renderLexical(product.description) }}
-            />
-          )}
+          <h1 className="product-detail__title">{product.title}</h1>
 
-          {/* Materials */}
-          {product.materials && (
-            <div className="product-detail-materials">
-              <strong>Materials:</strong>{' '}
-              <span>{product.materials}</span>
+          {/* Price */}
+          {product.showPrice !== false && product.price != null && (
+            <div className="product-detail__price">
+              <span className="product-detail__price-current">
+                ₱{product.price.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+              </span>
+              {product.originalPrice && product.originalPrice > product.price && (
+                <span className="product-detail__price-compare">
+                  ₱{product.originalPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                </span>
+              )}
             </div>
           )}
-
-          {/* Tags */}
-          {product.tags && product.tags.length > 0 && (
-            <div className="product-detail-tags">
-              {product.tags.map((tag, i) => (
-                <span key={i} className="product-tag">{tag}</span>
-              ))}
-            </div>
+          {product.priceNote && (
+            <p className="product-detail__price-note">{product.priceNote}</p>
           )}
 
-          {/* Price disclaimer */}
-          <p className="product-detail-disclaimer">
-            * Prices shown are for reference only and may vary. Contact our sales team for a formal quotation.
-          </p>
-
-          {/* Actions */}
-          <div className="product-detail-actions">
-            {/* Quantity Selector */}
-            <div className="product-qty-selector">
+          {/* Add to Quote */}
+          <div className="product-detail__form">
+            <div className="product-detail__qty">
               <button
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
                 aria-label="Decrease quantity"
-              >
-                &minus;
-              </button>
+              >−</button>
               <span>{quantity}</span>
               <button
                 onClick={() => setQuantity(q => Math.min(99, q + 1))}
                 aria-label="Increase quantity"
-              >
-                +
-              </button>
+              >+</button>
             </div>
 
             {addedToCart ? (
-              <Link href="/quote-cart" className="product-detail-action-btn primary">
-                View RFQ Cart &rarr;
+              <Link href="/quote-cart" className="btn btn--primary product-detail__cta">
+                View RFQ Cart →
               </Link>
             ) : (
-              <button
-                onClick={handleAddToCart}
-                className="product-detail-action-btn primary"
-              >
+              <button onClick={handleAddToCart} className="btn btn--primary product-detail__cta">
                 Add to RFQ Cart
               </button>
             )}
           </div>
+
+          <p className="product-detail__disclaimer">
+            Prices shown are reference only and may vary. The HomeU team will confirm final pricing in your formal quotation.
+          </p>
+
+          {/* Meta */}
+          {(product.materials || product.dimensions) && (
+            <div className="product-detail__meta">
+              {product.materials && (
+                <div className="product-detail__meta-row">
+                  <span className="product-detail__meta-label">Materials</span>
+                  <span>{product.materials}</span>
+                </div>
+              )}
+              {product.dimensions && (
+                <div className="product-detail__meta-row">
+                  <span className="product-detail__meta-label">Dimensions</span>
+                  <span>{product.dimensions}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Description */}
+          {descHtml && (
+            <div
+              className="product-detail__description rte"
+              dangerouslySetInnerHTML={{ __html: descHtml }}
+            />
+          )}
         </div>
       </div>
 
       {/* Related Products */}
-      {relatedProducts.length > 0 && (
-        <section className="related-section">
-          <h2>You May Also Like</h2>
-          <div className="products-grid">
-            {relatedProducts.map(rp => (
-              <Link
-                key={rp.id}
-                href={`/products/${rp.slug}`}
-                className="product-card"
-              >
-                <div
-                  className="product-card-image"
-                  style={rp.imageUrl ? {
-                    background: `url(${rp.imageUrl}) center/cover`,
-                  } : undefined}
-                >
-                  {!rp.imageUrl && 'No image'}
-                </div>
-                <div className="product-card-body">
-                  <h3>{rp.title}</h3>
-                  {rp.category && (
-                    <p className="product-card-category">{rp.category.title}</p>
-                  )}
-                  {rp.price != null && (
-                    <p className="product-card-price">
-                      ₱{rp.price.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            ))}
+      {related.length > 0 && (
+        <section className="index-section page-width">
+          <div className="section-header">
+            <h2 className="section-header__title h2">
+              More from {product.category?.title || 'our collection'}
+            </h2>
           </div>
+          <ul className="grid grid--uniform product-grid" style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24 }}>
+            {related.map(rp => (
+              <li key={rp.id}>
+                <div className="grid-product">
+                  <Link href={`/products/${rp.slug}`} className="grid-product__link">
+                    <div className="grid-product__image-wrap">
+                      {rp.imageUrl ? (
+                        <Image
+                          src={rp.imageUrl}
+                          alt={rp.title}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                          sizes="(max-width: 768px) 50vw, 25vw"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="grid-product__image-placeholder" />
+                      )}
+                    </div>
+                    <div className="grid-product__meta">
+                      <p className="grid-product__title">{rp.title}</p>
+                      {rp.price != null && (
+                        <p className="grid-product__price">
+                          ₱{rp.price.toLocaleString('en-PH', { minimumFractionDigits: 0 })}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
-      {/* Footer */}
-      <div className="product-detail-footer">
-        <Link href="/products">&larr; Back to Products</Link>
-        <Link href="/quote-cart">View RFQ Cart &rarr;</Link>
+      {/* Footer nav */}
+      <div className="page-width product-detail__nav">
+        <Link href="/products">← Back to Products</Link>
+        <Link href="/quote-cart">View RFQ Cart →</Link>
       </div>
-    </main>
+    </>
   )
 }

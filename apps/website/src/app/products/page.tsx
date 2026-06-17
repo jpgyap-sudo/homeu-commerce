@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 interface Product {
@@ -13,7 +14,6 @@ interface Product {
   imageUrl?: string
   category?: { id: string; title: string; slug: string }
   materials?: string
-  tags?: string[]
 }
 
 interface Category {
@@ -34,19 +34,21 @@ const SORT_OPTIONS = [
 
 const PAGE_SIZE = 24
 
-export default function ProductsPage() {
+function ProductsContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '')
   const [sortBy, setSortBy] = useState('title ASC')
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  // Use refs so loadProducts always reads the latest values without stale closures
   const searchRef = useRef(searchTerm)
   const categoryRef = useRef(selectedCategory)
   const sortRef = useRef(sortBy)
@@ -62,6 +64,15 @@ export default function ProductsPage() {
   useEffect(() => {
     loadCategories()
   }, [])
+
+  // Sync category from URL param when it changes (e.g. nav link click)
+  useEffect(() => {
+    const urlCat = searchParams.get('category') || ''
+    if (urlCat !== selectedCategory) {
+      setSelectedCategory(urlCat)
+      setPage(0)
+    }
+  }, [searchParams])
 
   async function loadProducts() {
     setLoading(true)
@@ -94,20 +105,23 @@ export default function ProductsPage() {
         setCategories(data.docs || [])
       }
     } catch {
-      // Categories are optional
+      // Categories are optional for UI
     }
   }
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     setPage(0)
-    // loadProducts reads from refs so it always gets the latest searchTerm
     loadProducts()
   }
 
   function handleCategoryChange(value: string) {
     setSelectedCategory(value)
     setPage(0)
+    // Reflect in URL so nav links stay in sync
+    const params = new URLSearchParams()
+    if (value) params.set('category', value)
+    router.replace(value ? `/products?category=${value}` : '/products', { scroll: false })
   }
 
   function handleSortChange(value: string) {
@@ -117,12 +131,9 @@ export default function ProductsPage() {
 
   function handlePageChange(newPage: number) {
     setPage(newPage)
-    // Scroll to top of grid on page change
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // Re-fetch whenever a filter/page changes (after state settles)
-  // Using a fetchKey counter to avoid stale closure issues
   const [fetchKey, setFetchKey] = useState(0)
 
   useEffect(() => {
@@ -133,18 +144,21 @@ export default function ProductsPage() {
     setFetchKey(k => k + 1)
   }, [page, selectedCategory, sortBy])
 
-  // Also fetch on mount
   useEffect(() => {
     loadProducts()
   }, [])
+
+  const activeCategoryTitle = categories.find(c => c.slug === selectedCategory)?.title
 
   return (
     <main className="products-shell">
       {/* Header */}
       <div className="products-hero">
-        <h1>Our Products</h1>
+        <h1>{activeCategoryTitle || 'Our Products'}</h1>
         <p>
-          Browse our collection of furniture and home essentials.
+          {activeCategoryTitle
+            ? `Browsing ${activeCategoryTitle}.`
+            : 'Browse our collection of furniture and home essentials.'}
           {total > 0 && (
             <span> Showing {products.length} of {total} products.</span>
           )}
@@ -171,7 +185,7 @@ export default function ProductsPage() {
         >
           <option value="">All Categories</option>
           {categories.map(cat => (
-            <option key={cat.id} value={cat.title}>{cat.title}</option>
+            <option key={cat.id} value={cat.slug}>{cat.title}</option>
           ))}
         </select>
 
@@ -218,7 +232,7 @@ export default function ProductsPage() {
             <button
               onClick={() => {
                 setSearchTerm('')
-                setSelectedCategory('')
+                handleCategoryChange('')
                 setSortBy('title ASC')
                 setPage(0)
                 if (searchInputRef.current) searchInputRef.current.focus()
@@ -240,7 +254,6 @@ export default function ProductsPage() {
                 href={`/products/${product.slug}`}
                 className="product-card"
               >
-                {/* Image */}
                 <div
                   className="product-card-image"
                   style={product.imageUrl ? {
@@ -250,7 +263,6 @@ export default function ProductsPage() {
                   {!product.imageUrl && 'No image'}
                 </div>
 
-                {/* Info */}
                 <div className="product-card-body">
                   <h3>{product.title}</h3>
                   {product.category && (
@@ -274,23 +286,13 @@ export default function ProductsPage() {
             ))}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="products-pagination">
-              <button
-                disabled={page === 0}
-                onClick={() => handlePageChange(page - 1)}
-              >
+              <button disabled={page === 0} onClick={() => handlePageChange(page - 1)}>
                 &larr; Previous
               </button>
-              <span>
-                Page {page + 1} of {totalPages}
-                &nbsp;({total} products)
-              </span>
-              <button
-                disabled={page >= totalPages - 1}
-                onClick={() => handlePageChange(page + 1)}
-              >
+              <span>Page {page + 1} of {totalPages} &nbsp;({total} products)</span>
+              <button disabled={page >= totalPages - 1} onClick={() => handlePageChange(page + 1)}>
                 Next &rarr;
               </button>
             </div>
@@ -298,15 +300,32 @@ export default function ProductsPage() {
         </>
       )}
 
-      {/* Chat prompt */}
       <div className="products-chat-prompt">
-        <p>
-          Can't find what you're looking for? Our design consultants can help.
-        </p>
-        <Link href="/quote-cart">
-          Request a Quotation
-        </Link>
+        <p>Can't find what you're looking for? Our design consultants can help.</p>
+        <Link href="/quote-cart">Request a Quotation</Link>
       </div>
     </main>
+  )
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <main className="products-shell">
+        <div className="products-hero"><h1>Our Products</h1></div>
+        <div className="products-loading">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="skeleton-card">
+              <div className="skeleton-image" />
+              <div className="skeleton-body">
+                <div className="skeleton-line" /><div className="skeleton-line short" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </main>
+    }>
+      <ProductsContent />
+    </Suspense>
   )
 }

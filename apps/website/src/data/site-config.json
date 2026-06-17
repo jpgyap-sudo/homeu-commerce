@@ -1,0 +1,62 @@
+{
+  "name": "HOMEU.PH",
+  "tagline": "Explore modern elegance with latest furniture design trends. We are your source for trendy furniture, unique decor, and bespoke interior solutions.",
+  "domain": "homeu.ph",
+  "myshopifyDomain": "homeu-ph.myshopify.com",
+  "email": "sales@homeu.ph",
+  "phone": "09567758139",
+  "currencyCode": "PHP",
+  "currencySymbol": "₱",
+  "timezone": "Asia/Manila",
+  "address": {
+    "address1": "658 A. Bonifacio Ave, Balintawak, Quezon City, 1106 Metro Manila",
+    "city": "Manila",
+    "country": "Philippines"
+  },
+  "social": {
+    "facebook": "https://www.facebook.com/homeatelierph",
+    "instagram": "https://www.instagram.com/homeatelierph",
+    "pinterest": "https://www.pinterest.ph/modern_interior_8/",
+    "youtube": "https://www.youtube.com/channel/UCfXNTc7j8Ht-k0BeLTaDH7Q"
+  },
+  "logo": {
+    "shopifyUrl": "https://cdn.shopify.com/s/files/1/0559/7377/3476/shop_images/HomeU_Combination_Logo_B_W_1.png",
+    "maxWidth": 200,
+    "align": "center"
+  },
+  "favicon": {
+    "shopifyUrl": "https://cdn.shopify.com/s/files/1/0559/7377/3476/shop_images/FAVICON.png"
+  },
+  "theme": {
+    "fonts": {
+      "heading": "Crimson Text",
+      "headingWeight": 400,
+      "body": "Cardo",
+      "bodyWeight": 400,
+      "headingBaseSize": 29
+    },
+    "colors": {
+      "colorText": "#3a3a3a",
+      "colorBodyText": "#333232",
+      "colorBodyBg": "#ffffff",
+      "colorButton": "#3a3a3a",
+      "colorButtonText": "#ffffff",
+      "colorSmallButtonTextBorder": "#3a3a3a",
+      "colorSaleText": "#EA0606",
+      "colorBorders": "#ebebeb",
+      "colorTextFieldText": "#000000",
+      "colorTextField": "#ffffff",
+      "colorTextFieldBorder": "#cccccc",
+      "colorImageOverlay": "#685858",
+      "colorImageOverlayText": "#ffffff",
+      "headerBg": "#3a3a3a",
+      "headerText": "#ffffff",
+      "footerBg": "#f6f6f6",
+      "footerText": "#333232"
+    }
+  },
+  "shopHours": {
+    "weekdays": "Monday to Saturday 10am–6pm",
+    "sunday": "1pm–6pm"
+  }
+}

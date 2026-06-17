@@ -3,19 +3,24 @@ import '../components/chat/chat.css'
 import { headers } from 'next/headers'
 import { QuoteCartBadge } from '@/components/QuoteCart'
 import { ChatWidget } from '@/components/chat/ChatWidget'
+import { SiteHeader } from '@/components/SiteHeader'
+import { SiteFooter } from '@/components/SiteFooter'
+import siteConfig from '@/data/site-config.json'
 
-/**
- * HomeU Root Layout
- *
- * Renders the storefront for non-admin domains.
- * For admin.homeu.ph / admin.homeatelier.ph, the layout
- * is minimal since the admin pages have their own layout.
- */
+export const metadata = {
+  title: {
+    default: siteConfig.name,
+    template: `%s | ${siteConfig.name}`,
+  },
+  description: siteConfig.tagline,
+  metadataBase: new URL(`https://${siteConfig.domain}`),
+}
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers()
   const host = headersList.get('host') || ''
 
-  // Admin domains: just pass children through (admin pages have their own layout)
+  // Admin domains: minimal pass-through (admin pages have their own layout)
   if (host.startsWith('admin.')) {
     return (
       <html lang="en" data-theme="light">
@@ -24,19 +29,32 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     )
   }
 
-  // Storefront: full layout with header, nav, chat
+  // Storefront: full Debut-themed layout
   return (
     <html lang="en">
+      <head>
+        {/* Debut compiled theme CSS — same CSS classes as the live Shopify store */}
+        <link rel="stylesheet" href="/debut-theme.css" />
+        {/* RSS autodiscovery */}
+        <link rel="alternate" type="application/rss+xml" title="HomeU Journal" href="/feed.xml" />
+        {/* Judge.me review widgets — add PUBLIC_TOKEN from judge.me dashboard → Settings → API */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.jdgm = window.jdgm || {}; window.jdgm.SHOP_DOMAIN = 'homeu-ph.myshopify.com'; window.jdgm.PUBLIC_TOKEN = '';`,
+          }}
+        />
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="https://cdn.judge.me/widget.js" async={true}></script>
+      </head>
       <body>
-        <header className="site-header">
-          <a className="site-logo" href="/">HOMEU.PH</a>
-          <nav aria-label="Storefront navigation">
-            <a href="/products">Products</a>
-            <a href="/customer/dashboard">My RFQs</a>
-            <QuoteCartBadge />
-          </nav>
-        </header>
-        {children}
+        <SiteHeader />
+        <main id="MainContent" className="content-for-layout" role="main" tabIndex={-1}>
+          {children}
+        </main>
+        <SiteFooter />
+        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 999 }}>
+          <QuoteCartBadge />
+        </div>
         <ChatWidget />
       </body>
     </html>

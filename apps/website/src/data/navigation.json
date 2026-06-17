@@ -1,0 +1,132 @@
+{
+  "_comment": "Auto-generated from Shopify menus. href = HomeU Next.js route. originalUrl = Shopify URL.",
+  "main": [
+    {
+      "title": "Home",
+      "href": "/",
+      "originalUrl": "/",
+      "type": "FRONTPAGE",
+      "children": []
+    },
+    {
+      "title": "Quick Delivery",
+      "href": "/products?tag=quick-delivery",
+      "originalUrl": "/collections/fast-delivery/diningchair+diningtable",
+      "type": "COLLECTION",
+      "children": [
+        { "title": "Lighting", "href": "/products?category=lighting-on-stock", "originalUrl": "/collections/lighting-on-stock", "type": "COLLECTION", "children": [] },
+        { "title": "Furniture", "href": "/products?category=furniture", "originalUrl": "/collections/furniture-onsticj", "type": "COLLECTION", "children": [] },
+        { "title": "Stone", "href": "/products?category=stone-onstock", "originalUrl": "/collections/stone-onstock", "type": "COLLECTION", "children": [] },
+        { "title": "Decor", "href": "/products?category=decor-onstock", "originalUrl": "/collections/decor-onstock", "type": "COLLECTION", "children": [] },
+        { "title": "Ceiling Fan", "href": "/products?category=ceiling-fan-onstock", "originalUrl": "/collections/ceiling-fan-onstock", "type": "COLLECTION", "children": [] },
+        { "title": "Wall Panel", "href": "/products?category=wall-panels", "originalUrl": "/collections/panel-onstock", "type": "COLLECTION", "children": [] },
+        { "title": "Rugs", "href": "/products?category=carpet", "originalUrl": "/collections/carpet", "type": "COLLECTION", "children": [] }
+      ]
+    },
+    {
+      "title": "Wall Panels",
+      "href": "/pages/wall-panels",
+      "originalUrl": "/pages/wall-panels",
+      "type": "PAGE",
+      "children": [
+        { "title": "Slat (Fluted) Wall Panel", "href": "/products?category=wpc-wall-panel-grille-series", "originalUrl": "/collections/wpc-wall-panel-grille-series", "type": "COLLECTION", "children": [] },
+        { "title": "Solid Wood Slat Panel", "href": "/products/solid-wood-slat-fluted-wall-panel", "originalUrl": "/products/solid-wood-slat-fluted-wall-panel", "type": "PRODUCT", "children": [] },
+        { "title": "Profile Accessories", "href": "/products/copy-of-wpc-profile-accessories", "originalUrl": "/products/copy-of-wpc-profile-accessories", "type": "PRODUCT", "children": [] }
+      ]
+    },
+    {
+      "title": "Lighting | Ceiling Fan",
+      "href": "/products?category=lighting",
+      "originalUrl": "/collections/lighting",
+      "type": "COLLECTION",
+      "children": [
+        { "title": "Ceiling Fan", "href": "/products?category=fan", "originalUrl": "/collections/fan", "type": "COLLECTION", "children": [] },
+        { "title": "Table Lamp", "href": "/products?category=table-lamp", "originalUrl": "/collections/table-lamp", "type": "COLLECTION", "children": [] },
+        { "title": "Pendant Light", "href": "/products?category=pendant-light", "originalUrl": "/collections/pendant-light", "type": "COLLECTION", "children": [] },
+        { "title": "Ceiling Mounted Light", "href": "/products?category=surface-mounted-light", "originalUrl": "/collections/surface-mounted-light", "type": "COLLECTION", "children": [] },
+        { "title": "Floor Lamp", "href": "/products?category=floor-lamp", "originalUrl": "/collections/floor-lamp", "type": "COLLECTION", "children": [] },
+        { "title": "Wall Light", "href": "/products?category=wall-light", "originalUrl": "/collections/wall-light", "type": "COLLECTION", "children": [] }
+      ]
+    },
+    {
+      "title": "Furniture",
+      "href": "/products?category=furniture",
+      "originalUrl": "/collections/furniture",
+      "type": "COLLECTION",
+      "children": [
+        { "title": "Armchair", "href": "/products?category=armchair", "originalUrl": "/collections/armchair", "type": "COLLECTION", "children": [] },
+        { "title": "Coffee Table", "href": "/products?category=center-table", "originalUrl": "/collections/center-table", "type": "COLLECTION", "children": [] },
+        { "title": "Side Table", "href": "/products?category=side-table", "originalUrl": "/collections/side-table", "type": "COLLECTION", "children": [] },
+        { "title": "Sofa", "href": "/products?category=sofa", "originalUrl": "/collections/sofa", "type": "COLLECTION", "children": [] },
+        { "title": "Ottoman & Pouf", "href": "/products?category=ottoman-pouf", "originalUrl": "/collections/ottoman-pouf", "type": "COLLECTION", "children": [] },
+        { "title": "Dining Table", "href": "/products?category=dining-table", "originalUrl": "/collections/dining-table", "type": "COLLECTION", "children": [] },
+        { "title": "Dining Chair", "href": "/products?category=dining-chair", "originalUrl": "/collections/dining-chair", "type": "COLLECTION", "children": [] },
+        { "title": "Bar Stool", "href": "/products?category=stools", "originalUrl": "/collections/stools", "type": "COLLECTION", "children": [] },
+        { "title": "Sideboard", "href": "/products?category=sideboard", "originalUrl": "/collections/sideboard", "type": "COLLECTION", "children": [] },
+        { "title": "Night Stand", "href": "/products?category=nightstand-tvcabinet", "originalUrl": "/collections/nightstand-tvcabinet", "type": "COLLECTION", "children": [] },
+        { "title": "Console Table", "href": "/products?category=console-table", "originalUrl": "/collections/console-table", "type": "COLLECTION", "children": [] },
+        { "title": "Decor", "href": "/products?category=decor", "originalUrl": "/collections/decor", "type": "COLLECTION", "children": [] },
+        { "title": "Beds & Bed Benches", "href": "/products?category=bed", "originalUrl": "/collections/bed", "type": "COLLECTION", "children": [] }
+      ]
+    },
+    {
+      "title": "Rugs",
+      "href": "/products?category=carpet",
+      "originalUrl": "/collections/carpet",
+      "type": "COLLECTION",
+      "children": []
+    },
+    {
+      "title": "Stone Options",
+      "href": "/products?category=stone",
+      "originalUrl": "/collections/veratti-sinteredstone",
+      "type": "COLLECTION",
+      "children": [
+        { "title": "Sintered Stone", "href": "/products?category=sintered-stone", "originalUrl": "/collections/sintered-stone", "type": "COLLECTION", "children": [] },
+        { "title": "Natural Stone", "href": "/products?category=natural-stone", "originalUrl": "/collections/natural-stone", "type": "COLLECTION", "children": [] }
+      ]
+    },
+    {
+      "title": "Finish Materials",
+      "href": "#",
+      "originalUrl": "#",
+      "type": "HTTP",
+      "children": [
+        { "title": "Linen", "href": "/products?category=fabric-swatches-linen", "originalUrl": "/collections/fabric-swatches-linen", "type": "COLLECTION", "children": [] },
+        { "title": "Velvet", "href": "/products?category=fabric-swatches-velvet", "originalUrl": "/collections/fabric-swatches-velvet", "type": "COLLECTION", "children": [] },
+        { "title": "Technical Cloth", "href": "/products?category=swatches-tech-cloth", "originalUrl": "/collections/swatches-tech-cloth", "type": "COLLECTION", "children": [] },
+        { "title": "Genuine Leather", "href": "/products?category=fabric-swatches-leather", "originalUrl": "/collections/fabric-swatches-leather", "type": "COLLECTION", "children": [] },
+        { "title": "Leatherette", "href": "/products?category=fabric-swatches-leatherette", "originalUrl": "/collections/fabric-swatches-leatherette", "type": "COLLECTION", "children": [] }
+      ]
+    },
+    {
+      "title": "Designer Club",
+      "href": "/pages/designerclub",
+      "originalUrl": "/pages/designerclub",
+      "type": "PAGE",
+      "children": []
+    },
+    {
+      "title": "Design Trends",
+      "href": "/blog",
+      "originalUrl": "/blogs/design-trends",
+      "type": "BLOG",
+      "children": []
+    }
+  ],
+  "footer": [
+    { "title": "Search", "href": "/products", "originalUrl": "/search", "type": "SEARCH", "children": [] },
+    { "title": "Blog", "href": "/blog", "originalUrl": "/blogs/news", "type": "BLOG", "children": [] },
+    { "title": "Terms of Service", "href": "/pages/terms-of-service", "originalUrl": "/policies/terms-of-service", "type": "POLICY", "children": [] },
+    { "title": "Refund Policy", "href": "/pages/refund-policy", "originalUrl": "/policies/refund-policy", "type": "POLICY", "children": [] },
+    { "title": "Contact Us", "href": "/pages/contact-us", "originalUrl": "/pages/contact-us", "type": "PAGE", "children": [] },
+    { "title": "3D Showroom", "href": "/pages/3d-showroom", "originalUrl": "/pages/3d-showroom", "type": "PAGE", "children": [] },
+    { "title": "About Us", "href": "/pages/modern-furniture-specialist", "originalUrl": "/pages/modern-furniture-specialist", "type": "PAGE", "children": [] },
+    { "title": "Reviews", "href": "/pages/furnituremanila", "originalUrl": "/pages/furnituremanila", "type": "PAGE", "children": [] },
+    { "title": "Design Trends", "href": "/blog", "originalUrl": "/blogs/design-trends", "type": "BLOG", "children": [] },
+    { "title": "Careers", "href": "/pages/careers", "originalUrl": "/pages/careers", "type": "PAGE", "children": [] },
+    { "title": "Moodboard", "href": "/blog/moodboards", "originalUrl": "/blogs/interior-design-moodboards", "type": "BLOG", "children": [] },
+    { "title": "FAQs", "href": "/pages/faqs-commonly-asked-question", "originalUrl": "/pages/faqs-commonly-asked-question", "type": "PAGE", "children": [] },
+    { "title": "Order Instructions", "href": "/pages/how-to-order", "originalUrl": "/pages/how-to-order", "type": "PAGE", "children": [] }
+  ]
+}
