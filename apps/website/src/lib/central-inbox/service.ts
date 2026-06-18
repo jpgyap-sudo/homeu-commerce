@@ -29,7 +29,8 @@ export interface UnifiedMessage {
 }
 
 /**
- * Fetch conversations from ALL channels, normalized into unified format.
+ * Fetch conversations from ALL channels, unified format.
+ * Uses parameterized queries — no string interpolation.
  */
 export async function getUnifiedInbox(params: {
   tab?: InboxTab
@@ -41,103 +42,104 @@ export async function getUnifiedInbox(params: {
   const { tab = 'all', search = '', limit = 50, offset = 0 } = params
   const results: UnifiedConversation[] = []
 
-  // ── Website Chat (chatbot schema) ──
+  const searchPattern = search ? `%${search}%` : null
+
+  // ── Website Chat ──
   if (tab === 'all' || tab === 'website') {
     try {
       const { rows } = await query(`
         SELECT
-          c.id::text AS id,
-          'website' AS channel,
-          COALESCE(l.name, c.visitor_name, 'Website Visitor') AS contact_name,
-          COALESCE(l.email, '') AS contact_email,
-          l.mobile AS contact_phone,
-          COALESCE(c.subject, 'Website Chat') AS subject,
+          c.id::text AS "id",
+          'website' AS "channel",
+          COALESCE(l.name, 'Website Visitor') AS "contactName",
+          COALESCE(l.email, '') AS "contactEmail",
+          l.mobile AS "contactPhone",
+          COALESCE(c.current_intent, 'Website Chat') AS "subject",
           COALESCE(
             (SELECT m.content FROM chatbot.messages m
              WHERE m.conversation_id = c.id
              ORDER BY m.created_at DESC LIMIT 1),
             'No messages yet'
-          ) AS last_message,
-          c.last_message_at::text,
+          ) AS "lastMessage",
+          c.last_message_at::text AS "lastMessageAt",
           (SELECT COUNT(*) FROM chatbot.messages m
-           WHERE m.conversation_id = c.id AND m.sender_type = 'visitor' AND m.read_at IS NULL
-          )::int AS unread_count,
-          LOWER(COALESCE(c.status, 'open')) AS status,
-          ARRAY[]::text[] AS tags,
-          l.id::int AS customer_id
+           WHERE m.conversation_id = c.id AND m.sender_type = 'visitor'
+          )::int AS "unreadCount",
+          COALESCE(c.status, 'open') AS "status",
+          ARRAY[]::text[] AS "tags",
+          NULL::int AS "customerId"
         FROM chatbot.conversations c
-        LEFT JOIN chatbot.leads l ON l.id::text = c.lead_id::text
-        WHERE (c.status IS NULL OR c.status NOT IN ('archived'))
-          ${search ? `AND (COALESCE(l.name, c.visitor_name) ILIKE '%${search}%' OR COALESCE(l.email, '') ILIKE '%${search}%' OR COALESCE(c.subject, '') ILIKE '%${search}%')` : ''}
+        LEFT JOIN chatbot.leads l ON l.id = c.lead_id
+        WHERE (c.status IS NULL OR c.status = 'active')
+          ${searchPattern ? `AND (COALESCE(l.name, '') ILIKE $1 OR COALESCE(l.email, '') ILIKE $1 OR COALESCE(c.current_intent, '') ILIKE $1)` : ''}
         ORDER BY c.last_message_at DESC NULLS LAST
         LIMIT ${Math.min(limit, 20)} OFFSET ${offset}
-      `)
+      `, searchPattern ? [searchPattern] : [])
       results.push(...rows)
-    } catch { /* chatbot schema may not exist yet */ }
+    } catch { /* table may not exist */ }
   }
 
-  // ── Email (emails table) ──
+  // ── Email ──
   if (tab === 'all' || tab === 'email') {
     try {
       const { rows } = await query(`
         SELECT
-          e.id::text AS id,
-          'email' AS channel,
-          COALESCE(e.sender_name, e.sender_email, 'Unknown') AS contact_name,
-          e.sender_email AS contact_email,
-          NULL AS contact_phone,
-          e.subject,
-          COALESCE(e.body_text, '') AS last_message,
-          e.received_at::text AS last_message_at,
-          CASE WHEN e.is_read THEN 0 ELSE 1 END::int AS unread_count,
-          LOWER(e.category) AS status,
-          ARRAY[e.category]::text[] AS tags,
-          e.customer_id::int
+          e.id::text AS "id",
+          'email' AS "channel",
+          COALESCE(e.sender_name, e.sender_email, 'Unknown') AS "contactName",
+          e.sender_email AS "contactEmail",
+          NULL AS "contactPhone",
+          e.subject AS "subject",
+          COALESCE(e.body_text, '') AS "lastMessage",
+          e.received_at::text AS "lastMessageAt",
+          CASE WHEN e.is_read THEN 0 ELSE 1 END::int AS "unreadCount",
+          e.category AS "status",
+          ARRAY[e.category]::text[] AS "tags",
+          e.customer_id::int AS "customerId"
         FROM emails e
         WHERE e.folder = 'INBOX'
-          ${search ? `AND (e.subject ILIKE '%${search}%' OR e.sender_name ILIKE '%${search}%' OR e.sender_email ILIKE '%${search}%' OR e.body_text ILIKE '%${search}%')` : ''}
+          ${searchPattern ? `AND (e.subject ILIKE $1 OR e.sender_name ILIKE $1 OR e.sender_email ILIKE $1 OR e.body_text ILIKE $1)` : ''}
         ORDER BY e.received_at DESC
         LIMIT ${Math.min(limit, 20)} OFFSET ${offset}
-      `)
+      `, searchPattern ? [searchPattern] : [])
       results.push(...rows)
     } catch { /* emails table may not exist */ }
   }
 
-  // ── Facebook / Instagram (future — inbox_messages table) ──
+  // ── Facebook / Instagram ──
   if (tab === 'all' || tab === 'facebook' || tab === 'instagram') {
     try {
       const { rows } = await query(`
         SELECT
-          c.id AS id,
-          ch.type AS channel,
-          COALESCE(ct.name, 'User') AS contact_name,
-          COALESCE(ct.email, '') AS contact_email,
-          ct.phone AS contact_phone,
-          COALESCE(c.subject, ch.type || ' Message') AS subject,
+          c.id AS "id",
+          ch.type AS "channel",
+          COALESCE(ct.name, 'User') AS "contactName",
+          COALESCE(ct.email, '') AS "contactEmail",
+          ct.phone AS "contactPhone",
+          COALESCE(c.subject, ch.type || ' Message') AS "subject",
           COALESCE(
             (SELECT m.body FROM inbox_messages m
              WHERE m.conversation_id = c.id
              ORDER BY m.created_at DESC LIMIT 1),
             'No messages yet'
-          ) AS last_message,
-          c.last_message_at::text,
-          0::int AS unread_count,
-          LOWER(COALESCE(c.status, 'open')) AS status,
-          ARRAY[]::text[] AS tags,
-          ct.customer_id::int
+          ) AS "lastMessage",
+          c.last_message_at::text AS "lastMessageAt",
+          0::int AS "unreadCount",
+          COALESCE(c.status, 'open') AS "status",
+          ARRAY[]::text[] AS "tags",
+          ct.customer_id::int AS "customerId"
         FROM inbox_conversations c
         JOIN inbox_channels ch ON ch.id = c.channel_id
         LEFT JOIN inbox_contacts ct ON ct.id = c.contact_id
         WHERE c.status NOT IN ('archived')
-          ${search ? `AND (COALESCE(ct.name,'') ILIKE '%${search}%' OR COALESCE(c.subject,'') ILIKE '%${search}%')` : ''}
+          ${searchPattern ? `AND (COALESCE(ct.name,'') ILIKE $1 OR COALESCE(c.subject,'') ILIKE $1)` : ''}
         ORDER BY c.last_message_at DESC NULLS LAST
         LIMIT ${Math.min(limit, 10)} OFFSET ${offset}
-      `)
+      `, searchPattern ? [searchPattern] : [])
       results.push(...rows)
     } catch { /* inbox tables may not exist */ }
   }
 
-  // Sort all results by last_message_at descending
   results.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime())
 
   return {
@@ -147,7 +149,7 @@ export async function getUnifiedInbox(params: {
 }
 
 /**
- * Fetch messages for a specific conversation across any channel.
+ * Fetch messages for a specific conversation.
  */
 export async function getConversationMessages(conversationId: string, channel: Channel): Promise<UnifiedMessage[]> {
   try {
@@ -175,7 +177,6 @@ export async function getConversationMessages(conversationId: string, channel: C
       return rows
     }
 
-    // Future: inbox_messages for FB/IG
     const { rows } = await query(
       `SELECT id, conversation_id AS "conversationId",
         direction, body, 'facebook' AS channel,
