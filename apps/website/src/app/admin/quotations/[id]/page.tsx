@@ -254,6 +254,20 @@ export default function EditQuotationPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!confirm('Delete this quotation? This cannot be undone.')) return
+    setError('')
+    try {
+      const id = params?.id
+      if (!id) throw new Error('Quotation ID not found')
+      const res = await fetch(`/api/quotations/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete')
+      router.push('/admin/quotations')
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete')
+    }
+  }
+
   if (loading) {
     return (
       <main style={{ maxWidth: 1100, margin: '40px auto', padding: '0 24px', textAlign: 'center' }}>
@@ -317,6 +331,34 @@ export default function EditQuotationPage() {
               📨 Mark as Sent
             </button>
           )}
+          <a
+            href={`/api/admin/quotations/pdf/${quotation?.id}`}
+            style={{
+              padding: '8px 16px',
+              background: '#c9a050',
+              color: '#fff',
+              borderRadius: 6,
+              textDecoration: 'none',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            📄 Download PDF
+          </a>
+          <button
+            onClick={handleDelete}
+            style={{
+              padding: '8px 16px',
+              background: '#fff',
+              color: '#e11d48',
+              border: '1px solid #e11d48',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: 13,
+            }}
+          >
+            🗑️ Delete
+          </button>
         </div>
       </div>
 
