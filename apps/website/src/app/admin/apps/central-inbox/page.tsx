@@ -37,6 +37,8 @@ export default function CentralInboxPage() {
   const [messages, setMessages] = useState<UnifiedMessage[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [replyText, setReplyText] = useState('')
+  const [sending, setSending] = useState(false)
 
   const fetchConversations = useCallback(async () => {
     setLoading(true)
@@ -60,6 +62,17 @@ export default function CentralInboxPage() {
   }
 
   useEffect(() => { fetchConversations() }, [fetchConversations])
+
+  const sendReply = async () => {
+    if (!replyText.trim() || !selected) return
+    setSending(true)
+    const r = await fetch('/api/admin/central-inbox/reply', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: selected.id, channel: selected.channel, body: replyText })
+    })
+    if (r.ok) { setReplyText(''); fetchMessages(selected) }
+    setSending(false)
+  }
 
   return (
     <div>
@@ -202,6 +215,20 @@ export default function CentralInboxPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Reply Form */}
+              <div style={{ padding: 'var(--space-3) var(--space-5)', borderTop: '1px solid var(--luxe-warm-100)' }}>
+                <textarea className="luxe-input" rows={2} placeholder="Type your reply..."
+                  value={replyText} onChange={e => setReplyText(e.target.value)}
+                  style={{ fontSize: 13, marginBottom: 'var(--space-2)', resize: 'vertical' }}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply() } }} />
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button onClick={sendReply} disabled={sending || !replyText.trim()}
+                    className="luxe-btn luxe-btn-gold luxe-btn-sm">
+                    {sending ? '📤 Sending...' : '📤 Reply'}
+                  </button>
+                </div>
               </div>
 
               {/* Quick Actions */}
