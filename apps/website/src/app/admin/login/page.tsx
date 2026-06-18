@@ -19,7 +19,7 @@ export default async function AdminLoginPage() {
           {/* DaVinciOS Logo */}
           <div className="admin-login-brand-header">
             <svg
-              className="admin-login-daVinci-logo"
+              className="admin-login-brand-logo"
               width="196"
               height="44"
               viewBox="0 0 196 44"
