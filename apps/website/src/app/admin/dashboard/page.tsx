@@ -211,21 +211,6 @@ function LazyDNACard() {
           ))}
         </div>
       </div>
-      <script dangerouslySetInnerHTML={{ __html: `
-        fetch('/api/admin/product-dna?bottom=1&limit=5')
-          .then(r => r.json())
-          .then(data => {
-            const el = document.getElementById('dna-card-container')
-            if (!el || !data.products) return
-            const p = data.products.slice(0,5)
-            let html = '<div class="luxe-card"><div class="luxe-card-header"><h2 class="luxe-card-title"><span style="margin-right:var(--space-2)">🧬</span> Product DNA Score</h2><span class="luxe-badge info">Avg: '+data.summary.avg+'/100</span></div><div class="luxe-card-body" style="padding:0"><div style="padding:var(--space-4) var(--space-6);font-size:12px;font-weight:600;color:var(--luxe-slate-400);text-transform:uppercase;letter-spacing:0.06em">⚠️ Needs Attention</div>'
-            p.forEach(p => {
-              html += '<div style="padding:var(--space-4) var(--space-6);border-top:1px solid var(--luxe-warm-100);display:flex;gap:var(--space-4);align-items:flex-start"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:'+(p.score>=90?'#c9a050':p.score>=75?'#059669':p.score>=60?'#2563eb':p.score>=40?'#d97706':'#e11d48')+';display:flex;align-items:center;justify-content:center;font-size:14px;font-family:var(--font-display);font-weight:700;color:#fff;flex-shrink:0">'+p.score+'</div><div style="flex:1;min-width:0"><a href=\"/admin/products/'+p.id+'\" style="font-size:13px;font-weight:600;color:var(--luxe-navy-900);text-decoration:none">'+p.title+'</a><div style="font-size:11px;color:var(--luxe-slate-400);margin-top:2px">'+p.slug+'</div>'+ (p.fixes && p.fixes.length ? '<div style="margin-top:var(--space-2);display:flex;gap:var(--space-1);flex-wrap:wrap">'+ p.fixes.slice(0,4).map(f => '<a href=\"/admin/products/'+p.id+'\" style="font-size:10px;padding:1px 7px;border-radius:999px;background:var(--luxe-amber-bg);color:var(--luxe-amber);font-weight:500;text-decoration:none">'+f+'</a>').join('') +'</div>' : '') +'</div></div>'
-            })
-            html += '</div></div>'
-            el.innerHTML = html
-          })
-      `}} />
     </div>
   )
 }

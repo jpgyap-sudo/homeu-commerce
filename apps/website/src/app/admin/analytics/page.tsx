@@ -114,7 +114,7 @@ async function loadAnalytics(): Promise<AnalyticsData> {
       query(`
         SELECT COALESCE(NULLIF(SPLIT_PART(referrer, '/', 3), ''), 'Direct') as source, COUNT(*) as count
         FROM page_views WHERE created_at >= NOW() - INTERVAL '30 days' AND referrer IS NOT NULL AND referrer != ''
-        GROUP BY source ORDER BY count DESC LIMIT 8
+        GROUP BY COALESCE(NULLIF(SPLIT_PART(referrer, '/', 3), ''), 'Direct') ORDER BY count DESC LIMIT 8
       `),
       // Today stats
       query(`

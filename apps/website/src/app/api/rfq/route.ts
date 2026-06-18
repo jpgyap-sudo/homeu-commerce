@@ -81,9 +81,8 @@ export async function GET(request: NextRequest) {
 
     idx++
     const rows = await query(
-      `SELECT r.*, c.name as customer_name, c.email as customer_email, c.phone as customer_phone
+      `SELECT r.*, r.customer_name, r.email, r.phone
        FROM rfq_requests r
-       LEFT JOIN customers c ON r.customer_id = c.id
        ${whereSQL}
        ORDER BY r.created_at DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,

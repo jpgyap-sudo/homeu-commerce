@@ -36,9 +36,8 @@ export async function computeDNAScores(): Promise<{ summary: DNASummary; product
       FROM page_views WHERE path LIKE '/products/%' GROUP BY path
     ) pv ON pv.slug = p.slug
     LEFT JOIN (
-      SELECT rfq_requests_items.product_id, COUNT(DISTINCT rfq_requests.id)::int AS rfq_count
+      SELECT rfq_requests_items.product_id, COUNT(DISTINCT rfq_requests_items._parent_id)::int AS rfq_count
       FROM rfq_requests_items
-      JOIN rfq_requests ON rfq_requests.id = rfq_requests_items.rfq_id
       GROUP BY rfq_requests_items.product_id
     ) rfq ON rfq.product_id = p.id
     LEFT JOIN (
