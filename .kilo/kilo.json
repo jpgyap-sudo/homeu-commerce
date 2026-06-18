@@ -142,6 +142,18 @@
     "instagram-rfq": {
       "description": "Instagram-to-RFQ integration: shoppable tags → RFQ cart → quotation request pipeline. Track Instagram post RFQ conversions and quote rates per post.",
       "file": ".kilo/skill/instagram-rfq/SKILL.md"
+    },
+    "app-builder": {
+      "description": "App Builder Agent core skill: process, architecture rules, app priority list, 15 planned apps with build status",
+      "file": ".kilo/skill/app-builder/SKILL.md"
+    },
+    "app-builder-calculator": {
+      "description": "Calculator Apps: paint, tile, lighting, furniture layout, flooring, wallpaper, blinds, budget — conversion-first UX, product CTAs after results",
+      "file": ".kilo/skill/app-builder/calculator.md"
+    },
+    "app-builder-rfq-cart": {
+      "description": "RFQ Cart App: slide-out cart, product collection, submit quotation request, admin RFQ management with status workflow",
+      "file": ".kilo/skill/app-builder/rfq-cart.md"
     }
   },
   "commands": {
@@ -192,6 +204,10 @@
     "design": {
       "description": "🎨 Invoke the Website Designer Agent for UI/UX improvements: login redesign, admin backend redesign, frontend design system updates, or accessibility fixes.",
       "prompt": "Load the website-designer skill. Invoke the website-designer agent to handle the design task. First read the design resources in design-resources/davincios-design-skills/ for checklists and references. Apply the design philosophy: luxury furniture aesthetic, warm neutrals, generous whitespace, shadcn/ui foundation. Preserve SEO and never auto-publish changes without human review."
+    },
+    "build-app": {
+      "description": "🧩 Build a new Category App for DaVinciOS: scaffold data model, API routes, admin UI, frontend widget, and QA checklist. Usage: /build-app <app-name>",
+      "prompt": "Load the app-builder skill and its sub-skills (app-builder-calculator, app-builder-rfq-cart, etc.). Read agents/app-builder/agent.md for the build workflow. Read agents/app-builder/build-workflow.md for the phased process. Read templates/app-builder/app-spec-template.md for the output format. Then ask the user which app to build and follow the build-new-app workflow."
     }
   }
 }
