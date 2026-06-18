@@ -60,6 +60,10 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           </Link>
 
           <div className="luxe-sidebar-section">Sales</div>
+          <Link href="/admin/apps/email-inbox" className={`luxe-sidebar-link ${isActive('/admin/apps/email-inbox') ? 'active' : ''}`}>
+            <span className="luxe-sidebar-icon">📬</span>
+            Email Inbox
+          </Link>
           <Link href="/admin/quotations" className={`luxe-sidebar-link ${isActive('/admin/quotations') ? 'active' : ''}`}>
             <span className="luxe-sidebar-icon">◎</span>
             Quotations
