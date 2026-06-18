@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
 import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
+import { computeDNAScores } from '@/lib/product-dna'
+import ProductDNACard from '@/components/ProductDNACard'
 
 // ── Types ────────────────────────────────────────────────────────────
 interface DashboardCounts {
@@ -59,6 +61,7 @@ async function loadDashboardData(): Promise<DashboardCounts> {
 }
 
 const getCached = unstable_cache(loadDashboardData, ['admin-dashboard-data'], { revalidate: 60, tags: ['admin-dashboard'] })
+const getCachedDNA = unstable_cache(computeDNAScores, ['admin-dna-scores'], { revalidate: 300, tags: ['admin-dna'] })
 
 // ── Helpers ──────────────────────────────────────────────────────────
 function fmt(n: number): string { return n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n) }
@@ -74,6 +77,7 @@ export default async function AdminDashboardPage() {
 
   const d = await getCached()
   const s = d.scoringSummary
+  const dna = await getCachedDNA()
 
   return (
     <>
@@ -163,81 +167,8 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Catalog Overview */}
-      <div className="luxe-grid-3" style={{ marginTop: 'var(--space-8)' }}>
-        <div className="luxe-card">
-          <div className="luxe-card-header">
-            <h2 className="luxe-card-title">Catalog</h2>
-          </div>
-          <div className="luxe-card-body">
-            {[
-              { label: 'Products', count: d.products, href: '/admin/products', icon: '◆', color: '#c9a050' },
-              { label: 'Categories', count: d.categories, href: '/admin/categories', icon: '◇', color: '#2563eb' },
-              { label: 'Media Files', count: 3164, href: '/admin/media', icon: '◉', color: '#059669' },
-              { label: 'Pages', count: 18, href: '/admin/pages', icon: '◈', color: '#be123c' },
-              { label: 'Redirects', count: d.redirects, href: '/admin/redirects', icon: '◐', color: '#d97706' },
-            ].map(item => (
-              <Link key={item.label} href={item.href} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-3) 0', borderBottom: '1px solid var(--luxe-warm-100)', textDecoration: 'none', color: 'inherit' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                  <span style={{ color: item.color, fontSize: 16 }}>{item.icon}</span>
-                  <span style={{ fontSize: 13, fontWeight: 500 }}>{item.label}</span>
-                </div>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 600, color: 'var(--luxe-navy-900)' }}>{fmt(item.count)}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="luxe-card">
-          <div className="luxe-card-header">
-            <h2 className="luxe-card-title">Quick Actions</h2>
-          </div>
-          <div className="luxe-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            {[
-              { label: 'New Product', href: '/admin/products/new', icon: '◆' },
-              { label: 'New Quotation', href: '/admin/quotations/new', icon: '◎' },
-              { label: 'New Category', href: '/admin/categories/new', icon: '◇' },
-              { label: 'New Customer', href: '/admin/customers/new', icon: '◑' },
-              { label: 'New Page', href: '/admin/pages/new', icon: '◈' },
-            ].map(action => (
-              <Link key={action.label} href={action.href} className="luxe-btn luxe-btn-ghost" style={{ justifyContent: 'flex-start', width: '100%' }}>
-                <span style={{ marginRight: 'var(--space-2)' }}>{action.icon}</span> {action.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* System Status */}
-        <div className="luxe-card">
-          <div className="luxe-card-header">
-            <h2 className="luxe-card-title">System</h2>
-          </div>
-          <div className="luxe-card-body">
-            {[
-              { label: 'Database', status: 'Connected', ok: true },
-              { label: 'CDN (DO Spaces)', status: 'Online', ok: true },
-              { label: 'Ollama AI', status: 'Available', ok: true },
-              { label: 'SSL Certificate', status: 'Valid', ok: true },
-              { label: 'API Status', status: 'Healthy', ok: true },
-            ].map(sys => (
-              <div key={sys.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-3) 0', borderBottom: '1px solid var(--luxe-warm-100)' }}>
-                <span style={{ fontSize: 13, fontWeight: 500 }}>{sys.label}</span>
-                <span className={`luxe-badge ${sys.ok ? 'success' : 'danger'}`}>{sys.ok ? '●' : '○'} {sys.status}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Chatbot Stats */}
-      {d.leads > 0 && (
-        <div className="luxe-grid-3" style={{ marginTop: 'var(--space-8)' }}>
-          <MiniStat icon="◑" iconClass="merlot" value={fmt(d.leads)} label="Total Leads" />
-          <MiniStat icon="◎" iconClass="emerald" value={fmt(d.conversations)} label="Conversations" />
-          <MiniStat icon="◆" iconClass="navy" value={fmt(d.messages)} label="Messages" />
-        </div>
-      )}
+      {/* Product DNA Score */}
+      <ProductDNACard summary={dna.summary} products={dna.products.slice(0, 5)} />
     </>
   )
 }
