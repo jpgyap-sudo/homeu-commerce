@@ -28,6 +28,20 @@ const nextConfig = {
         source: '/sitemap.xml',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=3600' }],
       },
+      {
+        // Cache static assets for 1 year (fingerprinted URLs change on rebuild)
+        source: '/_next/static/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        // Cache fonts for 1 year
+        source: '/fonts/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
     ]
   },
   async redirects() {
