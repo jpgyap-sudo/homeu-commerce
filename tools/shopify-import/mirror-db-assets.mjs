@@ -234,6 +234,35 @@ async function emitSqlCmd() {
   console.log(`Wrote ${out.length - 4} UPDATEs -> ${fp}`)
 }
 
+// Mirror a single arbitrary URL (e.g. the logo) and print its Spaces CDN URL.
+async function mirrorOneCmd(url) {
+  const manifest = loadManifest()
+  if (manifest.urls[url]?.status === 'done') {
+    console.log(manifest.urls[url].cdnUrl)
+    return
+  }
+  const s3 = new S3Client({
+    endpoint: `https://${process.env.DO_SPACES_REGION}.digitaloceanspaces.com`,
+    region: process.env.DO_SPACES_REGION,
+    credentials: { accessKeyId: process.env.DO_SPACES_KEY, secretAccessKey: process.env.DO_SPACES_SECRET },
+    forcePathStyle: false,
+  })
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const buf = Buffer.from(await res.arrayBuffer())
+  const sha256 = crypto.createHash('sha256').update(buf).digest('hex')
+  const ext = extFromUrl(url)
+  const key = `cdn-mirror/${sha256}${ext}`
+  const contentType = res.headers.get('content-type') || 'application/octet-stream'
+  if (!manifest.hashes[sha256]) {
+    await s3.send(new PutObjectCommand({ Bucket: process.env.DO_SPACES_BUCKET, Key: key, Body: buf, ContentType: contentType, ACL: 'public-read' }))
+    manifest.hashes[sha256] = { key, cdnUrl: `${process.env.DO_SPACES_CDN_ENDPOINT}/${key}`, bytes: buf.length }
+  }
+  manifest.urls[url] = { status: 'done', sha256, spacesKey: key, cdnUrl: manifest.hashes[sha256].cdnUrl, bytes: buf.length, contentType }
+  saveManifest(manifest)
+  console.log(manifest.hashes[sha256].cdnUrl)
+}
+
 async function verifyCmd() {
   const pool = newPool()
   const q = async (label, sql) => { const r = await pool.query(sql); return `${label}: ${r.rows[0].n}` }
@@ -253,6 +282,7 @@ async function main() {
   else if (args.includes('--mirror')) await mirrorCmd(execute)
   else if (args.includes('--rewrite')) await rewriteCmd(execute)
   else if (args.includes('--emit-sql')) await emitSqlCmd()
+  else if (args.find(a => a.startsWith('--url='))) await mirrorOneCmd(args.find(a => a.startsWith('--url=')).slice(6))
   else if (args.includes('--verify')) await verifyCmd()
   else console.log('Usage: --scan | --mirror [--execute] | --rewrite [--execute] | --verify')
 }
