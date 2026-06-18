@@ -207,6 +207,33 @@ async function rewriteCmd(execute) {
   console.log(`  site-config.json logo:     ${logoChanged ? 'yes' : 'no'}`)
 }
 
+// Emit idempotent UPDATE SQL for rows now pointing at the Spaces CDN, so the
+// same rewrite can be applied to another DB (VPS) without FK/restore issues.
+async function emitSqlCmd() {
+  const pool = newPool()
+  const cdn = process.env.DO_SPACES_CDN_ENDPOINT
+  const TAG = '$HOMEU_RW_7f3a$'
+  const out = []
+  out.push('-- Apply mirrored-CDN rewrites (generated from local DB)')
+  out.push('SET client_min_messages TO WARNING;')
+  out.push('BEGIN;')
+
+  const arts = await pool.query(`SELECT id, image_url FROM articles WHERE image_url LIKE '%digitaloceanspaces%'`)
+  for (const r of arts.rows) out.push(`UPDATE articles SET image_url = ${TAG}${r.image_url}${TAG} WHERE id = ${r.id};`)
+
+  const secs = await pool.query(`SELECT id, config::text AS c FROM homepage_sections WHERE config::text LIKE '%digitaloceanspaces%'`)
+  for (const r of secs.rows) out.push(`UPDATE homepage_sections SET config = ${TAG}${r.c}${TAG}::jsonb WHERE id = ${r.id};`)
+
+  const prods = await pool.query(`SELECT id, description::text AS d FROM products WHERE description::text LIKE '%digitaloceanspaces%'`)
+  for (const r of prods.rows) out.push(`UPDATE products SET description = ${TAG}${r.d}${TAG}::jsonb WHERE id = ${r.id};`)
+
+  out.push('COMMIT;')
+  await pool.end()
+  const fp = path.join(OUTPUT_DIR, 'homeu-asset-rewrite.sql')
+  fs.writeFileSync(fp, out.join('\n'), 'utf8')
+  console.log(`Wrote ${out.length - 4} UPDATEs -> ${fp}`)
+}
+
 async function verifyCmd() {
   const pool = newPool()
   const q = async (label, sql) => { const r = await pool.query(sql); return `${label}: ${r.rows[0].n}` }
@@ -225,6 +252,7 @@ async function main() {
   if (args.includes('--scan')) await scanCmd()
   else if (args.includes('--mirror')) await mirrorCmd(execute)
   else if (args.includes('--rewrite')) await rewriteCmd(execute)
+  else if (args.includes('--emit-sql')) await emitSqlCmd()
   else if (args.includes('--verify')) await verifyCmd()
   else console.log('Usage: --scan | --mirror [--execute] | --rewrite [--execute] | --verify')
 }
