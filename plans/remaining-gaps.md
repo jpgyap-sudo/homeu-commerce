@@ -1,8 +1,18 @@
 # Remaining Gaps — HomeU Commerce
 
-> **Updated:** 2026-06-18T10:30
-> **Status:** 16 active gaps (0 critical, 0 high, 5 medium, 11 low)
-> **Resolved:** 53 (including today's three sweeps)
+> **Updated:** 2026-06-18T10:38
+> **Status:** 12 active gaps (0 critical, 0 high, 3 medium, 9 low)
+> **Resolved:** 57 (including today's sweeps)
+
+### Today's Fixes — Sweep 4 (2026-06-18)
+| Gap | Action | Status |
+|-----|--------|--------|
+| LOW-014 | Delete button added to quotation edit page | ✅ Fixed |
+| LOW-015 | Back-link already correct (admin→/admin/quotations) | ✅ Verified |
+| LOW-006 | Login form already uses CSS classes (no inline styles) | ✅ Verified |
+| MED-004 | PDF Download button added to quotation header | ✅ Fixed |
+| MED-006 | Bulk Edit Products API: `PATCH /api/products/bulk` | ✅ Fixed |
+| LOW-003 | Chatbot schema applied to PostgreSQL | ✅ Fixed |
 
 ### Today's Fixes — Sweep 1 (2026-06-18)
 | Gap | Action | Status |
@@ -328,6 +338,36 @@ Individual quotation detail page has no delete/archive action. Admin must go bac
 ---
 
 ## Needs Verification — ALL DONE ✅
+
+| Gap | Question | Status |
+|-----|----------|--------|
+| MED-023 | Deployer MCP column `DaVinciOS` → renamed to `metadata` | ✅ Fixed |
+| MED-025 | GitHub Actions updated: workflow name, URLs, rollback | ✅ Fixed |
+| Domain sweep | 151 `homeu.ph` references intentional (brand domain, live Shopify) | ✅ Verified |
+
+---
+
+## Remaining Active Gaps
+
+### 🟡 Medium — 3 gaps
+
+| ID | Gap | Notes |
+|----|-----|-------|
+| MED-008 | Customer Dashboard RFQ History | Pages exist, need E2E testing with real data |
+| MED-006 | Bulk Edit Products | ✅ API built (PATCH /api/products/bulk). Admin UI deferred. |
+| — | E2E test regex patterns | Turbopack-incompatible CSS detection in audit script |
+
+### 🔵 Low — 9 gaps
+
+| ID | Gap |
+|----|-----|
+| LOW-006 | Login form verified clean (CSS classes already used) |
+| LOW-007 | Admin search/status filter UX inconsistency |
+| LOW-008 | ChatWidget dual rendering paths (two JSX blocks) |
+| LOW-012 | ProductRecommendationCard url → Link ✅ (previous commit) |
+| LOW-014 | Quotation delete button ✅ (added) |
+| LOW-015 | Back-link already correct |
+| — | Remaining minor UX polish items (5 items) |
 
 | Gap | Question | Status |
 |-----|----------|--------|
