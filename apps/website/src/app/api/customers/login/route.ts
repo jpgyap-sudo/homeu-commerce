@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       name: user.name || user.email,
       role: user.role || 'customer',
+      tabs: ['main'],
     })
 
     return NextResponse.json({

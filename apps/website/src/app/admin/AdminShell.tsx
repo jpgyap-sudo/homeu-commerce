@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import PageViewTracker from '@/components/PageViewTracker'
@@ -80,6 +80,17 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   // Collapsed sections — all expanded by default, auto-collapse inactive
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
+  // User permissions — which tabs to show
+  const [userTabs, setUserTabs] = useState<string[]>(['*'])
+
+  useEffect(() => {
+    fetch('/api/admin/me').then(r => r.json()).then(d => {
+      if (d.user?.tabs) setUserTabs(d.user.tabs)
+    }).catch(() => {})
+  }, [])
+
+  const canSeeSection = (id: string) => userTabs.includes('*') || userTabs.includes(id)
+
   if (isLogin) {
     return (
       <div className="luxe-admin">
@@ -115,7 +126,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
         {/* Navigation with collapsible sections */}
         <nav className="luxe-sidebar-nav">
-          {SECTIONS.map(section => {
+          {SECTIONS.filter(s => canSeeSection(s.id)).map(section => {
             const isExpanded = !collapsed.has(section.id)
             const hasActive = section.links.some(l => isActive(l.href))
 

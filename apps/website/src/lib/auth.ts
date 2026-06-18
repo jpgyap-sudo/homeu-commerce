@@ -35,14 +35,15 @@ export async function verifyPassword(
 // ============================================================
 
 export interface SessionUser {
-  id: number
+  id: number | string
   email: string
   name: string
   role: string
+  tabs: string[]
 }
 
 export async function createSession(user: SessionUser): Promise<string> {
-  const token = await new SignJWT({ sub: String(user.id), email: user.email, name: user.name, role: user.role })
+  const token = await new SignJWT({ sub: String(user.id), email: user.email, name: user.name, role: user.role, tabs: user.tabs })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION}s`)
@@ -73,6 +74,7 @@ export async function getSession(): Promise<SessionUser | null> {
       email: String(payload.email || ''),
       name: String(payload.name || ''),
       role: String(payload.role || ''),
+      tabs: Array.isArray(payload.tabs) ? payload.tabs : ['*'],
     }
   } catch {
     return null
@@ -88,14 +90,14 @@ export async function authenticateAdmin(
   email: string,
   password: string
 ): Promise<{ user: SessionUser; token: string } | { error: string }> {
-  // Look up user
-  const { rows } = await query(
-    `SELECT id, email, name, role, password_hash
-     FROM customers
-     WHERE email = $1 AND role = 'admin' AND status = 'active'
-     LIMIT 1`,
-    [email.toLowerCase().trim()]
-  )
+    // Look up user — allow any role (admin, editor, sales, etc.)
+    const { rows } = await query(
+      `SELECT id, email, name, role, password_hash, tab_permissions
+       FROM customers
+       WHERE email = $1 AND status = 'active'
+       LIMIT 1`,
+      [email.toLowerCase().trim()]
+    )
 
   const user = rows[0]
   if (!user) {
@@ -112,16 +114,20 @@ export async function authenticateAdmin(
     return { error: 'Invalid email or password' }
   }
 
-  // Create session
+  // Create session with tabs
+  let tabs: string[] = ['*']
+  try { tabs = typeof user.tab_permissions === 'string' ? JSON.parse(user.tab_permissions) : (user.tab_permissions || ['*']) } catch { /* keep default */ }
+
   const token = await createSession({
     id: user.id,
     email: user.email,
     name: user.name,
     role: user.role,
+    tabs,
   })
 
   return {
-    user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, tabs },
     token,
   }
 }
