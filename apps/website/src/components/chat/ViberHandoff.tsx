@@ -18,6 +18,13 @@ export function ViberHandoff({ viberNumber, viberName, onSendRFQ, onClose }: Vib
            style={{ color: '#7367F0', textDecoration: 'none', fontWeight: 700 }}>
           {viberNumber}
         </a>
+        {' '}
+        <button
+          onClick={() => { navigator.clipboard.writeText(viberNumber); alert('Number copied!') }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, padding: '2px 6px' }}
+          title="Copy number">
+          📋
+        </button>
       </p>
       <p style={{ fontSize: 12, color: '#67706a', margin: '8px 0 12px' }}>
         You can also send your RFQ details to our sales team so they can prepare a quotation before you call.
