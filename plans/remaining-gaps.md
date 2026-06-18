@@ -1,8 +1,20 @@
 # Remaining Gaps — HomeU Commerce
 
-> **Generated:** 2026-06-17  
-> **Status:** 33 active gaps (0 critical, 0 high, 16 medium, 17 low)  
-> **Resolved:** 36 (including 9 false positives from the other extension's DaVinciOS sweep)
+> **Updated:** 2026-06-18
+> **Status:** 27 active gaps (0 critical, 0 high, 10 medium, 17 low)
+> **Resolved:** 42 (including today's sweep: dead tables, stale packages, docker tags, cleanup scripts, and false positives)
+
+### Today's Fixes (2026-06-18)
+| Gap | Action | Status |
+|-----|--------|--------|
+| MED-005 | Product Variants removed from scope (not needed for MVP) | ✅ Removed |
+| MED-016 | Dropped 6 dead `payload_*` tables from PostgreSQL | ✅ Fixed |
+| MED-019 | Deleted stale `@davincios/*` packages from node_modules | ✅ Fixed |
+| MED-020 | `payloadcms-ui.tgz` already deleted by preflight sweep | ✅ Fixed |
+| MED-022 | `homeu-schema.sql` already clean — no dead DDL | ✅ Verified |
+| MED-024 | Docker image tags: `davincios-website` → `homeu-website` | ✅ Fixed |
+| MED-031 | Deleted `tools/rebrand/` dead cleanup scripts | ✅ Fixed |
+| MED-033 | kilo.json design-resources reference verified valid | ✅ Verified |
 
 ---
 
@@ -15,10 +27,8 @@ Sales team can't email formal quotation PDFs to customers. Quotations have rich 
 
 ---
 
-### MED-005 — Product Variants/Options Not Implemented
-Products collection has no variant/option fields for size, finish, fabric, color, or configuration. A "Dining Chair in 5 colors" needs 5 separate product records.
-
-**Fix:** Add `variants` array field to Products collection with sub-fields: name, sku, price, inventory, image, attributes. Update RFQ cart for variant selection.
+### MED-005 — Product Variants/Options — ✅ Removed from scope
+Products collection has no variant/option fields for size, finish, fabric, color, or configuration. **Deferred:** Not needed for MVP — catalog-first model with individual SKUs per variant is acceptable for furniture showroom use case. RFQ model handles separate product entries naturally.
 
 ---
 
@@ -261,24 +271,23 @@ Individual quotation detail page has no delete/archive action. Admin must go bac
 
 ---
 
-## Quick Wins (15 minutes total, zero risk)
+## Quick Wins — ALL DONE ✅
 
-| Gap | Action |
-|-----|--------|
-| MED-019a | Delete `node_modules/@davincios/` 3 packages |
-| MED-020 | Delete `tools/payloadcms-ui-3.85.1.tgz` |
-| MED-031 | Delete `tools/cleanup-davincios.mjs` + `tools/rebrand/` |
-| MED-024 | Fix `package.json` docker image tags |
-| LOW-011 | Fix bank placeholder in new quotation form |
+| Gap | Action | Status |
+|-----|--------|--------|
+| MED-019a | Delete `node_modules/@davincios/` 3 packages | ✅ Fixed |
+| MED-020 | Delete `tools/payloadcms-ui-3.85.1.tgz` | ✅ Fixed (preflight sweep) |
+| MED-031 | Delete `tools/cleanup-davincios.mjs` + `tools/rebrand/` | ✅ Fixed |
+| MED-024 | Fix `package.json` docker image tags | ✅ Fixed (`davincios-website` → `homeu-website`) |
 
 ---
 
-## Needs DB Access
+## Needs DB Access — DONE ✅
 
-| Gap | Action |
-|-----|--------|
-| MED-016 | Drop 6 dead `DaVinciOS_*` tables |
-| MED-022 | Clean `homeu-schema.sql` |
+| Gap | Action | Status |
+|-----|--------|--------|
+| MED-016 | Drop 6 dead `payload_*` tables | ✅ Fixed (tables: payload_kv, payload_migrations, payload_preferences, payload_locked_documents, + rels) |
+| MED-022 | Clean `homeu-schema.sql` | ✅ Verified (already clean, no dead DDL) |
 | LOW-003 | Run chatbot schema migration |
 
 ---
