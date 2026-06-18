@@ -1,0 +1,28 @@
+{
+  "name": "davinci-central-inbox-starter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Original starter module for DaVinciOS Central Inbox: website chat, Facebook Messenger, Instagram DM.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "seed:inbox": "tsx scripts/seed-central-inbox.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "latest",
+    "next": "latest",
+    "prisma": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

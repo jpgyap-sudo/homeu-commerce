@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InboxChannelType {
+  WEBSITE
+  FACEBOOK
+  INSTAGRAM
+}
+
+enum ConversationStatus {
+  OPEN
+  PENDING
+  CLOSED
+  ARCHIVED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+  SYSTEM
+}
+
+enum MessageStatus {
+  RECEIVED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model InboxChannel {
+  id                   String           @id @default(cuid())
+  type                 InboxChannelType
+  name                 String
+  /// Provider account ID. For Facebook this is usually the Page ID. For Instagram this is the IG Business Account ID.
+  externalAccountId    String?
+  /// Optional linked Facebook Page ID for Instagram accounts or provider-specific page references.
+  externalPageId       String?
+  /// Optional brand/workspace key, for example homeu-furniture or homeu-lighting.
+  brandKey             String?
+  accessTokenEncrypted String?
+  isActive             Boolean          @default(true)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  conversations        Conversation[]
+
+  @@unique([type, externalAccountId])
+  @@index([type])
+  @@index([brandKey])
+  @@index([externalAccountId])
+}
+
+model Contact {
+  id              String         @id @default(cuid())
+  name            String?
+  email           String?
+  phone           String?
+  facebookPsid    String?        @unique
+  instagramUserId String?        @unique
+  websiteVisitorId String?       @unique
+  source          String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  conversations   Conversation[]
+}
+
+model Conversation {
+  id            String             @id @default(cuid())
+  channelId     String
+  contactId     String
+  status        ConversationStatus @default(OPEN)
+  assignedToId  String?
+  subject       String?
+  lastMessageAt DateTime           @default(now())
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  channel       InboxChannel       @relation(fields: [channelId], references: [id])
+  contact       Contact            @relation(fields: [contactId], references: [id])
+  messages      Message[]
+  notes         ConversationNote[]
+
+  @@index([channelId, status, lastMessageAt])
+  @@index([contactId])
+}
+
+model Message {
+  id                String           @id @default(cuid())
+  conversationId    String
+  direction         MessageDirection
+  status            MessageStatus    @default(RECEIVED)
+  body              String?
+  attachments       Json?
+  externalMessageId String?          @unique
+  rawPayload         Json?
+  createdAt         DateTime         @default(now())
+  conversation      Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+model ConversationNote {
+  id             String       @id @default(cuid())
+  conversationId String
+  authorId       String?
+  note           String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
