@@ -359,7 +359,7 @@ async function releaseLock(lockKey) {
 // QUEUE MANAGER
 // =============================================
 
-async function enqueueTask(taskType, DaVinciOS = {}, priority = 0) {
+async function enqueueTask(taskType, metadata = {}, priority = 0) {
   const pool = await getPg()
   const requestId = `${taskType}-${randomUUID().slice(0, 12)}`
   
@@ -377,10 +377,10 @@ async function enqueueTask(taskType, DaVinciOS = {}, priority = 0) {
   }
 
   const result = await pool.query(
-    `INSERT INTO deployer_queue (task_type, priority, status, requested_by, request_id, DaVinciOS)
+    `INSERT INTO deployer_queue (task_type, priority, status, requested_by, request_id, metadata)
      VALUES ($1, $2, 'queued', $3, $4, $5)
      RETURNING id`,
-    [taskType, priority, EXTENSION_ID, requestId, JSON.stringify(DaVinciOS)]
+    [taskType, priority, EXTENSION_ID, requestId, JSON.stringify(metadata)]
   )
   
   console.error(`📋 Task queued: ${taskType} (#${result.rows[0].id})`)

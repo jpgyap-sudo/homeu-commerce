@@ -1,17 +1,17 @@
 # Deployment Pipeline Configuration
 
-This document describes the deployment pipeline for the DaVinciOS system.
+This document describes the deployment pipeline for the HomeU Commerce system (powered by DaVinciOS backend).
 
 ## Pipeline Overview
 
-The deployment pipeline automates the build, test, and deployment process for DaVinciOS using GitHub Actions.
+The deployment pipeline automates the build, test, and deployment process for HomeU Commerce using GitHub Actions.
 
 ## Pipeline Configuration
 
 Create `.github/workflows/deploy.yml`:
 
 ```yaml
-name: Deploy DaVinciOS
+name: Deploy HomeU Commerce
 
 on:
   push:
@@ -80,12 +80,12 @@ jobs:
 # Production
 NODE_ENV=production
 DAVINCIOS_SECRET=<production-secret>
-DAVINCIOS_PUBLIC_SERVER_URL=https://davincios.com
+DAVINCIOS_PUBLIC_SERVER_URL=https://admin.homeatelier.ph
 
 # Staging
 NODE_ENV=staging
 DAVINCIOS_SECRET=<staging-secret>
-DAVINCIOS_PUBLIC_SERVER_URL=https://staging.davincios.com
+DAVINCIOS_PUBLIC_SERVER_URL=https://staging.admin.homeatelier.ph
 ```
 
 ## Deployment Stages
@@ -110,7 +110,7 @@ DAVINCIOS_PUBLIC_SERVER_URL=https://staging.davincios.com
 ### Automated Rollback
 ```bash
 # Rollback to previous version
-pm2 rollback davincios-api
+pm2 rollback homeu-website
 ```
 
 ### Manual Rollback
