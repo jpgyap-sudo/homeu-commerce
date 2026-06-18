@@ -1,5 +1,30 @@
 # Remaining Gaps — HomeU Commerce
 
+> **Updated:** 2026-06-18T10:25
+> **Status:** 23 active gaps (0 critical, 0 high, 6 medium, 17 low)
+> **Resolved:** 46 (including today's two sweeps)
+
+### Today's Fixes — Sweep 1 (2026-06-18)
+| Gap | Action | Status |
+|-----|--------|--------|
+| MED-005 | Product Variants removed from scope | ✅ Removed |
+| MED-016 | Dropped 6 dead `payload_*` tables | ✅ Fixed |
+| MED-019 | Deleted stale `@davincios/*` packages | ✅ Fixed |
+| MED-020 | `payloadcms-ui.tgz` deleted by preflight | ✅ Fixed |
+| MED-022 | `homeu-schema.sql` verified clean | ✅ Verified |
+| MED-024 | Docker tags: `davincios-website` → `homeu-website` | ✅ Fixed |
+| MED-031 | Deleted `tools/rebrand/` scripts | ✅ Fixed |
+
+### Today's Fixes — Sweep 2 (2026-06-18)
+| Gap | Action | Status |
+|-----|--------|--------|
+| MED-023 | Deployer MCP: `DaVinciOS` → `metadata` (param + column) | ✅ Fixed |
+| MED-025 | GitHub Actions: workflow name, URLs, rollback command | ✅ Fixed |
+| MED-034 | build-and-deploy verified clean | ✅ Verified |
+| MED-004 | Quotation PDF Generator (jspdf, branded A4 template) | ✅ Fixed |
+| LOW-002 | Viber placeholder `+639171234567` removed (2 files) | ✅ Fixed |
+| LOW-005 | Bare catch blocks already clean | ✅ Verified |
+
 > **Updated:** 2026-06-18
 > **Status:** 27 active gaps (0 critical, 0 high, 10 medium, 17 low)
 > **Resolved:** 42 (including today's sweep: dead tables, stale packages, docker tags, cleanup scripts, and false positives)

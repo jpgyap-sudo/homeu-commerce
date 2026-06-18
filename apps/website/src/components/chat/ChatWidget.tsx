@@ -51,7 +51,7 @@ interface LeadData {
   companyName?: string
 }
 
-const VIBER_NUMBER = process.env.NEXT_PUBLIC_SALES_VIBER_NUMBER || '+639171234567'
+const VIBER_NUMBER = process.env.NEXT_PUBLIC_SALES_VIBER_NUMBER || ''
 const VIBER_NAME = process.env.NEXT_PUBLIC_SALES_VIBER_NAME || 'HomeU Sales Team'
 
 export function ChatWidget() {

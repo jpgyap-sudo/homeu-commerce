@@ -24,7 +24,7 @@ import { createSignal } from '@/lib/chatbot/lead-scorer'
 import { insertMessage } from '@/lib/chatbot/db'
 import { sendTelegramAlert } from '@/lib/chatbot/telegram-client'
 
-const VIBER_NUMBER = process.env.SALES_VIBER_NUMBER || '+639171234567'
+const VIBER_NUMBER = process.env.SALES_VIBER_NUMBER || ''
 
 export async function POST(request: NextRequest) {
   try {
