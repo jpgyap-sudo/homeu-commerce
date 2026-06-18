@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
+import { getCustomCss } from '@/lib/theme'
 import ThemeEditor from './ThemeEditor'
 
 export const metadata = { title: 'Theme — DaVinciOS' }
@@ -19,5 +20,7 @@ export default async function ThemePage() {
     sections = res.rows
   } catch { sections = [] }
 
-  return <ThemeEditor initial={sections} />
+  const customCss = await getCustomCss()
+
+  return <ThemeEditor initial={sections} initialCss={customCss} />
 }

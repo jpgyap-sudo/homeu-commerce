@@ -30,3 +30,14 @@ export async function getHomepageSections(includeDisabled = false): Promise<Home
     return []
   }
 }
+
+/** Custom CSS the admin can edit in the Theme editor (injected into <head>). */
+export async function getCustomCss(): Promise<string> {
+  try {
+    const res = await query(`SELECT value FROM site_settings WHERE key = 'custom_css'`, [])
+    const v = res.rows[0]?.value
+    return typeof v === 'string' ? v : ''
+  } catch {
+    return ''
+  }
+}
