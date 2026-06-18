@@ -29,10 +29,15 @@ const SECTIONS: SidebarSection[] = [
     ],
   },
   {
-    id: 'sales', label: 'Sales', icon: '⎔',
+    id: 'messages', label: 'Messages', icon: '⎕',
     links: [
       { href: '/admin/apps/central-inbox', icon: '📬', label: 'Central Inbox' },
-      { href: '/admin/apps/email-inbox', icon: '📬', label: 'Email Inbox' },
+      { href: '/admin/apps/email-inbox', icon: '📧', label: 'Email Inbox' },
+    ],
+  },
+  {
+    id: 'sales', label: 'Sales', icon: '⎔',
+    links: [
       { href: '/admin/quotations', icon: '◎', label: 'Quotations', badge: '83' },
       { href: '/admin/rfq', icon: '◐', label: 'RFQ Requests' },
       { href: '/admin/customers', icon: '◑', label: 'Customers' },
@@ -60,7 +65,7 @@ const SECTIONS: SidebarSection[] = [
   {
     id: 'apps', label: 'Apps', icon: '⬡',
     links: [
-      { href: '/admin/apps', icon: '🧩', label: 'Category Apps' },
+      { href: '/admin/apps', icon: '🧩', label: 'App Settings' },
       { href: '/admin/apps/instagram', icon: '📸', label: 'Instagram Feed' },
     ],
   },

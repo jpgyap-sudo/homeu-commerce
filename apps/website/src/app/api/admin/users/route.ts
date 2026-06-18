@@ -3,7 +3,7 @@ import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 
-const ALL_SECTIONS = ['main','catalog','sales','content','insights','apps','system']
+const ALL_SECTIONS = ['main','catalog','messages','sales','content','insights','apps','system']
 
 export async function GET() {
   const session = await getSession()

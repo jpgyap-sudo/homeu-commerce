@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 
-const ALL_SECTIONS = ['main','catalog','sales','content','insights','apps','system']
-const SECTION_LABELS: Record<string, string> = { main:'Dashboard', catalog:'Catalog', sales:'Sales', content:'Content', insights:'Insights', apps:'Apps', system:'System' }
+const ALL_SECTIONS = ['main','catalog','messages','sales','content','insights','apps','system']
+const SECTION_LABELS: Record<string, string> = { main:'Dashboard', catalog:'Catalog', messages:'Messages', sales:'Sales', content:'Content', insights:'Insights', apps:'Apps', system:'System' }
 const ROLE_COLORS: Record<string, string> = { admin:'info', editor:'success', sales:'warning', customer:'neutral' }
 
 interface User { id: number; email: string; name: string; role: string; status: string; tab_permissions: any; created_at: string }
