@@ -1235,3 +1235,28 @@
 .homepage-instagram__tile:hover { opacity: 0.85; }
 .homepage-instagram__tile img { width: 100%; height: 100%; object-fit: cover; }
 .homepage-instagram__icon { opacity: 0.4; }
+
+/* ── Theme editor live-preview overlay (only active inside admin iframe) ── */
+.homeu-preview-mode { cursor: default; }
+.homeu-preview-outline {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+  border: 2px solid #1e7a47;
+  background: rgba(30,122,71,0.06);
+  border-radius: 4px;
+  z-index: 99998;
+  transition: top 80ms ease, left 80ms ease, width 80ms ease, height 80ms ease;
+}
+.homeu-preview-label {
+  position: absolute;
+  top: -22px;
+  left: -2px;
+  background: #1e7a47;
+  color: #fff;
+  font: 600 11px/1 Inter, sans-serif;
+  letter-spacing: 0.02em;
+  padding: 4px 8px;
+  border-radius: 4px 4px 4px 0;
+  white-space: nowrap;
+}

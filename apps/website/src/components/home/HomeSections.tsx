@@ -8,7 +8,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { query } from '@/lib/db'
 import { HomepageSlideshow } from '@/components/HomepageSlideshow'
+import { PreviewBridge } from '@/components/home/PreviewBridge'
 import type { HomepageSection } from '@/lib/theme'
+import { SECTION_META } from '@/lib/theme-types'
 
 // ── Data fetchers ────────────────────────────────────────────────────────
 interface CollectionTile { id: number; title: string; slug: string; image_url: string | null }
@@ -259,7 +261,22 @@ async function renderSection(section: HomepageSection) {
   }
 }
 
-export async function HomeSections({ sections }: { sections: HomepageSection[] }) {
+export async function HomeSections({ sections, preview = false }: { sections: HomepageSection[]; preview?: boolean }) {
   const rendered = await Promise.all(sections.map(s => renderSection(s)))
-  return <>{rendered.map((node, i) => <div key={sections[i].id}>{node}</div>)}</>
+  return (
+    <>
+      {rendered.map((node, i) => (
+        <div
+          key={sections[i].id}
+          data-section-id={sections[i].id}
+          data-section-type={sections[i].type}
+          data-section-label={SECTION_META[sections[i].type]?.label || sections[i].type}
+          className={preview ? 'homeu-preview-section' : undefined}
+        >
+          {node}
+        </div>
+      ))}
+      {preview && <PreviewBridge />}
+    </>
+  )
 }

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { SECTION_META, SECTION_TYPES, type SectionType } from '@/lib/theme-types'
 import { SECTION_SCHEMAS, type FieldDef } from './theme-schemas'
 
@@ -28,16 +29,58 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
   const [toast, setToast] = useState('')
   const [previewKey, setPreviewKey] = useState(0)
 
+  // ── Unsaved changes tracking ──────────────────────────────────────
+  const [dirty, setDirty] = useState(false)
+  const [isSavingAll, setIsSavingAll] = useState(false)
+
   // Custom CSS panel
   const [css, setCss] = useState(initialCss || '')
+  const [cssDirty, setCssDirty] = useState(false)
   const [cssOpen, setCssOpen] = useState(false)
   const [cssSaving, setCssSaving] = useState(false)
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2000) }
   const refreshPreview = () => setPreviewKey(k => k + 1)
 
+  // ── beforeunload guard ────────────────────────────────────────────
+  useEffect(() => {
+    if (!dirty && !cssDirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [dirty, cssDirty])
+
+  // ── Navigation guard for Next.js in-app navigation ────────────────
+  const confirmLeave = useCallback((msg?: string): boolean => {
+    if (!dirty && !cssDirty) return true
+    return window.confirm(msg || 'You have unsaved theme changes. Are you sure you want to leave?')
+  }, [dirty, cssDirty])
+
+  // ── Click-to-edit: listen for section selections from the preview iframe ──
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      const d = e.data
+      if (!d || d.source !== 'homeu-preview' || d.kind !== 'select') return
+      if (d.id === 'header') {
+        flash('The header & menu are edited in Navigation')
+        return
+      }
+      const id = Number(d.id)
+      setOpenId(id)
+      requestAnimationFrame(() => {
+        document.getElementById(`sec-card-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
+
   function setConfig(id: number, key: string, value: any) {
     setSections(s => s.map(x => x.id === id ? { ...x, config: { ...x.config, [key]: value } } : x))
+    setDirty(true)
   }
 
   async function patchSection(id: number, body: any) {
@@ -65,6 +108,47 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
     } finally { setSavingId(null) }
   }
 
+  // ── Save all sections and CSS ────────────────────────────────────
+  async function saveAll() {
+    setIsSavingAll(true)
+    try {
+      const promises: Promise<void>[] = []
+
+      // Save each section
+      for (const sec of sections) {
+        let config = sec.config
+        if (codeMode.has(sec.id) && codeText[sec.id] !== undefined) {
+          try {
+            config = JSON.parse(codeText[sec.id])
+            setCodeErr(e => ({ ...e, [sec.id]: '' }))
+          } catch (err: any) {
+            setCodeErr(e => ({ ...e, [sec.id]: 'Invalid JSON: ' + err.message }))
+            flash('Fix JSON errors before saving all')
+            setIsSavingAll(false)
+            return
+          }
+        }
+        promises.push(
+          patchSection(sec.id, { config, enabled: sec.enabled })
+            .then(() => {})
+        )
+      }
+
+      // Save CSS if dirty
+      if (cssDirty) {
+        promises.push(
+          fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'custom_css', value: css }) })
+            .then(() => {})
+        )
+      }
+
+      await Promise.all(promises)
+      setDirty(false)
+      setCssDirty(false)
+      flash('All changes saved'); refreshPreview()
+    } finally { setIsSavingAll(false) }
+  }
+
   function toggleCode(sec: Section) {
     setCodeMode(prev => {
       const next = new Set(prev)
@@ -77,20 +161,26 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
     })
   }
 
-  async function toggleEnabled(sec: Section) {
-    const enabled = !sec.enabled
-    setSections(s => s.map(x => x.id === sec.id ? { ...x, enabled } : x))
-    await patchSection(sec.id, { enabled })
+  function onCodeTextChange(id: number, value: string) {
+    setCodeText(t => ({ ...t, [id]: value }))
+    setDirty(true)
+  }
+
+  function toggleEnabled(sec: Section) {
+    setSections(s => s.map(x => x.id === sec.id ? { ...x, enabled: !x.enabled } : x))
+    setDirty(true)
     refreshPreview()
   }
 
-  async function move(idx: number, dir: -1 | 1) {
+  function move(idx: number, dir: -1 | 1) {
     const j = idx + dir
     if (j < 0 || j >= sections.length) return
-    const next = [...sections]
-    ;[next[idx], next[j]] = [next[j], next[idx]]
-    setSections(next)
-    await fetch('/api/theme/sections', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: next.map(s => s.id) }) })
+    setSections(prev => {
+      const next = [...prev]
+      ;[next[idx], next[j]] = [next[j], next[idx]]
+      return next
+    })
+    setDirty(true)
     refreshPreview()
   }
 
@@ -99,12 +189,13 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
     const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, config: {} }) })
     const { id } = await res.json()
     setSections(s => [...s, { id, type, position: (s.length + 1) * 10, enabled: true, config: {} }])
-    setOpenId(id); refreshPreview()
+    setOpenId(id); setDirty(true); refreshPreview()
   }
 
   async function del(id: number) {
     if (!confirm('Delete this section?')) return
     setSections(s => s.filter(x => x.id !== id))
+    setDirty(true)
     await fetch(`/api/theme/sections/${id}`, { method: 'DELETE' })
     refreshPreview()
   }
@@ -125,9 +216,11 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
       arr[idx] = { ...arr[idx], [itemKey]: val }
       return { ...x, config: { ...x.config, [key]: arr } }
     }))
+    setDirty(true)
   }
   function addListItem(id: number, key: string) {
     setSections(s => s.map(x => x.id === id ? { ...x, config: { ...x.config, [key]: [...(x.config[key] || []), {}] } } : x))
+    setDirty(true)
   }
   function removeListItem(id: number, key: string, idx: number) {
     setSections(s => s.map(x => {
@@ -135,6 +228,7 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
       const arr = (x.config[key] || []).filter((_: any, i: number) => i !== idx)
       return { ...x, config: { ...x.config, [key]: arr } }
     }))
+    setDirty(true)
   }
 
   function renderField(sec: Section, f: FieldDef) {
@@ -166,6 +260,12 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
         <label style={lbl}>{f.label}</label>
         {f.type === 'textarea'
           ? <textarea style={{ ...input, minHeight: 80, resize: 'vertical' }} value={val} onChange={e => setConfig(sec.id, f.key, e.target.value)} placeholder={f.placeholder} />
+          : f.type === 'color'
+          ? <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="color" value={val || '#000000'} onChange={e => setConfig(sec.id, f.key, e.target.value)}
+                style={{ width: 40, height: 40, padding: 2, border: '1.5px solid #d9e0d7', borderRadius: 8, cursor: 'pointer', background: 'none' }} />
+              <input style={{ ...input, flex: 1 }} type="text" value={val} onChange={e => setConfig(sec.id, f.key, e.target.value)} placeholder={f.placeholder || '#hex'} />
+            </div>
           : <input style={input} type={f.type === 'number' ? 'number' : 'text'} value={val} onChange={e => setConfig(sec.id, f.key, f.type === 'number' ? (parseInt(e.target.value, 10) || 0) : e.target.value)} placeholder={f.placeholder} />}
         {f.help && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa69c' }}>{f.help}</p>}
       </div>
@@ -178,9 +278,29 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
 
       {/* ── Left: editor ── */}
       <div style={{ flex: '1 1 560px', minWidth: 0, overflowY: 'auto', padding: '28px 24px', maxWidth: 720 }}>
-        <div style={{ marginBottom: 8 }}>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#151a17' }}>Theme · Homepage</h1>
-          <p style={{ margin: '4px 0 0', color: '#667168', fontSize: 14 }}>Reorder, toggle, edit visually or as code. The preview updates on save.</p>
+        {/* ── Header bar with Save All ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#151a17' }}>Theme · Homepage</h1>
+            <p style={{ margin: '4px 0 0', color: '#667168', fontSize: 14 }}>Reorder, toggle, edit visually or as code. The preview updates on save.</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {(dirty || cssDirty) && (
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#b0392f', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#b0392f', display: 'inline-block' }} />
+                Unsaved
+              </span>
+            )}
+            <button onClick={saveAll} disabled={isSavingAll || (!dirty && !cssDirty)}
+              style={{
+                padding: '9px 22px', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                background: (dirty || cssDirty) ? 'linear-gradient(180deg, #1e7a47, #0f4f2b)' : '#d9e0d7',
+                color: (dirty || cssDirty) ? '#fff' : '#9aa69c',
+                transition: 'all 150ms ease',
+              }}>
+              {isSavingAll ? 'Saving…' : (dirty || cssDirty) ? '★ Save Theme' : '★ Save Theme'}
+            </button>
+          </div>
         </div>
 
         {/* Custom CSS panel */}
@@ -195,7 +315,7 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
           </button>
           {cssOpen && (
             <div style={{ padding: '0 16px 16px', borderTop: '1px solid #eef1ed' }}>
-              <textarea value={css} onChange={e => setCss(e.target.value)} spellCheck={false}
+              <textarea value={css} onChange={e => { setCss(e.target.value); setCssDirty(true) }} spellCheck={false}
                 style={{ ...input, ...mono, minHeight: 200, resize: 'vertical', marginTop: 12 }}
                 placeholder={'/* e.g. */\n.site-header__logo-image { max-height: 56px; }'} />
               <button onClick={saveCss} disabled={cssSaving} style={{ marginTop: 10, padding: '9px 24px', background: 'linear-gradient(180deg, #1e7a47, #0f4f2b)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{cssSaving ? 'Saving…' : 'Save CSS'}</button>
@@ -210,7 +330,7 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
             const schema = SECTION_SCHEMAS[sec.type] || []
             const inCode = codeMode.has(sec.id)
             return (
-              <div key={sec.id} style={{ ...card, opacity: sec.enabled ? 1 : 0.6 }}>
+              <div key={sec.id} id={`sec-card-${sec.id}`} style={{ ...card, opacity: sec.enabled ? 1 : 0.6, outline: openId === sec.id ? '2px solid #1e7a47' : 'none', outlineOffset: 2 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <button onClick={() => move(idx, -1)} disabled={idx === 0} style={{ border: 'none', background: 'transparent', cursor: idx === 0 ? 'default' : 'pointer', color: '#9aa69c', fontSize: 12, lineHeight: 1, opacity: idx === 0 ? 0.3 : 1 }}>▲</button>
@@ -240,7 +360,7 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
 
                     {inCode ? (
                       <>
-                        <textarea value={codeText[sec.id] ?? ''} onChange={e => setCodeText(t => ({ ...t, [sec.id]: e.target.value }))} spellCheck={false}
+                        <textarea value={codeText[sec.id] ?? ''} onChange={e => onCodeTextChange(sec.id, e.target.value)} spellCheck={false}
                           style={{ ...input, ...mono, minHeight: 240, resize: 'vertical' }} />
                         {codeErr[sec.id] && <p style={{ color: '#b0392f', fontSize: 12, margin: '6px 0 0' }}>{codeErr[sec.id]}</p>}
                       </>
@@ -277,7 +397,13 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
         </div>
 
         <p style={{ marginTop: 28, textAlign: 'center' }}>
-          <a href="/admin/dashboard" style={{ color: '#667168', fontSize: 14 }}>← Back to Dashboard</a>
+          <Link
+            href="/admin/dashboard"
+            onClick={e => { if (!confirmLeave()) e.preventDefault() }}
+            style={{ color: '#667168', fontSize: 14, textDecoration: 'none' }}
+          >
+            ← Back to Dashboard
+          </Link>
         </p>
       </div>
 
@@ -285,7 +411,7 @@ export default function ThemeEditor({ initial, initialCss }: { initial: Section[
       <div style={{ flex: '1 1 520px', minWidth: 380, borderLeft: '1px solid #e3e8e0', background: '#eef1ed', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#fff', borderBottom: '1px solid #e3e8e0' }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: '#151a17' }}>Live preview</span>
-          <span style={{ fontSize: 12, color: '#9aa69c' }}>storefront homepage</span>
+          <span style={{ fontSize: 12, color: '#9aa69c' }}>click a section to edit</span>
           <div style={{ flex: 1 }} />
           <button onClick={refreshPreview} style={{ padding: '6px 14px', background: '#f0f7f2', color: '#1e7a47', border: '1px solid #cfe3d6', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>↻ Refresh</button>
           <a href="/" target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 12, color: '#1a6d3e', textDecoration: 'none', fontWeight: 600 }}>Open ↗</a>
