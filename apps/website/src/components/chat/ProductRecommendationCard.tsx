@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 export interface ProductRec {
   productId: string
   title: string
@@ -20,15 +22,20 @@ export function ProductRecommendationCard({ product, onAddToRFQ }: ProductRecomm
   return (
     <div className="chat-product-card">
       {product.imageUrl && (
-        <img
-          src={product.imageUrl}
-          alt={product.title}
-          loading="lazy"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-        />
+        <Link href={product.url || `/products/${product.productId}`} target="_blank">
+          <img
+            src={product.imageUrl}
+            alt={product.title}
+            loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            style={{ cursor: 'pointer' }}
+          />
+        </Link>
       )}
       <div className="chat-product-card-body">
-        <h4 className="chat-product-card-title">{product.title}</h4>
+        <Link href={product.url || `/products/${product.productId}`} target="_blank" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <h4 className="chat-product-card-title">{product.title}</h4>
+        </Link>
         <p className="chat-product-card-reason">{product.reason}</p>
         {product.referencePrice ? (
           <p className="chat-product-card-price">
