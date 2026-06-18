@@ -38,7 +38,9 @@ async function runAll() {
   test('Admin page has CSS chunks', () => /\/_next\/static\/(css|chunks)\/.+\.css/.test(admin.data));
   test('Admin page has JS chunks', () => /\/_next\/static\/chunks\/.+\.js/.test(admin.data));
   test('Admin page has login section in SSR', () => admin.data.includes('login') && admin.data.includes('admin'));
-  test('Admin-theme CSS import present', () => admin.data.includes('_next/static') && /\\.css/.test(admin.data));
+  test('Admin-theme CSS import present', () =>
+    admin.data.includes('/_next/static/') && /href="[^"]+\.css"/.test(admin.data)
+  );
 
   // Check for CSS files (Turbopack-compatible: chunks/ directory)
   const cssFiles = admin.data.match(/\/_next\/static\/(css|chunks)\/[^"']+\.css/g) || [];
