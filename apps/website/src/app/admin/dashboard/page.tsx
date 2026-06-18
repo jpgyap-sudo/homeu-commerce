@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
 import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
-import { computeDNAScores } from '@/lib/product-dna'
-import ProductDNACard from '@/components/ProductDNACard'
 
 // ── Types ────────────────────────────────────────────────────────────
 interface DashboardCounts {
@@ -18,55 +16,77 @@ interface DashboardCounts {
     avg_score: number; total_leads: number; high_value_leads: number }
 }
 
-// ── Data Fetching ────────────────────────────────────────────────────
+// ── Optimized Data Fetching (2 queries instead of 11) ─────────────────
 async function loadDashboardData(): Promise<DashboardCounts> {
   try {
-    const [
-      productCount, customerCount, categoryCount, rfqCount, redirectCount,
-      leadCount, conversationCount, messageCount, appointmentCount,
-      recentLeadsResult, scoringSummaryResult,
-    ] = await Promise.all([
-      query('SELECT COUNT(*) as count FROM products').then(r => Number(r.rows[0]?.count || 0)),
-      query('SELECT COUNT(*) as count FROM customers').then(r => Number(r.rows[0]?.count || 0)),
-      query('SELECT COUNT(*) as count FROM categories').then(r => Number(r.rows[0]?.count || 0)),
-      query('SELECT COUNT(*) as count FROM rfq_requests').then(r => Number(r.rows[0]?.count || 0)),
-      query('SELECT COUNT(*) as count FROM redirects').then(r => Number(r.rows[0]?.count || 0)),
-      query('SELECT COUNT(*) as count FROM chatbot.leads').then(r => Number(r.rows[0]?.count || 0)),
-      query('SELECT COUNT(*) as count FROM chatbot.conversations').then(r => Number(r.rows[0]?.count || 0)),
-      query('SELECT COUNT(*) as count FROM chatbot.messages').then(r => Number(r.rows[0]?.count || 0)),
-      query('SELECT COUNT(*) as count FROM chatbot.appointments').then(r => Number(r.rows[0]?.count || 0)),
-      query(`SELECT id, name, email, mobile, buyer_type, status, score, score_label, source_page, created_at
-             FROM chatbot.leads ORDER BY created_at DESC LIMIT 5`),
-      query(`SELECT COALESCE(SUM(CASE WHEN score >= 81 THEN 1 ELSE 0 END), 0) AS qualified,
-                    COALESCE(SUM(CASE WHEN score >= 51 AND score < 81 THEN 1 ELSE 0 END), 0) AS hot,
-                    COALESCE(SUM(CASE WHEN score >= 21 AND score < 51 THEN 1 ELSE 0 END), 0) AS warm,
-                    COALESCE(SUM(CASE WHEN score < 21 THEN 1 ELSE 0 END), 0) AS cold,
-                    COALESCE(AVG(score), 0)::numeric(10,2) AS avg_score,
-                    COUNT(*) AS total_leads,
-                    COALESCE(SUM(CASE WHEN score >= 51 THEN 1 ELSE 0 END), 0) AS high_value_leads
-             FROM chatbot.leads`),
-    ])
-    const row = scoringSummaryResult.rows[0] || {}
+    // Consolidated counts: 1 query for public schema tables
+    const countsResult = await query(`
+      SELECT
+        (SELECT COUNT(*) FROM products) AS products,
+        (SELECT COUNT(*) FROM customers) AS customers,
+        (SELECT COUNT(*) FROM categories) AS categories,
+        (SELECT COUNT(*) FROM rfq_requests) AS rfq_requests,
+        (SELECT COUNT(*) FROM redirects) AS redirects
+    `)
+    const counts = countsResult.rows[0] || {}
+
+    // Chatbot stats: 1 query for all leads data
+    const leadsResult = await query(`
+      SELECT
+        COUNT(*) AS total_leads,
+        COUNT(*) FILTER (WHERE score >= 81) AS qualified,
+        COUNT(*) FILTER (WHERE score >= 51 AND score < 81) AS hot,
+        COUNT(*) FILTER (WHERE score >= 21 AND score < 51) AS warm,
+        COUNT(*) FILTER (WHERE score < 21) AS cold,
+        COALESCE(AVG(score), 0)::numeric(10,2) AS avg_score,
+        COUNT(*) FILTER (WHERE score >= 51) AS high_value_leads,
+        (SELECT COUNT(*) FROM chatbot.conversations) AS conversations,
+        (SELECT COUNT(*) FROM chatbot.messages) AS messages,
+        (SELECT COUNT(*) FROM chatbot.appointments) AS appointments
+      FROM chatbot.leads
+    `)
+    const leadStats = leadsResult.rows[0] || {}
+
+    // Recent leads
+    const recentResult = await query(`
+      SELECT id, name, email, mobile, buyer_type, status, score, score_label, source_page, created_at
+      FROM chatbot.leads ORDER BY created_at DESC LIMIT 5
+    `)
+
     return {
-      products: productCount, customers: customerCount, categories: categoryCount,
-      rfqRequests: rfqCount, redirects: redirectCount,
-      leads: leadCount, conversations: conversationCount, messages: messageCount,
-      appointments: appointmentCount,
-      recentLeads: recentLeadsResult.rows.map((r: any) => ({ id: r.id, name: r.name, email: r.email, mobile: r.mobile, buyer_type: r.buyer_type, status: r.status, score: r.score, score_label: r.score_label, source_page: r.source_page, created_at: r.created_at })),
-      scoringSummary: { qualified: Number(row.qualified||0), hot: Number(row.hot||0), warm: Number(row.warm||0), cold: Number(row.cold||0), avg_score: Number(row.avg_score||0), total_leads: Number(row.total_leads||0), high_value_leads: Number(row.high_value_leads||0) },
+      products: Number(counts.products||0), customers: Number(counts.customers||0),
+      categories: Number(counts.categories||0), rfqRequests: Number(counts.rfq_requests||0),
+      redirects: Number(counts.redirects||0),
+      leads: Number(leadStats.total_leads||0), conversations: Number(leadStats.conversations||0),
+      messages: Number(leadStats.messages||0), appointments: Number(leadStats.appointments||0),
+      recentLeads: recentResult.rows.map((r: any) => ({
+        id: r.id, name: r.name, email: r.email, mobile: r.mobile,
+        buyer_type: r.buyer_type, status: r.status,
+        score: r.score, score_label: r.score_label,
+        source_page: r.source_page, created_at: r.created_at,
+      })),
+      scoringSummary: {
+        hot: Number(leadStats.hot||0), warm: Number(leadStats.warm||0),
+        cold: Number(leadStats.cold||0), qualified: Number(leadStats.qualified||0),
+        avg_score: Number(leadStats.avg_score||0),
+        total_leads: Number(leadStats.total_leads||0),
+        high_value_leads: Number(leadStats.high_value_leads||0),
+      },
     }
   } catch {
-    return { products:0,customers:0,categories:0,rfqRequests:0,redirects:0,leads:0,conversations:0,messages:0,appointments:0,recentLeads:[],scoringSummary:{hot:0,warm:0,cold:0,qualified:0,avg_score:0,total_leads:0,high_value_leads:0} }
+    return {
+      products:0,customers:0,categories:0,rfqRequests:0,redirects:0,
+      leads:0,conversations:0,messages:0,appointments:0,
+      recentLeads:[],scoringSummary:{hot:0,warm:0,cold:0,qualified:0,avg_score:0,total_leads:0,high_value_leads:0},
+    }
   }
 }
 
-const getCached = unstable_cache(loadDashboardData, ['admin-dashboard-data'], { revalidate: 60, tags: ['admin-dashboard'] })
-const getCachedDNA = unstable_cache(computeDNAScores, ['admin-dna-scores'], { revalidate: 300, tags: ['admin-dna'] })
+const getCached = unstable_cache(loadDashboardData, ['admin-dashboard-data'], { revalidate: 120, tags: ['admin-dashboard'] })
 
 // ── Helpers ──────────────────────────────────────────────────────────
 function fmt(n: number): string { return n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n) }
 function fmtDate(iso: string): string { try { return new Date(iso).toLocaleDateString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) } catch { return iso } }
-function scoreBadge(score: number): string { if (score>=81) return 'Qualified'; if (score>=51) return 'Hot'; if (score>=21) return 'Warm'; return 'Cold' }
 function scoreClass(score: number): string { if (score>=81) return 'success'; if (score>=51) return 'warning'; if (score>=21) return 'info'; return 'neutral' }
 function initials(name: string): string { return (name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2) }
 
@@ -77,7 +97,6 @@ export default async function AdminDashboardPage() {
 
   const d = await getCached()
   const s = d.scoringSummary
-  const dna = await getCachedDNA()
 
   return (
     <>
@@ -167,9 +186,47 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Product DNA Score */}
-      <ProductDNACard summary={dna.summary} products={dna.products.slice(0, 5)} />
+      {/* Lazy DNA card — client-side fetch, doesn't block page load */}
+      <LazyDNACard />
     </>
+  )
+}
+
+// ── Lazy DNA Card (client-component, streams after page load) ────────
+
+function LazyDNACard() {
+  return (
+    <div id="dna-card-container" style={{ marginTop: 'var(--space-8)' }}>
+      <div className="luxe-card">
+        <div className="luxe-card-header">
+          <h2 className="luxe-card-title">
+            <span style={{ marginRight: 'var(--space-2)' }}>🧬</span>
+            Product DNA Score
+          </h2>
+          <span className="luxe-badge neutral">Loading...</span>
+        </div>
+        <div className="luxe-card-body" style={{ display: 'flex', gap: 'var(--space-4)', padding: 'var(--space-8)' }}>
+          {[1,2,3,4,5].map(i => (
+            <div key={i} style={{ flex: 1, height: 60, background: 'var(--luxe-warm-100)', borderRadius: 6 }} />
+          ))}
+        </div>
+      </div>
+      <script dangerouslySetInnerHTML={{ __html: `
+        fetch('/api/admin/product-dna?bottom=1&limit=5')
+          .then(r => r.json())
+          .then(data => {
+            const el = document.getElementById('dna-card-container')
+            if (!el || !data.products) return
+            const p = data.products.slice(0,5)
+            let html = '<div class="luxe-card"><div class="luxe-card-header"><h2 class="luxe-card-title"><span style="margin-right:var(--space-2)">🧬</span> Product DNA Score</h2><span class="luxe-badge info">Avg: '+data.summary.avg+'/100</span></div><div class="luxe-card-body" style="padding:0"><div style="padding:var(--space-4) var(--space-6);font-size:12px;font-weight:600;color:var(--luxe-slate-400);text-transform:uppercase;letter-spacing:0.06em">⚠️ Needs Attention</div>'
+            p.forEach(p => {
+              html += '<div style="padding:var(--space-4) var(--space-6);border-top:1px solid var(--luxe-warm-100);display:flex;gap:var(--space-4);align-items:flex-start"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:'+(p.score>=90?'#c9a050':p.score>=75?'#059669':p.score>=60?'#2563eb':p.score>=40?'#d97706':'#e11d48')+';display:flex;align-items:center;justify-content:center;font-size:14px;font-family:var(--font-display);font-weight:700;color:#fff;flex-shrink:0">'+p.score+'</div><div style="flex:1;min-width:0"><a href=\"/admin/products/'+p.id+'\" style="font-size:13px;font-weight:600;color:var(--luxe-navy-900);text-decoration:none">'+p.title+'</a><div style="font-size:11px;color:var(--luxe-slate-400);margin-top:2px">'+p.slug+'</div>'+ (p.fixes && p.fixes.length ? '<div style="margin-top:var(--space-2);display:flex;gap:var(--space-1);flex-wrap:wrap">'+ p.fixes.slice(0,4).map(f => '<a href=\"/admin/products/'+p.id+'\" style="font-size:10px;padding:1px 7px;border-radius:999px;background:var(--luxe-amber-bg);color:var(--luxe-amber);font-weight:500;text-decoration:none">'+f+'</a>').join('') +'</div>' : '') +'</div></div>'
+            })
+            html += '</div></div>'
+            el.innerHTML = html
+          })
+      `}} />
+    </div>
   )
 }
 
@@ -187,17 +244,5 @@ function StatCard({ icon, iconClass, value, label, change, href, up }: {
         <div className={`luxe-stat-change ${up ? 'up' : 'neutral'}`}>{change}</div>
       </div>
     </Link>
-  )
-}
-
-function MiniStat({ icon, iconClass, value, label }: { icon: string; iconClass: string; value: string; label: string }) {
-  return (
-    <div className="luxe-card">
-      <div className="luxe-card-body" style={{ textAlign: 'center' }}>
-        <div className={`luxe-stat-icon ${iconClass}`} style={{ margin: '0 auto var(--space-3)' }}>{icon}</div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--luxe-navy-900)', lineHeight: 1 }}>{value}</div>
-        <div className="luxe-stat-label" style={{ marginTop: 'var(--space-1)' }}>{label}</div>
-      </div>
-    </div>
   )
 }
