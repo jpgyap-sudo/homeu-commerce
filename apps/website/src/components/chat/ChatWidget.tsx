@@ -156,14 +156,14 @@ export function ChatWidget() {
         setConversationId(data.conversationId)
         setQuoteCartLeadId(data.leadId) // Persist for server-side cart sync
       }
-    } catch {
-      // Silent fail — chat still works without lead session
+    } catch (err) {
+      console.error('[ChatWidget] Auto-lead creation failed:', err instanceof Error ? err.message : err)
     }
   }, [leadId])
 
   // ── Helpers ───────────────────────────────────────────────
-  let msgCounter = 0
-  function nextMsgId() { return `msg-${Date.now()}-${++msgCounter}` }
+  const msgCounter = useRef(0)
+  function nextMsgId() { return `msg-${Date.now()}-${++msgCounter.current}` }
 
   function addBotMessage(content: string) {
     setMessages(prev => [...prev, {

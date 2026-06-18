@@ -38,6 +38,34 @@ export async function GET(request: NextRequest) {
       values.push(category)
     }
 
+    // Missing data filters (admin diagnostic)
+    const missing = searchParams.get('missing') || ''
+    if (missing) {
+      const filters = missing.split(',').map(m => m.trim())
+      for (const f of filters) {
+        switch (f) {
+          case 'image':
+            conditions.push(`NOT EXISTS (SELECT 1 FROM product_images pi WHERE pi.product_id = p.id)`)
+            break
+          case 'seo':
+            conditions.push(`(p.seo_title IS NULL OR p.seo_title = '' OR p.seo_description IS NULL OR p.seo_description = '')`)
+            break
+          case 'price':
+            conditions.push(`(p.price IS NULL OR p.price = 0)`)
+            break
+          case 'category':
+            conditions.push(`p.category_id IS NULL`)
+            break
+          case 'description':
+            conditions.push(`(p.description IS NULL OR p.description::text = '' OR p.description::text = '{}')`)
+            break
+          case 'dimensions':
+            conditions.push(`(p.dimensions IS NULL OR p.dimensions = '')`)
+            break
+        }
+      }
+    }
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
     // Count total

@@ -57,7 +57,7 @@ const DEFAULT_TERMS = {
   paymentTerms: '50% down payment upon order confirmation. Remaining 50% due before delivery.',
   warranty: 'All furniture pieces come with a standard manufacturer warranty covering manufacturing defects.',
   bankDetails:
-    'Bank: Eastwest Bank\nAccount Name: Home Atelier\nAccount Number: ________________',
+    'Bank: Eastwest Bank\nAccount Name: Home Atelier\nAccount Number: (set BANK_DETAILS in .env)',
   cancellationPolicy:
     'Cancellations made within 24 hours of order confirmation are fully refundable. After 24 hours, a cancellation fee may apply.',
   returnPolicy:

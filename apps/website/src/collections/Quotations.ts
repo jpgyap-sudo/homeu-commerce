@@ -238,7 +238,7 @@ export const Quotations = {
       name: 'termsBankDetails',
       type: 'textarea',
       label: 'Bank Details',
-      defaultValue: 'Bank: Eastwest Bank\nAccount Name: Home Atelier\nAccount Number: ________________',
+      defaultValue: process.env.BANK_DETAILS || 'Bank: Eastwest Bank\nAccount Name: Home Atelier\nAccount Number: (set BANK_DETAILS in .env)',
     },
     {
       name: 'termsCancellationPolicy',
