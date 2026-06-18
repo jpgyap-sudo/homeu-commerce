@@ -96,6 +96,36 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
   const canSeeSection = (id: string) => userTabs.includes('*') || userTabs.includes(id)
 
+  // Sidebar section reordering
+  const [editingSidebar, setEditingSidebar] = useState(false)
+  const [sidebarOrder, setSidebarOrder] = useState(SECTIONS.map(s => s.id))
+
+  useEffect(() => {
+    const saved = localStorage.getItem('admin-sidebar-order')
+    if (saved) {
+      try {
+        const ids = JSON.parse(saved) as string[]
+        if (ids.length === SECTIONS.length) setSidebarOrder(ids)
+      } catch {}
+    }
+  }, [])
+
+  const orderedSections = sidebarOrder
+    .map(id => SECTIONS.find(s => s.id === id))
+    .filter((s): s is SidebarSection => !!s)
+
+  const moveSection = (id: string, dir: 'up' | 'down') => {
+    setSidebarOrder(prev => {
+      const idx = prev.indexOf(id)
+      if (idx === -1) return prev
+      const next = [...prev]
+      if (dir === 'up' && idx > 0) [next[idx-1], next[idx]] = [next[idx], next[idx-1]]
+      if (dir === 'down' && idx < next.length - 1) [next[idx+1], next[idx]] = [next[idx], next[idx+1]]
+      localStorage.setItem('admin-sidebar-order', JSON.stringify(next))
+      return next
+    })
+  }
+
   if (isLogin) {
     return (
       <div className="luxe-admin">
@@ -131,7 +161,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
         {/* Navigation with collapsible sections */}
         <nav className="luxe-sidebar-nav">
-          {SECTIONS.filter(s => canSeeSection(s.id)).map(section => {
+          {orderedSections.filter(s => canSeeSection(s.id)).map(section => {
             const isExpanded = !collapsed.has(section.id)
             const hasActive = section.links.some(l => isActive(l.href))
 
@@ -182,6 +212,23 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
+        {/* Sidebar edit button */}
+        <div style={{ padding: 'var(--space-2) var(--space-3)' }}>
+          <button
+            onClick={() => setEditingSidebar(true)}
+            style={{
+              width: '100%', padding: '6px 10px', border: '1px dashed var(--luxe-blue-200)',
+              background: 'transparent', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+              fontSize: 11, color: 'var(--luxe-slate-400)', display: 'flex', alignItems: 'center',
+              gap: 6, transition: 'all 150ms ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--luxe-blue-500)'; e.currentTarget.style.color = 'var(--luxe-blue-600)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--luxe-blue-200)'; e.currentTarget.style.color = 'var(--luxe-slate-400)' }}
+          >
+            ✏️ Edit Sidebar
+          </button>
+        </div>
+
         {/* User */}
         <div className="luxe-sidebar-footer">
           <div className="luxe-sidebar-user">
@@ -197,6 +244,57 @@ export default function AdminShell({ children }: { children: ReactNode }) {
       <main className="luxe-main">
         {children}
       </main>
+
+      {/* Sidebar Editor Modal */}
+      {editingSidebar && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center' }}
+          onClick={() => setEditingSidebar(false)}>
+          <div className="luxe-card" style={{ width: 440, maxWidth:'90vw' }} onClick={e => e.stopPropagation()}>
+            <div className="luxe-card-header">
+              <h2 className="luxe-card-title">✏️ Reorder Sidebar</h2>
+              <button onClick={() => setEditingSidebar(false)} className="luxe-btn luxe-btn-ghost luxe-btn-sm">Done</button>
+            </div>
+            <div className="luxe-card-body">
+              <p style={{ fontSize: 12, color: 'var(--luxe-slate-400)', margin: '0 0 var(--space-4)' }}>
+                Drag or use arrows to rearrange sections. Hidden sections (no permission) are not shown.
+              </p>
+              <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                {sidebarOrder.map((id, i) => {
+                  const section = SECTIONS.find(s => s.id === id)
+                  if (!section || !canSeeSection(id)) return null
+                  const isFirst = i === 0
+                  const isLast = i === sidebarOrder.length - 1
+                  return (
+                    <div key={id} style={{
+                      display:'flex', alignItems:'center', gap:8, padding:'10px 12px',
+                      background:'var(--luxe-warm-50)', borderRadius:'var(--radius-sm)',
+                      border:'1px solid var(--luxe-warm-200)',
+                    }}>
+                      <span style={{ fontSize: 18 }}>{section.icon}</span>
+                      <span style={{ flex:1, fontSize: 13, fontWeight: 500 }}>{section.label}</span>
+                      <span style={{ fontSize: 10, color: 'var(--luxe-slate-400)' }}>{section.links.length} links</span>
+                      <div style={{ display:'flex', gap:2 }}>
+                        <button onClick={() => moveSection(id, 'up')} disabled={isFirst}
+                          className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ padding:'2px 6px', fontSize: 14, opacity: isFirst ? 0.3 : 1 }}>
+                          ▲
+                        </button>
+                        <button onClick={() => moveSection(id, 'down')} disabled={isLast}
+                          className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ padding:'2px 6px', fontSize: 14, opacity: isLast ? 0.3 : 1 }}>
+                          ▼
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <button onClick={() => { setSidebarOrder(SECTIONS.map(s => s.id)); localStorage.setItem('admin-sidebar-order', JSON.stringify(SECTIONS.map(s => s.id))) }}
+                className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ marginTop:'var(--space-4)' }}>
+                🔄 Reset to Default
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
