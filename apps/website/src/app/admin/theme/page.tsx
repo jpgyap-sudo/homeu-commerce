@@ -1,7 +1,7 @@
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
-import { getCustomCss } from '@/lib/theme'
+import { getCustomCss, getHeaderSettings } from '@/lib/theme'
 import ThemeEditor from './ThemeEditor'
 
 export const metadata = { title: 'Theme — DaVinciOS' }
@@ -20,7 +20,7 @@ export default async function ThemePage() {
     sections = res.rows
   } catch { sections = [] }
 
-  const customCss = await getCustomCss()
+  const [customCss, header] = await Promise.all([getCustomCss(), getHeaderSettings()])
 
-  return <ThemeEditor initial={sections} initialCss={customCss} />
+  return <ThemeEditor initial={sections} initialCss={customCss} initialHeader={header} />
 }

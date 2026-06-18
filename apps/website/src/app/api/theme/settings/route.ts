@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 
-const ALLOWED = new Set(['custom_css'])
+const ALLOWED = new Set(['custom_css', 'header_settings'])
 
 export async function GET() {
   try {

@@ -13,10 +13,11 @@ type NavItem = {
   children: NavItem[]
 }
 
-export function SiteHeader({ nav }: { nav?: NavItem[] }) {
+export function SiteHeader({ nav, logoUrl }: { nav?: NavItem[]; logoUrl?: string }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const navItems: NavItem[] = nav && nav.length > 0 ? nav : (navigation.main as NavItem[])
+  const logoSrc = logoUrl || siteConfig.logo.shopifyUrl
 
   return (
     <div data-section-type="header-section">
@@ -28,7 +29,7 @@ export function SiteHeader({ nav }: { nav?: NavItem[] }) {
           <div className="grid__item site-header__logo text-center">
             <Link href="/" className="site-header__logo-link">
               <Image
-                src={siteConfig.logo.shopifyUrl}
+                src={logoSrc}
                 alt={siteConfig.name}
                 width={siteConfig.logo.maxWidth}
                 height={60}
@@ -111,7 +112,7 @@ export function SiteHeader({ nav }: { nav?: NavItem[] }) {
           <div className="grid__item text-center site-header__mobile-logo">
             <Link href="/">
               <Image
-                src={siteConfig.logo.shopifyUrl}
+                src={logoSrc}
                 alt={siteConfig.name}
                 width={140}
                 height={44}

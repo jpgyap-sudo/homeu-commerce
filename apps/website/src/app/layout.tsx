@@ -6,7 +6,7 @@ import { ChatWidget } from '@/components/chat/ChatWidget'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { getMainNav } from '@/lib/navigation'
-import { getCustomCss } from '@/lib/theme'
+import { getCustomCss, getHeaderSettings } from '@/lib/theme'
 import siteConfig from '@/data/site-config.json'
 
 export const metadata = {
@@ -34,7 +34,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   // Storefront: full Debut-themed layout
-  const [mainNav, customCss] = await Promise.all([getMainNav(), getCustomCss()])
+  const [mainNav, customCss, header] = await Promise.all([getMainNav(), getCustomCss(), getHeaderSettings()])
+  const headerCss = `:root{--debut-header-bg:${header.bgColor};--debut-header-text:${header.textColor};}`
+    + `.site-header{position:${header.sticky ? 'sticky' : 'static'};}`
+    + `.site-header__logo-image{max-width:${header.logoMaxWidth}px;}`
   return (
     <html lang="en">
       <head>
@@ -50,11 +53,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script src="https://cdn.judge.me/widget.js" async={true}></script>
+        {/* Admin-editable header appearance (Theme → Header) */}
+        <style id="homeu-header-css" dangerouslySetInnerHTML={{ __html: headerCss }} />
         {/* Admin-editable custom CSS (Theme → Custom CSS) */}
         {customCss ? <style id="homeu-custom-css" dangerouslySetInnerHTML={{ __html: customCss }} /> : null}
       </head>
       <body>
-        <SiteHeader nav={mainNav} />
+        <SiteHeader nav={mainNav} logoUrl={header.logoUrl || undefined} />
         <main id="MainContent" className="content-for-layout" role="main" tabIndex={-1}>
           {children}
         </main>

@@ -13,6 +13,15 @@ export type SectionType =
   | 'reviews'
   | 'instagram'
   | 'cta'
+  | 'newsletter'
+  | 'logo_bar'
+  | 'testimonial'
+  | 'stats_counter'
+  | 'blog_posts'
+  | 'promo_bar'
+  | 'video_hero'
+  | 'lookbook'
+  | 'category_carousel'
 
 export interface HomepageSection {
   id: number
@@ -24,15 +33,24 @@ export interface HomepageSection {
 
 /** Human metadata for each section type — drives the admin editor. */
 export const SECTION_META: Record<SectionType, { label: string; icon: string; description: string }> = {
-  slideshow:         { label: 'Slideshow',          icon: '🖼️', description: 'Rotating hero banners with buttons' },
-  brand_text:        { label: 'Brand statement',     icon: '✍️', description: 'Centered heading + paragraph' },
-  collection_grid:   { label: 'Shop by Collection',  icon: '🗂️', description: 'Grid of collection tiles' },
-  image_with_text:   { label: 'Image with text',     icon: '📰', description: 'Image beside a text block + button' },
-  image_bar:         { label: 'Image bar',           icon: '🎞️', description: 'Row of 2–3 images' },
-  featured_products: { label: 'Featured pieces',     icon: '⭐', description: 'Product grid (auto or from a collection)' },
-  reviews:           { label: 'Reviews',             icon: '💬', description: 'Judge.me review carousel' },
-  instagram:         { label: 'Instagram',           icon: '📸', description: 'Instagram feed grid' },
-  cta:               { label: 'Call to action',      icon: '📣', description: 'Banner with heading + buttons' },
+  slideshow:         { label: 'Slideshow',            icon: '🖼️', description: 'Rotating hero banners with buttons' },
+  brand_text:        { label: 'Brand statement',       icon: '✍️', description: 'Centered heading + paragraph' },
+  collection_grid:   { label: 'Shop by Collection',    icon: '🗂️', description: 'Grid of collection tiles' },
+  image_with_text:   { label: 'Image with text',       icon: '📰', description: 'Image beside a text block + button' },
+  image_bar:         { label: 'Image bar',             icon: '🎞️', description: 'Row of 2–3 images' },
+  featured_products: { label: 'Featured pieces',       icon: '⭐', description: 'Product grid (auto or from a collection)' },
+  reviews:           { label: 'Reviews',               icon: '💬', description: 'Judge.me review carousel' },
+  instagram:         { label: 'Instagram',             icon: '📸', description: 'Instagram feed grid' },
+  cta:               { label: 'Call to action',        icon: '📣', description: 'Banner with heading + buttons' },
+  newsletter:        { label: 'Newsletter signup',     icon: '✉️', description: 'Email capture form with heading' },
+  logo_bar:          { label: 'Logo bar / Partners',   icon: '🏢', description: 'Horizontal row of brand/partner logos' },
+  testimonial:       { label: 'Testimonials',          icon: '💬', description: 'Customer quote cards with avatars' },
+  stats_counter:     { label: 'Stats counter',         icon: '📊', description: 'Statistics row (numbers + labels)' },
+  blog_posts:        { label: 'Blog feed',             icon: '📝', description: 'Recent blog article grid' },
+  promo_bar:         { label: 'Promo bar',             icon: '📢', description: 'Sticky announcement bar at top of page' },
+  video_hero:        { label: 'Video hero',            icon: '🎬', description: 'Full-screen video banner with overlay' },
+  lookbook:          { label: 'Lookbook',              icon: '👗', description: 'Shoppable collage image grid' },
+  category_carousel: { label: 'Category carousel',     icon: '🔄', description: 'Horizontal scrolling collection tiles' },
 }
 
 export const SECTION_TYPES = Object.keys(SECTION_META) as SectionType[]
