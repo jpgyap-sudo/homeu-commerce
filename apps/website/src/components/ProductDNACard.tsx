@@ -107,13 +107,13 @@ export default function ProductDNACard({ summary, products }: Props) {
               {p.fixes.length > 0 && (
                 <div style={{ marginTop: 'var(--space-2)', display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
                   {p.fixes.map(fix => (
-                    <span key={fix} style={{
+                    <Link key={fix} href={`/admin/products/${p.id}`} style={{
                       fontSize: 10, padding: '1px 7px', borderRadius: 999,
                       background: 'var(--luxe-amber-bg)', color: 'var(--luxe-amber)',
-                      fontWeight: 500, letterSpacing: '0.02em',
+                      fontWeight: 500, letterSpacing: '0.02em', textDecoration: 'none',
                     }}>
                       {fix}
-                    </span>
+                    </Link>
                   ))}
                 </div>
               )}
