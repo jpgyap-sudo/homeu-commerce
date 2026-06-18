@@ -45,7 +45,18 @@ const input: React.CSSProperties = { width: '100%', padding: '9px 12px', border:
 const lbl: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: '#3a4339', marginBottom: 5 }
 const mono: React.CSSProperties = { fontFamily: 'JetBrains Mono, ui-monospace, monospace', fontSize: 12.5, lineHeight: 1.5 }
 
-interface HeaderSettings { logoUrl: string; logoMaxWidth: number; bgColor: string; textColor: string; sticky: boolean }
+interface HeaderSettings { logoUrl: string; logoMaxWidth: number; bgColor: string; textColor: string; sticky: boolean; fontFamily: string; navFontSize: number }
+
+const HEADER_FONT_OPTIONS: { label: string; stack: string }[] = [
+  { label: 'Default (theme)', stack: '' },
+  { label: 'Inter', stack: "'Inter', sans-serif" },
+  { label: 'Playfair Display', stack: "'Playfair Display', serif" },
+  { label: 'Poppins', stack: "'Poppins', sans-serif" },
+  { label: 'Montserrat', stack: "'Montserrat', sans-serif" },
+  { label: 'Cormorant Garamond', stack: "'Cormorant Garamond', serif" },
+  { label: 'Georgia (web-safe)', stack: 'Georgia, serif' },
+  { label: 'Helvetica (web-safe)', stack: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
+]
 
 export default function ThemeEditor({ initial, initialCss, initialHeader }: { initial: Section[]; initialCss: string; initialHeader: HeaderSettings }) {
   const [sections, setSections] = useState<Section[]>(initial)
@@ -453,13 +464,13 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
     <div style={{ display: 'flex', gap: 0, fontFamily: 'Inter, sans-serif', height: 'calc(100vh - 0px)' }}>
       {toast && <div style={{ position: 'fixed', top: 20, right: 20, background: '#1e7a47', color: '#fff', padding: '10px 18px', borderRadius: 8, fontSize: 14, zIndex: 100, boxShadow: '0 6px 18px rgba(0,0,0,0.2)' }}>{toast}</div>}
 
-      {/* ── Left: editor ── */}
-      <div style={{ flex: '1 1 560px', minWidth: 0, overflowY: 'auto', padding: '28px 24px', maxWidth: 720 }}>
+      {/* ── Left: editor (compact rail) ── */}
+      <div style={{ flex: '0 0 380px', width: 380, minWidth: 380, overflowY: 'auto', padding: '20px 16px', borderRight: '1px solid #e3e8e0' }}>
         {/* ── Header bar with Save All ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#151a17' }}>Theme · Homepage</h1>
-            <p style={{ margin: '4px 0 0', color: '#667168', fontSize: 14 }}>Reorder, toggle, edit visually or as code. The preview updates on save.</p>
+            <Link href="/admin/dashboard" style={{ color: '#667168', fontSize: 12, textDecoration: 'none', display: 'inline-block', marginBottom: 4 }}>← Dashboard</Link>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#151a17' }}>Theme · Homepage</h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {/* Undo / Redo */}
@@ -572,6 +583,16 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
                     <input type="color" value={header.textColor} onChange={e => setHeader(h => ({ ...h, textColor: e.target.value }))} style={{ width: 40, height: 40, padding: 2, border: '1.5px solid #d9e0d7', borderRadius: 8, cursor: 'pointer', background: 'none' }} />
                     <input style={{ ...input, flex: 1 }} value={header.textColor} onChange={e => setHeader(h => ({ ...h, textColor: e.target.value }))} />
                   </div>
+                </div>
+                <div>
+                  <label style={lbl}>Header font</label>
+                  <select style={input} value={header.fontFamily} onChange={e => setHeader(h => ({ ...h, fontFamily: e.target.value }))}>
+                    {HEADER_FONT_OPTIONS.map(f => <option key={f.label} value={f.stack}>{f.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Nav font size (px)</label>
+                  <input style={input} type="number" value={header.navFontSize} onChange={e => setHeader(h => ({ ...h, navFontSize: parseInt(e.target.value, 10) || 0 }))} />
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 14 }}>
@@ -690,7 +711,7 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
       </div>
 
       {/* ── Right: live preview ── */}
-      <div style={{ flex: '1 1 520px', minWidth: 380, borderLeft: '1px solid #e3e8e0', background: '#eef1ed', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' }}>
+      <div style={{ flex: '1 1 auto', minWidth: 0, background: '#eef1ed', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#fff', borderBottom: '1px solid #e3e8e0' }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: '#151a17' }}>Live preview</span>
           <span style={{ fontSize: 12, color: '#9aa69c' }}>click a section to edit</span>

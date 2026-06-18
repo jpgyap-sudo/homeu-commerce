@@ -81,6 +81,9 @@ const SECTIONS: SidebarSection[] = [
 export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const isLogin = pathname === '/admin/login'
+  // Theme editor is full-bleed (its own section rail + large preview),
+  // like Shopify's theme customizer — no admin sidebar.
+  const isFullBleed = pathname === '/admin/theme' || pathname.startsWith('/admin/theme/')
 
   // Collapsed sections — all expanded by default, auto-collapse inactive
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
@@ -127,6 +130,15 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   }
 
   if (isLogin) {
+    return (
+      <div className="luxe-admin">
+        <PageViewTracker />
+        {children}
+      </div>
+    )
+  }
+
+  if (isFullBleed) {
     return (
       <div className="luxe-admin">
         <PageViewTracker />
