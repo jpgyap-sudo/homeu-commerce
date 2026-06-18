@@ -114,6 +114,16 @@ export default function AdminShell({ children }: { children: ReactNode }) {
             Appointments
           </Link>
 
+          <div className="luxe-sidebar-section">Apps</div>
+          <Link href="/admin/apps" className={`luxe-sidebar-link ${isActive('/admin/apps') ? 'active' : ''}`}>
+            <span className="luxe-sidebar-icon">🧩</span>
+            Category Apps
+          </Link>
+          <Link href="/admin/apps/instagram" className={`luxe-sidebar-link ${isActive('/admin/apps/instagram') ? 'active' : ''}`}>
+            <span className="luxe-sidebar-icon">📸</span>
+            Instagram Feed
+          </Link>
+
           <div className="luxe-sidebar-section">System</div>
           <Link href="/admin/settings" className={`luxe-sidebar-link ${isActive('/admin/settings') ? 'active' : ''}`}>
             <span className="luxe-sidebar-icon">⚙</span>
