@@ -103,50 +103,7 @@
 }
 
 /* Brand message section */
-.admin-login-brand-message {
-  position: relative;
-  z-index: 1;
-  margin-top: auto;
-  margin-bottom: auto;
-  max-width: 380px;
-}
-
-.admin-login-brand-message h2 {
-  margin: 0 0 16px;
-  font-size: 32px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-  color: #f7f5f0;
-}
-
-.admin-login-brand-message p {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.65;
-  color: rgba(247, 245, 240, 0.6);
-  font-weight: 400;
-}
-
-/* Decorative divider */
-.admin-login-brand-divider {
-  position: relative;
-  z-index: 1;
-  width: 48px;
-  height: 1px;
-  background: linear-gradient(90deg, var(--admin-accent), transparent);
-  margin: 0;
-}
-
-/* Brand footer */
-.admin-login-brand-footer {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding-bottom: 24px;
-}
+/* Brand message — styles now in luxury-theme.css */
 
 .admin-login-brand-badge {
   display: inline-flex;

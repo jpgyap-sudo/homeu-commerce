@@ -39,7 +39,11 @@ export default async function AdminLoginPage() {
 
           {/* Brand message */}
           <div className="admin-login-brand-message">
-            <p>DaVinciOS Command Center</p>
+            <h2>DaVinciOS</h2>
+            <p className="admin-login-brand-desc">
+              The operations engine powering HomeU.ph — manage your catalog,
+              process RFQs, generate quotations, and run your furniture business.
+            </p>
           </div>
 
           {/* Decorative divider line */}
