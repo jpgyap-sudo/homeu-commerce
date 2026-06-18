@@ -17,6 +17,8 @@ interface Grid {
   created_at: string
 }
 
+interface ProductResult { id: number; title: string; slug: string }
+
 const CATEGORIES = [
   { id: 1, name: 'Living Room' }, { id: 2, name: 'Dining Room' }, { id: 3, name: 'Bedroom' },
   { id: 4, name: 'Office' }, { id: 5, name: 'Outdoor' },
@@ -41,6 +43,9 @@ export default function InstagramAdminPage() {
   const [postSource, setPostSource] = useState<'manual_upload'|'instagram'>('manual_upload')
   const [taggedProducts, setTaggedProducts] = useState<number[]>([])
   const [taggedCollections, setTaggedCollections] = useState<number[]>([])
+  const [productSearch, setProductSearch] = useState('')
+  const [productResults, setProductResults] = useState<ProductResult[]>([])
+  const [showProductSearch, setShowProductSearch] = useState(false)
 
   // Grid creation
   const [creatingGrid, setCreatingGrid] = useState(false)
@@ -99,6 +104,20 @@ export default function InstagramAdminPage() {
     })
     if (r.ok) { fetchPosts(); toast(`Status: ${status}`) }
   }
+
+  const searchProducts = async (q: string) => {
+    setProductSearch(q)
+    if (q.length < 2) { setProductResults([]); return }
+    const r = await fetch(`/api/products?search=${encodeURIComponent(q)}&limit=5`)
+    if (r.ok) { const d = await r.json(); setProductResults(d.products || d.rows || []) }
+  }
+
+  const addTaggedProduct = (p: ProductResult) => {
+    if (!taggedProducts.includes(p.id)) setTaggedProducts([...taggedProducts, p.id])
+    setProductSearch(''); setProductResults([]); setShowProductSearch(false)
+  }
+
+  const removeTaggedProduct = (id: number) => setTaggedProducts(taggedProducts.filter(x => x !== id))
 
   const resetPostForm = () => {
     setImageUrl(''); setImageCaption(''); setImagePermalink(''); setPostSource('manual_upload')
@@ -209,6 +228,34 @@ export default function InstagramAdminPage() {
                 <option value="manual_upload">Manual Upload</option>
                 <option value="instagram">Instagram Sync</option>
               </select>
+            </div>
+          </div>
+          {/* Product Tagging */}
+          <div style={{ marginBottom:'var(--space-4)' }}>
+            <label style={{ fontSize:11,fontWeight:600,color:'var(--luxe-slate-400)',textTransform:'uppercase',marginBottom:4,display:'block' }}>Tag Products</label>
+            <div style={{ display:'flex',gap:'var(--space-2)',flexWrap:'wrap',marginBottom:8 }}>
+              {taggedProducts.map(id => (
+                <span key={id} style={{ background:'rgba(201,160,80,0.1)',color:'var(--luxe-gold-500)',padding:'4px 10px',borderRadius:999,fontSize:11,fontWeight:500,display:'flex',alignItems:'center',gap:6 }}>
+                  Product #{id}
+                  <button onClick={() => removeTaggedProduct(id)} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--luxe-merlot)',fontSize:14,lineHeight:1 }}>×</button>
+                </span>
+              ))}
+            </div>
+            <div style={{ position:'relative' }}>
+              <input className="luxe-input" placeholder="Search products by name..." value={productSearch}
+                onChange={e => searchProducts(e.target.value)} onFocus={() => setShowProductSearch(true)}
+                onBlur={() => setTimeout(() => { setShowProductSearch(false); setProductResults([]) }, 200)} />
+              {showProductSearch && productResults.length > 0 && (
+                <div style={{ position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1px solid var(--luxe-warm-200)',borderRadius:'var(--radius-sm)',boxShadow:'var(--shadow-lg)',zIndex:50,maxHeight:200,overflow:'auto' }}>
+                  {productResults.map(p => (
+                    <div key={p.id} onMouseDown={() => addTaggedProduct(p)}
+                      style={{ padding:'8px 12px',cursor:'pointer',fontSize:12,borderBottom:'1px solid var(--luxe-warm-100)',display:'flex',justifyContent:'space-between' }}>
+                      <span>{p.title}</span>
+                      <span style={{ color:'var(--luxe-slate-400)' }}>{p.slug}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div style={{ display:'flex',gap:'var(--space-3)',justifyContent:'flex-end' }}>
