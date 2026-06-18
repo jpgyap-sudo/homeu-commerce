@@ -1,8 +1,8 @@
 # Remaining Gaps — HomeU Commerce
 
-> **Updated:** 2026-06-18T10:25
-> **Status:** 23 active gaps (0 critical, 0 high, 6 medium, 17 low)
-> **Resolved:** 46 (including today's two sweeps)
+> **Updated:** 2026-06-18T10:30
+> **Status:** 16 active gaps (0 critical, 0 high, 5 medium, 11 low)
+> **Resolved:** 53 (including today's three sweeps)
 
 ### Today's Fixes — Sweep 1 (2026-06-18)
 | Gap | Action | Status |
@@ -15,7 +15,17 @@
 | MED-024 | Docker tags: `davincios-website` → `homeu-website` | ✅ Fixed |
 | MED-031 | Deleted `tools/rebrand/` scripts | ✅ Fixed |
 
-### Today's Fixes — Sweep 2 (2026-06-18)
+### Today's Fixes — Sweep 3 (2026-06-18)
+| Gap | Action | Status |
+|-----|--------|--------|
+| MED-007 | Missing data filters: `?missing=image,seo,price,category,description,dimensions` | ✅ Fixed |
+| LOW-001 | Bank placeholder → env-based default | ✅ Fixed |
+| LOW-011 | Bank placeholder in new form → env-based | ✅ Fixed |
+| LOW-002 | Viber dummy number removed | ✅ Fixed (prev) |
+| LOW-004 | component-map.md created | ✅ Fixed |
+| LOW-009 | msgCounter → useRef (StrictMode fix) | ✅ Fixed |
+| LOW-010 | handleAutoLead silent catch → console.error | ✅ Fixed |
+| LOW-013 | Viber number clickable (viber:// protocol) | ✅ Fixed |
 | Gap | Action | Status |
 |-----|--------|--------|
 | MED-023 | Deployer MCP: `DaVinciOS` → `metadata` (param + column) | ✅ Fixed |
@@ -317,10 +327,10 @@ Individual quotation detail page has no delete/archive action. Admin must go bac
 
 ---
 
-## Needs Verification (not enough info)
+## Needs Verification — ALL DONE ✅
 
-| Gap | Question |
-|-----|----------|
-| MED-023 | Is deployer MCP column `DaVinciOS` intentional or stale? |
-| MED-025 | Should GitHub Actions use `DAVINCIOS_PUBLIC_SERVER_URL` or `ADMIN_PUBLIC_SERVER_URL`? |
-| Domain sweep | Are `homeu.ph` references in 151 files intentional (brand domain) or stale (should be `homeatelier.ph`)? |
+| Gap | Question | Status |
+|-----|----------|--------|
+| MED-023 | Deployer MCP column `DaVinciOS` → renamed to `metadata` | ✅ Fixed |
+| MED-025 | GitHub Actions updated: workflow name, URLs, rollback | ✅ Fixed |
+| Domain sweep | 151 `homeu.ph` references intentional (brand domain, live Shopify) | ✅ Verified |
