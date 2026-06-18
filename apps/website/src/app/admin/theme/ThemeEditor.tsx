@@ -72,6 +72,33 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
   const [toast, setToast] = useState('')
   const [previewKey, setPreviewKey] = useState(0)
 
+  // ── Resizable section rail (gated behind "Resize" toggle) ──────────
+  const [railWidth, setRailWidth] = useState(380)
+  const [resizing, setResizing] = useState(false)   // toggle = handle visible
+  const draggingRef = useRef(false)
+
+  useEffect(() => {
+    const saved = parseInt(localStorage.getItem('theme-rail-width') || '', 10)
+    if (saved >= 260 && saved <= 760) setRailWidth(saved)
+  }, [])
+
+  useEffect(() => {
+    if (!resizing) return
+    const onMove = (e: MouseEvent) => {
+      if (!draggingRef.current) return
+      setRailWidth(Math.min(760, Math.max(260, e.clientX)))
+    }
+    const onUp = () => {
+      if (!draggingRef.current) return
+      draggingRef.current = false
+      document.body.style.userSelect = ''
+      setRailWidth(w => { localStorage.setItem('theme-rail-width', String(w)); return w })
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+  }, [resizing])
+
   // ── Unsaved changes tracking ──────────────────────────────────────
   const [dirty, setDirty] = useState(false)
   const [isSavingAll, setIsSavingAll] = useState(false)
@@ -464,8 +491,8 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
     <div style={{ display: 'flex', gap: 0, fontFamily: 'Inter, sans-serif', height: 'calc(100vh - 0px)' }}>
       {toast && <div style={{ position: 'fixed', top: 20, right: 20, background: '#1e7a47', color: '#fff', padding: '10px 18px', borderRadius: 8, fontSize: 14, zIndex: 100, boxShadow: '0 6px 18px rgba(0,0,0,0.2)' }}>{toast}</div>}
 
-      {/* ── Left: editor (compact rail) ── */}
-      <div style={{ flex: '0 0 380px', width: 380, minWidth: 380, overflowY: 'auto', padding: '20px 16px', borderRight: '1px solid #e3e8e0' }}>
+      {/* ── Left: editor (compact, resizable rail) ── */}
+      <div style={{ flex: `0 0 ${railWidth}px`, width: railWidth, minWidth: railWidth, overflowY: 'auto', padding: '20px 16px', borderRight: resizing ? 'none' : '1px solid #e3e8e0' }}>
         {/* ── Header bar with Save All ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
           <div>
@@ -481,6 +508,11 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
             {/* Collapse all */}
             <button onClick={() => { setAllCollapsed(c => !c); setOpenId(allCollapsed ? null : -1) }} title={allCollapsed ? 'Expand all' : 'Collapse all'}
               style={{ padding: '6px 10px', border: '1px solid #d9e0d7', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 14 }}>{allCollapsed ? '⊞' : '⊟'}</button>
+            {/* Resize rail */}
+            <button onClick={() => setResizing(r => !r)} title="Drag the divider to resize this panel"
+              style={{ padding: '6px 10px', border: '1px solid #d9e0d7', borderRadius: 6, background: resizing ? '#151a17' : '#fff', color: resizing ? '#fff' : '#3a4339', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+              {resizing ? '✓ Done' : '↔ Resize'}
+            </button>
             {/* Export / Import */}
             <button onClick={exportTheme} title="Export theme as JSON"
               style={{ padding: '6px 10px', border: '1px solid #d9e0d7', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 13 }}>⬇</button>
@@ -709,6 +741,16 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
           </Link>
         </p>
       </div>
+
+      {/* ── Right: live preview ── */}
+      {/* Drag handle — only when Resize is toggled on */}
+      {resizing && (
+        <div
+          onMouseDown={() => { draggingRef.current = true; document.body.style.userSelect = 'none' }}
+          title="Drag to resize"
+          style={{ flex: '0 0 8px', width: 8, cursor: 'col-resize', background: 'linear-gradient(#1e7a47,#1e7a47) center/2px 100% no-repeat, #cfe3d6', alignSelf: 'stretch', position: 'sticky', top: 0, height: '100vh', zIndex: 5 }}
+        />
+      )}
 
       {/* ── Right: live preview ── */}
       <div style={{ flex: '1 1 auto', minWidth: 0, background: '#eef1ed', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' }}>
