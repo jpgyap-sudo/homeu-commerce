@@ -18,7 +18,7 @@ export async function GET() {
 
     // Try to find customer by email
     const result = await query(
-      `SELECT id, name, email, phone, company, notes, created_at, updated_at
+      `SELECT id, name, email, created_at, updated_at
        FROM customers
        WHERE LOWER(email) = LOWER($1)
        LIMIT 1`,
@@ -31,8 +31,8 @@ export async function GET() {
         id: c.id,
         name: c.name,
         email: c.email,
-        phone: c.phone,
-        company: c.company,
+        phone: null,
+        company: null,
         address: null,
         createdAt: c.created_at,
       })

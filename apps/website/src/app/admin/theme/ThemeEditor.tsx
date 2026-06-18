@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { SECTION_META, SECTION_TYPES, type SectionType } from '@/lib/theme'
+import { SECTION_META, SECTION_TYPES, type SectionType } from '@/lib/theme-types'
 import { SECTION_SCHEMAS, type FieldDef } from './theme-schemas'
 
 interface Section {
