@@ -487,12 +487,16 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
     )
   }
 
+  // Scale the rail's contents to fit its width (380px = 100%, floor 62%)
+  const railScale = Math.min(1, Math.max(0.62, railWidth / 380))
+
   return (
     <div style={{ display: 'flex', gap: 0, fontFamily: 'Inter, sans-serif', height: 'calc(100vh - 0px)' }}>
       {toast && <div style={{ position: 'fixed', top: 20, right: 20, background: '#1e7a47', color: '#fff', padding: '10px 18px', borderRadius: 8, fontSize: 14, zIndex: 100, boxShadow: '0 6px 18px rgba(0,0,0,0.2)' }}>{toast}</div>}
 
       {/* ── Left: editor (compact, resizable rail) ── */}
       <div style={{ flex: `0 0 ${railWidth}px`, width: railWidth, minWidth: railWidth, overflowY: 'auto', padding: '20px 16px', borderRight: resizing ? 'none' : '1px solid #e3e8e0' }}>
+       <div style={{ zoom: railScale } as React.CSSProperties}>
         {/* ── Header bar with Save All ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
           <div>
@@ -740,6 +744,7 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
             ← Back to Dashboard
           </Link>
         </p>
+       </div>
       </div>
 
       {/* ── Right: live preview ── */}
