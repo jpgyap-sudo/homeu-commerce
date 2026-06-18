@@ -185,21 +185,42 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
     return window.confirm(msg || 'You have unsaved theme changes. Are you sure you want to leave?')
   }, [dirty, cssDirty])
 
-  // ── Click-to-edit: listen for section selections from the preview iframe ──
+  // ── Click-to-edit + in-preview actions from the preview iframe ──
   useEffect(() => {
+    const openAndScroll = (id: number) => {
+      setOpenId(id)
+      requestAnimationFrame(() => document.getElementById(`sec-card-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+    }
     const onMessage = (e: MessageEvent) => {
       const d = e.data
-      if (!d || d.source !== 'homeu-preview' || d.kind !== 'select') return
+      if (!d || d.source !== 'homeu-preview') return
+
+      // Toolbar buttons in the preview: edit / move up / move down
+      if (d.kind === 'action') {
+        if (d.id === 'header') { setHeaderOpen(true); return }
+        const id = Number(d.id)
+        if (d.action === 'edit') { openAndScroll(id); return }
+        if (d.action === 'up' || d.action === 'down') {
+          setSections(prev => {
+            const idx = prev.findIndex(s => s.id === id)
+            const j = d.action === 'up' ? idx - 1 : idx + 1
+            if (idx === -1 || j < 0 || j >= prev.length) return prev
+            const next = [...prev]
+            ;[next[idx], next[j]] = [next[j], next[idx]]
+            return next
+          })
+          setDirty(true)
+        }
+        return
+      }
+
+      if (d.kind !== 'select') return
       if (d.id === 'header') {
         setHeaderOpen(true)
         requestAnimationFrame(() => document.getElementById('header-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
         return
       }
-      const id = Number(d.id)
-      setOpenId(id)
-      requestAnimationFrame(() => {
-        document.getElementById(`sec-card-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      })
+      openAndScroll(Number(d.id))
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)

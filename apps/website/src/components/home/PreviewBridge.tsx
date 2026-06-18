@@ -20,12 +20,36 @@ export function PreviewBridge() {
 
     document.body.classList.add('homeu-preview-mode')
 
-    // Floating outline + label that follows the hovered section
+    // Floating outline + toolbar that follows the hovered section
     const outline = document.createElement('div')
     outline.className = 'homeu-preview-outline'
     const label = document.createElement('div')
     label.className = 'homeu-preview-label'
     outline.appendChild(label)
+
+    // Action toolbar (Edit / Move up / Move down) — clickable
+    const bar = document.createElement('div')
+    bar.className = 'homeu-preview-bar'
+    const mkBtn = (txt: string, action: string, title: string) => {
+      const b = document.createElement('button')
+      b.className = 'homeu-preview-btn'
+      b.textContent = txt
+      b.title = title
+      b.addEventListener('click', (ev) => {
+        ev.preventDefault(); ev.stopPropagation()
+        if (!current) return
+        const isHeader = current.getAttribute('data-section-type') === 'header-section'
+        window.parent.postMessage({
+          source: 'homeu-preview', kind: 'action', action,
+          id: isHeader ? 'header' : Number(current.getAttribute('data-section-id')),
+        }, '*')
+      })
+      return b
+    }
+    bar.appendChild(mkBtn('✎ Edit', 'edit', 'Edit this section'))
+    bar.appendChild(mkBtn('▲', 'up', 'Move up'))
+    bar.appendChild(mkBtn('▼', 'down', 'Move down'))
+    outline.appendChild(bar)
     document.body.appendChild(outline)
 
     let current: HTMLElement | null = null
@@ -47,6 +71,8 @@ export function PreviewBridge() {
     }
 
     const onMove = (e: MouseEvent) => {
+      // Keep the outline/toolbar visible while the cursor is over it
+      if (e.target instanceof Node && outline.contains(e.target)) return
       const t = targetFor(e.target)
       if (t && t !== current) { current = t; place(t) }
       else if (t) place(t)

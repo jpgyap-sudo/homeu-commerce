@@ -1259,3 +1259,25 @@
   border-radius: 4px 4px 4px 0;
   white-space: nowrap;
 }
+
+/* Theme preview action toolbar (Edit / Move) */
+.homeu-preview-bar {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: flex;
+  gap: 2px;
+  pointer-events: auto;
+  z-index: 99999;
+}
+.homeu-preview-btn {
+  background: #1e7a47;
+  color: #fff;
+  border: none;
+  font: 600 11px/1 Inter, sans-serif;
+  padding: 5px 9px;
+  cursor: pointer;
+  border-radius: 0 0 0 4px;
+}
+.homeu-preview-btn:hover { background: #0f4f2b; }
+.homeu-preview-bar .homeu-preview-btn:last-child { border-radius: 0; }
