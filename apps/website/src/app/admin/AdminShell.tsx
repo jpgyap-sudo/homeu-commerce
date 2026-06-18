@@ -1,15 +1,83 @@
 'use client'
 
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import PageViewTracker from '@/components/PageViewTracker'
 import type { ReactNode } from 'react'
 
+interface SidebarSection {
+  id: string
+  label: string
+  icon: string
+  links: { href: string; icon: string; label: string; badge?: string }[]
+}
+
+const SECTIONS: SidebarSection[] = [
+  {
+    id: 'main', label: 'Main', icon: '⬡',
+    links: [
+      { href: '/admin/dashboard', icon: '◈', label: 'Dashboard' },
+    ],
+  },
+  {
+    id: 'catalog', label: 'Catalog', icon: '⃞',
+    links: [
+      { href: '/admin/products', icon: '◆', label: 'Products' },
+      { href: '/admin/categories', icon: '◇', label: 'Categories' },
+      { href: '/admin/collections', icon: '◉', label: 'Collections' },
+    ],
+  },
+  {
+    id: 'sales', label: 'Sales', icon: '⎔',
+    links: [
+      { href: '/admin/apps/email-inbox', icon: '📬', label: 'Email Inbox' },
+      { href: '/admin/quotations', icon: '◎', label: 'Quotations', badge: '83' },
+      { href: '/admin/rfq', icon: '◐', label: 'RFQ Requests' },
+      { href: '/admin/customers', icon: '◑', label: 'Customers' },
+    ],
+  },
+  {
+    id: 'content', label: 'Content', icon: '⬖',
+    links: [
+      { href: '/admin/theme', icon: '◭', label: 'Theme' },
+      { href: '/admin/blogs', icon: '✎', label: 'Blogs' },
+      { href: '/admin/navigation', icon: '☰', label: 'Navigation' },
+      { href: '/admin/pages', icon: '◈', label: 'Pages' },
+      { href: '/admin/media', icon: '◉', label: 'Media' },
+      { href: '/admin/redirects', icon: '◐', label: 'Redirects' },
+    ],
+  },
+  {
+    id: 'insights', label: 'Insights', icon: '⏣',
+    links: [
+      { href: '/admin/analytics', icon: '◆', label: 'Analytics' },
+      { href: '/admin/collections/leads', icon: '◇', label: 'Leads' },
+      { href: '/admin/collections/appointments', icon: '◎', label: 'Appointments' },
+    ],
+  },
+  {
+    id: 'apps', label: 'Apps', icon: '⬡',
+    links: [
+      { href: '/admin/apps', icon: '🧩', label: 'Category Apps' },
+      { href: '/admin/apps/instagram', icon: '📸', label: 'Instagram Feed' },
+    ],
+  },
+  {
+    id: 'system', label: 'System', icon: '☗',
+    links: [
+      { href: '/admin/settings', icon: '⚙', label: 'Settings' },
+      { href: '/admin/workflows', icon: '⚡', label: 'Workflows' },
+    ],
+  },
+]
+
 export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-
-  // Login page gets a full-screen layout without sidebar
   const isLogin = pathname === '/admin/login'
+
+  // Collapsed sections — all expanded by default, auto-collapse inactive
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
   if (isLogin) {
     return (
@@ -22,11 +90,18 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/')
 
+  const toggleSection = (id: string) => {
+    setCollapsed(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
   return (
     <div className="luxe-admin" style={{ display: 'flex', minHeight: '100vh' }}>
       <PageViewTracker />
 
-      {/* ── Luxury Sidebar ── */}
       <aside className="luxe-sidebar">
         {/* Brand */}
         <div className="luxe-sidebar-brand">
@@ -37,106 +112,57 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           <div className="luxe-sidebar-subtitle">Command Center</div>
         </div>
 
-        {/* Navigation */}
+        {/* Navigation with collapsible sections */}
         <nav className="luxe-sidebar-nav">
-          <div className="luxe-sidebar-section">Main</div>
-          <Link href="/admin/dashboard" className={`luxe-sidebar-link ${isActive('/admin/dashboard') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◈</span>
-            Dashboard
-          </Link>
+          {SECTIONS.map(section => {
+            const isExpanded = !collapsed.has(section.id)
+            const hasActive = section.links.some(l => isActive(l.href))
 
-          <div className="luxe-sidebar-section">Catalog</div>
-          <Link href="/admin/products" className={`luxe-sidebar-link ${isActive('/admin/products') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◆</span>
-            Products
-          </Link>
-          <Link href="/admin/categories" className={`luxe-sidebar-link ${isActive('/admin/categories') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◇</span>
-            Categories
-          </Link>
-          <Link href="/admin/collections" className={`luxe-sidebar-link ${isActive('/admin/collections') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◉</span>
-            Collections
-          </Link>
+            return (
+              <div key={section.id} className="sidebar-section-group">
+                {/* Section header — clickable toggle */}
+                <button
+                  className={`sidebar-section-header ${hasActive ? 'has-active' : ''}`}
+                  onClick={() => toggleSection(section.id)}
+                >
+                  <span className="sidebar-section-icon">{section.icon}</span>
+                  <span className="sidebar-section-label">{section.label}</span>
+                  <span
+                    className={`sidebar-section-arrow ${isExpanded ? 'expanded' : 'collapsed'}`}
+                    style={{
+                      marginLeft: 'auto',
+                      transition: 'transform 200ms ease',
+                      transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                      fontSize: 10,
+                      opacity: 0.4,
+                    }}
+                  >
+                    ▼
+                  </span>
+                </button>
 
-          <div className="luxe-sidebar-section">Sales</div>
-          <Link href="/admin/apps/email-inbox" className={`luxe-sidebar-link ${isActive('/admin/apps/email-inbox') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">📬</span>
-            Email Inbox
-          </Link>
-          <Link href="/admin/quotations" className={`luxe-sidebar-link ${isActive('/admin/quotations') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◎</span>
-            Quotations
-            <span className="luxe-sidebar-badge">83</span>
-          </Link>
-          <Link href="/admin/rfq" className={`luxe-sidebar-link ${isActive('/admin/rfq') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◐</span>
-            RFQ Requests
-          </Link>
-          <Link href="/admin/customers" className={`luxe-sidebar-link ${isActive('/admin/customers') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◑</span>
-            Customers
-          </Link>
-
-          <div className="luxe-sidebar-section">Content</div>
-          <Link href="/admin/theme" className={`luxe-sidebar-link ${isActive('/admin/theme') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◭</span>
-            Theme
-          </Link>
-          <Link href="/admin/blogs" className={`luxe-sidebar-link ${isActive('/admin/blogs') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">✎</span>
-            Blogs
-          </Link>
-          <Link href="/admin/navigation" className={`luxe-sidebar-link ${isActive('/admin/navigation') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">☰</span>
-            Navigation
-          </Link>
-          <Link href="/admin/pages" className={`luxe-sidebar-link ${isActive('/admin/pages') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◈</span>
-            Pages
-          </Link>
-          <Link href="/admin/media" className={`luxe-sidebar-link ${isActive('/admin/media') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◉</span>
-            Media
-          </Link>
-          <Link href="/admin/redirects" className={`luxe-sidebar-link ${isActive('/admin/redirects') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◐</span>
-            Redirects
-          </Link>
-
-          <div className="luxe-sidebar-section">Insights</div>
-          <Link href="/admin/analytics" className={`luxe-sidebar-link ${isActive('/admin/analytics') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◆</span>
-            Analytics
-          </Link>
-          <Link href="/admin/collections/leads" className={`luxe-sidebar-link ${isActive('/admin/collections/leads') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◇</span>
-            Leads
-          </Link>
-          <Link href="/admin/collections/appointments" className={`luxe-sidebar-link ${isActive('/admin/collections/appointments') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">◎</span>
-            Appointments
-          </Link>
-
-          <div className="luxe-sidebar-section">Apps</div>
-          <Link href="/admin/apps" className={`luxe-sidebar-link ${isActive('/admin/apps') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">🧩</span>
-            Category Apps
-          </Link>
-          <Link href="/admin/apps/instagram" className={`luxe-sidebar-link ${isActive('/admin/apps/instagram') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">📸</span>
-            Instagram Feed
-          </Link>
-
-          <div className="luxe-sidebar-section">System</div>
-          <Link href="/admin/settings" className={`luxe-sidebar-link ${isActive('/admin/settings') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">⚙</span>
-            Settings
-          </Link>
-          <Link href="/admin/workflows" className={`luxe-sidebar-link ${isActive('/admin/workflows') ? 'active' : ''}`}>
-            <span className="luxe-sidebar-icon">⚡</span>
-            Workflows
-          </Link>
+                {/* Section links — slide-down animation */}
+                <div
+                  className={`sidebar-section-links ${isExpanded ? 'expanded' : 'collapsed'}`}
+                  style={{ maxHeight: isExpanded ? `${section.links.length * 40 + 20}px` : '0px' }}
+                >
+                  {section.links.map(link => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={`luxe-sidebar-link ${isActive(link.href) ? 'active' : ''}`}
+                    >
+                      <span className="luxe-sidebar-icon">{link.icon}</span>
+                      {link.label}
+                      {link.badge && (
+                        <span className="luxe-sidebar-badge">{link.badge}</span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </nav>
 
         {/* User */}
@@ -151,7 +177,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      {/* ── Main Content ── */}
       <main className="luxe-main">
         {children}
       </main>
