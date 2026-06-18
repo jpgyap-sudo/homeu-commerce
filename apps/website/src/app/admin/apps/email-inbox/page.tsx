@@ -19,6 +19,7 @@ function toast(msg: string) {
 const CATEGORIES = [
   { key: 'all', label: 'All Mail', icon: '📬' },
   { key: 'inbox', label: 'Inbox', icon: '📥' },
+  { key: 'sent', label: 'Sent', icon: '📤' },
   { key: 'inquiry', label: 'Inquiries', icon: '💬' },
   { key: 'rfq', label: 'RFQ', icon: '📋' },
   { key: 'appointment', label: 'Appointments', icon: '📅' },
@@ -48,9 +49,23 @@ export default function EmailInboxPage() {
   const [unread, setUnread] = useState(0)
   const [replyText, setReplyText] = useState('')
 
+  // Compose new email
+  const [composing, setComposing] = useState(false)
+  const [composeTo, setComposeTo] = useState('')
+  const [composeSubject, setComposeSubject] = useState('')
+  const [composeBody, setComposeBody] = useState('')
+  const [composeCc, setComposeCc] = useState('')
+  const [sending, setSending] = useState(false)
+
   const fetchEmails = useCallback(async () => {
-    const params = new URLSearchParams({ folder, limit: '50' })
+    const params = new URLSearchParams({ folder: 'all', limit: '50' })
     if (search) params.set('search', search)
+    if (folder === 'sent') {
+      params.set('folder', 'all')
+      params.set('category', 'sent')
+    } else if (folder && folder !== 'all') {
+      params.set('folder', folder)
+    }
     const r = await fetch(`/api/admin/email?${params}`)
     if (r.ok) {
       const d = await r.json()
@@ -109,6 +124,25 @@ export default function EmailInboxPage() {
     toast('All marked read')
   }
 
+  const sendNewEmail = async () => {
+    if (!composeTo || !composeSubject || !composeBody) return toast('To, Subject, and Body are required')
+    setSending(true)
+    const r = await fetch('/api/admin/email/send', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: composeTo, subject: composeSubject, body: composeBody, cc: composeCc })
+    })
+    if (r.ok) {
+      toast('✅ Email sent!')
+      setComposing(false)
+      setComposeTo(''); setComposeSubject(''); setComposeBody(''); setComposeCc('')
+      fetchEmails()
+    } else {
+      const d = await r.json()
+      toast('Failed: ' + (d.error || 'unknown'))
+    }
+    setSending(false)
+  }
+
   return (
     <div>
       <header className="luxe-page-header">
@@ -121,6 +155,9 @@ export default function EmailInboxPage() {
         <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
           <button onClick={doSync} disabled={syncing} className="luxe-btn luxe-btn-primary luxe-btn-sm">
             {syncing ? '🔄 Syncing...' : '🔄 Sync Now'}
+          </button>
+          <button onClick={() => setComposing(true)} className="luxe-btn luxe-btn-gold luxe-btn-sm">
+            ✉️ Compose
           </button>
           <button onClick={markAllRead} className="luxe-btn luxe-btn-ghost luxe-btn-sm">✓ Mark All Read</button>
         </div>
@@ -261,6 +298,41 @@ export default function EmailInboxPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Compose Modal */}
+      {composing && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center' }}
+          onClick={() => setComposing(false)}>
+          <div className="luxe-card" style={{ width: 640, maxWidth:'90vw', maxHeight:'90vh', overflow:'auto' }} onClick={e => e.stopPropagation()}>
+            <div className="luxe-card-header">
+              <h2 className="luxe-card-title">✉️ Compose Email</h2>
+              <span className="luxe-badge info">From: sales@homeatelier.ph</span>
+            </div>
+            <div className="luxe-card-body">
+              <div style={{ marginBottom:'var(--space-4)' }}>
+                <input className="luxe-input" placeholder="To: recipient@example.com" value={composeTo}
+                  onChange={e => setComposeTo(e.target.value)}
+                  style={{ fontSize:13, marginBottom:'var(--space-2)' }} />
+                <input className="luxe-input" placeholder="CC: (optional)" value={composeCc}
+                  onChange={e => setComposeCc(e.target.value)}
+                  style={{ fontSize:13, marginBottom:'var(--space-2)' }} />
+                <input className="luxe-input" placeholder="Subject" value={composeSubject}
+                  onChange={e => setComposeSubject(e.target.value)}
+                  style={{ fontSize:13, marginBottom:'var(--space-2)' }} />
+              </div>
+              <textarea className="luxe-input" rows={10} placeholder="Write your email..."
+                value={composeBody} onChange={e => setComposeBody(e.target.value)}
+                style={{ fontSize:13, resize:'vertical', fontFamily:'var(--font-body)', lineHeight:1.6 }} />
+              <div style={{ display:'flex', gap:'var(--space-3)', justifyContent:'flex-end', marginTop:'var(--space-4)' }}>
+                <button onClick={() => setComposing(false)} className="luxe-btn luxe-btn-ghost luxe-btn-sm">Discard</button>
+                <button onClick={sendNewEmail} disabled={sending} className="luxe-btn luxe-btn-gold luxe-btn-sm">
+                  {sending ? '📤 Sending...' : '📤 Send Email'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
