@@ -1096,11 +1096,10 @@
 .site-header__icons {
   position: absolute;
   right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 22px;            /* pin to the top (logo) row, not the header's vertical center */
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   z-index: 10;
 }
 .site-header__icon-btn {

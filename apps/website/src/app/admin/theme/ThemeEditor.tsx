@@ -708,6 +708,25 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
                         : schema.map(f => renderField(sec, f))
                     )}
 
+                    {/* Universal spacing control — separates sections so they never run together */}
+                    {!inCode && (
+                      <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px dashed #e3e8e0' }}>
+                        <label style={lbl}>Spacing (px)</label>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <div style={{ flex: 1 }}>
+                            <span style={{ fontSize: 11, color: '#9aa69c' }}>Above</span>
+                            <input style={input} type="number" value={sec.config.spacingTop ?? ''} placeholder="0"
+                              onChange={e => setConfig(sec.id, 'spacingTop', e.target.value ? parseInt(e.target.value, 10) : 0)} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <span style={{ fontSize: 11, color: '#9aa69c' }}>Below</span>
+                            <input style={input} type="number" value={sec.config.spacingBottom ?? ''} placeholder="0"
+                              onChange={e => setConfig(sec.id, 'spacingBottom', e.target.value ? parseInt(e.target.value, 10) : 0)} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
                       <button onClick={() => saveSection(sec)} disabled={savingId === sec.id} style={{ padding: '9px 24px', background: 'linear-gradient(180deg, #1e7a47, #0f4f2b)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{savingId === sec.id ? 'Saving…' : 'Save section'}</button>
                       <button onClick={() => duplicate(sec)} style={{ padding: '9px 14px', background: '#fff', color: '#1e7a47', border: '1.5px solid #cfe3d6', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Duplicate</button>

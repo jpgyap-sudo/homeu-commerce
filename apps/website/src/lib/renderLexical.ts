@@ -115,11 +115,23 @@ function renderNode(node: LexicalNode): string {
  */
 export function renderLexical(value: unknown): string {
   if (!value) return ''
+
+  // Most descriptions are stored as raw HTML strings (imported from Shopify),
+  // not Lexical JSON. Only values that look like JSON ({...} / [...]) should be
+  // parsed; anything else is already HTML and is returned verbatim.
+  if (typeof value === 'string') {
+    const t = value.trim()
+    if (!(t.startsWith('{') || t.startsWith('['))) {
+      return value
+    }
+  }
+
   try {
     const tree: LexicalNode = typeof value === 'string' ? JSON.parse(value) : (value as LexicalNode)
     return renderNode(tree)
   } catch {
-    // Fallback: plain text
-    return typeof value === 'string' ? escapeHtml(value) : ''
+    // Parse failed — treat the original string as raw HTML rather than
+    // escaping it (escaping would render tags as visible text).
+    return typeof value === 'string' ? value : ''
   }
 }

@@ -506,6 +506,10 @@ export async function HomeSections({ sections, preview = false }: { sections: Ho
           data-section-type={sections[i].type}
           data-section-label={SECTION_META[sections[i].type]?.label || sections[i].type}
           className={preview ? 'homeu-preview-section' : undefined}
+          style={{
+            marginTop: sections[i].config?.spacingTop ? Number(sections[i].config.spacingTop) : undefined,
+            marginBottom: sections[i].config?.spacingBottom ? Number(sections[i].config.spacingBottom) : undefined,
+          }}
         >
           {node}
         </div>
