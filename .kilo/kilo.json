@@ -126,6 +126,22 @@
     "website-designer": {
       "description": "UI/UX design system for HomeU: login pages, admin backend, customer frontend, design system, and accessibility improvements",
       "file": ".kilo/skill/website-designer/SKILL.md"
+    },
+    "instagram-api": {
+      "description": "Instagram Graph API sync: token management, webhook support, cron-based media sync to instagram_posts table. Posts land in status=pending for admin moderation.",
+      "file": ".kilo/skill/instagram-api/SKILL.md"
+    },
+    "instagram-gallery": {
+      "description": "Instagram feed frontend gallery: 7 layout algorithms (masonry, metro, classic, collage, carousel, spotlight, polaroid), shoppable hotspots, hover overlays, skeleton loading. Based on Pasilobus/nocodeapi patterns.",
+      "file": ".kilo/skill/instagram-gallery/SKILL.md"
+    },
+    "instagram-admin": {
+      "description": "Instagram admin moderation: pin/hide/approve/reject, product tagging, collection tagging, manual upload, grid management, publish/unpublish, display location control.",
+      "file": ".kilo/skill/instagram-admin/SKILL.md"
+    },
+    "instagram-rfq": {
+      "description": "Instagram-to-RFQ integration: shoppable tags → RFQ cart → quotation request pipeline. Track Instagram post RFQ conversions and quote rates per post.",
+      "file": ".kilo/skill/instagram-rfq/SKILL.md"
     }
   },
   "commands": {
