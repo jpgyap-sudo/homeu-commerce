@@ -23,7 +23,7 @@ import path from 'path'
 import crypto from 'crypto'
 import { fileURLToPath } from 'url'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import pg from '../../apps/website/node_modules/pg/lib/index.js'
+import pg from '../../node_modules/pg/lib/index.js'
 
 const { Pool } = pg
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -67,6 +67,9 @@ async function collectUrls(pool) {
 
   const h = await pool.query(`SELECT config::text AS c FROM homepage_sections WHERE config::text LIKE '%cdn.shopify%'`)
   h.rows.forEach(r => add(r.c))
+
+  const ab = await pool.query(`SELECT body FROM articles WHERE body LIKE '%cdn.shopify%'`)
+  ab.rows.forEach(r => add(r.body))
 
   if (fs.existsSync(SITE_CONFIG_PATH)) add(fs.readFileSync(SITE_CONFIG_PATH, 'utf8'))
 
@@ -160,6 +163,22 @@ async function rewriteCmd(execute) {
     aCount++
   }
 
+  // 1b. articles.body (inline <img> inside the article HTML)
+  const abs = await pool.query(`SELECT id, body FROM articles WHERE body LIKE '%cdn.shopify%'`)
+  let abCount = 0, abUrls = 0
+  for (const r of abs.rows) {
+    let text = r.body
+    let changed = false
+    for (const u of new Set(text.match(SHOPIFY_CDN_REGEX) || [])) {
+      const to = map.get(u)
+      if (to) { text = text.split(u).join(to); changed = true; abUrls++ }
+    }
+    if (changed) {
+      abCount++
+      if (execute) await pool.query(`UPDATE articles SET body = $1, updated_at = NOW() WHERE id = $2`, [text, r.id])
+    }
+  }
+
   // 2. products.description (replace every shopify url inside the HTML)
   const prods = await pool.query(`SELECT id, description::text AS d FROM products WHERE description::text LIKE '%cdn.shopify%'`)
   let pCount = 0, pUrls = 0
@@ -202,6 +221,7 @@ async function rewriteCmd(execute) {
 
   console.log(`${execute ? 'Rewrote' : '[dry run] would rewrite'}:`)
   console.log(`  articles.image_url:        ${aCount} rows`)
+  console.log(`  articles.body:             ${abCount} rows (${abUrls} urls)`)
   console.log(`  products.description:      ${pCount} rows (${pUrls} urls)`)
   console.log(`  homepage_sections.config:  ${sCount} rows`)
   console.log(`  site-config.json logo:     ${logoChanged ? 'yes' : 'no'}`)
@@ -220,6 +240,9 @@ async function emitSqlCmd() {
 
   const arts = await pool.query(`SELECT id, image_url FROM articles WHERE image_url LIKE '%digitaloceanspaces%'`)
   for (const r of arts.rows) out.push(`UPDATE articles SET image_url = ${TAG}${r.image_url}${TAG} WHERE id = ${r.id};`)
+
+  const abs = await pool.query(`SELECT id, body FROM articles WHERE body LIKE '%digitaloceanspaces%'`)
+  for (const r of abs.rows) out.push(`UPDATE articles SET body = ${TAG}${r.body}${TAG} WHERE id = ${r.id};`)
 
   const secs = await pool.query(`SELECT id, config::text AS c FROM homepage_sections WHERE config::text LIKE '%digitaloceanspaces%'`)
   for (const r of secs.rows) out.push(`UPDATE homepage_sections SET config = ${TAG}${r.c}${TAG}::jsonb WHERE id = ${r.id};`)
