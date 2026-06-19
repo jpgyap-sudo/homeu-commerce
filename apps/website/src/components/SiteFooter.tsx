@@ -27,91 +27,75 @@ export function SiteFooter() {
 
   return (
     <footer className="site-footer" role="contentinfo">
-      <div className="site-footer__top page-width">
+      <div className="site-footer__inner page-width">
 
-        {/* Nav columns */}
-        <div className="grid site-footer__grid">
-          {/* Brand block */}
-          <div className="grid__item site-footer__item">
-            <h3 className="site-footer__title">{siteConfig.name}</h3>
-            <p className="site-footer__tagline">{siteConfig.tagline}</p>
-            <address className="site-footer__address">
-              <p>{siteConfig.address.address1}</p>
-              <p>{siteConfig.address.city}, {siteConfig.address.country}</p>
-              <p>
-                <a href={`mailto:${siteConfig.email}`}>{siteConfig.email}</a>
-              </p>
-              <p>
-                <a href={`tel:${siteConfig.phone}`}>{siteConfig.phone}</a>
-              </p>
-            </address>
-            <p className="site-footer__hours">
-              {siteConfig.shopHours.weekdays}<br />
-              Sunday: {siteConfig.shopHours.sunday}
-            </p>
-          </div>
+        {/* Brand */}
+        <div className="site-footer__col site-footer__col--brand">
+          <h3 className="site-footer__title">{siteConfig.name}</h3>
+          <p className="site-footer__tagline">{siteConfig.tagline}</p>
+          <address className="site-footer__address">
+            <p>{siteConfig.address.address1}</p>
+            <p>{siteConfig.address.city}, {siteConfig.address.country}</p>
+            <p><a href={`mailto:${siteConfig.email}`}>{siteConfig.email}</a></p>
+            <p><a href={`tel:${siteConfig.phone}`}>{siteConfig.phone}</a></p>
+          </address>
+          <p className="site-footer__hours">
+            {siteConfig.shopHours.weekdays}<br />
+            Sunday: {siteConfig.shopHours.sunday}
+          </p>
+        </div>
 
-          {/* Footer nav links */}
-          <div className="grid__item site-footer__item">
-            <h3 className="site-footer__title">Quick Links</h3>
-            <ul className="site-footer__linklist" role="list">
-              {navigation.footer.slice(0, 7).map((item) => (
-                <li key={item.title} className="site-footer__linklist-item">
-                  <Link href={item.href} className="site-footer__link">
-                    {item.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+        {/* Quick Links */}
+        <div className="site-footer__col">
+          <h3 className="site-footer__title">Quick Links</h3>
+          <ul className="site-footer__linklist" role="list">
+            {navigation.footer.slice(0, 7).map((item) => (
+              <li key={item.title} className="site-footer__linklist-item">
+                <Link href={item.href} className="site-footer__link">{item.title}</Link>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-          <div className="grid__item site-footer__item">
-            <h3 className="site-footer__title">Information</h3>
-            <ul className="site-footer__linklist" role="list">
-              {navigation.footer.slice(7).map((item) => (
-                <li key={item.title} className="site-footer__linklist-item">
-                  <Link href={item.href} className="site-footer__link">
-                    {item.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+        {/* Information */}
+        <div className="site-footer__col">
+          <h3 className="site-footer__title">Information</h3>
+          <ul className="site-footer__linklist" role="list">
+            {navigation.footer.slice(7).map((item) => (
+              <li key={item.title} className="site-footer__linklist-item">
+                <Link href={item.href} className="site-footer__link">{item.title}</Link>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-          {/* Newsletter */}
-          <div className="grid__item site-footer__item site-footer__newsletter">
-            <h3 className="site-footer__title">Stay Inspired</h3>
-            <p className="site-footer__newsletter-sub">Get design tips and new arrivals in your inbox.</p>
-            {status === 'success' ? (
-              <p className="site-footer__newsletter-success">Thanks for subscribing!</p>
-            ) : (
-              <form onSubmit={handleNewsletter} className="site-footer__newsletter-form">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="Your email address"
-                  required
-                  className="site-footer__newsletter-input"
-                />
-                <button
-                  type="submit"
-                  className="btn btn--primary site-footer__newsletter-btn"
-                  disabled={status === 'loading'}
-                >
-                  {status === 'loading' ? '…' : 'Subscribe'}
-                </button>
-                {status === 'error' && (
-                  <p className="site-footer__newsletter-error">Something went wrong. Try again.</p>
-                )}
-              </form>
-            )}
-          </div>
+        {/* Connect: newsletter + social */}
+        <div className="site-footer__col site-footer__col--connect">
+          <h3 className="site-footer__title">Stay Inspired</h3>
+          <p className="site-footer__newsletter-sub">Get design tips and new arrivals in your inbox.</p>
+          {status === 'success' ? (
+            <p className="site-footer__newsletter-success">Thanks for subscribing!</p>
+          ) : (
+            <form onSubmit={handleNewsletter} className="site-footer__newsletter-form">
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="Your email address"
+                required
+                className="site-footer__newsletter-input"
+              />
+              <button type="submit" className="site-footer__newsletter-btn" disabled={status === 'loading'}>
+                {status === 'loading' ? '…' : 'Subscribe'}
+              </button>
+              {status === 'error' && (
+                <p className="site-footer__newsletter-error">Something went wrong. Try again.</p>
+              )}
+            </form>
+          )}
 
-          {/* Social */}
-          <div className="grid__item site-footer__item">
-            <h3 className="site-footer__title">Follow Us</h3>
-            <ul className="inline-list social-icons" role="list">
+          <h3 className="site-footer__title site-footer__title--social">Follow Us</h3>
+          <ul className="social-icons" role="list">
               {siteConfig.social.instagram && (
                 <li>
                   <a href={siteConfig.social.instagram} target="_blank" rel="noopener noreferrer" className="icon-fallback-text" aria-label="Instagram">
@@ -154,7 +138,6 @@ export function SiteFooter() {
               )}
             </ul>
           </div>
-        </div>
       </div>
 
       {/* Bottom bar */}
