@@ -92,10 +92,12 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   const [userTabs, setUserTabs] = useState<string[]>(['*'])
 
   useEffect(() => {
+    // Don't call on login page — there's no session, and it creates a 401 console error
+    if (isLogin) return
     fetch('/api/admin/me').then(r => r.json()).then(d => {
       if (d.user?.tabs) setUserTabs(d.user.tabs)
     }).catch(() => {})
-  }, [])
+  }, [isLogin])
 
   const canSeeSection = (id: string) => userTabs.includes('*') || userTabs.includes(id)
 
@@ -113,9 +115,16 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const orderedSections = sidebarOrder
-    .map(id => SECTIONS.find(s => s.id === id))
-    .filter((s): s is SidebarSection => !!s)
+  // Resilient ordering: honor the saved order for ids that still exist, then
+  // append any sections missing from it. A stale/foreign saved order can never
+  // blank the sidebar — every current section is always rendered.
+  const orderedSections: SidebarSection[] = (() => {
+    const out = sidebarOrder
+      .map(id => SECTIONS.find(s => s.id === id))
+      .filter((s): s is SidebarSection => !!s)
+    for (const s of SECTIONS) if (!out.includes(s)) out.push(s)
+    return out
+  })()
 
   const moveSection = (id: string, dir: 'up' | 'down') => {
     setSidebarOrder(prev => {
