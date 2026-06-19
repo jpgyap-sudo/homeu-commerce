@@ -25,6 +25,27 @@ export default function NewMediaPage() {
   const [url, setUrl] = useState('')
   const [alt, setAlt] = useState('')
   const [filename, setFilename] = useState('')
+  const [uploading, setUploading] = useState(false)
+
+  // ── Upload a file straight to DO Spaces ────────────────────────
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setError(''); setSuccess(''); setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/admin/media/upload', { method: 'POST', body: fd })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Upload failed')
+      setSuccess(d.deduped ? 'Already on your CDN — reused existing copy.' : 'Uploaded to your CDN ✓')
+      setTimeout(() => { router.push(`/admin/media/${d.media.id}`); router.refresh() }, 700)
+    } catch (err: any) {
+      setError(err.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   // ── Save ───────────────────────────────────────────────────────
   async function handleSave(e: React.FormEvent) {
@@ -99,6 +120,17 @@ export default function NewMediaPage() {
       {success && (
         <div style={{ background: '#e8f5e9', color: '#1a6d3e', padding: '12px 16px', borderRadius: 8, marginBottom: 20, fontSize: 14 }}>{success}</div>
       )}
+
+      {/* Upload a file (→ DigitalOcean Spaces CDN) */}
+      <Section title="Upload a file">
+        <p style={{ margin: '0 0 12px', fontSize: 13, color: '#667168' }}>
+          Choose an image — it uploads straight to your DigitalOcean Spaces CDN and is added to the library automatically.
+        </p>
+        <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} style={{ fontSize: 14 }} />
+        {uploading && <span style={{ marginLeft: 12, fontSize: 13, color: '#1e7a47' }}>Uploading…</span>}
+      </Section>
+
+      <div style={{ textAlign: 'center', color: '#999', fontSize: 12, margin: '4px 0 20px' }}>— or add by URL —</div>
 
       <form onSubmit={handleSave}>
         <Section title="Media Details">

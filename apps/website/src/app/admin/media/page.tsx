@@ -11,6 +11,7 @@ import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
 import Link from 'next/link'
+import MediaSyncButton from './MediaSyncButton'
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -23,6 +24,8 @@ interface MediaRow {
   width: number | null
   height: number | null
   url: string | null
+  source: string | null
+  used_count: number | null
   created_at: string
   updated_at: string
 }
@@ -31,7 +34,24 @@ interface ListPageProps {
   searchParams: Promise<{
     search?: string
     page?: string
+    source?: string
   }>
+}
+
+const SOURCE_FILTERS: { key: string; label: string; icon: string }[] = [
+  { key: '',          label: 'All',          icon: '▦' },
+  { key: 'product',   label: 'Products',     icon: '🛋️' },
+  { key: 'article',   label: 'Blog',         icon: '✍️' },
+  { key: 'theme',     label: 'Theme',        icon: '🎨' },
+  { key: 'brand',     label: 'Brand',        icon: '🏷️' },
+  { key: 'unused',    label: 'Unused',       icon: '🗑️' },
+]
+
+const SOURCE_BADGE: Record<string, { label: string; bg: string; fg: string }> = {
+  product: { label: 'Product', bg: '#eef5f0', fg: '#1e7a47' },
+  article: { label: 'Blog',    bg: '#f0eefb', fg: '#5b46b3' },
+  theme:   { label: 'Theme',   bg: '#fbf4e8', fg: '#9a6a16' },
+  brand:   { label: 'Brand',   bg: '#fdeef0', fg: '#b0392f' },
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -64,8 +84,9 @@ export default async function AdminMediaListPage({ searchParams }: ListPageProps
 
   const sp = await searchParams
   const search = (sp.search || '').trim()
+  const source = (sp.source || '').trim()
   const currentPage = Math.max(1, parseInt(sp.page || '1', 10) || 1)
-  const limit = 20
+  const limit = 24
   const offset = (currentPage - 1) * limit
 
   // ── Build WHERE clause ─────────────────────────────────────────
@@ -81,7 +102,27 @@ export default async function AdminMediaListPage({ searchParams }: ListPageProps
     values.push(`%${search}%`)
   }
 
+  if (source === 'unused') {
+    conditions.push(`COALESCE(used_count, 0) = 0`)
+  } else if (source) {
+    idx++
+    conditions.push(`source = $${idx}`)
+    values.push(source)
+  }
+
   const whereSQL = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+  // ── Per-source counts for the filter chips ─────────────────────
+  const sourceCounts: Record<string, number> = {}
+  try {
+    const cRes = await query(
+      `SELECT source, COUNT(*)::int AS n, COUNT(*) FILTER (WHERE COALESCE(used_count,0)=0)::int AS unused FROM media GROUP BY source`,
+      []
+    )
+    let unused = 0
+    for (const r of cRes.rows) { sourceCounts[r.source || 'other'] = r.n; unused += r.unused }
+    sourceCounts['unused'] = unused
+  } catch { /* ignore */ }
 
   // ── Fetch total count ──────────────────────────────────────────
   let total = 0
@@ -126,22 +167,53 @@ export default async function AdminMediaListPage({ searchParams }: ListPageProps
             {total} file{total !== 1 ? 's' : ''} in library
           </p>
         </div>
-        <Link
-          href="/admin/media/new"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '10px 24px',
-            background: 'linear-gradient(180deg, #1e7a47, #0f4f2b)',
-            color: '#fff',
-            borderRadius: 10,
-            textDecoration: 'none',
-            fontSize: 14,
-            fontWeight: 600,
-            boxShadow: '0 4px 14px rgba(26,109,62,0.35)',
-          }}
-        >
-          + Upload Media
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <MediaSyncButton />
+          <Link
+            href="/admin/media/new"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '10px 24px',
+              background: 'linear-gradient(180deg, #1e7a47, #0f4f2b)',
+              color: '#fff',
+              borderRadius: 10,
+              textDecoration: 'none',
+              fontSize: 14,
+              fontWeight: 600,
+              boxShadow: '0 4px 14px rgba(26,109,62,0.35)',
+            }}
+          >
+            + Upload Media
+          </Link>
+        </div>
+      </div>
+
+      {/* Source filter chips */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+        {SOURCE_FILTERS.map(f => {
+          const active = source === f.key
+          const count = f.key === '' ? null : (sourceCounts[f.key] ?? 0)
+          const params = new URLSearchParams()
+          if (search) params.set('search', search)
+          if (f.key) params.set('source', f.key)
+          return (
+            <Link
+              key={f.key || 'all'}
+              href={`/admin/media${params.toString() ? `?${params}` : ''}`}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '7px 14px', borderRadius: 999, fontSize: 13, fontWeight: 600,
+                textDecoration: 'none',
+                background: active ? '#1a6d3e' : '#fff',
+                color: active ? '#fff' : '#3a4339',
+                border: active ? 'none' : '1.5px solid #d9e0d7',
+              }}
+            >
+              <span>{f.icon}</span>{f.label}
+              {count != null && <span style={{ opacity: 0.7 }}>({count})</span>}
+            </Link>
+          )
+        })}
       </div>
 
       {/* Search */}
@@ -294,8 +366,18 @@ export default async function AdminMediaListPage({ searchParams }: ListPageProps
                     {item.mime_type || '—'} · {formatFileSize(item.filesize)}
                     {item.width && item.height ? ` · ${item.width}×${item.height}` : ''}
                   </div>
-                  <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
-                    {formatDate(item.created_at)}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                    {item.source && SOURCE_BADGE[item.source] && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 999,
+                        background: SOURCE_BADGE[item.source].bg, color: SOURCE_BADGE[item.source].fg,
+                      }}>{SOURCE_BADGE[item.source].label}</span>
+                    )}
+                    {(item.used_count ?? 0) > 0 ? (
+                      <span style={{ fontSize: 10, color: '#667168' }}>used in {item.used_count}</span>
+                    ) : (
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#f3eee2', color: '#9a6a16' }}>unused</span>
+                    )}
                   </div>
                 </div>
               </Link>

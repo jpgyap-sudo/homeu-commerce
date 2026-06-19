@@ -15,6 +15,15 @@
     "compose:config": "docker compose config",
     "dev": "npm run dev -w apps/website",
     "lint": "npm run lint --workspaces --if-present",
+    "migrate": "node tools/migrate/migrate.mjs",
+    "migrate:status": "node tools/migrate/migrate.mjs --status",
+    "migrate:create": "node tools/migrate/migrate.mjs --create",
     "clean": "npm run clean --workspaces --if-present"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1072.0"
   }
 }
