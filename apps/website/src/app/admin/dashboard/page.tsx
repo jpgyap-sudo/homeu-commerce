@@ -186,6 +186,36 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Theme quick links */}
+      <div style={{ marginTop: 'var(--space-8)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+        <Link href="/admin/theme" style={{ textDecoration: 'none' }}>
+          <div className="luxe-card" style={{ cursor: 'pointer' }}>
+            <div className="luxe-card-body" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 'var(--space-6)' }}>
+              <span style={{ fontSize: 36 }}>🧩</span>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: 'var(--luxe-navy-900)' }}>Theme Sections</h3>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--luxe-slate-400)' }}>
+                  Add, reorder, and edit homepage sections — including footer areas.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Link>
+        <Link href="/admin/navigation" style={{ textDecoration: 'none' }}>
+          <div className="luxe-card" style={{ cursor: 'pointer' }}>
+            <div className="luxe-card-body" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 'var(--space-6)' }}>
+              <span style={{ fontSize: 36 }}>🔗</span>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: 'var(--luxe-navy-900)' }}>Navigation</h3>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--luxe-slate-400)' }}>
+                  Edit header &amp; footer menu links directly.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Link>
+      </div>
+
       {/* Lazy DNA card — client-side fetch, doesn't block page load */}
       <LazyDNACard />
     </>

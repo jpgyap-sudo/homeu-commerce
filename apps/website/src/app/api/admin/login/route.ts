@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
       user: result.user,
       token: result.token,
     })
-  } catch {
+  } catch (err) {
+    console.error('[api/admin/login] Error:', err)
     return NextResponse.json(
       { error: 'Invalid request' },
       { status: 400 }

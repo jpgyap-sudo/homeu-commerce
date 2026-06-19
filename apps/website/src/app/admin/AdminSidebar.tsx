@@ -33,10 +33,10 @@ const NAV_GROUPS: NavGroup[] = [
     icon: '📈',
     items: [
       { href: '/admin/analytics',           label: 'Overview',        icon: '📊' },
-      { href: '/admin/analytics/traffic',   label: 'Traffic',         icon: '👁️' },
+      { href: '/admin/analytics/traffic',   label: 'Traffic',         icon: '👁' },
       { href: '/admin/analytics/leads',     label: 'Leads & CRM',     icon: '👤' },
       { href: '/admin/analytics/pipeline',  label: 'Sales Pipeline',  icon: '💰' },
-      { href: '/admin/analytics/products',  label: 'Products',        icon: '🛋️' },
+      { href: '/admin/analytics/products',  label: 'Products',        icon: '🛋' },
       { href: '/admin/analytics/reports',   label: 'Reports',         icon: '📋' },
     ],
   },
@@ -45,7 +45,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Catalog',
     icon: '📦',
     items: [
-      { href: '/admin/products',   label: 'Products',   icon: '🛋️' },
+      { href: '/admin/products',   label: 'Products',   icon: '🛋' },
       { href: '/admin/categories', label: 'Categories', icon: '📂' },
     ],
   },
@@ -74,14 +74,14 @@ const NAV_GROUPS: NavGroup[] = [
     icon: '📝',
     items: [
       { href: '/admin/pages',      label: 'Pages',      icon: '📄' },
-      { href: '/admin/media',      label: 'Media',      icon: '🖼️' },
+      { href: '/admin/media',      label: 'Media',      icon: '🖼' },
       { href: '/admin/redirects',  label: 'Redirects',  icon: '🔀' },
     ],
   },
   {
     id: 'system',
     label: 'System',
-    icon: '⚙️',
+    icon: '⚙',
     items: [
       { href: '/admin/workflows',  label: 'Workflows',  icon: '⚡' },
     ],
@@ -94,7 +94,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/admin/settings/users',         label: 'Users & Roles',   icon: '👥' },
       { href: '/admin/settings/store',         label: 'Store Profile',   icon: '🏪' },
       { href: '/admin/settings/notifications', label: 'Notifications',   icon: '🔔' },
-      { href: '/admin/settings/system',        label: 'System Health',   icon: '🖥️' },
+      { href: '/admin/settings/system',        label: 'System Health',   icon: '🖥' },
     ],
   },
 ]
@@ -113,9 +113,24 @@ function loadCollapsed(): Set<string> {
   }
 }
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+  /** Set of tab ids the user has permission to see. ['*'] = all. */
+  userTabs?: string[]
+}
+
+export default function AdminSidebar({ userTabs = ['*'] }: AdminSidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState<Set<string>>(() => loadCollapsed())
+
+  const canSee = (href: string): boolean => {
+    if (userTabs.includes('*')) return true
+    // Check if this route's section is in the user's allowed tabs
+    for (const group of NAV_GROUPS) {
+      const item = group.items.find(i => i.href === href || href.startsWith(i.href + '/'))
+      if (item && userTabs.includes(group.id)) return true
+    }
+    return userTabs.some(tab => href.startsWith(tab))
+  }
 
   // Persist collapsed state
   useEffect(() => {
@@ -139,13 +154,17 @@ export default function AdminSidebar() {
   }
 
   function isItemActive(href: string): boolean {
-    // Exact match or sub-route match (for detail/edit pages)
     if (pathname === href) return true
     if (pathname.startsWith(href + '/')) return true
-    // Dashboard is special: only match exact /admin/dashboard
     if (href === '/admin/dashboard' && pathname === '/admin/dashboard') return true
     return false
   }
+
+  // Filter groups to only those the user can see
+  const visibleGroups = NAV_GROUPS.filter(group => {
+    if (userTabs.includes('*')) return true
+    return group.items.some(item => canSee(item.href))
+  })
 
   return (
     <aside className="admin-sidebar">
@@ -157,7 +176,7 @@ export default function AdminSidebar() {
 
       {/* ── Navigation Groups ─────────────────────────────────── */}
       <nav className="admin-sidebar-nav">
-        {NAV_GROUPS.map(group => {
+        {visibleGroups.map(group => {
           const active = isGroupActive(group)
           const isCollapsed = collapsed.has(group.id)
 
@@ -183,7 +202,7 @@ export default function AdminSidebar() {
               <div
                 className={`admin-nav-group-items ${isCollapsed ? 'admin-nav-group-items--collapsed' : ''}`}
               >
-                {group.items.map(item => (
+                {group.items.filter(item => canSee(item.href)).map(item => (
                   <a
                     key={item.href}
                     href={item.href}

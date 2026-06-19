@@ -159,25 +159,27 @@
   border-top: 1px solid var(--debut-borders, #ebebeb);
 }
 
-/* Four clean columns: Brand (wide) · Quick Links · Information · Connect (wide) */
-.site-footer__inner {
+/* 4-section grid — add/remove/reorder sections freely */
+.site-footer__grid {
   display: grid;
-  grid-template-columns: 1.7fr 1fr 1fr 1.7fr;
-  gap: 56px;
+  grid-template-columns: 1.2fr 1fr 1.3fr 1fr;
+  gap: 40px;
   max-width: 1200px;
   margin: 0 auto;
   padding: 64px 24px 40px;
 }
 @media (max-width: 1000px) {
-  .site-footer__inner { grid-template-columns: 1fr 1fr; gap: 40px 48px; }
+  .site-footer__grid { grid-template-columns: 1fr 1fr; gap: 40px 48px; }
 }
-@media (max-width: 560px) {
-  .site-footer__inner { grid-template-columns: 1fr; gap: 36px; }
+@media (max-width: 640px) {
+  .site-footer__grid { grid-template-columns: 1fr; gap: 36px; }
 }
 
-.site-footer__col { min-width: 0; }
+/* ── Shared section block styles ───────────────────────────────────────── */
 
-.site-footer__title {
+.footer-section { min-width: 0; }
+
+.footer-section__title {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 19px;
   font-weight: 600;
@@ -186,46 +188,54 @@
   margin: 0 0 20px;
   color: var(--debut-text, #2a2a2a);
 }
-.site-footer__title--social { margin-top: 32px; }
 
-.site-footer__tagline {
+.footer-section__tagline {
   font-size: 13.5px;
   line-height: 1.75;
-  max-width: 320px;
+  max-width: 280px;
   margin: 0 0 20px;
   opacity: 0.82;
 }
 
-.site-footer__address {
+.footer-section__address {
   font-style: normal;
   font-size: 13.5px;
   line-height: 1.9;
 }
-.site-footer__address p { margin: 0; }
-.site-footer__address a { color: inherit; text-decoration: none; }
-.site-footer__address a:hover { text-decoration: underline; }
+.footer-section__address p { margin: 0; }
+.footer-section__address a { color: inherit; text-decoration: none; }
+.footer-section__address a:hover { text-decoration: underline; }
 
-.site-footer__hours {
-  font-size: 13px;
-  line-height: 1.7;
-  margin-top: 16px;
-  opacity: 0.72;
+/* ── Quick Links ────────────────────────────────────────────────────────── */
+
+.footer-section__linklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
-
-.site-footer__linklist { list-style: none; margin: 0; padding: 0; }
-.site-footer__linklist-item + .site-footer__linklist-item { margin-top: 12px; }
-.site-footer__link {
+.footer-section__linklist li + li { margin-top: 12px; }
+.footer-section__link {
   color: var(--debut-footer-text, #333232);
   font-size: 13.5px;
   text-decoration: none;
   transition: opacity 0.15s;
 }
-.site-footer__link:hover { opacity: 0.6; }
+.footer-section__link:hover { opacity: 0.6; }
 
-/* Newsletter */
-.site-footer__newsletter-sub { font-size: 13.5px; line-height: 1.6; opacity: 0.8; margin: 0 0 16px; max-width: 320px; }
-.site-footer__newsletter-form { display: flex; flex-direction: column; gap: 10px; max-width: 320px; }
-.site-footer__newsletter-input {
+/* ── Newsletter ─────────────────────────────────────────────────────────── */
+
+.footer-section__desc {
+  font-size: 13.5px;
+  line-height: 1.6;
+  opacity: 0.8;
+  margin: 0 0 16px;
+}
+.footer-section__form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.footer-section__input {
   padding: 11px 14px;
   border: 1px solid var(--debut-borders, #d8d8d8);
   border-radius: 2px;
@@ -234,9 +244,9 @@
   font-family: inherit;
   outline: none;
 }
-.site-footer__newsletter-input::placeholder { color: #9a9a9a; }
-.site-footer__newsletter-input:focus { border-color: #2a2a2a; }
-.site-footer__newsletter-btn {
+.footer-section__input::placeholder { color: #9a9a9a; }
+.footer-section__input:focus { border-color: #2a2a2a; }
+.footer-section__btn {
   align-self: flex-start;
   padding: 11px 30px;
   background: #2a2a2a;
@@ -250,30 +260,31 @@
   cursor: pointer;
   transition: opacity 0.15s;
 }
-.site-footer__newsletter-btn:hover { opacity: 0.85; }
-.site-footer__newsletter-success { color: #1e7a47; font-size: 13.5px; }
-.site-footer__newsletter-error { color: #b0392f; font-size: 12px; margin: 4px 0 0; }
+.footer-section__btn:hover { opacity: 0.85; }
+.footer-section__success { color: #1e7a47; font-size: 13.5px; }
+.footer-section__error { color: #b0392f; font-size: 12px; margin: 4px 0 0; }
 
-/* Social icons — tidy 2-column grid like the original */
-.social-icons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px 20px;
+/* ── Social Media ───────────────────────────────────────────────────────── */
+
+.footer-section__social-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-width: 320px;
 }
-.social-icons a {
+.footer-section__social-list li + li { margin-top: 12px; }
+.footer-section__social-list a {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   color: var(--debut-footer-text, #333232);
   font-size: 13.5px;
   text-decoration: none;
   transition: opacity 0.15s;
 }
-.social-icons a:hover { opacity: 0.6; }
+.footer-section__social-list a:hover { opacity: 0.6; }
+.footer-section__social-list svg { flex-shrink: 0; }
+
+/* ── Copyright bar ──────────────────────────────────────────────────────── */
 
 .site-footer__copyright {
   border-top: 1px solid var(--debut-borders, #ebebeb);
@@ -1365,6 +1376,67 @@
   box-shadow: 0 0 8px rgba(30,122,71,0.5);
 }
 
+/* ── Section separators in preview ──────────────────────────────────── */
+/* Every section gets a subtle bottom border in preview mode so editors see clear boundaries */
+.homeu-preview-mode [data-section-id] {
+  border-bottom: 1px dashed #d0d8cc;
+  padding-bottom: 12px;
+}
+/* Last section has no border (the footer handles its own) */
+.homeu-preview-mode [data-section-id]:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+/* Hovering highlights the boundary */
+.homeu-preview-mode [data-section-id]:hover {
+  border-bottom-color: #1e7a47;
+}
+/* Type label pill shown at top-left of each section in preview (only on hover) */
+.homeu-preview-mode [data-section-id]:hover::before {
+  content: attr(data-section-label);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  background: rgba(21,26,23,0.82);
+  color: #fff;
+  font: 600 10px/1 Inter, sans-serif;
+  padding: 3px 8px;
+  border-radius: 0 0 6px 0;
+  pointer-events: none;
+}
+/* Ensure sections are positioned relative for the label pill */
+.homeu-preview-mode [data-section-id] {
+  position: relative;
+}
+
+/* ── Section insertion points ──────────────────────────────────────── */
+.homeu-preview-insert {
+  display: block;
+  width: 100%;
+  height: 28px;
+  border: 1px dashed #c2cdbe;
+  background: rgba(240, 247, 242, 0.5);
+  color: #9aa69c;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 2px 0;
+  opacity: 0;
+  transition: opacity 120ms ease, background 120ms ease, color 120ms ease;
+}
+.homeu-preview-insert:hover {
+  opacity: 1;
+  background: rgba(30, 122, 71, 0.08);
+  color: #1e7a47;
+  border-color: #1e7a47;
+}
+/* Show insert points faintly when hovering near them */
+.homeu-preview-mode:hover .homeu-preview-insert {
+  opacity: 0.25;
+}
+
 /* Inline editing — contentEditable outline */
 .homeu-preview-mode [contenteditable="true"] {
   outline: 2px dashed #1e7a47;
@@ -1394,4 +1466,29 @@
   font-weight: 600;
   position: relative;
   z-index: 101;
+}
+
+/* ── Mega menu (multi-column navigation dropdown) ──────────────────── */
+.site-nav__mega {
+  background: #fff;
+  border: 1px solid #eef1ed;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  white-space: nowrap;
+}
+.site-nav__mega img {
+  border-radius: 6px;
+}
+.site-nav__mega .site-nav__dropdown-link {
+  font-size: 13px;
+  color: #3a4339;
+  white-space: nowrap;
+}
+.site-nav__mega .site-nav__dropdown-link:hover {
+  color: #1a6d3e;
 }

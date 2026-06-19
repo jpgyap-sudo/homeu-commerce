@@ -2,6 +2,8 @@ import './admin-legacy.css'
 import './luxury-theme.css'
 import AdminShell from './AdminShell'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'DaVinciOS — Command Center',
 }

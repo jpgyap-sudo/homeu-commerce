@@ -93,8 +93,8 @@ async function renderSection(section: HomepageSection) {
       return (
         <section className="index-section homepage-brand-text text-center">
           <div className="page-width">
-            <h2 className="homepage-brand-text__title h2">{cfg.title || 'HOME ATELIER'}</h2>
-            <p className="homepage-brand-text__body">{cfg.body}</p>
+            <h2 className="homepage-brand-text__title h2" data-edit="title">{cfg.title || 'HOME ATELIER'}</h2>
+            <p className="homepage-brand-text__body" data-edit="body">{cfg.body}</p>
           </div>
         </section>
       )
@@ -106,7 +106,7 @@ async function renderSection(section: HomepageSection) {
         <section className="index-section homepage-collections">
           <div className="page-width">
             <div className="section-header text-center">
-              <h2 className="section-header__title h2">{cfg.heading || 'Shop by Collection'}</h2>
+              <h2 className="section-header__title h2" data-edit="heading">{cfg.heading || 'Shop by Collection'}</h2>
             </div>
             <ul className="collection-list grid grid--uniform">
               {cols.map(c => (
@@ -131,14 +131,15 @@ async function renderSection(section: HomepageSection) {
       return (
         <section className="index-section homepage-image-text">
           <div className="homepage-image-text__inner">
-            <div className="homepage-image-text__image-wrap">
-              {cfg.image && <Image src={cfg.image} alt={cfg.title || ''} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 50vw" unoptimized />}
+            <div className="homepage-image-text__image-wrap" data-section-media="true">
+              {cfg.image ? <Image src={cfg.image} data-edit-image="image" alt={cfg.title || ''} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 50vw" unoptimized />
+               : <div style={{ width: '100%', height: '100%', minHeight: 380, background: '#eef1ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9aa69c', fontSize: 14 }}>Click to add image</div>}
             </div>
             <div className="homepage-image-text__content">
-              <h2 className="homepage-image-text__title h2">{cfg.title}</h2>
-              <p className="homepage-image-text__text">{cfg.text}</p>
+              <h2 className="homepage-image-text__title h2" data-edit="title">{cfg.title}</h2>
+              <p className="homepage-image-text__text" data-edit="text">{cfg.text}</p>
               {cfg.buttonText && cfg.buttonLink && (
-                <Link href={cfg.buttonLink} className="btn btn--primary">{cfg.buttonText}</Link>
+                <Link href={cfg.buttonLink} className="btn btn--primary" data-edit="buttonText">{cfg.buttonText}</Link>
               )}
             </div>
           </div>
@@ -149,9 +150,11 @@ async function renderSection(section: HomepageSection) {
       return (
         <div className="homepage-image-bar">
           {(cfg.images || []).map((img: any, i: number) => {
-            const inner = <Image src={img.image} alt={img.alt || `Image ${i + 1}`} fill style={{ objectFit: 'cover' }} sizes="33vw" unoptimized />
+            const inner = img.image
+              ? <Image src={img.image} data-edit-image={`images.${i}.image`} alt={img.alt || `Image ${i + 1}`} fill style={{ objectFit: 'cover' }} sizes="33vw" unoptimized />
+              : <div style={{ width: '100%', height: '100%', background: '#eef1ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9aa69c', fontSize: 12 }}>Click to add</div>
             return (
-              <div key={i} className="homepage-image-bar__item">
+              <div key={i} className="homepage-image-bar__item" data-section-media="true">
                 {img.link ? <Link href={img.link}>{inner}</Link> : inner}
               </div>
             )
@@ -168,7 +171,7 @@ async function renderSection(section: HomepageSection) {
         <section className="index-section homepage-featured-products">
           <div className="page-width">
             <div className="section-header text-center">
-              <h2 className="section-header__title h2">{cfg.heading || 'More Featured Pieces'}</h2>
+              <h2 className="section-header__title h2" data-edit="heading">{cfg.heading || 'More Featured Pieces'}</h2>
             </div>
             <ul className="grid grid--uniform product-grid">
               {products.map(p => (
@@ -207,7 +210,7 @@ async function renderSection(section: HomepageSection) {
         <section className="index-section homepage-reviews">
           <div className="page-width">
             <div className="section-header text-center">
-              <h2 className="section-header__title h2">{cfg.heading || 'What Our Customers Say'}</h2>
+              <h2 className="section-header__title h2" data-edit="heading">{cfg.heading || 'What Our Customers Say'}</h2>
             </div>
             <div className="jdgm-widget jdgm-carousel-widget" data-number-of-columns="3" data-auto-scroll="true" data-scroll-interval="2000" data-scroll-animation-duration="400" />
           </div>
@@ -221,7 +224,7 @@ async function renderSection(section: HomepageSection) {
         <section className="index-section homepage-instagram">
           <div className="page-width">
             <div className="section-header text-center">
-              <h2 className="section-header__title h2">{cfg.heading || `Follow @${handle}`}</h2>
+              <h2 className="section-header__title h2" data-edit="heading">{cfg.heading || `Follow @${handle}`}</h2>
               <p className="section-header__sub">
                 <a href={`https://www.instagram.com/${handle}/`} target="_blank" rel="noopener noreferrer" className="homepage-instagram__profile-link">See our latest on Instagram ↗</a>
               </p>
@@ -245,11 +248,11 @@ async function renderSection(section: HomepageSection) {
         <section className="index-section homepage-cta">
           <div className="page-width">
             <div className="homepage-cta__inner text-center">
-              <h2 className="h2">{cfg.heading}</h2>
-              <p>{cfg.text}</p>
+              <h2 className="h2" data-edit="heading">{cfg.heading}</h2>
+              <p data-edit="text">{cfg.text}</p>
               <div className="homepage-cta__actions">
-                {cfg.primaryText && cfg.primaryLink && <Link href={cfg.primaryLink} className="btn btn--primary">{cfg.primaryText}</Link>}
-                {cfg.secondaryText && cfg.secondaryLink && <Link href={cfg.secondaryLink} className="btn btn--secondary">{cfg.secondaryText}</Link>}
+                {cfg.primaryText && cfg.primaryLink && <Link href={cfg.primaryLink} className="btn btn--primary" data-edit="primaryText">{cfg.primaryText}</Link>}
+                {cfg.secondaryText && cfg.secondaryLink && <Link href={cfg.secondaryLink} className="btn btn--secondary" data-edit="secondaryText">{cfg.secondaryText}</Link>}
               </div>
             </div>
           </div>
@@ -264,13 +267,13 @@ async function renderSection(section: HomepageSection) {
       return (
         <section className="index-section homepage-newsletter" style={{ background: cfg.bgColor || '#f4f1ec' }}>
           <div className="page-width text-center" style={{ padding: '48px 0' }}>
-            <h2 className="h2">{cfg.heading || 'Join our mailing list'}</h2>
-            {cfg.subtext && <p style={{ marginBottom: 24, color: '#6b6b6b' }}>{cfg.subtext}</p>}
+            <h2 className="h2" data-edit="heading">{cfg.heading || 'Join our mailing list'}</h2>
+            {cfg.subtext && <p style={{ marginBottom: 24, color: '#6b6b6b' }} data-edit="subtext">{cfg.subtext}</p>}
             <form onSubmit={async e => { e.preventDefault(); const fd = new FormData(e.currentTarget); await fetch('/api/newsletter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: fd.get('email') }) }); e.currentTarget.reset(); alert(cfg.successMessage || 'Thanks for subscribing!') }}
               style={{ display: 'flex', gap: 8, maxWidth: 440, margin: '0 auto' }}>
               <input type="email" name="email" placeholder={cfg.placeholder || 'Enter your email'}
                 required style={{ flex: 1, padding: '12px 16px', border: '1px solid #d9d9d9', borderRadius: 6, fontSize: 14 }} />
-              <button type="submit" className="btn btn--primary">{cfg.buttonText || 'Subscribe'}</button>
+              <button type="submit" className="btn btn--primary" data-edit="buttonText">{cfg.buttonText || 'Subscribe'}</button>
             </form>
           </div>
         </section>
@@ -282,13 +285,14 @@ async function renderSection(section: HomepageSection) {
       return (
         <section className="index-section homepage-logo-bar">
           <div className="page-width text-center" style={{ padding: '40px 0' }}>
-            {cfg.heading && <h2 className="h4" style={{ marginBottom: 24, color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{cfg.heading}</h2>}
+            {cfg.heading && <h2 className="h4" style={{ marginBottom: 24, color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '0.1em' }} data-edit="heading">{cfg.heading}</h2>}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 36, flexWrap: 'wrap' }}>
               {logos.map((logo, i) => (
-                <div key={i} style={{ opacity: 0.7, transition: 'opacity 200ms', filter: 'grayscale(1)' }}>
-                  {logo.link
-                    ? <a href={logo.link} target="_blank" rel="noopener noreferrer"><Image src={logo.image} alt={logo.alt || ''} width={120} height={48} style={{ objectFit: 'contain' }} unoptimized /></a>
-                    : <Image src={logo.image} alt={logo.alt || ''} width={120} height={48} style={{ objectFit: 'contain' }} unoptimized />}
+                <div key={i} style={{ opacity: 0.7, transition: 'opacity 200ms', filter: 'grayscale(1)' }} data-section-media="true">
+                  {logo.image ? (logo.link
+                    ? <a href={logo.link} target="_blank" rel="noopener noreferrer"><Image src={logo.image} data-edit-image={`logos.${i}.image`} alt={logo.alt || ''} width={120} height={48} style={{ objectFit: 'contain' }} unoptimized /></a>
+                    : <Image src={logo.image} data-edit-image={`logos.${i}.image`} alt={logo.alt || ''} width={120} height={48} style={{ objectFit: 'contain' }} unoptimized />)
+                  : <div style={{ width: 120, height: 48, background: '#eef1ed', borderRadius: 6 }} />}
                 </div>
               ))}
             </div>
@@ -304,20 +308,20 @@ async function renderSection(section: HomepageSection) {
         <section className="index-section homepage-testimonials">
           <div className="page-width">
             <div className="section-header text-center">
-              <h2 className="section-header__title h2">{cfg.heading || 'What Our Customers Say'}</h2>
+              <h2 className="section-header__title h2" data-edit="heading">{cfg.heading || 'What Our Customers Say'}</h2>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
               {items.map((t, i) => (
                 <div key={i} style={{ background: '#fafbf9', border: '1px solid #eef1ed', borderRadius: 12, padding: 28, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {t.avatar && (
-                    <Image src={t.avatar} alt={t.author} width={48} height={48} style={{ borderRadius: '50%', objectFit: 'cover' }} unoptimized />
-                  )}
-                  <p style={{ fontSize: 15, lineHeight: 1.6, color: '#3a4339', fontStyle: 'italic', margin: 0 }}>
+                  {t.avatar ? (
+                    <Image src={t.avatar} data-edit-image={`testimonials.${i}.avatar`} alt={t.author} width={48} height={48} style={{ borderRadius: '50%', objectFit: 'cover' }} unoptimized />
+                  ) : <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#eef1ed' }} />}
+                  <p style={{ fontSize: 15, lineHeight: 1.6, color: '#3a4339', fontStyle: 'italic', margin: 0 }} data-edit={`testimonials.${i}.quote`}>
                     &ldquo;{t.quote}&rdquo;
                   </p>
                   <div>
-                    <strong style={{ fontSize: 14, color: '#151a17' }}>{t.author}</strong>
-                    {t.role && <span style={{ fontSize: 12, color: '#9aa69c', marginLeft: 6 }}>{t.role}</span>}
+                    <strong style={{ fontSize: 14, color: '#151a17' }} data-edit={`testimonials.${i}.author`}>{t.author}</strong>
+                    {t.role && <span style={{ fontSize: 12, color: '#9aa69c', marginLeft: 6 }} data-edit={`testimonials.${i}.role`}>{t.role}</span>}
                   </div>
                 </div>
               ))}
@@ -333,13 +337,13 @@ async function renderSection(section: HomepageSection) {
       return (
         <section className="index-section homepage-stats" style={{ background: '#151a17', color: '#fff', padding: '48px 0' }}>
           <div className="page-width text-center">
-            {cfg.heading && <h2 className="h4" style={{ marginBottom: 32, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{cfg.heading}</h2>}
+            {cfg.heading && <h2 className="h4" style={{ marginBottom: 32, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.1em' }} data-edit="heading">{cfg.heading}</h2>}
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(stats.length, 4)}, 1fr)`, gap: 24 }}>
               {stats.map((s, i) => (
                 <div key={i}>
                   {s.prefix && <span style={{ fontSize: 32, display: 'block', marginBottom: 4 }}>{s.prefix}</span>}
-                  <div style={{ fontSize: 36, fontWeight: 800, lineHeight: 1.1 }}>{s.number}</div>
-                  <div style={{ fontSize: 14, opacity: 0.6, marginTop: 4 }}>{s.label}</div>
+                  <div style={{ fontSize: 36, fontWeight: 800, lineHeight: 1.1 }} data-edit={`stats.${i}.number`}>{s.number}</div>
+                  <div style={{ fontSize: 14, opacity: 0.6, marginTop: 4 }} data-edit={`stats.${i}.label`}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -363,7 +367,7 @@ async function renderSection(section: HomepageSection) {
         <section className="index-section homepage-blog-posts">
           <div className="page-width">
             <div className="section-header text-center">
-              <h2 className="section-header__title h2">{cfg.heading || 'From Our Journal'}</h2>
+              <h2 className="section-header__title h2" data-edit="heading">{cfg.heading || 'From Our Journal'}</h2>
             </div>
             <div className={isList ? '' : `grid grid--uniform`} style={isList ? { display: 'flex', flexDirection: 'column', gap: 24 } : {}}>
               {articles.map((a: any) => (
@@ -397,8 +401,8 @@ async function renderSection(section: HomepageSection) {
           textAlign: 'center', padding: '10px 16px', fontSize: 14, fontWeight: 600,
         }}>
           {cfg.link
-            ? <a href={cfg.link} style={{ color: 'inherit', textDecoration: 'none' }}>{cfg.text}</a>
-            : <span>{cfg.text}</span>}
+            ? <a href={cfg.link} style={{ color: 'inherit', textDecoration: 'none' }} data-edit="text">{cfg.text}</a>
+            : <span data-edit="text">{cfg.text}</span>}
         </div>
       )
 
@@ -408,16 +412,17 @@ async function renderSection(section: HomepageSection) {
           {cfg.videoUrl && (
             <video autoPlay muted loop playsInline
               poster={cfg.posterImage || undefined}
+              data-section-media="true"
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}>
               <source src={cfg.videoUrl} type="video/mp4" />
             </video>
           )}
           {cfg.overlayColor && <div style={{ position: 'absolute', inset: 0, background: cfg.overlayColor }} />}
           <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', color: '#fff', maxWidth: 640, padding: '0 20px' }}>
-            {cfg.heading && <h1 style={{ fontSize: 48, fontWeight: 800, margin: '0 0 12px', lineHeight: 1.1 }}>{cfg.heading}</h1>}
-            {cfg.subheading && <p style={{ fontSize: 18, margin: '0 0 24px', opacity: 0.9 }}>{cfg.subheading}</p>}
+            {cfg.heading && <h1 style={{ fontSize: 48, fontWeight: 800, margin: '0 0 12px', lineHeight: 1.1 }} data-edit="heading">{cfg.heading}</h1>}
+            {cfg.subheading && <p style={{ fontSize: 18, margin: '0 0 24px', opacity: 0.9 }} data-edit="subheading">{cfg.subheading}</p>}
             {cfg.buttonText && cfg.buttonLink && (
-              <Link href={cfg.buttonLink} className="btn btn--primary" style={{ display: 'inline-block', padding: '14px 36px', fontSize: 16 }}>
+              <Link href={cfg.buttonLink} className="btn btn--primary" style={{ display: 'inline-block', padding: '14px 36px', fontSize: 16 }} data-edit="buttonText">
                 {cfg.buttonText}
               </Link>
             )}
@@ -431,22 +436,23 @@ async function renderSection(section: HomepageSection) {
       return (
         <section className="index-section homepage-lookbook">
           <div className="page-width">
-            {cfg.heading && <div className="section-header text-center"><h2 className="section-header__title h2">{cfg.heading}</h2></div>}
+            {cfg.heading && <div className="section-header text-center"><h2 className="section-header__title h2" data-edit="heading">{cfg.heading}</h2></div>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, gridAutoRows: 'minmax(240px, auto)' }}>
               {items.map((item, i) => (
                 <div key={i} style={{
                   gridColumn: `span ${Math.min(Number(item.colSpan) || 1, 3)}`,
                   gridRow: `span ${Math.min(Number(item.rowSpan) || 1, 3)}`,
                   borderRadius: 8, overflow: 'hidden', position: 'relative',
-                }}>
-                  {item.link
+                }} data-section-media="true">
+                  {item.image ? (item.link
                     ? <Link href={item.link} style={{ display: 'block', width: '100%', height: '100%' }}>
-                        <Image src={item.image} alt={item.title || ''} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 33vw" unoptimized />
+                        <Image src={item.image} data-edit-image={`items.${i}.image`} alt={item.title || ''} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 33vw" unoptimized />
                       </Link>
-                    : <Image src={item.image} alt={item.title || ''} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 33vw" unoptimized />}
+                    : <Image src={item.image} data-edit-image={`items.${i}.image`} alt={item.title || ''} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 33vw" unoptimized />)
+                  : <div style={{ width: '100%', height: '100%', minHeight: 240, background: '#eef1ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9aa69c' }}>Click to add image</div>}
                   {item.title && (
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, background: 'linear-gradient(transparent, rgba(0,0,0,0.6))' }}>
-                      <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>{item.title}</span>
+                      <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }} data-edit={`items.${i}.title`}>{item.title}</span>
                     </div>
                   )}
                 </div>
@@ -463,7 +469,7 @@ async function renderSection(section: HomepageSection) {
       return (
         <section className="index-section homepage-category-carousel">
           <div className="page-width">
-            {cfg.heading && <div className="section-header text-center"><h2 className="section-header__title h2">{cfg.heading}</h2></div>}
+            {cfg.heading && <div className="section-header text-center"><h2 className="section-header__title h2" data-edit="heading">{cfg.heading}</h2></div>}
             <div style={{
               display: 'flex', gap: 16, overflowX: 'auto', scrollSnapType: 'x mandatory',
               WebkitOverflowScrolling: 'touch', paddingBottom: 12, scrollbarWidth: 'thin',
@@ -495,25 +501,43 @@ async function renderSection(section: HomepageSection) {
   }
 }
 
+/** Section types that belong to the footer, NOT the homepage body. */
+export const FOOTER_SECTION_TYPES = new Set(['footer_brand', 'footer_quick_links', 'footer_newsletter', 'footer_social'])
+
+/** Default bottom spacing per section type (px). Zero-spacing sections like promo_bar stay flush. */
+const DEFAULT_SECTION_GAP: Record<string, number> = {
+  promo_bar: 0,
+  slideshow: 40,
+  image_bar: 32,
+}
+function defaultGap(type: string): number {
+  return DEFAULT_SECTION_GAP[type] ?? 60
+}
+
 export async function HomeSections({ sections, preview = false }: { sections: HomepageSection[]; preview?: boolean }) {
-  const rendered = await Promise.all(sections.map(s => renderSection(s)))
+  // Only render homepage body sections — footer sections are rendered by SiteFooter
+  const bodySections = sections.filter(s => !FOOTER_SECTION_TYPES.has(s.type))
+  const rendered = await Promise.all(bodySections.map(s => renderSection(s)))
   return (
     <>
-      {rendered.map((node, i) => (
+      {rendered.map((node, i) => {
+        const sec = bodySections[i]
+        const gap = defaultGap(sec.type)
+        return (
         <div
-          key={sections[i].id}
-          data-section-id={sections[i].id}
-          data-section-type={sections[i].type}
-          data-section-label={SECTION_META[sections[i].type]?.label || sections[i].type}
+          key={sec.id}
+          data-section-id={sec.id}
+          data-section-type={sec.type}
+          data-section-label={SECTION_META[sec.type]?.label || sec.type}
           className={preview ? 'homeu-preview-section' : undefined}
           style={{
-            marginTop: sections[i].config?.spacingTop ? Number(sections[i].config.spacingTop) : undefined,
-            marginBottom: sections[i].config?.spacingBottom ? Number(sections[i].config.spacingBottom) : undefined,
+            marginTop: sec.config?.spacingTop != null ? Number(sec.config.spacingTop) : undefined,
+            marginBottom: sec.config?.spacingBottom != null ? Number(sec.config.spacingBottom) : gap,
           }}
         >
           {node}
         </div>
-      ))}
+      )})}
       {preview && <PreviewBridge />}
     </>
   )

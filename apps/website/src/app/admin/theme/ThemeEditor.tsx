@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { SECTION_META, SECTION_TYPES, type SectionType } from '@/lib/theme-types'
 import { SECTION_SCHEMAS, type FieldDef } from './theme-schemas'
+import { MediaPicker } from './MediaPicker'
 
 // ── Default content presets for new sections ─────────────────────────
 const SECTION_PRESETS: Record<string, Record<string, any>> = {
@@ -45,7 +46,7 @@ const input: React.CSSProperties = { width: '100%', padding: '9px 12px', border:
 const lbl: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: '#3a4339', marginBottom: 5 }
 const mono: React.CSSProperties = { fontFamily: 'JetBrains Mono, ui-monospace, monospace', fontSize: 12.5, lineHeight: 1.5 }
 
-interface HeaderSettings { logoUrl: string; logoMaxWidth: number; bgColor: string; textColor: string; sticky: boolean; fontFamily: string; navFontSize: number }
+interface HeaderSettings { logoUrl: string; logoMaxWidth: number; bgColor: string; textColor: string; sticky: boolean; fontFamily: string; navFontSize: number; iconsPosition: 'right' | 'left' | 'top-bar'; layout: 'logo-center' | 'logo-left'; announcement: { enabled: boolean; text: string; link: string; bgColor: string; textColor: string } }
 
 const HEADER_FONT_OPTIONS: { label: string; stack: string }[] = [
   { label: 'Default (theme)', stack: '' },
@@ -71,6 +72,10 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
   const [adding, setAdding] = useState(false)
   const [toast, setToast] = useState('')
   const [previewKey, setPreviewKey] = useState(0)
+  const sectionsRef = useRef<Section[]>(initial)
+
+  // Keep sectionsRef in sync with sections state (for message handlers that need latest)
+  useEffect(() => { sectionsRef.current = sections }, [sections])
 
   // ── Resizable section rail (gated behind "Resize" toggle) ──────────
   const [railWidth, setRailWidth] = useState(380)
@@ -120,6 +125,28 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
   const [palette, setPalette] = useState<ThemePalette>(defaultPalette)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [paletteDirty, setPaletteDirty] = useState(false)
+  const [paletteLoaded, setPaletteLoaded] = useState(false)
+
+  // Load palette from DB on mount
+  useEffect(() => {
+    fetch('/api/theme/settings')
+      .then(r => r.json())
+      .then(data => {
+        const s = data.settings || {}
+        if (s.theme_primaryColor || s.theme_secondaryColor || s.theme_accentColor) {
+          setPalette({
+            primaryColor: s.theme_primaryColor || defaultPalette.primaryColor,
+            secondaryColor: s.theme_secondaryColor || defaultPalette.secondaryColor,
+            accentColor: s.theme_accentColor || defaultPalette.accentColor,
+            headingFont: s.theme_headingFont || defaultPalette.headingFont,
+            bodyFont: s.theme_bodyFont || defaultPalette.bodyFont,
+            buttonRadius: s.theme_buttonRadius ? Number(s.theme_buttonRadius) : defaultPalette.buttonRadius,
+          })
+        }
+      })
+      .catch(() => {})
+      .finally(() => setPaletteLoaded(true))
+  }, [])
 
   // Push a snapshot into undo history (debounced via ref to avoid loops)
   function pushHistory(sections: Section[]) {
@@ -164,13 +191,59 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
   const [cssDirty, setCssDirty] = useState(false)
   const [cssOpen, setCssOpen] = useState(false)
   const [cssSaving, setCssSaving] = useState(false)
+  const [footerOpen, setFooterOpen] = useState(false)
+  const FOOTER_SECTION_TYPES = new Set<string>(['footer_brand', 'footer_quick_links', 'footer_newsletter', 'footer_social'])
+
+  // ── Navigation editor (mega menu builder) ─────────────────────────
+  interface NavChild { title: string; href: string; image?: string }
+  interface NavColumn { title?: string; width?: number; image?: string; imageLink?: string; items: NavChild[] }
+  interface NavItem { title: string; href: string; children: NavChild[]; columns?: NavColumn[] }
+  const [navOpen, setNavOpen] = useState(false)
+  const [navItems, setNavItems] = useState<NavItem[]>([])
+  const [navDirty, setNavDirty] = useState(false)
+  const [navSaving, setNavSaving] = useState(false)
+  const [navLoaded, setNavLoaded] = useState(false)
+  const navRef = useRef(navItems)
+  useEffect(() => { navRef.current = navItems }, [navItems])
+
+  // Load navigation from DB on mount
+  useEffect(() => {
+    fetch('/api/theme/settings')
+      .then(r => r.json())
+      .then(data => {
+        const s = data.settings || {}
+        if (Array.isArray(s.nav_main)) {
+          setNavItems(s.nav_main.map((i: any) => ({
+            title: i.title || '', href: i.href || '#',
+            children: (i.children || []).map((c: any) => ({ title: c.title || '', href: c.href || '#', image: c.image || '' })),
+            columns: i.columns,
+          })))
+        }
+      })
+      .catch(() => {})
+      .finally(() => setNavLoaded(true))
+  }, [])
+
+  async function saveNav() {
+    setNavSaving(true)
+    try {
+      await fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'nav_main', value: navItems }) })
+      setNavDirty(false)
+      flash('Navigation saved'); refreshPreview()
+    } finally { setNavSaving(false) }
+  }
+
+  // ── Media picker state ────────────────────────────────────────────
+  const [mediaOpen, setMediaOpen] = useState(false)
+  const [mediaCurrentUrl, setMediaCurrentUrl] = useState('')
+  const mediaResolveRef = useRef<((url: string | null) => void) | null>(null)
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2000) }
   const refreshPreview = () => setPreviewKey(k => k + 1)
 
   // ── beforeunload guard ────────────────────────────────────────────
   useEffect(() => {
-    if (!dirty && !cssDirty) return
+    if (!dirty && !cssDirty && !paletteDirty) return
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault()
       e.returnValue = ''
@@ -181,9 +254,9 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
 
   // ── Navigation guard for Next.js in-app navigation ────────────────
   const confirmLeave = useCallback((msg?: string): boolean => {
-    if (!dirty && !cssDirty) return true
+    if (!dirty && !cssDirty && !paletteDirty) return true
     return window.confirm(msg || 'You have unsaved theme changes. Are you sure you want to leave?')
-  }, [dirty, cssDirty])
+  }, [dirty, cssDirty, paletteDirty])
 
   // ── Click-to-edit + in-preview actions from the preview iframe ──
   useEffect(() => {
@@ -191,9 +264,124 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
       setOpenId(id)
       requestAnimationFrame(() => document.getElementById(`sec-card-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
     }
+
+    /** Deep set a config value at a dot-path, e.g. "slides.0.heading" */
+    function setByPath(obj: Record<string, any>, path: string, value: any): Record<string, any> {
+      const keys = path.split('.')
+      const clone = JSON.parse(JSON.stringify(obj))
+      let current: any = clone
+      for (let i = 0; i < keys.length - 1; i++) {
+        const k = keys[i]
+        const n = Number(k)
+        // Array index or object key
+        if (!isNaN(n) && Array.isArray(current)) {
+          if (!current[n]) current[n] = {}
+          current = current[n]
+        } else {
+          if (!current[k] || typeof current[k] !== 'object') current[k] = {}
+          current = current[k]
+        }
+      }
+      const lastKey = keys[keys.length - 1]
+      const lastNum = Number(lastKey)
+      if (!isNaN(lastNum) && Array.isArray(current)) {
+        current[lastNum] = value
+      } else {
+        current[lastKey] = value
+      }
+      return clone
+    }
+
     const onMessage = (e: MessageEvent) => {
       const d = e.data
       if (!d || d.source !== 'homeu-preview') return
+
+      // ── Inline text edit (Phase 2: dblclick → contentEditable) ──
+      if (d.kind === 'edit-text') {
+        const id = Number(d.id)
+        const path = d.path as string
+        const value = d.value as string
+        setSections(prev => {
+          const idx = prev.findIndex(s => s.id === id)
+          if (idx === -1) return prev
+          const updated = { ...prev[idx], config: setByPath(prev[idx].config, path, value) }
+          const next = [...prev]
+          next[idx] = updated
+          return next
+        })
+        setDirty(true)
+        // Auto-save the edited section immediately so the preview stays consistent
+        const sec = sectionsRef.current.find(x => x.id === id)
+        if (sec) {
+          const newConfig = setByPath(sec.config, path, value)
+          fetch(`/api/theme/sections/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ config: newConfig }) })
+        }
+        return
+      }
+
+      // ── Image picker (Phase 3: click image → open media picker) ──
+      if (d.kind === 'pick-image') {
+        const id = Number(d.id)
+        const path = d.path as string
+        const sec = sectionsRef.current.find(x => x.id === id)
+        const currentUrl = sec ? (() => {
+          const keys = path.split('.')
+          let v: any = sec.config
+          for (const k of keys) { v = v?.[k] }
+          return typeof v === 'string' ? v : ''
+        })() : ''
+        setMediaCurrentUrl(currentUrl)
+        setMediaOpen(true)
+        // The MediaPicker will call onSelect when user picks, or onClose when cancelled.
+        // We store a resolver to PATCH the chosen URL.
+        mediaResolveRef.current = (chosenUrl: string | null) => {
+          if (chosenUrl === null || chosenUrl === undefined) return // cancelled
+          const trimmedUrl = chosenUrl.trim()
+          if (!trimmedUrl) return
+          setSections(prev => {
+            const idx = prev.findIndex(s => s.id === id)
+            if (idx === -1) return prev
+            const newConfig = setByPath(prev[idx].config, path, trimmedUrl)
+            const updated = { ...prev[idx], config: newConfig }
+            const next = [...prev]
+            next[idx] = updated
+            return next
+          })
+          setDirty(true)
+          fetch(`/api/theme/sections/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config: setByPath(sec?.config || {}, path, trimmedUrl) }),
+          })
+          refreshPreview()
+        }
+        return
+      }
+
+      // ── Drag reorder (Phase 4: drag section in preview) ──
+      if (d.kind === 'reorder') {
+        const fromId = Number(d.id)
+        const toIndex = d.toIndex as number
+        setSections(prev => {
+          const fromIdx = prev.findIndex(s => s.id === fromId)
+          if (fromIdx === -1 || toIndex < 0 || toIndex >= prev.length) return prev
+          const next = [...prev]
+          const [moved] = next.splice(fromIdx, 1)
+          next.splice(toIndex, 0, moved)
+          return next
+        })
+        setDirty(true)
+        return
+      }
+
+      // ── Insert section between sections (preview "+" buttons) ──
+      if (d.kind === 'insert-section') {
+        const beforeIndex = d.beforeIndex as number
+        setAdding(true) // opens the type picker
+        // Store the insertion index so addSection can use it
+        ;(window as any).__insertBeforeIndex = beforeIndex
+        return
+      }
 
       // Toolbar buttons in the preview: edit / move up / move down
       if (d.kind === 'action') {
@@ -214,13 +402,14 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
         return
       }
 
-      if (d.kind !== 'select') return
-      if (d.id === 'header') {
-        setHeaderOpen(true)
-        requestAnimationFrame(() => document.getElementById('header-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
-        return
+      if (d.kind === 'select') {
+        if (d.id === 'header') {
+          setHeaderOpen(true)
+          requestAnimationFrame(() => document.getElementById('header-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+          return
+        }
+        openAndScroll(Number(d.id))
       }
-      openAndScroll(Number(d.id))
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
@@ -290,12 +479,29 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
         )
       }
 
+      // Save palette if dirty
+      if (paletteDirty) {
+        Object.entries(palette).forEach(([key, value]) => {
+          promises.push(
+            fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: `theme_${key}`, value }) })
+              .then(() => {})
+          )
+        })
+      }
+
+      // Save header if dirty (tracked by its own save, but included for completeness)
+      promises.push(
+        fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'header_settings', value: header }) })
+          .then(() => {})
+      )
+
       await Promise.all(promises)
 
       // Persist section order (config/enabled saved above; order saved here)
       await fetch('/api/theme/sections', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: sections.map(s => s.id) }) })
       setDirty(false)
       setCssDirty(false)
+      setPaletteDirty(false)
       flash('All changes saved'); refreshPreview()
     } finally { setIsSavingAll(false) }
   }
@@ -325,12 +531,18 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
     refreshPreview()
   }
 
-  function move(idx: number, dir: -1 | 1) {
-    const j = idx + dir
-    if (j < 0 || j >= sections.length) return
+  function move(bodyIdx: number, dir: -1 | 1) {
+    const bodySections = sections.filter(s => !FOOTER_SECTION_TYPES.has(s.type))
+    const j = bodyIdx + dir
+    if (j < 0 || j >= bodySections.length) return
+    const fromId = bodySections[bodyIdx].id
+    const toId = bodySections[j].id
     setSectionsWithHistory(prev => {
       const next = [...prev]
-      ;[next[idx], next[j]] = [next[j], next[idx]]
+      const fromGlobalIdx = next.findIndex(s => s.id === fromId)
+      const toGlobalIdx = next.findIndex(s => s.id === toId)
+      if (fromGlobalIdx === -1 || toGlobalIdx === -1) return prev
+      ;[next[fromGlobalIdx], next[toGlobalIdx]] = [next[toGlobalIdx], next[fromGlobalIdx]]
       return next
     })
     setDirty(true)
@@ -341,7 +553,24 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
     const preset = SECTION_PRESETS[type] || {}
     const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, config: preset }) })
     const { id } = await res.json()
-    setSectionsWithHistory(s => [...s, { id, type, position: (s.length + 1) * 10, enabled: true, config: { ...preset } }])
+    const insertIdx: number | undefined = (window as any).__insertBeforeIndex
+    delete (window as any).__insertBeforeIndex
+    setSectionsWithHistory(s => {
+      const bodySections = s.filter(x => !FOOTER_SECTION_TYPES.has(x.type))
+      let globalPos: number
+      if (insertIdx !== undefined && insertIdx < bodySections.length) {
+        // Insert before the specified body section
+        const targetId = bodySections[insertIdx].id
+        const targetGlobalIdx = s.findIndex(x => x.id === targetId)
+        globalPos = targetGlobalIdx >= 0 ? targetGlobalIdx : s.length
+      } else {
+        globalPos = s.length
+      }
+      const newSec = { id, type, position: (s.length + 1) * 10, enabled: true, config: { ...preset } }
+      const next = [...s]
+      next.splice(globalPos, 0, newSec)
+      return next
+    })
     setOpenId(id); setDirty(true); refreshPreview()
   }
 
@@ -412,8 +641,10 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
         const text = await file.text()
         const data = JSON.parse(text)
         if (!data.sections || !Array.isArray(data.sections)) { flash('Invalid theme file'); return }
-        // Import by recreating sections via API
-        for (const sec of sections) { await fetch(`/api/theme/sections/${sec.id}`, { method: 'DELETE' }) }
+        // Fetch current sections fresh from API before deleting
+        const fresh = await fetch('/api/theme/sections').then(r => r.json())
+        const currentSections: Section[] = fresh.sections || []
+        for (const sec of currentSections) { await fetch(`/api/theme/sections/${sec.id}`, { method: 'DELETE' }) }
         const newSections: Section[] = []
         for (const s of data.sections) {
           const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: s.type, config: s.config, enabled: s.enabled }) })
@@ -515,6 +746,21 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
     <div style={{ display: 'flex', gap: 0, fontFamily: 'Inter, sans-serif', height: 'calc(100vh - 0px)' }}>
       {toast && <div style={{ position: 'fixed', top: 20, right: 20, background: '#1e7a47', color: '#fff', padding: '10px 18px', borderRadius: 8, fontSize: 14, zIndex: 100, boxShadow: '0 6px 18px rgba(0,0,0,0.2)' }}>{toast}</div>}
 
+      <MediaPicker
+        open={mediaOpen}
+        currentUrl={mediaCurrentUrl}
+        onSelect={(url) => {
+          setMediaOpen(false)
+          mediaResolveRef.current?.(url)
+          mediaResolveRef.current = null
+        }}
+        onClose={() => {
+          setMediaOpen(false)
+          mediaResolveRef.current?.(null)
+          mediaResolveRef.current = null
+        }}
+      />
+
       {/* ── Left: editor (compact, resizable rail) ── */}
       <div style={{ flex: `0 0 ${railWidth}px`, width: railWidth, minWidth: railWidth, overflowY: 'auto', padding: '20px 16px', borderRight: resizing ? 'none' : '1px solid #e3e8e0' }}>
        <div style={{ zoom: railScale } as React.CSSProperties}>
@@ -543,20 +789,20 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
               style={{ padding: '6px 10px', border: '1px solid #d9e0d7', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 13 }}>⬇</button>
             <button onClick={importTheme} title="Import theme from JSON"
               style={{ padding: '6px 10px', border: '1px solid #d9e0d7', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 13 }}>⬆</button>
-            {(dirty || cssDirty) && (
+            {(dirty || cssDirty || paletteDirty) && (
               <span style={{ fontSize: 12, fontWeight: 600, color: '#b0392f', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#b0392f', display: 'inline-block' }} />
                 Unsaved
               </span>
             )}
-            <button onClick={saveAll} disabled={isSavingAll || (!dirty && !cssDirty)}
+            <button onClick={saveAll} disabled={isSavingAll || (!dirty && !cssDirty && !paletteDirty)}
               style={{
                 padding: '9px 22px', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                background: (dirty || cssDirty) ? 'linear-gradient(180deg, #1e7a47, #0f4f2b)' : '#d9e0d7',
-                color: (dirty || cssDirty) ? '#fff' : '#9aa69c',
+                background: (dirty || cssDirty || paletteDirty) ? 'linear-gradient(180deg, #1e7a47, #0f4f2b)' : '#d9e0d7',
+                color: (dirty || cssDirty || paletteDirty) ? '#fff' : '#9aa69c',
                 transition: 'all 150ms ease',
               }}>
-              {isSavingAll ? 'Saving…' : (dirty || cssDirty) ? '★ Save Theme' : '★ Save Theme'}
+              {isSavingAll ? 'Saving…' : (dirty || cssDirty || paletteDirty) ? '★ Save Theme' : '★ Save Theme'}
             </button>
           </div>
         </div>
@@ -628,6 +874,21 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
                   </label>
                 </div>
                 <div>
+                  <label style={lbl}>Icons position</label>
+                  <select style={input} value={header.iconsPosition || 'right'} onChange={e => setHeader(h => ({ ...h, iconsPosition: e.target.value as 'right' | 'left' | 'top-bar' }))}>
+                    <option value="right">Right of logo</option>
+                    <option value="left">Left of logo</option>
+                    <option value="top-bar">Top utility bar</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Logo layout</label>
+                  <select style={input} value={header.layout || 'logo-center'} onChange={e => setHeader(h => ({ ...h, layout: e.target.value as 'logo-center' | 'logo-left' }))}>
+                    <option value="logo-center">Center aligned</option>
+                    <option value="logo-left">Left aligned</option>
+                  </select>
+                </div>
+                <div>
                   <label style={lbl}>Background color</label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input type="color" value={header.bgColor} onChange={e => setHeader(h => ({ ...h, bgColor: e.target.value }))} style={{ width: 40, height: 40, padding: 2, border: '1.5px solid #d9e0d7', borderRadius: 8, cursor: 'pointer', background: 'none' }} />
@@ -652,9 +913,131 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
                   <input style={input} type="number" value={header.navFontSize} onChange={e => setHeader(h => ({ ...h, navFontSize: parseInt(e.target.value, 10) || 0 }))} />
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 14 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 14, flexWrap: 'wrap' }}>
                 <button onClick={saveHeader} disabled={headerSaving} style={{ padding: '9px 24px', background: 'linear-gradient(180deg, #1e7a47, #0f4f2b)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{headerSaving ? 'Saving…' : 'Save header'}</button>
-                <a href="/admin/navigation" style={{ fontSize: 13, color: '#1a6d3e', textDecoration: 'none', fontWeight: 600 }}>Edit menu links →</a>
+                <button onClick={() => setNavOpen(o => !o)} style={{ padding: '9px 18px', background: navOpen ? '#151a17' : '#f0f7f2', color: navOpen ? '#fff' : '#1e7a47', border: '1.5px solid #cfe3d6', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                  ☰ {navOpen ? 'Close nav' : 'Edit navigation'}
+                </button>
+              </div>
+
+              {/* ── Inline navigation editor (mega menu builder) ── */}
+              {navOpen && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #eef1ed' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: '#151a17' }}>Main navigation</span>
+                    {navDirty && <span style={{ fontSize: 11, color: '#b0392f', fontWeight: 600 }}>Unsaved</span>}
+                  </div>
+                  {navItems.map((item, i) => (
+                    <div key={i} style={{ border: '1px solid #eef1ed', borderRadius: 8, padding: 10, marginBottom: 8, background: '#fafbf9' }}>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                        <input style={{ ...input, flex: 1, minWidth: 100 }} value={item.title} placeholder="Menu title"
+                          onChange={e => { const next = [...navItems]; next[i] = { ...next[i], title: e.target.value }; setNavItems(next); setNavDirty(true) }} />
+                        <input style={{ ...input, flex: 1, minWidth: 100 }} value={item.href} placeholder="Link (e.g. /products)"
+                          onChange={e => { const next = [...navItems]; next[i] = { ...next[i], href: e.target.value }; setNavItems(next); setNavDirty(true) }} />
+                        <button onClick={() => {
+                          const next = [...navItems]
+                          next[i] = { ...next[i], columns: item.columns ? undefined : [{ title: '', width: 1, image: '', imageLink: '', items: [] }] }
+                          setNavItems(next); setNavDirty(true)
+                        }} title={item.columns ? 'Switch to simple dropdown' : 'Switch to mega menu columns'}
+                          style={{ padding: '4px 10px', border: '1px solid #d9e0d7', borderRadius: 6, background: item.columns ? '#151a17' : '#fff', color: item.columns ? '#fff' : '#667168', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                          {item.columns ? 'Mega ✓' : '+ Mega'}
+                        </button>
+                        <button onClick={() => { const next = [...navItems]; next.splice(i, 1); setNavItems(next); setNavDirty(true) }}
+                          style={{ padding: '4px 10px', border: '1px solid #e8c5c1', borderRadius: 6, background: '#fff', color: '#b0392f', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>×</button>
+                      </div>
+
+                      {/* Mega menu columns */}
+                      {item.columns && item.columns.map((col, ci) => (
+                        <div key={ci} style={{ marginLeft: 8, marginTop: 6, padding: 8, border: '1px dashed #cfe3d6', borderRadius: 6, background: '#fff' }}>
+                          <div style={{ display: 'flex', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+                            <input style={{ ...input, flex: 1, minWidth: 80 }} value={col.title || ''} placeholder="Column title"
+                              onChange={e => { const next = [...navItems]; const cols = [...(next[i].columns || [])]; cols[ci] = { ...cols[ci], title: e.target.value }; next[i] = { ...next[i], columns: cols }; setNavItems(next); setNavDirty(true) }} />
+                            <input style={{ ...input, flex: 1, minWidth: 80 }} value={col.image || ''} placeholder="Promo image URL"
+                              onChange={e => { const next = [...navItems]; const cols = [...(next[i].columns || [])]; cols[ci] = { ...cols[ci], image: e.target.value }; next[i] = { ...next[i], columns: cols }; setNavItems(next); setNavDirty(true) }} />
+                            <input style={{ ...input, width: 60, minWidth: 60 }} type="number" value={col.width || 1} min={1} max={4} placeholder="Width"
+                              onChange={e => { const next = [...navItems]; const cols = [...(next[i].columns || [])]; cols[ci] = { ...cols[ci], width: parseInt(e.target.value) || 1 }; next[i] = { ...next[i], columns: cols }; setNavItems(next); setNavDirty(true) }} />
+                          </div>
+                          {col.items.map((child, cci) => (
+                            <div key={cci} style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                              <input style={{ ...input, flex: 1 }} value={child.title} placeholder="Link text"
+                                onChange={e => { const next = [...navItems]; const cols = [...(next[i].columns || [])]; const items = [...cols[ci].items]; items[cci] = { ...items[cci], title: e.target.value }; cols[ci] = { ...cols[ci], items }; next[i] = { ...next[i], columns: cols }; setNavItems(next); setNavDirty(true) }} />
+                              <input style={{ ...input, flex: 1 }} value={child.href} placeholder="Link URL"
+                                onChange={e => { const next = [...navItems]; const cols = [...(next[i].columns || [])]; const items = [...cols[ci].items]; items[cci] = { ...items[cci], href: e.target.value }; cols[ci] = { ...cols[ci], items }; next[i] = { ...next[i], columns: cols }; setNavItems(next); setNavDirty(true) }} />
+                              <button onClick={() => { const next = [...navItems]; const cols = [...(next[i].columns || [])]; const items = cols[ci].items.filter((_, ii) => ii !== cci); cols[ci] = { ...cols[ci], items }; next[i] = { ...next[i], columns: cols }; setNavItems(next); setNavDirty(true) }}
+                                style={{ padding: '4px 8px', border: '1px solid #e8c5c1', borderRadius: 6, background: '#fff', color: '#b0392f', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>×</button>
+                            </div>
+                          ))}
+                          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                            <button onClick={() => { const next = [...navItems]; const cols = [...(next[i].columns || [])]; cols[ci] = { ...cols[ci], items: [...cols[ci].items, { title: '', href: '', image: '' }] }; next[i] = { ...next[i], columns: cols }; setNavItems(next); setNavDirty(true) }}
+                              style={{ padding: '4px 10px', border: '1px dashed #9cc4a9', borderRadius: 6, background: '#f0f7f2', color: '#1e7a47', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>+ Link</button>
+                            <button onClick={() => { const next = [...navItems]; const cols = (next[i].columns || []).filter((_, ii) => ii !== ci); next[i] = { ...next[i], columns: cols.length > 0 ? cols : undefined }; setNavItems(next); setNavDirty(true) }}
+                              style={{ padding: '4px 10px', border: '1px solid #e8c5c1', borderRadius: 6, background: '#fff', color: '#b0392f', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Remove column</button>
+                          </div>
+                        </div>
+                      ))}
+                      {item.columns && (
+                        <button onClick={() => { const next = [...navItems]; next[i] = { ...next[i], columns: [...(next[i].columns || []), { title: '', width: 1, image: '', imageLink: '', items: [] }] }; setNavItems(next); setNavDirty(true) }}
+                          style={{ marginTop: 6, marginLeft: 8, padding: '5px 12px', border: '1px dashed #9cc4a9', borderRadius: 6, background: '#f0f7f2', color: '#1e7a47', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Add column</button>
+                      )}
+
+                      {/* Simple children (non-mega) */}
+                      {!item.columns && item.children.map((child, ci) => (
+                        <div key={ci} style={{ display: 'flex', gap: 6, marginTop: 6, marginLeft: 8 }}>
+                          <input style={{ ...input, flex: 1 }} value={child.title} placeholder="Child title"
+                            onChange={e => { const next = [...navItems]; const ch = [...next[i].children]; ch[ci] = { ...ch[ci], title: e.target.value }; next[i] = { ...next[i], children: ch }; setNavItems(next); setNavDirty(true) }} />
+                          <input style={{ ...input, flex: 1 }} value={child.href} placeholder="Child link"
+                            onChange={e => { const next = [...navItems]; const ch = [...next[i].children]; ch[ci] = { ...ch[ci], href: e.target.value }; next[i] = { ...next[i], children: ch }; setNavItems(next); setNavDirty(true) }} />
+                          <button onClick={() => { const next = [...navItems]; next[i] = { ...next[i], children: next[i].children.filter((_, ii) => ii !== ci) }; setNavItems(next); setNavDirty(true) }}
+                            style={{ padding: '4px 8px', border: '1px solid #e8c5c1', borderRadius: 6, background: '#fff', color: '#b0392f', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>×</button>
+                        </div>
+                      ))}
+                      {!item.columns && (
+                        <button onClick={() => { const next = [...navItems]; next[i] = { ...next[i], children: [...next[i].children, { title: '', href: '', image: '' }] }; setNavItems(next); setNavDirty(true) }}
+                          style={{ marginTop: 4, marginLeft: 8, padding: '4px 10px', border: '1px dashed #9cc4a9', borderRadius: 6, background: '#f0f7f2', color: '#1e7a47', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>+ Child link</button>
+                      )}
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <button onClick={() => { setNavItems([...navItems, { title: '', href: '#', children: [] }]); setNavDirty(true) }}
+                      style={{ padding: '7px 16px', border: '1px dashed #9cc4a9', borderRadius: 8, background: '#f0f7f2', color: '#1e7a47', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>+ Add menu item</button>
+                    <button onClick={saveNav} disabled={navSaving}
+                      style={{ padding: '7px 20px', background: 'linear-gradient(180deg, #1e7a47, #0f4f2b)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{navSaving ? 'Saving…' : 'Save navigation'}</button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Announcement bar ── */}
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #eef1ed' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#3a4339', cursor: 'pointer', marginBottom: 12 }}>
+                  <input type="checkbox" checked={header.announcement?.enabled || false} onChange={e => setHeader(h => ({ ...h, announcement: { ...(h.announcement || { text: '', link: '', bgColor: '#151a17', textColor: '#ffffff' }), enabled: e.target.checked } }))} />
+                  <strong>Announcement bar</strong> — promo strip above the header
+                </label>
+                {(header.announcement?.enabled) && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={lbl}>Announcement text</label>
+                      <input style={input} value={header.announcement?.text || ''} onChange={e => setHeader(h => ({ ...h, announcement: { ...(h.announcement || { enabled: true, link: '', bgColor: '#151a17', textColor: '#ffffff' }), text: e.target.value } }))} placeholder="Free shipping on orders over ₱5,000" />
+                    </div>
+                    <div>
+                      <label style={lbl}>Link (optional)</label>
+                      <input style={input} value={header.announcement?.link || ''} onChange={e => setHeader(h => ({ ...h, announcement: { ...(h.announcement || { enabled: true, text: '', bgColor: '#151a17', textColor: '#ffffff' }), link: e.target.value } }))} placeholder="/products" />
+                    </div>
+                    <div>
+                      <label style={lbl}>Background color</label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input type="color" value={header.announcement?.bgColor || '#151a17'} onChange={e => setHeader(h => ({ ...h, announcement: { ...(h.announcement || { enabled: true, text: '', link: '', textColor: '#ffffff' }), bgColor: e.target.value } }))} style={{ width: 36, height: 36, padding: 2, border: '1.5px solid #d9e0d7', borderRadius: 6, cursor: 'pointer', background: 'none' }} />
+                        <input style={{ ...input, flex: 1 }} value={header.announcement?.bgColor || '#151a17'} onChange={e => setHeader(h => ({ ...h, announcement: { ...(h.announcement || { enabled: true, text: '', link: '', textColor: '#ffffff' }), bgColor: e.target.value } }))} />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={lbl}>Text color</label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input type="color" value={header.announcement?.textColor || '#ffffff'} onChange={e => setHeader(h => ({ ...h, announcement: { ...(h.announcement || { enabled: true, text: '', link: '', bgColor: '#151a17' }), textColor: e.target.value } }))} style={{ width: 36, height: 36, padding: 2, border: '1.5px solid #d9e0d7', borderRadius: 6, cursor: 'pointer', background: 'none' }} />
+                        <input style={{ ...input, flex: 1 }} value={header.announcement?.textColor || '#ffffff'} onChange={e => setHeader(h => ({ ...h, announcement: { ...(h.announcement || { enabled: true, text: '', link: '', bgColor: '#151a17' }), textColor: e.target.value } }))} />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -680,8 +1063,72 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
           )}
         </div>
 
+        {/* ── Footer panel ── */}
+        <div style={{ ...card, marginTop: 18 }}>
+          <button onClick={() => setFooterOpen(o => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+            <span style={{ fontSize: 18 }}>👣</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#151a17' }}>Footer</div>
+              <div style={{ fontSize: 12, color: '#9aa69c' }}>Brand info, quick links, newsletter, social</div>
+            </div>
+            <span style={{ color: '#9aa69c' }}>{footerOpen ? '▲' : '▼'}</span>
+          </button>
+          {footerOpen && (
+            <div style={{ padding: '0 16px 16px', borderTop: '1px solid #eef1ed' }}>
+              <p style={{ fontSize: 12, color: '#9aa69c', marginTop: 10 }}>
+                Footer sections are edited like any other section below. Click Edit to configure.
+              </p>
+              {sections.filter(s => FOOTER_SECTION_TYPES.has(s.type)).map(sec => {
+                const meta = SECTION_META[sec.type]
+                const open = openId === sec.id
+                const schema = SECTION_SCHEMAS[sec.type] || []
+                const isOpen = allCollapsed ? false : open
+                return (
+                  <div key={sec.id} style={{ marginTop: 10, border: '1px solid #eef1ed', borderRadius: 8, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#fafbf9' }}>
+                      <span style={{ fontSize: 18 }}>{meta?.icon}</span>
+                      <div style={{ flex: 1, fontWeight: 600, fontSize: 14, color: '#151a17' }}>{meta?.label || sec.type}</div>
+                      <button onClick={() => setOpenId(isOpen ? null : sec.id)} style={{ padding: '6px 14px', background: isOpen ? '#151a17' : '#f0f7f2', color: isOpen ? '#fff' : '#1e7a47', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                        {isOpen ? 'Close' : 'Edit'}
+                      </button>
+                    </div>
+                    {isOpen && (
+                      <div style={{ padding: '12px 14px', borderTop: '1px solid #eef1ed' }}>
+                        {schema.map(f => renderField(sec, f))}
+                        <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+                          <button onClick={() => saveSection(sec)} disabled={savingId === sec.id} style={{ padding: '8px 20px', background: 'linear-gradient(180deg, #1e7a47, #0f4f2b)', color: '#fff', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{savingId === sec.id ? 'Saving…' : 'Save'}</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              {sections.filter(s => FOOTER_SECTION_TYPES.has(s.type)).length < 4 && (
+                <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {SECTION_TYPES.filter(t => FOOTER_SECTION_TYPES.has(t) && !sections.some(s => s.type === t)).map(t => (
+                    <button key={t} onClick={() => addSection(t)} style={{ padding: '7px 14px', background: '#f0f7f2', border: '1.5px dashed #9cc4a9', color: '#1e7a47', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                      + {SECTION_META[t].label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {sections.filter(s => FOOTER_SECTION_TYPES.has(s.type)).length === 0 && (
+                <p style={{ fontSize: 12, color: '#9aa69c', marginTop: 8 }}>No footer sections yet. Add one above.</p>
+              )}
+            </div>
+          )}
+        </div>
+
         <div style={{ margin: '14px 0' }}>
-          {sections.map((sec, idx) => {
+          {sections.filter(s => !FOOTER_SECTION_TYPES.has(s.type)).length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9aa69c' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🏠</div>
+              <p style={{ fontSize: 15, fontWeight: 600, color: '#3a4339', marginBottom: 6 }}>No sections on your homepage yet</p>
+              <p style={{ fontSize: 13, lineHeight: 1.5 }}>Click <strong>+ Add section</strong> below to build your homepage layout.<br />Sections appear in the live preview on the right.</p>
+            </div>
+          )}
+          {sections.filter(s => !FOOTER_SECTION_TYPES.has(s.type)).map((sec, idx) => {
+            const bodySections = sections.filter(s => !FOOTER_SECTION_TYPES.has(s.type))
             const meta = SECTION_META[sec.type]
             const open = openId === sec.id
             const schema = SECTION_SCHEMAS[sec.type] || []
@@ -693,7 +1140,7 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <button onClick={() => move(idx, -1)} disabled={idx === 0} style={{ border: 'none', background: 'transparent', cursor: idx === 0 ? 'default' : 'pointer', color: '#9aa69c', fontSize: 12, lineHeight: 1, opacity: idx === 0 ? 0.3 : 1 }}>▲</button>
-                    <button onClick={() => move(idx, 1)} disabled={idx === sections.length - 1} style={{ border: 'none', background: 'transparent', cursor: idx === sections.length - 1 ? 'default' : 'pointer', color: '#9aa69c', fontSize: 12, lineHeight: 1, opacity: idx === sections.length - 1 ? 0.3 : 1 }}>▼</button>
+                    <button onClick={() => move(idx, 1)} disabled={idx === bodySections.length - 1} style={{ border: 'none', background: 'transparent', cursor: idx === bodySections.length - 1 ? 'default' : 'pointer', color: '#9aa69c', fontSize: 12, lineHeight: 1, opacity: idx === bodySections.length - 1 ? 0.3 : 1 }}>▼</button>
                   </div>
                   <span style={{ fontSize: 20 }}>{meta?.icon}</span>
                   <div style={{ flex: 1 }}>
@@ -765,7 +1212,7 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
           <button onClick={() => setAdding(!adding)} style={{ width: '100%', padding: '14px', background: '#fff', border: '2px dashed #c2cdbe', color: '#1e7a47', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Add section</button>
           {adding && (
             <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 8, background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, padding: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, zIndex: 20 }}>
-              {SECTION_TYPES.map(t => (
+              {SECTION_TYPES.filter(t => !FOOTER_SECTION_TYPES.has(t)).map(t => (
                 <button key={t} onClick={() => addSection(t)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', border: '1px solid #eef1ed', borderRadius: 8, background: '#fafbf9', cursor: 'pointer', textAlign: 'left' }}>
                   <span style={{ fontSize: 16 }}>{SECTION_META[t].icon}</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: '#151a17' }}>{SECTION_META[t].label}</span>

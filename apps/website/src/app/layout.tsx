@@ -6,7 +6,7 @@ import { ChatWidget } from '@/components/chat/ChatWidget'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { getMainNav } from '@/lib/navigation'
-import { getCustomCss, getHeaderSettings, headerFontGoogleQuery } from '@/lib/theme'
+import { getCustomCss, getHeaderSettings, getThemePalette, headerFontGoogleQuery } from '@/lib/theme'
 import siteConfig from '@/data/site-config.json'
 
 export const metadata = {
@@ -16,6 +16,7 @@ export const metadata = {
   },
   description: siteConfig.tagline,
   metadataBase: new URL(`https://${siteConfig.domain}`),
+  icons: { icon: '/favicon.svg', shortcut: '/favicon.svg' },
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -34,11 +35,25 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   // Storefront: full Debut-themed layout
-  const [mainNav, customCss, header] = await Promise.all([getMainNav(), getCustomCss(), getHeaderSettings()])
+  const [mainNav, customCss, header, palette] = await Promise.all([getMainNav(), getCustomCss(), getHeaderSettings(), getThemePalette()])
+  const announcement = header.announcement?.enabled ? header.announcement : null
   const headerCss = `:root{--debut-header-bg:${header.bgColor};--debut-header-text:${header.textColor};}`
     + `.site-header{position:${header.sticky ? 'sticky' : 'static'};${header.fontFamily ? `font-family:${header.fontFamily};` : ''}}`
     + `.site-header__logo-image{max-width:${header.logoMaxWidth}px;}`
     + `.site-nav__link--main,.mobile-nav__link{font-size:${header.navFontSize || 13}px;}`
+    + (announcement ? `.homeu-announcement-bar{background:${announcement.bgColor};color:${announcement.textColor};text-align:center;padding:10px 16px;font-size:14px;font-weight:600;}` : '')
+  // Theme palette CSS custom properties — available to all sections
+  const paletteCss = `:root{`
+    + `--theme-primary:${palette.primaryColor};`
+    + `--theme-secondary:${palette.secondaryColor};`
+    + `--theme-accent:${palette.accentColor};`
+    + `--theme-heading-font:${palette.headingFont};`
+    + `--theme-body-font:${palette.bodyFont};`
+    + `--theme-button-radius:${palette.buttonRadius}px;`
+    + `}`
+    + `h1,h2,h3,h4,h5,h6,.h1,.h2,.h3,.h4,.h5,.h6{font-family:${palette.headingFont};}`
+    + `body{font-family:${palette.bodyFont};}`
+    + `.btn{border-radius:${palette.buttonRadius}px;}`
   const headerFontQuery = headerFontGoogleQuery(header.fontFamily)
   return (
     <html lang="en">
@@ -58,11 +73,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Admin-editable header appearance (Theme → Header) */}
         {headerFontQuery ? <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${headerFontQuery}&display=swap`} /> : null}
         <style id="homeu-header-css" dangerouslySetInnerHTML={{ __html: headerCss }} />
+        {/* Theme palette CSS custom properties (Theme → Palette) */}
+        <style id="homeu-palette-css" dangerouslySetInnerHTML={{ __html: paletteCss }} />
         {/* Admin-editable custom CSS (Theme → Custom CSS) */}
         {customCss ? <style id="homeu-custom-css" dangerouslySetInnerHTML={{ __html: customCss }} /> : null}
       </head>
       <body>
-        <SiteHeader nav={mainNav} logoUrl={header.logoUrl || undefined} />
+        <SiteHeader nav={mainNav} header={header} logoUrl={header.logoUrl || undefined} />
         <main id="MainContent" className="content-for-layout" role="main" tabIndex={-1}>
           {children}
         </main>

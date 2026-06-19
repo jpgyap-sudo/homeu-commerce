@@ -1,0 +1,45 @@
+﻿.homeu-preview-mode { cursor: default; }
+.homeu-preview-outline {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+  border: 2px solid #1e7a47;
+  background: rgba(30,122,71,0.06);
+  border-radius: 4px;
+  z-index: 99998;
+  transition: top 80ms ease, left 80ms ease, width 80ms ease, height 80ms ease;
+}
+.homeu-preview-label {
+  position: absolute;
+  top: -22px;
+  left: -2px;
+  background: #1e7a47;
+  color: #fff;
+  font: 600 11px/1 Inter, sans-serif;
+  letter-spacing: 0.02em;
+  padding: 4px 8px;
+  border-radius: 4px 4px 4px 0;
+  white-space: nowrap;
+}
+
+/* Theme preview action toolbar (Edit / Move) */
+.homeu-preview-bar {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: flex;
+  gap: 2px;
+  pointer-events: auto;
+  z-index: 99999;
+}
+.homeu-preview-btn {
+  background: #1e7a47;
+  color: #fff;
+  border: none;
+  font: 600 11px/1 Inter, sans-serif;
+  padding: 5px 9px;
+  cursor: pointer;
+  border-radius: 0 0 0 4px;
+}
+.homeu-preview-btn:hover { background: #0f4f2b; }
+.homeu-preview-bar .homeu-preview-btn:last-child { border-radius: 0; }

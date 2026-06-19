@@ -13,6 +13,15 @@ export interface NavItem {
   type?: string
   originalUrl?: string
   children: NavItem[]
+  /** Mega menu: multi-column layout with optional promo images */
+  columns?: {
+    title?: string         // column heading
+    width?: number         // 1-4 (default: 1)
+    image?: string         // promo image URL
+    imageLink?: string     // where the image links to
+    imageAlt?: string
+    items: NavItem[]       // links in this column
+  }[]
 }
 
 async function getMenu(key: 'nav_main' | 'nav_footer', fallback: any[]): Promise<NavItem[]> {
@@ -31,6 +40,16 @@ function normalize(items: any[]): NavItem[] {
     type: i.type,
     originalUrl: i.originalUrl,
     children: Array.isArray(i.children) ? normalize(i.children) : [],
+    columns: Array.isArray(i.columns)
+      ? i.columns.map((c: any) => ({
+          title: c.title || '',
+          width: c.width || 1,
+          image: c.image || '',
+          imageLink: c.imageLink || '',
+          imageAlt: c.imageAlt || '',
+          items: Array.isArray(c.items) ? normalize(c.items) : [],
+        }))
+      : undefined,
   }))
 }
 

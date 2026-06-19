@@ -28,14 +28,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name, email, mobile, buyerType, companyName, sourcePage, customerId, consent } = body
 
-    // Validate required fields
-    if (!name?.trim()) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+    // Validate required fields — at minimum we need a name or an email
+    if (!name?.trim() && !email?.trim()) {
+      return NextResponse.json({ error: 'Name or email is required' }, { status: 400 })
     }
-    if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Valid email is required' }, { status: 400 })
     }
-    if (!mobile?.trim() || mobile.replace(/\s/g, '').length < 7) {
+    // Mobile is strongly recommended but not strictly required for auto-leads
+    if (mobile?.trim() && mobile.replace(/\s/g, '').length < 7) {
       return NextResponse.json({ error: 'Valid mobile number is required (min 7 digits)' }, { status: 400 })
     }
 

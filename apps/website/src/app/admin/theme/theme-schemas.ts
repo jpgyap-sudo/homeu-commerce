@@ -169,4 +169,36 @@ export const SECTION_SCHEMAS: Record<string, FieldDef[]> = {
     { key: 'source', label: 'Source (featured | all)', type: 'text', help: '"featured" shows only ★ Featured collections; "all" shows published with images' },
     { key: 'limit', label: 'Max items', type: 'number' },
   ],
+
+  // ── Footer sections ──────────────────────────────────────────────────────
+  footer_brand: [
+    { key: 'name', label: 'Store name', type: 'text', placeholder: 'Homeu.ph' },
+    { key: 'tagline', label: 'Tagline', type: 'text', placeholder: 'Modern furniture for every space' },
+    { key: 'address1', label: 'Address line 1', type: 'text', placeholder: '123 Design District' },
+    { key: 'city', label: 'City', type: 'text', placeholder: 'Manila' },
+    { key: 'country', label: 'Country', type: 'text', placeholder: 'Philippines' },
+    { key: 'email', label: 'Email', type: 'text', placeholder: 'hello@homeu.ph' },
+    { key: 'phone', label: 'Phone', type: 'text', placeholder: '+63 2 1234 5678' },
+  ],
+  footer_quick_links: [
+    { key: 'title', label: 'Section title', type: 'text', placeholder: 'Quick Links' },
+  ],
+  footer_newsletter: [
+    { key: 'title', label: 'Section title', type: 'text', placeholder: 'Subscribe' },
+    { key: 'description', label: 'Description', type: 'textarea', placeholder: 'Get the latest in your inbox.' },
+    { key: 'placeholder', label: 'Input placeholder', type: 'text', placeholder: 'Your email address' },
+    { key: 'buttonText', label: 'Button text', type: 'text', placeholder: 'Subscribe' },
+    { key: 'successMessage', label: 'Success message', type: 'text', placeholder: 'Thanks for subscribing!' },
+  ],
+  footer_social: [
+    { key: 'title', label: 'Section title', type: 'text', placeholder: 'Follow Us' },
+    {
+      key: 'platforms', label: 'Social platforms', type: 'list',
+      itemFields: [
+        { key: 'name', label: 'Platform (instagram / facebook / pinterest / youtube)', type: 'text' },
+        { key: 'url', label: 'Profile URL', type: 'url' },
+        { key: 'label', label: 'Display label', type: 'text' },
+      ],
+    },
+  ],
 }

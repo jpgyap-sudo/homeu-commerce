@@ -481,6 +481,10 @@
   box-shadow: var(--shadow-card);
   border: 1px solid var(--luxe-warm-200);
   overflow: hidden;
+  transition: box-shadow 200ms ease;
+}
+.luxe-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
 
 .luxe-card-header {

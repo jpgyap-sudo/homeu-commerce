@@ -13,6 +13,8 @@ import { getAIProvider } from '@/lib/chatbot/ai-provider'
 import { searchByAttributes } from '@/lib/chatbot/product-search'
 import { imageUploadReply, productRecommendationReply } from '@/lib/chatbot/prompts'
 import { createSignal } from '@/lib/chatbot/lead-scorer'
+import { writeFile, mkdir } from 'fs/promises'
+import path from 'path'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
@@ -38,16 +40,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Image must be under 10 MB' }, { status: 400 })
     }
 
-    // In production: upload to S3-compatible storage
-    // For MVP: use a temporary local URL
+    // Persist the uploaded file to disk so AI providers can fetch it
     const imageId = crypto.randomUUID?.() || `img-${Date.now()}`
-    const tempUrl = `/uploads/chat/${imageId}-${image.name}`
+    const ext = image.name.split('.').pop() || 'jpg'
+    const fileName = `${imageId}.${ext}`
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'chat')
+    const filePath = path.join(uploadDir, fileName)
+
+    await mkdir(uploadDir, { recursive: true })
+    const bytes = await image.arrayBuffer()
+    await writeFile(filePath, Buffer.from(bytes))
+
+    // Build an absolute URL the AI provider can reach
+    const origin = request.nextUrl.origin
+    const imageUrl = `${origin}/uploads/chat/${fileName}`
 
     console.log(`[chatbot] Image uploaded:`, {
       imageId,
-      fileName: image.name,
+      fileName,
       fileSize: image.size,
       mimeType: image.type,
+      imageUrl,
       conversationId,
       leadId,
     })
@@ -59,7 +72,7 @@ export async function POST(request: NextRequest) {
     try {
       const ai = getAIProvider()
       const analysisPrompt = `Describe this furniture or lighting item in detail. Extract: category, style, material, color, shape, and usage. Format as JSON.`
-      const analysis = await ai.analyzeImage(tempUrl, analysisPrompt, AbortSignal.timeout(15000))
+      const analysis = await ai.analyzeImage(imageUrl, analysisPrompt, AbortSignal.timeout(15000))
 
       // Try to parse structured JSON from the analysis
       const jsonMatch = analysis.match(/\{[\s\S]*\}/)

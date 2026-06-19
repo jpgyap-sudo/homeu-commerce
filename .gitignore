@@ -46,6 +46,7 @@ Thumbs.db
 .blackboxrules
 .idea/
 .vscode/settings.json
+.kilo/
 
 # ─── Memory (except important docs) ───
 memory/

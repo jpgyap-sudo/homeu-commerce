@@ -136,6 +136,8 @@ export function ChatWidget() {
   // ── Auto-create lead for logged-in customers ────────────────
   const handleAutoLead = useCallback(async (cust: CustomerProfile) => {
     if (!cust?.id || leadId) return // Already have a lead session
+    // Guard: email and mobile are required by the API — skip if empty
+    if (!cust.email?.trim() || !cust.phone?.trim()) return
 
     try {
       const res = await fetch('/api/chat/leads', {
@@ -143,8 +145,8 @@ export function ChatWidget() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: cust.name || 'Customer',
-          email: cust.email || '',
-          mobile: cust.phone || '',
+          email: cust.email.trim(),
+          mobile: cust.phone.trim(),
           customerId: cust.id,
           sourcePage: window.location.pathname,
           consent: true,
@@ -315,57 +317,105 @@ export function ChatWidget() {
     }
   }, [sendMessage])
 
-  // ── Image Upload ─────────────────────────────────────────
+  // ── Image Upload (shared by button + paste) ──────────────
+  const uploadImageFile = useCallback(async (file: File) => {
+    if (!leadId) return
+
+    addVisitorMessage(`📷 Uploaded: ${file.name}`)
+    setIsTyping(true)
+
+    const formData = new FormData()
+    formData.append('image', file)
+    formData.append('leadId', leadId)
+    formData.append('conversationId', conversationId || '')
+
+    try {
+      const res = await fetch('/api/chat/upload-image', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) throw new Error('Upload failed')
+
+      const data = await res.json()
+      setIsTyping(false)
+
+      if (data.reply) addBotMessage(data.reply)
+
+      if (data.recommendations?.length > 0) {
+        setRecommendations(data.recommendations)
+        setState('showing_products')
+        for (const rec of data.recommendations) {
+          setMessages(prev => [...prev, {
+            id: nextMsgId(), sender: 'bot' as any, type: 'product_card' as any,
+            content: '', timestamp: new Date(), metadata: rec,
+          }])
+        }
+        setQuickReplies(['Add to RFQ cart', 'Book showroom visit'])
+      } else {
+        addBotMessage(`I couldn't find exact matches. Could you describe what you need?`)
+        setQuickReplies(['Describe instead', 'Contact sales on Viber'])
+      }
+    } catch {
+      setIsTyping(false)
+      addBotMessage('Failed to process the image. Could you describe what you\'re looking for instead?')
+    }
+  }, [leadId, conversationId])
+
+  // ── Image Upload (button) ────────────────────────────────
   const handleImageUpload = useCallback(() => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/jpeg,image/png,image/webp,image/gif'
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file || !leadId) return
-
-      addVisitorMessage(`📷 Uploaded: ${file.name}`)
-      setIsTyping(true)
-
-      const formData = new FormData()
-      formData.append('image', file)
-      formData.append('leadId', leadId)
-      formData.append('conversationId', conversationId || '')
-
-      try {
-        const res = await fetch('/api/chat/upload-image', {
-          method: 'POST',
-          body: formData,
-        })
-
-        if (!res.ok) throw new Error('Upload failed')
-
-        const data = await res.json()
-        setIsTyping(false)
-
-        if (data.reply) addBotMessage(data.reply)
-
-        if (data.recommendations?.length > 0) {
-          setRecommendations(data.recommendations)
-          setState('showing_products')
-          for (const rec of data.recommendations) {
-            setMessages(prev => [...prev, {
-              id: nextMsgId(), sender: 'bot' as any, type: 'product_card' as any,
-              content: '', timestamp: new Date(), metadata: rec,
-            }])
-          }
-          setQuickReplies(['Add to RFQ cart', 'Book showroom visit'])
-        } else {
-          addBotMessage(`I couldn't find exact matches. Could you describe what you need?`)
-          setQuickReplies(['Describe instead', 'Contact sales on Viber'])
-        }
-      } catch {
-        setIsTyping(false)
-        addBotMessage('Failed to process the image. Could you describe what you\'re looking for instead?')
-      }
+      if (!file) return
+      await uploadImageFile(file)
     }
     input.click()
-  }, [leadId, conversationId])
+  }, [uploadImageFile])
+
+  // ── Image Paste Handler ──────────────────────────────────
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        const file = item.getAsFile()
+        if (file) {
+          uploadImageFile(file)
+        }
+        return
+      }
+    }
+
+    // Also check clipboardData.files directly (broader support)
+    const files = e.clipboardData?.files
+    if (files && files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        if (files[i].type.startsWith('image/')) {
+          e.preventDefault()
+          uploadImageFile(files[i])
+          return
+        }
+      }
+    }
+
+    // If pasted text looks like a raw filename (e.g. "image.png"),
+    // swallow it to avoid sending "image.png" as a chat message
+    const text = e.clipboardData?.getData('text')
+    if (text && /^[\w,\s-]+\.(png|jpg|jpeg|gif|webp|bmp)$/i.test(text.trim())) {
+      e.preventDefault()
+      setMessages(prev => [...prev, {
+        id: nextMsgId(), sender: 'bot', content: 'Please use the 📷 button to upload images, or paste an image directly from your clipboard (Ctrl+V on the image itself, not the filename).',
+        type: 'text', timestamp: new Date(),
+      }])
+      setQuickReplies(['Upload a photo', 'Describe instead'])
+    }
+  }, [uploadImageFile, setQuickReplies])
 
   // ── Add to RFQ from Recommendation ──────────────────────
   const handleAddToRFQ = useCallback((product: ProductRec) => {
@@ -524,7 +574,8 @@ export function ChatWidget() {
                   value={inputValue}
                   onChange={e => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Type your message..."
+                  onPaste={handlePaste}
+                  placeholder="Type your message or paste an image..."
                   disabled={state === 'submitting'}
                 />
                 <button

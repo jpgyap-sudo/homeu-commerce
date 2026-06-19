@@ -81,23 +81,14 @@ const SECTIONS: SidebarSection[] = [
 export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const isLogin = pathname === '/admin/login'
-  // Theme editor is full-bleed (its own section rail + large preview),
-  // like Shopify's theme customizer — no admin sidebar.
   const isFullBleed = pathname === '/admin/theme' || pathname.startsWith('/admin/theme/')
 
-  // Collapsed sections — all expanded by default, auto-collapse inactive
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
-
-  // User permissions — which tabs to show
   const [userTabs, setUserTabs] = useState<string[]>(['*'])
 
   useEffect(() => {
-    // Don't call on login page — there's no session, and it creates a 401 console error
     if (isLogin) return
     fetch('/api/admin/me').then(r => r.json()).then(d => {
-      // Only restrict when a NON-EMPTY tab list is configured. An empty array
-      // means "no restriction set" → show everything (matches the login
-      // default of ['*']); otherwise the whole nav would vanish after fetch.
       const tabs = d.user?.tabs
       if (Array.isArray(tabs) && tabs.length > 0) setUserTabs(tabs)
     }).catch(() => {})
@@ -105,7 +96,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
   const canSeeSection = (id: string) => userTabs.includes('*') || userTabs.includes(id)
 
-  // Sidebar section reordering
   const [editingSidebar, setEditingSidebar] = useState(false)
   const [sidebarOrder, setSidebarOrder] = useState(SECTIONS.map(s => s.id))
 
@@ -114,7 +104,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const known = new Set(SECTIONS.map(s => s.id))
-        // Keep only ids that still exist, then append any new sections.
         const ids = (JSON.parse(saved) as string[]).filter(id => known.has(id))
         for (const s of SECTIONS) if (!ids.includes(s.id)) ids.push(s.id)
         setSidebarOrder(ids)
@@ -122,9 +111,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Resilient ordering: honor the saved order for ids that still exist, then
-  // append any sections missing from it. A stale/foreign saved order can never
-  // blank the sidebar — every current section is always rendered.
   const orderedSections: SidebarSection[] = (() => {
     const out = sidebarOrder
       .map(id => SECTIONS.find(s => s.id === id))
@@ -178,7 +164,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
       <PageViewTracker />
 
       <aside className="luxe-sidebar">
-        {/* Brand */}
         <div className="luxe-sidebar-brand">
           <div className="luxe-sidebar-logo">
             <div className="luxe-sidebar-logo-icon">D</div>
@@ -187,7 +172,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           <div className="luxe-sidebar-subtitle">Command Center</div>
         </div>
 
-        {/* Navigation with collapsible sections */}
         <nav className="luxe-sidebar-nav">
           {orderedSections.filter(s => canSeeSection(s.id)).map(section => {
             const isExpanded = !collapsed.has(section.id)
@@ -195,7 +179,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
             return (
               <div key={section.id} className="sidebar-section-group">
-                {/* Section header — clickable toggle */}
                 <button
                   className={`sidebar-section-header ${hasActive ? 'has-active' : ''}`}
                   onClick={() => toggleSection(section.id)}
@@ -216,7 +199,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                   </span>
                 </button>
 
-                {/* Section links — slide-down animation */}
                 <div
                   className={`sidebar-section-links ${isExpanded ? 'expanded' : 'collapsed'}`}
                   style={{ maxHeight: isExpanded ? `${section.links.length * 40 + 20}px` : '0px' }}
@@ -240,7 +222,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        {/* Sidebar edit button */}
         <div style={{ padding: 'var(--space-2) var(--space-3)' }}>
           <button
             onClick={() => setEditingSidebar(true)}
@@ -257,7 +238,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           </button>
         </div>
 
-        {/* User */}
         <div className="luxe-sidebar-footer">
           <div className="luxe-sidebar-user">
             <div className="luxe-sidebar-avatar">A</div>
@@ -273,7 +253,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      {/* Sidebar Editor Modal */}
       {editingSidebar && (
         <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center' }}
           onClick={() => setEditingSidebar(false)}>

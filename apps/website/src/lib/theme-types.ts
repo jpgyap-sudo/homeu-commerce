@@ -22,6 +22,11 @@ export type SectionType =
   | 'video_hero'
   | 'lookbook'
   | 'category_carousel'
+  // Footer sections (global, rendered on every page)
+  | 'footer_brand'
+  | 'footer_quick_links'
+  | 'footer_newsletter'
+  | 'footer_social'
 
 export interface HomepageSection {
   id: number
@@ -51,6 +56,11 @@ export const SECTION_META: Record<SectionType, { label: string; icon: string; de
   video_hero:        { label: 'Video hero',            icon: '🎬', description: 'Full-screen video banner with overlay' },
   lookbook:          { label: 'Lookbook',              icon: '👗', description: 'Shoppable collage image grid' },
   category_carousel: { label: 'Category carousel',     icon: '🔄', description: 'Horizontal scrolling collection tiles' },
+  // Footer sections
+  footer_brand:        { label: 'Footer · Brand',       icon: '🏪', description: 'Store name, tagline and address' },
+  footer_quick_links:  { label: 'Footer · Quick Links', icon: '🔗', description: 'Navigation link list' },
+  footer_newsletter:   { label: 'Footer · Newsletter',  icon: '✉️', description: 'Email signup form' },
+  footer_social:       { label: 'Footer · Social',      icon: '📱', description: 'Social media icon links' },
 }
 
 export const SECTION_TYPES = Object.keys(SECTION_META) as SectionType[]

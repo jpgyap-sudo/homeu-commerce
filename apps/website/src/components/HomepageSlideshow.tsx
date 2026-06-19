@@ -63,21 +63,28 @@ export function HomepageSlideshow({ slides }: { slides?: Slide[] }) {
             className={`slideshow__slide${idx === current ? ' is-active' : ''}`}
             aria-hidden={idx !== current}
           >
-            <Image
-              src={slide.image}
-              alt=""
-              fill
-              style={{ objectFit: 'cover', objectPosition: 'center' }}
-              priority={idx === 0}
-              sizes="100vw"
-              unoptimized
-            />
+            {slide.image ? (
+              <Image
+                src={slide.image}
+                alt=""
+                fill
+                data-edit-image={`slides.${idx}.image`}
+                style={{ objectFit: 'cover', objectPosition: 'center' }}
+                priority={idx === 0}
+                sizes="100vw"
+                unoptimized
+              />
+            ) : (
+              <div style={{ position: 'absolute', inset: 0, background: '#eef1ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9aa69c', fontSize: 14 }}>
+                Click to add image
+              </div>
+            )}
             {(slide.heading || slide.subheading || (slide.buttonLabel && slide.buttonLink)) && (
               <div className="slideshow__overlay">
-                {slide.heading && <h2 className="slideshow__heading">{slide.heading}</h2>}
-                {slide.subheading && <p className="slideshow__subheading">{slide.subheading}</p>}
+                {slide.heading && <h2 className="slideshow__heading" data-edit={`slides.${idx}.heading`}>{slide.heading}</h2>}
+                {slide.subheading && <p className="slideshow__subheading" data-edit={`slides.${idx}.subheading`}>{slide.subheading}</p>}
                 {slide.buttonLabel && slide.buttonLink && (
-                  <Link href={slide.buttonLink} className="btn btn--primary slideshow__btn">
+                  <Link href={slide.buttonLink} className="btn btn--primary slideshow__btn" data-edit={`slides.${idx}.buttonText`}>
                     {slide.buttonLabel}
                   </Link>
                 )}

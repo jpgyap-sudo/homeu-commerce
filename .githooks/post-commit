@@ -1,0 +1,34 @@
+#!/bin/sh
+# HomeU Post-Commit Hook — Auto-extract lessons from fix/feat/perf commits
+#
+# This hook runs AFTER a successful commit and extracts a lesson
+# template from commits that contain lesson-worthy changes.
+#
+# Dependencies: node, git
+# Install: git config core.hooksPath .githooks
+
+# Get the last commit info
+SHA=$(git rev-parse HEAD)
+MESSAGE=$(git log -1 --pretty=%B | head -1)
+AUTHOR=$(git log -1 --pretty=%an)
+FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | tr '\n' ',' | sed 's/,$//')
+
+# Only extract from lesson-worthy commits. Matches conventional-commit types
+# with or without a scope, e.g. "feat: …" and "feat(media): …".
+case "$MESSAGE" in
+  feat:*|feat\(*|fix:*|fix\(*|perf:*|perf\(*|refactor:*|refactor\(*|chore:*|chore\(*)
+    ;;
+  *)
+    exit 0
+    ;;
+esac
+
+# Skip if commit already has a lesson
+LESSON_FILE="$(git rev-parse --show-toplevel)/memory/lessons-learned.md"
+SHORT_SHA=$(echo "$SHA" | cut -c1-8)
+if grep -q "commit $SHORT_SHA" "$LESSON_FILE" 2>/dev/null; then
+    exit 0
+fi
+
+# Run the backfill script for this single commit
+node "$(git rev-parse --show-toplevel)/tools/backfill-lessons.mjs" --since "$(echo "$MESSAGE" | git log -1 --format=%ai | cut -d' ' -f1)" > /dev/null 2>&1 &

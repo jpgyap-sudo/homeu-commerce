@@ -126,6 +126,35 @@ Full instructions: [`.kilo/skill/preflight-sweep/SKILL.md`](.kilo/skill/prefligh
 
 ---
 
+## 🧠 Learning Layer — Read Before Code, Write After Code
+
+This project enforces a **learning layer** for institutional memory.
+
+### Before ANY coding task:
+```bash
+node tools/lesson-retrieve.mjs query "<brief task description>"
+```
+This surfaces relevant past lessons, known pitfalls, and reusable rules.
+
+### After EVERY coding task:
+Lessons are automatically captured from fix/feat/perf commits via
+`.githooks/post-commit`. To manually backfill:
+```bash
+node tools/backfill-lessons.mjs
+```
+
+### Quick commands:
+| Action | Command |
+|--------|---------|
+| Query lessons | `node tools/lesson-retrieve.mjs query "your task"` |
+| View stats | `node tools/lesson-retrieve.mjs summary` |
+| Recent lessons | `node tools/lesson-retrieve.mjs recent --limit 5` |
+| Backfill new | `node tools/backfill-lessons.mjs` |
+
+Full workflow in [`ai/instructions/project.md`](ai/instructions/project.md).
+
+---
+
 ## ⚠️ Git Sync Gate — MANDATORY Before Deploy
 
 This repository enforces a **Git Sync Gate** before ANY deployment operation.

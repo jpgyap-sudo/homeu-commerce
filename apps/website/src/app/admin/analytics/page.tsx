@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'

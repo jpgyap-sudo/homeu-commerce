@@ -1,0 +1,23 @@
+{
+  "name": "@homeu/marketing",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HomeU Email Marketing Service — Express + BullMQ",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node src/scripts/run-migration.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "pg": "^8.13.0",
+    "bullmq": "^5.28.0",
+    "ioredis": "^5.4.0",
+    "nodemailer": "^6.9.0",
+    "handlebars": "^4.7.8",
+    "jsonwebtoken": "^9.0.0",
+    "cors": "^2.8.5",
+    "zod": "^3.23.0"
+  }
+}

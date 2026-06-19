@@ -154,6 +154,14 @@
     "app-builder-rfq-cart": {
       "description": "RFQ Cart App: slide-out cart, product collection, submit quotation request, admin RFQ management with status workflow",
       "file": ".kilo/skill/app-builder/rfq-cart.md"
+    },
+    "docker-auto-start": {
+      "description": "Auto-detect and start Docker Desktop when PostgreSQL/Redis is unreachable. Checks ports, starts daemon, waits for healthy containers, restarts dev server.",
+      "file": ".kilo/skill/docker-auto-start/SKILL.md"
+    },
+    "nightly-qa": {
+      "description": "Autonomous QA worker running 2am-6am daily. Tests every admin page, API route, theme section, and workflow. Finds bugs, gaps, and researches feature recommendations. Uses Hermes Claw + OpenClaw + web-crawler.",
+      "file": ".kilo/skill/nightly-qa/SKILL.md"
     }
   },
   "commands": {
@@ -208,6 +216,26 @@
     "build-app": {
       "description": "🧩 Build a new Category App for DaVinciOS: scaffold data model, API routes, admin UI, frontend widget, and QA checklist. Usage: /build-app <app-name>",
       "prompt": "Load the app-builder skill and its sub-skills (app-builder-calculator, app-builder-rfq-cart, etc.). Read agents/app-builder/agent.md for the build workflow. Read agents/app-builder/build-workflow.md for the phased process. Read templates/app-builder/app-spec-template.md for the output format. Then ask the user which app to build and follow the build-new-app workflow."
+    },
+    "lessons-backfill": {
+      "description": "📚 Backfill lessons from git history into the learning layer",
+      "prompt": "Run the lesson backfill script: node tools/backfill-lessons.mjs. This extracts lessons from all feat/fix/perf/refactor commits since the last backfill and appends them to memory/lessons-learned.md and memory/lesson-index.jsonl."
+    },
+    "lessons-retrieve": {
+      "description": "🔍 Retrieve relevant lessons before coding. Usage: /lessons-retrieve <query>",
+      "prompt": "Run the lesson retrieval tool: node tools/lesson-retrieve.mjs query \"{{input}}\" --limit 5. This finds relevant lessons from prior tasks that match the current coding context."
+    },
+    "lessons-summary": {
+      "description": "📊 Show learning layer statistics and health",
+      "prompt": "Run the lesson summary: node tools/lesson-retrieve.mjs summary. This shows total lessons, breakdown by type, and top tags."
+    },
+    "nightly-qa": {
+      "description": "🌙 Run the Nightly QA agent — tests all admin pages, API routes, theme sections. Finds bugs, gaps, and researches improvements.",
+      "prompt": "Load the nightly-qa skill. Run the nightly QA worker: node tools/nightly-qa/run-nightly-qa.mjs. This tests all admin pages, API routes, and theme sections. Records bugs to memory/bug-log.jsonl, gaps to memory/gap-log.jsonl, and feature recommendations to memory/feature-recommendations.jsonl. Generates a report at memory/nightly-reports/YYYY-MM-DD.md."
+    },
+    "nightly-qa-quick": {
+      "description": "⚡ Quick nightly QA — theme sections + wiring only (15 min)",
+      "prompt": "Load the nightly-qa skill. Run the quick QA check: node tools/nightly-qa/run-nightly-qa.mjs --quick. This audits all 22 theme sections and wiring/integration. Records bugs and gaps to the JSONL log files."
     }
   }
 }
