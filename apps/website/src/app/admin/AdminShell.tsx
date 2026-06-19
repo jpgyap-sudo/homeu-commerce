@@ -109,8 +109,11 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('admin-sidebar-order')
     if (saved) {
       try {
-        const ids = JSON.parse(saved) as string[]
-        if (ids.length === SECTIONS.length) setSidebarOrder(ids)
+        const known = new Set(SECTIONS.map(s => s.id))
+        // Keep only ids that still exist, then append any new sections.
+        const ids = (JSON.parse(saved) as string[]).filter(id => known.has(id))
+        for (const s of SECTIONS) if (!ids.includes(s.id)) ids.push(s.id)
+        setSidebarOrder(ids)
       } catch {}
     }
   }, [])
