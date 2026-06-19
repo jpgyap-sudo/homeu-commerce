@@ -9,15 +9,43 @@ import type { HomepageSection } from '@/lib/theme-types'
 export type { SectionType, HomepageSection } from '@/lib/theme-types'
 export { SECTION_META, SECTION_TYPES } from '@/lib/theme-types'
 
-/** Fetch all homepage sections in display order (enabled only by default). */
+const FOOTER_TYPES = ['footer_brand', 'footer_quick_links', 'footer_newsletter', 'footer_social']
+
+/**
+ * Fetch homepage BODY sections in display order (enabled only by default).
+ * Footer-type sections live in the same table but are excluded here so they
+ * render only in the footer, never in the page body.
+ */
 export async function getHomepageSections(includeDisabled = false): Promise<HomepageSection[]> {
   try {
     const res = await query(
       `SELECT id, type, position, enabled, config
        FROM homepage_sections
-       ${includeDisabled ? '' : 'WHERE enabled = true'}
+       WHERE type <> ALL($1::text[]) ${includeDisabled ? '' : 'AND enabled = true'}
        ORDER BY position ASC, id ASC`,
-      []
+      [FOOTER_TYPES]
+    )
+    return res.rows.map((r: any) => ({
+      id: r.id,
+      type: r.type,
+      position: r.position,
+      enabled: r.enabled,
+      config: r.config || {},
+    }))
+  } catch {
+    return []
+  }
+}
+
+/** Fetch footer sections from homepage_sections (filtered by footer types). */
+export async function getFooterSections(): Promise<HomepageSection[]> {
+  try {
+    const res = await query(
+      `SELECT id, type, position, enabled, config
+       FROM homepage_sections
+       WHERE type = ANY($1::text[]) AND enabled = true
+       ORDER BY position ASC, id ASC`,
+      [FOOTER_TYPES]
     )
     return res.rows.map((r: any) => ({
       id: r.id,
@@ -50,11 +78,15 @@ export interface HeaderSettings {
   sticky: boolean
   fontFamily: string   // CSS font-family stack for the header
   navFontSize: number  // px size of the nav links
+  iconsPosition: 'right' | 'left' | 'top-bar'
+  layout: 'logo-center' | 'logo-left'
+  announcement: { enabled: boolean; text: string; link: string; bgColor: string; textColor: string }
 }
 
 const DEFAULT_HEADER: HeaderSettings = {
   logoUrl: '', logoMaxWidth: 200, bgColor: '#ffffff', textColor: '#3a3a3a', sticky: true,
-  fontFamily: '', navFontSize: 13,
+  fontFamily: '', navFontSize: 13, iconsPosition: 'right', layout: 'logo-center',
+  announcement: { enabled: false, text: '', link: '', bgColor: '#151a17', textColor: '#ffffff' },
 }
 
 /**
@@ -85,4 +117,38 @@ export async function getHeaderSettings(): Promise<HeaderSettings> {
     if (v && typeof v === 'object') return { ...DEFAULT_HEADER, ...v }
   } catch { /* fall through */ }
   return DEFAULT_HEADER
+}
+
+export interface ThemePalette {
+  primaryColor: string
+  secondaryColor: string
+  accentColor: string
+  headingFont: string
+  bodyFont: string
+  buttonRadius: number
+}
+
+/** Fetch the theme palette from site_settings (editable in Theme → Palette). */
+export async function getThemePalette(): Promise<ThemePalette> {
+  const defaults: ThemePalette = {
+    primaryColor: '#1a6d3e',
+    secondaryColor: '#d4a853',
+    accentColor: '#151a17',
+    headingFont: 'Playfair Display, serif',
+    bodyFont: 'Inter, sans-serif',
+    buttonRadius: 6,
+  }
+  try {
+    const res = await query(
+      `SELECT key, value FROM site_settings WHERE key LIKE 'theme_%'`,
+      []
+    )
+    for (const r of res.rows) {
+      const k = r.key.replace('theme_', '')
+      if (k in defaults && r.value != null) {
+        ;(defaults as any)[k] = k === 'buttonRadius' ? Number(r.value) : String(r.value)
+      }
+    }
+  } catch { /* fall through */ }
+  return defaults
 }
