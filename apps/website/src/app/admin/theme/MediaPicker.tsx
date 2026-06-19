@@ -172,6 +172,19 @@ export function MediaPicker({ open, currentUrl, onSelect, onClose }: MediaPicker
 
           {tab === 'browse' && (
             <>
+              {/* Search + source filter */}
+              <input style={{ ...input, marginBottom: 10 }} value={q} onChange={e => setQ(e.target.value)} placeholder="Search by filename…" />
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                {BROWSE_SOURCES.map(s => (
+                  <button key={s.key || 'all'} onClick={() => setBrowseSource(s.key)}
+                    style={{
+                      padding: '5px 11px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      border: browseSource === s.key ? 'none' : '1.5px solid #d9e0d7',
+                      background: browseSource === s.key ? '#1a6d3e' : '#fff',
+                      color: browseSource === s.key ? '#fff' : '#3a4339',
+                    }}>{s.label}</button>
+                ))}
+              </div>
               {loadingList ? (
                 <p style={{ color: '#9aa69c', textAlign: 'center', padding: 24 }}>Loading media library…</p>
               ) : mediaList.length === 0 ? (
