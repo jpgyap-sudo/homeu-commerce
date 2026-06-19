@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { query } from '@/lib/db'
 import { uploadToSpaces, spacesConfigured } from '@/lib/spaces'
+import { imageSize } from 'image-size'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,21 +30,27 @@ export async function POST(request: NextRequest) {
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
     const contentType = file.type || `image/${ext === 'jpg' ? 'jpeg' : ext}`
 
+    // Dimensions (best-effort)
+    let width: number | null = null, height: number | null = null
+    try { const d = imageSize(buf); width = d.width ?? null; height = d.height ?? null } catch { /* non-image or unsupported */ }
+
     // → DigitalOcean Spaces (deduped by content hash)
     const up = await uploadToSpaces(buf, ext, contentType)
 
     // Register / update the media index row. On conflict keep the existing
     // source/usage (don't downgrade a product image to "upload").
     const res = await query(
-      `INSERT INTO media (url, filename, mime_type, filesize, sha256, source, kind, usage, used_count, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, 'upload', 'image', '[]'::jsonb, 0, NOW(), NOW())
+      `INSERT INTO media (url, filename, mime_type, filesize, width, height, sha256, source, kind, usage, used_count, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'upload', 'image', '[]'::jsonb, 0, NOW(), NOW())
        ON CONFLICT (sha256) WHERE sha256 IS NOT NULL DO UPDATE SET
          filename = COALESCE(media.filename, EXCLUDED.filename),
          mime_type = COALESCE(media.mime_type, EXCLUDED.mime_type),
          filesize = COALESCE(media.filesize, EXCLUDED.filesize),
+         width = COALESCE(media.width, EXCLUDED.width),
+         height = COALESCE(media.height, EXCLUDED.height),
          updated_at = NOW()
        RETURNING id, url, filename, source, sha256`,
-      [up.url, file.name, contentType, up.bytes, up.sha256]
+      [up.url, file.name, contentType, up.bytes, width, height, up.sha256]
     )
 
     return NextResponse.json({ url: up.url, deduped: up.deduped, media: res.rows[0] }, { status: 201 })
