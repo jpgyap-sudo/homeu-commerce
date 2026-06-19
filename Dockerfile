@@ -5,11 +5,8 @@ WORKDIR /app
 # Copy only the website package.json (no monorepo deps needed)
 COPY apps/website/package.json ./website/
 
-# Force Linux platform to avoid Windows SWC package resolution
-RUN cd website && \
-    npm config set platform linux && \
-    npm config set arch x64 && \
-    npm install --no-audit --no-fund
+# Skip optional deps to avoid platform-specific SWC packages (win32 on alpine)
+RUN cd website && npm install --no-audit --no-fund --no-optional
 
 # Accept NEXT_PUBLIC_SITE_URL at build time
 ARG NEXT_PUBLIC_SITE_URL
