@@ -84,41 +84,53 @@ export default async function ArticlePage({
         </ol>
       </nav>
 
-      <article className="article-page page-width">
-        {/* Header */}
-        <header className="article-page__header">
-          {article.image_url && (
-            <div className="article-page__hero-image">
-              <Image
-                src={article.image_url}
-                alt={article.image_alt || article.title}
-                fill
-                style={{ objectFit: 'cover' }}
-                sizes="(max-width: 768px) 100vw, 800px"
-                priority
-                unoptimized
-              />
-            </div>
-          )}
-          <div className="article-page__header-meta">
-            <Link href={`/blog/${article.blog_handle}`} className="article-page__blog-link">
+      {/* Hero — full-width banner with the title over a dark scrim (or a
+          plain centered header when there is no featured image) */}
+      {article.image_url ? (
+        <header className="article-hero">
+          <Image
+            src={article.image_url}
+            alt={article.image_alt || article.title}
+            fill
+            className="article-hero__bg"
+            style={{ objectFit: 'cover' }}
+            sizes="100vw"
+            priority
+            unoptimized
+          />
+          <div className="article-hero__inner page-width">
+            <Link href={`/blog/${article.blog_handle}`} className="article-hero__blog-link">
               {article.blog_title}
             </Link>
-            <h1 className="article-page__title">{article.title}</h1>
-            <div className="article-page__byline">
+            <h1 className="article-hero__title">{article.title}</h1>
+            <div className="article-hero__byline">
               {article.author_name && <span>By {article.author_name}</span>}
               {article.author_name && article.published_at && <span> · </span>}
               {article.published_at && (
                 <time dateTime={article.published_at}>
-                  {new Date(article.published_at).toLocaleDateString('en-PH', {
-                    year: 'numeric', month: 'long', day: 'numeric',
-                  })}
+                  {new Date(article.published_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </time>
               )}
             </div>
           </div>
         </header>
+      ) : (
+        <header className="article-page page-width article-page__plainhead">
+          <Link href={`/blog/${article.blog_handle}`} className="article-page__blog-link">{article.blog_title}</Link>
+          <h1 className="article-page__title">{article.title}</h1>
+          <div className="article-page__byline">
+            {article.author_name && <span>By {article.author_name}</span>}
+            {article.author_name && article.published_at && <span> · </span>}
+            {article.published_at && (
+              <time dateTime={article.published_at}>
+                {new Date(article.published_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </time>
+            )}
+          </div>
+        </header>
+      )}
 
+      <article className="article-page page-width">
         {/* Body */}
         {article.body ? (
           <div
