@@ -573,6 +573,17 @@
 | **Impact** | Low — no runtime impact. But the tool still tries to delete non-existent paths and may report false errors. |
 | **Fix Guidance** | Remove the DaVinciOS-specific cleanup section from `tools/build-and-deploy.mjs`. Keep only the deployment logic. |
 
+### GAP-MED-035: Admin Media Uploads Save to Local Disk Instead of DO Spaces
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/api/admin/media/upload/route.ts`](apps/website/src/app/api/admin/media/upload/route.ts), [`apps/website/package.json`](apps/website/package.json) |
+| **Type** | Missing CDN integration |
+| **Status** | 🟡 Active |
+| **Description** | The `POST /api/admin/media/upload` route saves uploaded images to `public/uploads/<sha256>.<ext>` — local disk on the server. It does NOT upload to DigitalOcean Spaces. There is no S3 client dependency (`@aws-sdk/client-s3`) in `apps/website/package.json`. The DO Spaces credentials exist in `.env` and `apps/website/.env` but are never used by any upload endpoint. The `.claude/skills/digitalocean-spaces/SKILL.md` explicitly notes: *"Not yet implemented — this is the natural next step once basic Spaces access is verified"* (line 71-72). Meanwhile, the Media library browse tab (`GET /api/admin/media`) only scans local `public/uploads/` — it never lists DO Spaces objects. |
+| **Impact** | All new media uploaded through the admin panel is served from the application server's local disk, not the CDN. This means: (1) No CDN caching/performance for uploaded images, (2) Uploaded images are lost if the server is redeployed (ephemeral filesystem), (3) No content-addressed deduplication against the existing `cdn-mirror/` space in DO Spaces. |
+| **Fix Guidance** | (1) Add `@aws-sdk/client-s3` to `apps/website/package.json`. (2) Rewrite `POST /api/admin/media/upload` to upload to DO Spaces bucket under `cdn-mirror/<sha256>.<ext>` with `ACL: 'public-read'`, reusing the same content-addressed scheme as `tools/shopify-import/mirror-db-assets.mjs`. (3) Update `GET /api/admin/media` to also list DO Spaces objects (via S3 `ListObjectsV2` with prefix `cdn-mirror/`). (4) Return CDN URLs (`DO_SPACES_CDN_ENDPOINT/<key>`) from the upload endpoint. (5) Keep credentials server-side only — never expose to client. |
+
 ### GAP-MED-019: Missing Custom API Routes to Replace PayloadCMS Auto-Generated REST API
 
 | Field | Value |
@@ -754,6 +765,39 @@
 | **Impact** | Admin users clicking "Back to Home" from the quotation preview are taken to the public homepage instead of the admin panel. |
 | **Fix Guidance** | Check `document.referrer` or add a query parameter (`?from=admin` or `?from=customer`) to the preview link. Render a context-appropriate back link: `/admin/quotations` for admin, `/customer/dashboard` for customers. |
 
+### GAP-LOW-019: Homepage Slideshow Uses Hardcoded Shopify CDN URLs
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/components/HomepageSlideshow.tsx:16-34`](apps/website/src/components/HomepageSlideshow.tsx) |
+| **Type** | Stale CDN references |
+| **Status** | 🔵 Active |
+| **Description** | The `DEFAULT_SLIDES` array in `HomepageSlideshow.tsx` has 4 slides with images hardcoded to `cdn.shopify.com`: `b77cb11ff1.webp`, `A9ter5o3_1r4uc0l_hko.jpg`, `A9t5ka0y_1r4uc0v_hko.jpg`, `r1_480x480_a439cb88-4c92-45af-b585-1ff8c6a5cdc5.webp`. These should be migrated to DigitalOcean Spaces CDN URLs. This does not affect live admin-edited slideshows (which use the theme editor's `homepage_sections` config) — only the fallback/default slides. |
+| **Impact** | If no homepage sections are configured, the fallback slideshow loads images from Shopify's CDN rather than the HomeU CDN. These are the only remaining `cdn.shopify.com` hardcoded image references in the frontend code. |
+| **Fix Guidance** | (1) Download the 4 slide images from Shopify CDN. (2) Upload to DO Spaces under `cdn-mirror/` using `tools/shopify-import/mirror-db-assets.mjs` or manually via DO Spaces web console. (3) Replace the 4 URLs in `DEFAULT_SLIDES` with the DO Spaces CDN URLs. |
+
+### GAP-LOW-020: Favicon Still Points to Shopify CDN
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/data/site-config.json:28`](apps/website/src/data/site-config.json) |
+| **Type** | Stale CDN reference |
+| **Status** | 🔵 Active |
+| **Description** | The `favicon.shopifyUrl` in `site-config.json` points to `cdn.shopify.com/s/files/1/0559/7377/3476/shop_images/FAVICON.png`. The logo was already migrated to DO Spaces (`site-config.json:23`), but the favicon was not. |
+| **Impact** | The favicon loads from Shopify's CDN. Minor dependency on a third-party CDN for a static asset that should be self-hosted. |
+| **Fix Guidance** | (1) Download the favicon PNG from the Shopify URL. (2) Upload to DO Spaces under `cdn-mirror/` (or just place in `apps/website/public/`). (3) Update `site-config.json favicon.shopifyUrl` to the DO Spaces CDN URL or a local path. |
+
+### GAP-LOW-021: Chat Image Uploads Save to Local Disk Instead of DO Spaces
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/api/chat/upload-image/route.ts:44-51`](apps/website/src/app/api/chat/upload-image/route.ts) |
+| **Type** | Missing CDN integration |
+| **Status** | 🔵 Active |
+| **Description** | The `POST /api/chat/upload-image` route saves uploaded images to `public/uploads/chat/<uuid>.<ext>` — local disk. Unlike admin product/media uploads which have a clear CDN target, chat uploads are transient (used for AI vision analysis then discarded). However, they still depend on the local filesystem which is ephemeral on containerized deployments. |
+| **Impact** | Chat images are lost on server restart/container redeploy. The AI vision analysis still works during the same session, but images are not persisted for historical reference. Low severity because chat images are transient by design. |
+| **Fix Guidance** | For durability: upload chat images to DO Spaces under a `chat-uploads/` prefix with a short TTL or periodic cleanup. For the MVP, this can stay local — add a warning log that files are ephemeral. Alternatively, use the `S3_ENDPOINT`/`S3_BUCKET` env vars already defined for chat uploads (`.env.example` lines 54-57). |
+
 ---
 
 ### GAP-LOW-016: Comments and Docs Still Referencing DaVinciOS
@@ -836,10 +880,10 @@
 |----------|-------------|-----------|
 | 🔴 Critical | 0 | — |
 | 🟠 High | 0 | All 9 HIGH gaps resolved (HIGH-001 through HIGH-009) |
-| 🟡 Medium | 16 | No PDF quotes, No product variants, No bulk edit, No missing-data filters, Customer dashboard incomplete, Dead DaVinciOS_* DB tables, Stale @davincios/* packages, payloadcms-ui.tgz, homeu-schema.sql dead DDL, Deployer MCP column name, package.json docker tag, GitHub Actions deploy.yml, Dead cleanup scripts, build-and-deploy dead commands, Stale cdn-reverse-migration comments, Domain references (homeu.ph→homeatelier.ph) |
-| 🔵 Low | 17 | Bank placeholder, Viber placeholder, Schema migration pending, component-map.md missing, Bare catch blocks, Inline auth styles, UX inconsistency, Dual rendering paths, msgCounter reset, Silent catch, Product URL unused, Viber not clickable, No delete on edit page, Contextual back-link, Admin login branding (DaVinciOS logo class), E2e test Turbopack patterns, Stale homeu.ph domain references |
+| 🟡 Medium | 17 | No PDF quotes, No product variants, No bulk edit, No missing-data filters, Customer dashboard incomplete, Dead DaVinciOS_* DB tables, Stale @davincios/* packages, payloadcms-ui.tgz, homeu-schema.sql dead DDL, Deployer MCP column name, package.json docker tag, GitHub Actions deploy.yml, Dead cleanup scripts, build-and-deploy dead commands, Stale cdn-reverse-migration comments, Domain references (homeu.ph→homeatelier.ph), **Admin uploads not wired to DO Spaces** |
+| 🔵 Low | 20 | Bank placeholder, Viber placeholder, Schema migration pending, component-map.md missing, Bare catch blocks, Inline auth styles, UX inconsistency, Dual rendering paths, msgCounter reset, Silent catch, Product URL unused, Viber not clickable, No delete on edit page, Contextual back-link, Admin login branding (DaVinciOS logo class), E2e test Turbopack patterns, Stale homeu.ph domain references, **Slideshow Shopify CDN URLs**, **Favicon Shopify CDN URL**, **Chat uploads local disk** |
 | ✅ Resolved | 36 | **Previously:** CRIT-001, CRIT-002, HIGH-001 through HIGH-009, MED-001,002,003,009-015,017,018, LOW-016,017,018, RES-001-003 (22 gaps). **2026-06-17 false-positive sweep:** MED-021 (DaVinciOS variable naming), MED-026 (17 agent/skill files), MED-027 (Claude DO-Spaces skill), MED-028 (design resources), MED-029 (agent definitions), MED-030 (AI instructions), MED-032 (.env.example), MED-033 (kilo.json ref) — all 9 flagged DaVinciOS references are correct (DaVinciOS IS the backend). Plus corrected MED-018 rationale. |
-| **Total** | **69** | **33 active + 36 resolved** |
+| **Total** | **73** | **37 active + 36 resolved** |
 
 ---
 
@@ -1014,6 +1058,10 @@
 | 2026-06-16 | GAP-MED-033 | Comprehensive repo crawl | `.env.example` still has `DAVINCIOS_SECRET` and `DAVINCIOS_PUBLIC_SERVER_URL` |
 | 2026-06-16 | GAP-MED-034 | Comprehensive repo crawl | `kilo.json:178` references dead design-resources path |
 | 2026-06-16 | GAP-MED-035 | Comprehensive repo crawl | `tools/build-and-deploy.mjs` has dead DaVinciOS deletion commands |
+| 2026-06-19 | GAP-MED-035 | CDN media wiring audit | Admin media uploads save to local disk, not DO Spaces |
+| 2026-06-19 | GAP-LOW-019 | CDN media wiring audit | Homepage slideshow uses hardcoded Shopify CDN URLs |
+| 2026-06-19 | GAP-LOW-020 | CDN media wiring audit | Favicon still points to Shopify CDN |
+| 2026-06-19 | GAP-LOW-021 | CDN media wiring audit | Chat image uploads save to local disk, not DO Spaces |
 
 ---
 
@@ -1032,3 +1080,4 @@
 | 2026-06-16 | **Phase 2-C: Products admin CRUD built** — ✅ `apps/website/src/app/admin/products/page.tsx` (list with search/filter/pagination), `apps/website/src/app/admin/products/[id]/page.tsx` (edit form), `apps/website/src/app/admin/products/new/page.tsx` (create form). Dashboard Products count link updated from `/admin/collections/products` to `/admin/products`. GAP-HIGH-009 updated to reflect Products ✅ resolved. Total: 50 entries (41 active, 9 resolved) | Codex |
 | 2026-06-16 | **Gap verification sweep** — Audited all 6 compilation-blocking and critical gaps against live code. Found all already resolved: ✅ **CRIT-001** (leads insert in route.ts + db.ts), ✅ **CRIT-002** (messages insert in message/route.ts + db.ts), ✅ **HIGH-006** (4 chatbot services use direct DB, no HTTP calls), ✅ **HIGH-002** (Telegram alerts wired to leads, messages, rfq routes), ✅ **HIGH-007** (SEOHealth.ts imports from local types/davincios, not @davincios/cms), ✅ **HIGH-008** (davincios.d.ts exists, all 8 collections import CollectionConfig/GlobalConfig). Updated GAP_LOG.md status, Summary counts (55 active, 14 resolved), and Phase 2 plan to reflect resolved state. Total: 69 entries (55 active, 14 resolved) | Roo (Code mode) |
 | 2026-06-16 | ✅ **GAP-MED-001** resolved — duplicate `case 'CUSTOM_FURNITURE'` already removed from message router. Only one case remains, paired with COMPLAINT. Summary updated (54 active, 15 resolved) | Roo (Code mode) |
+| 2026-06-19 | **CDN media wiring audit** — Added 4 new gaps (1 medium, 3 low) covering the DO Spaces CDN not being wired for admin uploads, slideshow Shopify URLs, favicon Shopify URL, and chat uploads to local disk. Products/categories bulk migration to DO Spaces was ✅ done, but live upload pipeline and a few frontend assets still bypass the CDN. Summary updated (37 active, 36 resolved) | Roo (Debug mode) |
