@@ -2,9 +2,14 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Install dependencies
-COPY apps/website/package.json apps/website/package-lock.json* ./website/
-RUN cd website && npm install
+# Copy only the website package.json (no monorepo deps needed)
+COPY apps/website/package.json ./website/
+
+# Force Linux platform to avoid Windows SWC package resolution
+RUN cd website && \
+    npm config set platform linux && \
+    npm config set arch x64 && \
+    npm install --no-audit --no-fund
 
 # Accept NEXT_PUBLIC_SITE_URL at build time
 ARG NEXT_PUBLIC_SITE_URL
@@ -16,7 +21,7 @@ COPY apps/website/src/ ./website/src/
 COPY apps/website/public/ ./website/public/
 
 # Build
-RUN cd website && npm run build
+RUN cd website && npx next build
 
 # Stage 2: Production
 FROM node:20-alpine AS runner
@@ -28,7 +33,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=builder /app/website/.next/standalone ./
 COPY --from=builder /app/website/.next/static ./.next/static
 COPY --from=builder /app/website/public ./public
-COPY --from=builder /app/website/node_modules ./node_modules
 
 EXPOSE 3000
 CMD ["node", "server.js"]
