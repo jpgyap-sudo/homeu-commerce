@@ -95,7 +95,11 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     // Don't call on login page — there's no session, and it creates a 401 console error
     if (isLogin) return
     fetch('/api/admin/me').then(r => r.json()).then(d => {
-      if (d.user?.tabs) setUserTabs(d.user.tabs)
+      // Only restrict when a NON-EMPTY tab list is configured. An empty array
+      // means "no restriction set" → show everything (matches the login
+      // default of ['*']); otherwise the whole nav would vanish after fetch.
+      const tabs = d.user?.tabs
+      if (Array.isArray(tabs) && tabs.length > 0) setUserTabs(tabs)
     }).catch(() => {})
   }, [isLogin])
 
