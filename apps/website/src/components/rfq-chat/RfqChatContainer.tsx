@@ -6,6 +6,10 @@ import RfqChatInput from './RfqChatInput'
 import RfqChatTtlBanner from './RfqChatTtlBanner'
 import RfqChatBackfillNotice from './RfqChatBackfillNotice'
 import RfqChatProductSearch from './RfqChatProductSearch'
+import siteConfig from '@/data/site-config.json'
+
+const LOGO_URL = siteConfig.logo?.shopifyUrl || ''
+const LOGO_ALT = siteConfig.name || 'HomeU'
 
 interface RfqChatContainerProps {
   rfqId: string
@@ -108,6 +112,10 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
 
   /** Admin: add product directly to RFQ items — non-blocking inline feedback */
   async function handleAddProductToRfq(productId: number | string) {
+    if (!conversationId) {
+      setSendError('No active conversation — cannot add product to RFQ')
+      return
+    }
     try {
       const res = await fetch('/api/rfq/add-item', {
         method: 'POST',
@@ -151,10 +159,10 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
         border: '1px solid #e0e0e0', borderRadius: 12, overflow: 'hidden', background: '#fff',
       }}>
         <div style={{
-          padding: '16px 20px', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+          padding: '10px 20px', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
           color: '#fff',
         }}>
-          <div style={{ height: 18, width: 160, background: 'rgba(255,255,255,0.15)', borderRadius: 4 }} />
+          <div style={{ height: 54, width: 54, borderRadius: '50%', background: 'rgba(255,255,255,0.15)' }} />
         </div>
         <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[1, 2, 3].map(i => (
@@ -176,27 +184,49 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
       border: '1px solid #e8e8e8', borderRadius: 12, overflow: 'hidden', background: '#fff',
       boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
     }}>
-      {/* Header — dark gradient */}
+      {/* Header — logo + animated green dot, both 1.5x */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '14px 20px',
+        padding: '10px 20px',
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
         color: '#fff',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Animated green dot — 1.5x bigger */}
           <span style={{
-            width: 8, height: 8, borderRadius: '50%', background: '#4ade80',
+            width: 12,
+            height: 12,
+            borderRadius: '50%',
+            background: '#4ade80',
             display: 'inline-block',
+            animation: 'pulse-dot 2s ease-in-out infinite',
+            boxShadow: '0 0 6px rgba(74,222,128,0.5)',
+            flexShrink: 0,
           }} />
-          <span style={{ fontWeight: 600, fontSize: 15, letterSpacing: 0.3 }}>
-            Messages & Timeline
-          </span>
+          {/* Logo image — 1.5x */}
+          {LOGO_URL ? (
+            <img
+              src={LOGO_URL}
+              alt={LOGO_ALT}
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                flexShrink: 0,
+              }}
+            />
+          ) : (
+            <span style={{ fontWeight: 600, fontSize: 15, letterSpacing: 0.3 }}>
+              Home Atelier
+            </span>
+          )}
           {notificationCount > 0 && (
             <span style={{
               background: '#4ade80', color: '#1a1a2e', fontSize: 11, fontWeight: 700,
               padding: '2px 8px', borderRadius: 10,
             }}>
-              {notificationCount} new
+              {notificationCount}
             </span>
           )}
         </div>
@@ -206,6 +236,8 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
           </span>
         )}
       </div>
+      {/* Pulse animation keyframes */}
+      <style>{`@keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.15); } }`}</style>
 
       {/* Error banner */}
       {error && (

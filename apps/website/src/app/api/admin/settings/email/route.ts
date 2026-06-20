@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { query } from '@/lib/db'
+import { decryptSmtpPassword, encryptSmtpPassword, isMaskedSmtpPassword } from '@/lib/smtp-config-crypto'
 
 const KV_EMAIL_KEY = 'smtp_config'
 const MASKED_FIELDS = ['smtp_pass']
@@ -26,7 +27,11 @@ async function loadConfig(): Promise<Record<string, string>> {
     if (result.rows.length > 0) {
       const data = result.rows[0].data
       if (typeof data === 'object' && data !== null) {
-        return data as Record<string, string>
+        const config = data as Record<string, string>
+        return {
+          ...config,
+          smtp_pass: config.smtp_pass ? decryptSmtpPassword(config.smtp_pass) : '',
+        }
       }
     }
   } catch {
@@ -43,7 +48,7 @@ async function saveConfig(config: Record<string, string>): Promise<void> {
   const clean: Record<string, string> = {}
   for (const [key, value] of Object.entries(config)) {
     if (value && value.trim()) {
-      clean[key] = value.trim()
+      clean[key] = key === 'smtp_pass' ? encryptSmtpPassword(value.trim()) : value.trim()
     }
   }
 
@@ -99,7 +104,7 @@ export async function PUT(request: NextRequest) {
     const existing = await loadConfig()
 
     // If password field is the masked version, keep the existing password
-    if (config.smtp_pass && config.smtp_pass.includes('••••')) {
+    if (isMaskedSmtpPassword(config.smtp_pass)) {
       config.smtp_pass = existing.smtp_pass || config.smtp_pass
     }
 

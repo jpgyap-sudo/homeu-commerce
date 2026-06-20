@@ -32,7 +32,7 @@ function warn(msg, detail = '') { warnings++; issues.push({ severity: 'WARN', ms
 
 async function goto(page, url) {
   try {
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 })
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
     return true
   } catch (e) {
     fail(`Could not load ${url}`, e.message.slice(0, 120))

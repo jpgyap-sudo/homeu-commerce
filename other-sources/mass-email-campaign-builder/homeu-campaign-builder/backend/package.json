@@ -1,0 +1,27 @@
+{
+  "name": "homeu-campaign-builder-api",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "worker": "node src/workers/emailWorker.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sesv2": "latest",
+    "bullmq": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "handlebars": "latest",
+    "helmet": "latest",
+    "ioredis": "latest",
+    "nodemailer": "latest",
+    "pg": "latest",
+    "uuid": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "nodemon": "latest"
+  }
+}

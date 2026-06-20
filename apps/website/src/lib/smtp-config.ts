@@ -9,6 +9,7 @@
  */
 
 import { query } from '@/lib/db'
+import { decryptSmtpPassword } from '@/lib/smtp-config-crypto'
 
 export interface SmtpSettings {
   host: string
@@ -34,6 +35,7 @@ export async function loadSmtpConfig(): Promise<SmtpSettings> {
       const data = result.rows[0].data
       if (typeof data === 'object' && data !== null) {
         dbConfig = data as Record<string, string>
+        if (dbConfig.smtp_pass) dbConfig.smtp_pass = decryptSmtpPassword(dbConfig.smtp_pass)
       }
     }
   } catch {

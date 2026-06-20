@@ -11,6 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import nodemailer from 'nodemailer'
+import { loadSmtpConfig } from '@/lib/smtp-config'
+import { isMaskedSmtpPassword } from '@/lib/smtp-config-crypto'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,6 +28,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'SMTP host and user are required' }, { status: 400 })
     }
 
+    const storedConfig = await loadSmtpConfig()
+    const password = isMaskedSmtpPassword(config.smtp_pass)
+      ? storedConfig.pass
+      : config.smtp_pass || storedConfig.pass
+
     // Create transporter with the provided config
     const transporter = nodemailer.createTransport({
       host: config.smtp_host,
@@ -33,7 +40,7 @@ export async function POST(request: NextRequest) {
       secure: config.smtp_secure === 'true',
       auth: {
         user: config.smtp_user,
-        pass: config.smtp_pass || '',
+        pass: password,
       },
     })
 

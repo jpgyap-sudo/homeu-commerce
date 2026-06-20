@@ -187,7 +187,7 @@ export async function clearServerCart(): Promise<void> {
 
 // ── QuoteCartBadge ─────────────────────────────────────────────────────────
 
-export function QuoteCartBadge() {
+export function QuoteCartBadge({ countOnly = false }: { countOnly?: boolean } = {}) {
   const [count, setCount] = useState(0)
 
   useEffect(() => {
@@ -200,6 +200,12 @@ export function QuoteCartBadge() {
       window.removeEventListener('storage', sync)
     }
   }, [])
+
+  if (countOnly) {
+    return count > 0
+      ? <span className="site-header__rfq-count" aria-label={`${count} RFQ cart item${count === 1 ? '' : 's'}`}>{count}</span>
+      : null
+  }
 
   return (
     <a

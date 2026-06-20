@@ -1,0 +1,6 @@
+{
+  "contacts": [
+    { "email": "architect@example.com", "first_name": "Ana", "role": "architect", "marketing_consent": true, "consent_source": "website-signup", "tags": ["showroom"] },
+    { "email": "designer@example.com", "first_name": "Ben", "role": "designer", "marketing_consent": true, "consent_source": "rfq-form", "tags": ["dining"] }
+  ]
+}

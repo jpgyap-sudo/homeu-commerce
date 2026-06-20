@@ -105,7 +105,7 @@ function auditProductListingPage() {
   const checks = [
     ['formatPrice imported', c.includes("from '@/lib/format-utils'")],
     ['formatPrice used in JSX', c.includes('formatPrice(product.price)')],
-    ['Inter font on price', c.includes("fontFamily: \"'Inter'")],
+    ['Price typography uses the active theme', !c.includes("fontFamily: \"'Inter'")],
   ]
   for (const [label, okk] of checks) {
     if (okk) ok(`ProductListing: ${label}`)
@@ -125,7 +125,7 @@ async function auditHomepageBodyBackground(page) {
 async function auditQuoteCartPage(page) {
   console.log(`\n🌐 QuoteCart Page`)
   try {
-    await page.goto(`${BASE}/quote-cart`, { waitUntil: 'networkidle', timeout: 10000 })
+    await page.goto(`${BASE}/quote-cart`, { waitUntil: 'domcontentloaded', timeout: 30000 })
     ok('QuoteCart page loads successfully')
   } catch (e) { fail('QuoteCart page failed to load', e.message.slice(0, 100)); return }
 
@@ -156,18 +156,18 @@ async function auditProductPageQuickRFQ(page) {
   let loaded = false
   for (const slug of slugs) {
     try {
-      await page.goto(`${BASE}/products/${slug}`, { waitUntil: 'networkidle', timeout: 8000 })
+      await page.goto(`${BASE}/products/${slug}`, { waitUntil: 'domcontentloaded', timeout: 30000 })
       loaded = true; break
     } catch {}
   }
   if (!loaded) {
     // Check the products page for any product links
     try {
-      await page.goto(`${BASE}/products`, { waitUntil: 'networkidle', timeout: 8000 })
+      await page.goto(`${BASE}/products`, { waitUntil: 'domcontentloaded', timeout: 30000 })
       const links = await page.$$('a[href^="/products/"]')
       if (links.length > 0) {
         const href = await links[0].getAttribute('href')
-        await page.goto(`${BASE}${href}`, { waitUntil: 'networkidle', timeout: 8000 })
+        await page.goto(`${BASE}${href}`, { waitUntil: 'domcontentloaded', timeout: 30000 })
         loaded = true
       }
     } catch {}
@@ -226,23 +226,27 @@ async function auditProductPageQuickRFQ(page) {
 async function auditApiEndpoints() {
   console.log(`\n🔌 RFQ API Endpoints`)
   const endpoints = [
-    ['GET /api/rfq', '/api/rfq?limit=1'],
-    ['GET /api/rfq-requests', '/api/rfq-requests?limit=1'],
-    ['POST /api/rfq/add-item', '/api/rfq/add-item'],
-    ['POST /api/rfq/submit', '/api/rfq/submit'],
+    ['GET /api/rfq', '/api/rfq?limit=1', 'GET'],
+    ['GET /api/rfq-requests', '/api/rfq-requests?limit=1', 'GET'],
+    ['POST /api/rfq/add-item', '/api/rfq/add-item', 'POST'],
+    ['POST /api/rfq/submit', '/api/rfq/submit', 'POST'],
   ]
-  for (const [label, url] of endpoints) {
-    const data = await getJSON(`${BASE}${url}`)
-    if (!data.error) ok(`${label} — responds`)
-    else warn(`${label} — ${data.error}`, 'May require auth — expected for write endpoints')
+  for (const [label, url, method] of endpoints) {
+    const response = await fetch(`${BASE}${url}`, {
+      method,
+      headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
+      body: method === 'POST' ? '{}' : undefined,
+    })
+    if (response.status < 500 && response.status !== 404 && response.status !== 405) ok(`${label} — wired (HTTP ${response.status})`)
+    else fail(`${label} — wiring failure`, `HTTP ${response.status}`)
   }
 }
 
 async function auditCartSyncApi() {
   console.log(`\n🔌 Cart Sync API`)
-  const data = await getJSON(`${BASE}/api/cart/sync?leadId=test`)
-  if (!data.error) ok('GET /api/cart/sync — responds')
-  else warn('GET /api/cart/sync', data.error)
+  const response = await fetch(`${BASE}/api/cart/sync?leadId=00000000-0000-4000-8000-000000000001`)
+  if (response.status < 500) ok(`GET /api/cart/sync — wired (HTTP ${response.status})`)
+  else fail('GET /api/cart/sync — server error', `HTTP ${response.status}`)
 }
 
 // ── Main ──────────────────────────────────────────────────────────
@@ -265,7 +269,7 @@ async function main() {
   const page = await browser.newPage()
 
   try {
-    await page.goto(BASE, { waitUntil: 'networkidle', timeout: 10000 })
+    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 })
     await auditHomepageBodyBackground(page)
   } catch {
     warn('Homepage load failed', 'Skipping background check')

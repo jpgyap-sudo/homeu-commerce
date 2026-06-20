@@ -13,6 +13,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCart, syncCartItems, clearCart, addItemToCart, removeItemFromCart } from '@/lib/chatbot/cart-service'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function isValidLeadId(value: unknown): value is string {
+  return typeof value === 'string' && UUID_RE.test(value)
+}
+
 // ── GET: Retrieve server-side cart ──────────────────────────────
 
 export async function GET(request: NextRequest) {
@@ -22,6 +28,9 @@ export async function GET(request: NextRequest) {
 
     if (!leadId) {
       return NextResponse.json({ error: 'leadId query parameter is required' }, { status: 400 })
+    }
+    if (!isValidLeadId(leadId)) {
+      return NextResponse.json({ error: 'leadId must be a valid UUID' }, { status: 400 })
     }
 
     const cart = await getCart(leadId)
@@ -63,6 +72,9 @@ export async function POST(request: NextRequest) {
     if (!leadId) {
       return NextResponse.json({ error: 'leadId is required' }, { status: 400 })
     }
+    if (!isValidLeadId(leadId)) {
+      return NextResponse.json({ error: 'leadId must be a valid UUID' }, { status: 400 })
+    }
 
     if (!Array.isArray(items)) {
       return NextResponse.json({ error: 'items must be an array' }, { status: 400 })
@@ -100,6 +112,9 @@ export async function DELETE(request: NextRequest) {
 
     if (!leadId) {
       return NextResponse.json({ error: 'leadId query parameter is required' }, { status: 400 })
+    }
+    if (!isValidLeadId(leadId)) {
+      return NextResponse.json({ error: 'leadId must be a valid UUID' }, { status: 400 })
     }
 
     await clearCart(leadId)

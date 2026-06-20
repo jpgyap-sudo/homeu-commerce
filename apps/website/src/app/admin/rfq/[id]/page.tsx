@@ -1,8 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+
+const RfqChatAdmin = lazy(() => import('@/components/rfq-chat/RfqChatAdminContainer'))
 
 interface RFQItem {
   id: string
@@ -286,14 +288,9 @@ export default function RFQDetailPage() {
 
       {/* ── Chat Section (Admin) ── */}
       <div style={{ marginTop: 32, marginBottom: 24 }}>
-        {(() => {
-          const ChatAdmin = React.lazy(() => import('@/components/rfq-chat/RfqChatAdminContainer'))
-          return (
-            <React.Suspense fallback={<div style={{ padding: 20, textAlign: 'center', color: '#999' }}>Loading chat...</div>}>
-              <ChatAdmin rfqId={rfq.id} customerEmail={lead?.email} />
-            </React.Suspense>
-          )
-        })()}
+        <Suspense fallback={<div style={{ padding: 20, textAlign: 'center', color: '#999' }}>Loading chat...</div>}>
+          <RfqChatAdmin rfqId={rfq.id} customerEmail={lead?.email} />
+        </Suspense>
       </div>
 
       {/* Back link */}

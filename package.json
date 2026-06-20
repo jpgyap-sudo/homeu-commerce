@@ -15,9 +15,9 @@
     "compose:config": "docker compose config",
     "dev": "npm run dev -w apps/website",
     "lint": "npm run lint --workspaces --if-present",
-    "migrate": "node tools/migrate/migrate.mjs",
-    "migrate:status": "node tools/migrate/migrate.mjs --status",
-    "migrate:create": "node tools/migrate/migrate.mjs --create",
+    "migrate": "node --env-file=apps/website/.env tools/migrate/migrate.mjs",
+    "migrate:status": "node --env-file=apps/website/.env tools/migrate/migrate.mjs --status",
+    "migrate:create": "node --env-file=apps/website/.env tools/migrate/migrate.mjs --create",
     "clean": "npm run clean --workspaces --if-present"
   },
   "devDependencies": {

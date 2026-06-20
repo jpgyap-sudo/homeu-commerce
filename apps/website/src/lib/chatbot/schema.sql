@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS chatbot.rfq_carts (
   notes TEXT,
   estimated_total NUMERIC,
   created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
   submitted_at TIMESTAMPTZ
 );
 

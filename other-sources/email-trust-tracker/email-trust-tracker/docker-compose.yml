@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: emailtrust
+      POSTGRES_USER: emailtrust
+      POSTGRES_PASSWORD: emailtrust_dev_password
+    ports:
+      - "5438:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+
+  api:
+    build: ./apps/api
+    environment:
+      PORT: 4010
+      DATABASE_URL: postgres://emailtrust:emailtrust_dev_password@postgres:5432/emailtrust
+      PUBLIC_BASE_URL: http://localhost:4010
+      FRONTEND_ORIGINS: http://localhost:5178,http://localhost:3000
+      CONTACT_NAME: HomeU
+      CONTACT_EMAIL: sales@homeu.ph
+      CONTACT_PHONE: "+63 900 000 0000"
+      CONTACT_WEBSITE: https://homeu.ph
+    depends_on:
+      - postgres
+    ports:
+      - "4010:4010"
+
+  web:
+    build: ./apps/web
+    environment:
+      VITE_API_BASE_URL: http://localhost:4010
+    depends_on:
+      - api
+    ports:
+      - "5178:5178"
+
+volumes:
+  pgdata:

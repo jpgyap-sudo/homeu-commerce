@@ -56,7 +56,7 @@ export default function MobileBottomNav() {
           <path d="M16 10a4 4 0 01-8 0" />
         </svg>
       ),
-      badge: <QuoteCartBadge />,
+      badge: <QuoteCartBadge countOnly />,
     },
     {
       href: '/customer/dashboard',

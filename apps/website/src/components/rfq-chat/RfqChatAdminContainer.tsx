@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import siteConfig from '@/data/site-config.json'
 import RfqChatMessageList from './RfqChatMessageList'
 import RfqChatInput from './RfqChatInput'
 import RfqChatSelectToolbar from './RfqChatSelectToolbar'
@@ -8,6 +9,9 @@ import RfqChatDeleteModal from './RfqChatDeleteModal'
 import RfqChatNotifyButton from './RfqChatNotifyButton'
 import RfqChatProductSearch from './RfqChatProductSearch'
 import RfqChatSmartReplies from './RfqChatSmartReplies'
+
+const LOGO_URL = siteConfig.logo?.shopifyUrl || ''
+const LOGO_ALT = siteConfig.name || 'HomeU'
 
 interface RfqChatAdminContainerProps {
   rfqId: string
@@ -232,27 +236,52 @@ export default function RfqChatAdminContainer({ rfqId, customerEmail }: RfqChatA
       overflow: 'hidden',
       background: '#fff',
     }}>
-      {/* Header */}
+      {/* Header — animated green dot + logo, both 1.5x */}
       <div style={{
-        padding: '12px 16px',
-        background: '#f8f8f8',
-        borderBottom: '1px solid #e0e0e0',
+        padding: '10px 20px',
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 18 }}>💬</span>
-          <span style={{ fontWeight: 600, fontSize: 15 }}>
-            RFQ Chat
-            {conversation && (
-              <span style={{ fontWeight: 400, color: '#888', marginLeft: 8, fontSize: 12 }}>
-                ({conversation.messageCount} msg · {conversation.source === 'chatbot_backfill' ? 'has backfill' : 'active'})
-              </span>
-            )}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Animated green dot — 1.5x bigger */}
+          <span style={{
+            width: 12,
+            height: 12,
+            borderRadius: '50%',
+            background: '#4ade80',
+            display: 'inline-block',
+            animation: 'pulse-dot 2s ease-in-out infinite',
+            boxShadow: '0 0 6px rgba(74,222,128,0.5)',
+            flexShrink: 0,
+          }} />
+          {/* Logo image — 1.5x */}
+          {LOGO_URL ? (
+            <img
+              src={LOGO_URL}
+              alt={LOGO_ALT}
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                flexShrink: 0,
+              }}
+            />
+          ) : (
+            <span style={{ fontWeight: 600, fontSize: 15, color: '#fff', letterSpacing: 0.3 }}>
+              Home Atelier
+            </span>
+          )}
+          {conversation && (
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginLeft: 4 }}>
+              {conversation.messageCount} msg
+            </span>
+          )}
         </div>
       </div>
+      <style>{`@keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.15); } }`}</style>
 
       {/* Error */}
       {error && (

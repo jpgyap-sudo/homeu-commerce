@@ -1,0 +1,74 @@
+{
+  "timestamp": "2026-06-20T10:01:28.224Z",
+  "passed": 120,
+  "failed": 2,
+  "warnings": 11,
+  "total": 133,
+  "issues": [
+    {
+      "severity": "FAIL",
+      "msg": "--bg is not white",
+      "detail": "Got: \"#fff\""
+    },
+    {
+      "severity": "FAIL",
+      "msg": "Animation CSS NOT injected",
+      "detail": ""
+    },
+    {
+      "severity": "WARN",
+      "msg": "@keyframes homeu-gradient-shift NOT found",
+      "detail": ""
+    },
+    {
+      "severity": "WARN",
+      "msg": "@keyframes homeu-fadeIn NOT found",
+      "detail": ""
+    },
+    {
+      "severity": "WARN",
+      "msg": "@keyframes homeu-slideUp NOT found",
+      "detail": ""
+    },
+    {
+      "severity": "WARN",
+      "msg": "@keyframes homeu-slideInLeft NOT found",
+      "detail": ""
+    },
+    {
+      "severity": "WARN",
+      "msg": "@keyframes homeu-slideInRight NOT found",
+      "detail": ""
+    },
+    {
+      "severity": "WARN",
+      "msg": "@keyframes homeu-zoomIn NOT found",
+      "detail": ""
+    },
+    {
+      "severity": "WARN",
+      "msg": "mergeWithDefaults may NOT be applied",
+      "detail": "Keys: slides,height,minHeight,maxHeight,autoRotate,rotateInterval,showArrows,showDots,contentPosition,contentAlign,customClass"
+    },
+    {
+      "severity": "WARN",
+      "msg": "NEW setting \"columnsDesktop\" NOT wired in collection_grid renderer (relies only on CSS injection)",
+      "detail": ""
+    },
+    {
+      "severity": "WARN",
+      "msg": "NEW setting \"cardRadius\" NOT wired in collection_grid renderer (relies only on CSS injection)",
+      "detail": ""
+    },
+    {
+      "severity": "WARN",
+      "msg": "NEW setting \"columnsDesktop\" NOT wired in featured_products renderer (relies only on CSS injection)",
+      "detail": ""
+    },
+    {
+      "severity": "WARN",
+      "msg": "NEW setting \"imageRadius\" NOT wired in featured_products renderer (relies only on CSS injection)",
+      "detail": ""
+    }
+  ]
+}

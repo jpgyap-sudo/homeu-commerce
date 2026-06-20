@@ -30,7 +30,7 @@ const MIGRATIONS_DIR = join(__dirname, 'migrations')
 const connectionString = process.env.DATABASE_URI || 'postgres://homeu:homeu@localhost:5432/homeu'
 const pool = new pg.Pool({ connectionString, max: 1 })
 
-async function query(sql: string, params: any[] = []) {
+async function query(sql, params = []) {
   const client = await pool.connect()
   try { return await client.query(sql, params) } finally { client.release() }
 }
@@ -69,11 +69,11 @@ async function main() {
   if (cmd === '--status') {
     const all = readdirSync(MIGRATIONS_DIR).filter(f => f.endsWith('.sql')).sort()
     const { rows: applied } = await query('SELECT filename, applied_at FROM _migrations ORDER BY id')
-    const appliedSet = new Set(applied.map((r: any) => r.filename))
+    const appliedSet = new Set(applied.map((r) => r.filename))
     console.log('\nMigration Status:')
     console.log('─'.repeat(60))
     for (const f of all) {
-      const a = applied.find((r: any) => r.filename === f)
+      const a = applied.find((r) => r.filename === f)
       console.log(`  ${a ? '✅' : '⬜'} ${f} ${a ? `(${a.applied_at.toISOString()})` : '(pending)'}`)
     }
     console.log(`\n${applied.length}/${all.length} applied`)
@@ -83,7 +83,7 @@ async function main() {
   // ── Run pending migrations ──────────────────────────────────────────
   const files = readdirSync(MIGRATIONS_DIR).filter(f => f.endsWith('.sql')).sort()
   const { rows: applied } = await query('SELECT filename FROM _migrations ORDER BY id')
-  const appliedSet = new Set(applied.map((r: any) => r.filename))
+  const appliedSet = new Set(applied.map((r) => r.filename))
 
   const pending = files.filter(f => !appliedSet.has(f))
   if (pending.length === 0) {
@@ -110,7 +110,7 @@ async function main() {
       )
       await query('COMMIT')
       console.log(`  ✅ Done`)
-    } catch (err: any) {
+    } catch (err) {
       await query('ROLLBACK')
       console.error(`  ❌ Failed: ${err.message}`)
       await pool.end()

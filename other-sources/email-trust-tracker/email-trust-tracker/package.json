@@ -1,0 +1,12 @@
+{
+  "name": "homeu-email-trust-tracker",
+  "private": true,
+  "version": "1.0.0",
+  "description": "From-scratch email trust, open, click, contact-card, and lead scoring feature for HomeU / DaVinciOS.",
+  "scripts": {
+    "dev": "docker compose up --build",
+    "api:dev": "cd apps/api && npm run dev",
+    "web:dev": "cd apps/web && npm run dev"
+  },
+  "workspaces": ["apps/api", "apps/web"]
+}
