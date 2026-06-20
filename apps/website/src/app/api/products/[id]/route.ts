@@ -56,6 +56,7 @@ export async function GET(
       seoDescription: p.seo_description,
       images,
       imageUrl: images[0]?.url || null,
+      tags: p.tags || [],
       createdAt: p.created_at,
       updatedAt: p.updated_at,
     })
@@ -84,7 +85,7 @@ export async function PATCH(
       'title', 'slug', 'sku', 'status', 'vendor', 'product_type',
       'price', 'sale_price', 'show_price', 'price_note',
       'inventory_tracked', 'inventory_quantity', 'sales_channel',
-      'description', 'dimensions', 'materials',
+      'description', 'dimensions', 'materials', 'tags',
       'category_id', 'seo_title', 'seo_description',
     ])
 
@@ -96,7 +97,9 @@ export async function PATCH(
       if (allowedFields.has(key)) {
         idx++
         setClauses.push(`"${key}" = $${idx}`)
-        values.push(value ?? null)
+        // pg serializes JS arrays as Postgres array literals, not JSON — stringify
+        // explicitly for the jsonb `tags` column so it binds as valid JSON text.
+        values.push(key === 'tags' && Array.isArray(value) ? JSON.stringify(value) : value ?? null)
       }
     }
 

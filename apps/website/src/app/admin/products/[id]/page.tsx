@@ -140,6 +140,7 @@ export default function EditProductPage() {
   const [description, setDescription] = useState('')
   const [dimensions, setDimensions] = useState('')
   const [materials, setMaterials] = useState('')
+  const [tags, setTags] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [seoTitle, setSeoTitle] = useState('')
   const [seoDescription, setSeoDescription] = useState('')
@@ -193,6 +194,7 @@ export default function EditProductPage() {
     setDescription(jsonDescriptionToString(product.description))
     setDimensions(product.dimensions || '')
     setMaterials(product.materials || '')
+    setTags(Array.isArray(product.tags) ? product.tags.join(', ') : '')
     setCategoryId(product.category_id != null ? String(product.category_id) : '')
     setSeoTitle(product.seoTitle || '')
     setSeoDescription(product.seoDescription || '')
@@ -226,6 +228,7 @@ export default function EditProductPage() {
         description: stringToJsonDescription(description),
         dimensions: dimensions.trim() || null,
         materials: materials.trim() || null,
+        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
         category_id: categoryId ? parseInt(categoryId) : null,
         seo_title: seoTitle.trim() || null,
         seo_description: seoDescription.trim() || null,
@@ -449,6 +452,13 @@ export default function EditProductPage() {
                 style={inputStyle} placeholder="e.g. Solid Wood, Fabric" />
             </Field>
           </div>
+          <Field label="Tags">
+            <input type="text" value={tags} onChange={e => setTags(e.target.value)}
+              style={inputStyle} placeholder="e.g. new, 3DModel, sofa" />
+            <p style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+              Comma-separated. <code>new</code> shows a NEW badge, <code>3DModel</code> shows a 3D badge on the storefront.
+            </p>
+          </Field>
         </Section>
 
         {/* ── Section: SEO ── */}

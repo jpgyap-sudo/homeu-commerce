@@ -200,6 +200,7 @@ function formatProduct(row: any) {
     images: row.images || [],
     imageUrl: row.images?.[0]?.url || null,
     materials: row.materials,
+    tags: row.tags || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

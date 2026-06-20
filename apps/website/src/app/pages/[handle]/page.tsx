@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import { renderLexical } from '@/lib/renderLexical'
 import { query } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 interface Props {
   params: Promise<{ handle: string }>
 }
@@ -46,9 +48,4 @@ export default async function PageRoute({ params }: Props) {
       />
     </main>
   )
-}
-
-export async function generateStaticParams() {
-  const result = await query(`SELECT slug FROM pages`).catch(() => ({ rows: [] }))
-  return result.rows.map((r: { slug: string }) => ({ handle: r.slug }))
 }

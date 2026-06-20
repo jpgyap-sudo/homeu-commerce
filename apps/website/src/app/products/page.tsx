@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatPrice } from '@/lib/format-utils'
+import { getProductBadges } from '@/lib/product-badges'
 
 interface Product {
   id: string
@@ -15,6 +16,7 @@ interface Product {
   imageUrl?: string
   category?: { id: string; title: string; slug: string }
   materials?: string
+  tags?: string[]
 }
 
 interface Category {
@@ -255,10 +257,18 @@ function ProductsContent() {
           <div className="products-debut-grid">
             {products.map(product => {
               const onSale = product.originalPrice != null && product.price != null && product.originalPrice > product.price
+              const badges = getProductBadges(product)
               const href = `/products/${product.slug}`
               return (
                 <div key={product.id} className="grid-view-item product-card">
                   <Link href={href} className="grid-view-item__link grid-view-item__image-container">
+                    {(badges.isNew || badges.isSale || badges.is3D) && (
+                      <div className="grid-view-item__badges">
+                        {badges.isNew && <span className="product-badge product-badge--new">New</span>}
+                        {badges.isSale && <span className="product-badge product-badge--sale">Sale</span>}
+                        {badges.is3D && <span className="product-badge product-badge--3d">3D</span>}
+                      </div>
+                    )}
                     {product.imageUrl ? (
                       <img
                         className="grid-view-item__image"

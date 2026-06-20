@@ -13,6 +13,7 @@ import type { HomepageSection } from '@/lib/theme'
 import { SECTION_META } from '@/lib/theme-types'
 import { HOMEU_CURATED_COLLECTION_SLUGS } from '@/lib/homepage-collections'
 import { mergeWithDefaults } from '@/lib/theme-builder-settings'
+import { formatPrice } from '@/lib/format-utils'
 import { generateSectionStyles, ANIMATION_CSS, GRADIENT_TEXT_CSS } from '@/lib/theme-styles'
 import SectionAnimation from '@/components/home/SectionAnimation'
 
@@ -110,8 +111,7 @@ async function fetchProductsByIds(ids: number[]): Promise<ProductCard[]> {
 }
 
 function peso(n: number | null): string {
-  if (n == null) return ''
-  return `₱${n.toLocaleString('en-PH', { maximumFractionDigits: 0 })}`
+  return formatPrice(n)
 }
 
 // ── Individual section renderers ─────────────────────────────────────────

@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { renderLexical } from '@/lib/renderLexical'
 import { formatPrice } from '@/lib/format-utils'
 import { QuickRFQ } from '@/components/QuoteCart'
+import { getProductBadges } from '@/lib/product-badges'
 
 interface ProductImage {
   id?: string
@@ -33,6 +34,7 @@ interface Product {
   dimensions?: string
   seoTitle?: string
   seoDescription?: string
+  tags?: string[]
 }
 
 interface RelatedProduct {
@@ -40,8 +42,10 @@ interface RelatedProduct {
   title: string
   slug: string
   price?: number
+  originalPrice?: number
   imageUrl?: string
   category?: { title: string; slug: string }
+  tags?: string[]
 }
 
 export default function ProductDetailPage() {
@@ -54,12 +58,14 @@ export default function ProductDetailPage() {
   const [error, setError] = useState('')
   const [selectedImage, setSelectedImage] = useState(0)
   const [related, setRelated] = useState<RelatedProduct[]>([])
+  const [zoomed, setZoomed] = useState(false)
 
   useEffect(() => {
     if (!slug) return
     setLoading(true)
     setError('')
     setSelectedImage(0)
+    setZoomed(false)
 
     fetch(`/api/products/${slug}`)
       .then(res => {
@@ -118,6 +124,8 @@ export default function ProductDetailPage() {
     : product.imageUrl ? [{ url: product.imageUrl }] : []
   const activeImg = images[selectedImage]
 
+  const badges = getProductBadges(product)
+
   const descHtml = product.description
     ? renderLexical(
         typeof product.description === 'string'
@@ -152,21 +160,51 @@ export default function ProductDetailPage() {
       <div className="page-width product-detail">
         {/* Gallery */}
         <div className="product-detail__gallery">
-          <div className="product-detail__main-image">
+          <div
+            className="product-detail__main-image"
+            onClick={() => activeImg?.url && setZoomed(true)}
+            role={activeImg?.url ? 'button' : undefined}
+            aria-label={activeImg?.url ? 'Click to zoom' : undefined}
+          >
             {activeImg?.url ? (
-              <Image
-                src={activeImg.url}
-                alt={activeImg.alt || product.title}
-                fill
-                style={{ objectFit: 'contain' }}
-                sizes="(max-width: 768px) 100vw, 50vw"
-                unoptimized
-                priority
-              />
+              <>
+                <Image
+                  src={activeImg.url}
+                  alt={activeImg.alt || product.title}
+                  fill
+                  style={{ objectFit: 'contain' }}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  unoptimized
+                  priority
+                />
+                <span className="product-detail__zoom-hint" aria-hidden>⊕</span>
+              </>
             ) : (
               <div className="product-detail__no-image">No image available</div>
             )}
           </div>
+
+          {zoomed && activeImg?.url && (
+            <div className="product-detail__lightbox" onClick={() => setZoomed(false)}>
+              <button
+                className="product-detail__lightbox-close"
+                onClick={() => setZoomed(false)}
+                aria-label="Close zoom"
+              >
+                &times;
+              </button>
+              <div className="product-detail__lightbox-image">
+                <Image
+                  src={activeImg.url}
+                  alt={activeImg.alt || product.title}
+                  fill
+                  style={{ objectFit: 'contain' }}
+                  sizes="90vw"
+                  unoptimized
+                />
+              </div>
+            </div>
+          )}
 
           {images.length > 1 && (
             <div className="product-detail__thumbnails">
@@ -202,6 +240,14 @@ export default function ProductDetailPage() {
           )}
 
           <h1 className="product-detail__title">{product.title}</h1>
+
+          {(badges.isNew || badges.isSale || badges.is3D) && (
+            <div className="product-detail__badges">
+              {badges.isNew && <span className="product-badge product-badge--new">New</span>}
+              {badges.isSale && <span className="product-badge product-badge--sale">Sale</span>}
+              {badges.is3D && <span className="product-badge product-badge--3d">3D</span>}
+            </div>
+          )}
 
           {/* Price */}
           {product.showPrice !== false && product.price != null && (
@@ -273,9 +319,18 @@ export default function ProductDetailPage() {
             <h2>You may also like</h2>
           </div>
           <div className="products-debut-grid">
-            {related.map(rp => (
+            {related.map(rp => {
+              const rpBadges = getProductBadges(rp)
+              return (
               <div key={rp.id} className="grid-view-item product-card">
                 <Link href={`/products/${rp.slug}`} className="grid-view-item__link grid-view-item__image-container">
+                  {(rpBadges.isNew || rpBadges.isSale || rpBadges.is3D) && (
+                    <div className="grid-view-item__badges">
+                      {rpBadges.isNew && <span className="product-badge product-badge--new">New</span>}
+                      {rpBadges.isSale && <span className="product-badge product-badge--sale">Sale</span>}
+                      {rpBadges.is3D && <span className="product-badge product-badge--3d">3D</span>}
+                    </div>
+                  )}
                   {rp.imageUrl ? (
                     <img className="grid-view-item__image" src={rp.imageUrl} alt={rp.title} loading="lazy" />
                   ) : (
@@ -297,7 +352,8 @@ export default function ProductDetailPage() {
                   )}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         </section>
       )}
