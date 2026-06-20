@@ -7,35 +7,30 @@
  * 2 decimals for precise amounts.
  */
 
+/** Insert thousands separators — locale-independent (works under the container's
+ *  small-ICU node:alpine, where toLocaleString('en-PH') drops grouping). */
+function groupThousands(intStr: string): string {
+  const neg = intStr.startsWith('-')
+  const digits = neg ? intStr.slice(1) : intStr
+  return (neg ? '-' : '') + digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
 /**
- * Format a price with peso sign, commas, and appropriate decimal places.
- * - Whole numbers → no decimals (₱1,500)
- * - With cents → 2 decimals (₱1,500.75)
+ * Format a price with peso sign and thousands commas.
+ * Whole pesos, NO decimals by default (₱54,478) — matches homeu.ph.
+ * Pass 'always' to force 2 decimals (₱54,478.00) if ever needed.
  * - null/undefined → empty string
  */
 export function formatPrice(price: number | null | undefined, decimals?: 'auto' | 'always' | 'never'): string {
   if (price == null) return ''
-  
-  const opts: Intl.NumberFormatOptions = {
-    style: 'decimal',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }
 
   if (decimals === 'always') {
-    opts.minimumFractionDigits = 2
-    opts.maximumFractionDigits = 2
-  } else if (decimals === 'never') {
-    opts.minimumFractionDigits = 0
-    opts.maximumFractionDigits = 0
-  } else {
-    // auto: show decimals only when there are cents
-    const hasCents = price % 1 !== 0
-    opts.minimumFractionDigits = hasCents ? 2 : 0
-    opts.maximumFractionDigits = hasCents ? 2 : 0
+    const [intPart, decPart] = Math.abs(price).toFixed(2).split('.')
+    return `₱${price < 0 ? '-' : ''}${groupThousands(intPart)}.${decPart}`
   }
 
-  return `₱${price.toLocaleString('en-PH', opts)}`
+  // Default: whole pesos, no decimals (rounded).
+  return `₱${groupThousands(String(Math.round(price)))}`
 }
 
 /**

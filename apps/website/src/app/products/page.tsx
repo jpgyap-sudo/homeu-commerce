@@ -257,31 +257,28 @@ function ProductsContent() {
               >
                 <div
                   className="product-card-image"
-                  style={product.imageUrl ? {
-                    background: `url(${product.imageUrl}) center/cover`,
-                  } : undefined}
+                  style={product.imageUrl ? { backgroundImage: `url(${product.imageUrl})` } : undefined}
                 >
-                  {!product.imageUrl && 'No image'}
+                  {!product.imageUrl && <span className="product-card-noimg">No image</span>}
                 </div>
 
                 <div className="product-card-body">
                   <h3>{product.title}</h3>
-                  {product.category && (
-                    <p className="product-card-category">{product.category.title}</p>
-                  )}
-                  {product.price != null && (
-                    <p className="product-card-price" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, letterSpacing: '-0.01em' }}>
-                      {formatPrice(product.price)}
-                      {product.originalPrice && product.originalPrice > product.price && (
-                        <span className="product-card-price-original" style={{ fontWeight: 400 }}>
-                          {formatPrice(product.originalPrice)}
+                  {product.price != null && (() => {
+                    const onSale = product.originalPrice != null && product.originalPrice > product.price
+                    return (
+                      <p className="product-card-price">
+                        <span className={onSale ? 'product-card-price-sale' : undefined}>
+                          {formatPrice(product.price)}
                         </span>
-                      )}
-                    </p>
-                  )}
-                  {product.materials && (
-                    <p className="product-card-materials">{product.materials}</p>
-                  )}
+                        {onSale && (
+                          <span className="product-card-price-original">
+                            {formatPrice(product.originalPrice)}
+                          </span>
+                        )}
+                      </p>
+                    )
+                  })()}
                 </div>
               </Link>
             ))}
