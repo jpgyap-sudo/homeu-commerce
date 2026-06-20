@@ -9,6 +9,7 @@
  *   node tools/migrate/migrate.mjs                    # run pending migrations
  *   node tools/migrate/migrate.mjs --status            # show migration status
  *   node tools/migrate/migrate.mjs --create <name>     # create a new migration file
+ *   node tools/migrate/migrate.mjs --baseline <file>   # mark an imported legacy schema as applied
  *
  * Migration file naming:
  *   migrations/001_create_initial_tables.sql
@@ -65,6 +66,34 @@ async function main() {
   }
 
   await ensureMigrationTable()
+
+  if (cmd === '--baseline') {
+    const targets = args.slice(1)
+    if (targets.length === 0) {
+      console.error('Usage: migrate.mjs --baseline <migration.sql> [more.sql]')
+      await pool.end()
+      process.exit(1)
+    }
+    const available = new Set(readdirSync(MIGRATIONS_DIR).filter(f => f.endsWith('.sql')))
+    for (const filename of targets) {
+      if (!available.has(filename)) {
+        console.error(`Unknown migration: ${filename}`)
+        await pool.end()
+        process.exit(1)
+      }
+      const sql = readFileSync(join(MIGRATIONS_DIR, filename), 'utf8')
+      const checksum = createHash('sha256').update(sql).digest('hex')
+      await query(
+        `INSERT INTO _migrations (filename, checksum)
+         VALUES ($1, $2)
+         ON CONFLICT (filename) DO NOTHING`,
+        [filename, checksum]
+      )
+      console.log(`Baselined: ${filename}`)
+    }
+    await pool.end()
+    return
+  }
 
   if (cmd === '--status') {
     const all = readdirSync(MIGRATIONS_DIR).filter(f => f.endsWith('.sql')).sort()
