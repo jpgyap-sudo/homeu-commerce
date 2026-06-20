@@ -146,20 +146,33 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await query(
-      `INSERT INTO products (title, slug, sku, price, sale_price, show_price, price_note, description, dimensions, materials, category_id, seo_title, seo_description, updated_at, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+      `INSERT INTO products (
+         title, slug, sku, status, vendor, product_type,
+         price, sale_price, show_price, price_note,
+         inventory_tracked, inventory_quantity, sales_channel,
+         description, dimensions, materials, tags,
+         category_id, seo_title, seo_description, updated_at, created_at
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW(), NOW())
        RETURNING *`,
       [
         body.title.trim(),
         finalSlug,
         body.sku?.trim() || null,
+        body.status?.trim() || 'draft',
+        body.vendor?.trim() || null,
+        body.product_type?.trim() || null,
         body.price != null ? parseFloat(body.price) : null,
         body.sale_price != null ? parseFloat(body.sale_price) : null,
         body.show_price !== false,
         body.price_note?.trim() || null,
+        body.inventory_tracked === true,
+        body.inventory_quantity != null ? parseInt(body.inventory_quantity) : 0,
+        body.sales_channel?.trim() || 'online-store',
         body.description || null,
         body.dimensions?.trim() || null,
         body.materials?.trim() || null,
+        Array.isArray(body.tags) ? JSON.stringify(body.tags) : null,
         body.category_id ? parseInt(body.category_id) : null,
         body.seo_title?.trim() || null,
         body.seo_description?.trim() || null,

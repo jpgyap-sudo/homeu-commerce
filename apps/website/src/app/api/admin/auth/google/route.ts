@@ -18,15 +18,15 @@ import { query } from '@/lib/db'
 const GOOGLE_TOKEN_INFO_URL = 'https://oauth2.googleapis.com/tokeninfo?id_token='
 
 interface GoogleTokenPayload {
-  sub: string           // Google user ID
+  sub: string
   email: string
   email_verified: boolean
   name?: string
   picture?: string
   given_name?: string
   family_name?: string
-  hd?: string           // G Suite domain (if hosted account)
-  aud: string           // Client ID (must match yours)
+  hd?: string
+  aud: string
   iss: string
   exp: number
   iat: number
@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Google account must have a verified email' }, { status: 403 })
     }
 
-    // Optional: validate audience (your Google Client ID)
-    const expectedAud = process.env.GOOGLE_CLIENT_ID
+    // Validate audience: use GOOGLE_CLIENT_ID or fallback to NEXT_PUBLIC_GOOGLE_CLIENT_ID
+    const expectedAud = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
     if (expectedAud && payload.aud !== expectedAud) {
       console.error('[auth/google] Audience mismatch:', { expected: expectedAud, got: payload.aud })
       return NextResponse.json({ error: 'Token audience mismatch' }, { status: 403 })
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     const name = payload.name || payload.given_name || email.split('@')[0]
 
     // Try to find existing user by email
-    let userResult = await query(
+    const userResult = await query(
       `SELECT id, email, name, role, tab_permissions
        FROM customers
        WHERE LOWER(email) = $1
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     if (userResult.rows.length > 0) {
       // Existing user — use their role and permissions
       const existing = userResult.rows[0]
-      userId = existing.id
+      userId = parseInt(String(existing.id), 10)
       role = existing.role || 'admin'
       try {
         tabs = typeof existing.tab_permissions === 'string'
@@ -103,7 +103,6 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // No existing user — check if Google OAuth auto-provisioning is allowed
-      // For security, only auto-create if GOOGLE_ALLOWED_DOMAIN is set and matches
       const allowedDomain = process.env.GOOGLE_ALLOWED_DOMAIN
       const emailDomain = email.split('@')[1]
 
@@ -120,7 +119,7 @@ export async function POST(request: NextRequest) {
          RETURNING id`,
         [email, name]
       )
-      userId = insertResult.rows[0].id
+      userId = parseInt(String(insertResult.rows[0].id), 10)
       role = 'admin'
       tabs = ['*']
 
@@ -143,7 +142,7 @@ export async function POST(request: NextRequest) {
       user: { id: userId, email, name, role },
     })
   } catch (err: any) {
-    console.error('[auth/google] Error:', err.message)
+    console.error('[auth/google] Error:', err.message || 'Unknown error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
