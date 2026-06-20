@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
     const result = await query(
-      `SELECT c.*, m.url as image_url
+      `SELECT c.*, COALESCE(m.url, c.image_url) as image_url
        FROM categories c
        LEFT JOIN media m ON c.image_id = m.id
        ORDER BY c.title ASC

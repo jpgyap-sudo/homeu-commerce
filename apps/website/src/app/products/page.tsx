@@ -22,6 +22,8 @@ interface Category {
   title: string
   slug: string
   productCount?: number
+  imageUrl?: string | null
+  description?: string | null
 }
 
 const SORT_OPTIONS = [
@@ -149,57 +151,58 @@ function ProductsContent() {
     loadProducts()
   }, [])
 
-  const activeCategoryTitle = categories.find(c => c.slug === selectedCategory)?.title
+  const activeCategory = categories.find(c => c.slug === selectedCategory)
+  const activeCategoryTitle = activeCategory?.title
+  const collectionTitle = activeCategoryTitle || 'Our Products'
 
   return (
-    <main className="products-shell">
-      {/* Header */}
-      <div className="products-hero">
-        <h1>{activeCategoryTitle || 'Our Products'}</h1>
-        <p>
-          {activeCategoryTitle
-            ? `Browsing ${activeCategoryTitle}.`
-            : 'Browse our collection of furniture and home essentials.'}
-          {total > 0 && (
-            <span> Showing {products.length} of {total} products.</span>
-          )}
-        </p>
-      </div>
-
-      {/* Toolbar */}
-      <div className="products-toolbar">
-        <form onSubmit={handleSearch} className="products-search">
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder="Search products..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-          <button type="submit">Search</button>
-        </form>
-
-        <select
-          value={selectedCategory}
-          onChange={e => handleCategoryChange(e.target.value)}
-          aria-label="Filter by category"
+    <main className="collection-page">
+      {/* ── Collection hero banner (image + centered title) — like homeu.ph ── */}
+      {activeCategory?.imageUrl ? (
+        <section
+          className="collection-banner"
+          style={{ backgroundImage: `url(${activeCategory.imageUrl})` }}
         >
-          <option value="">All Categories</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.slug}>{cat.title}</option>
-          ))}
-        </select>
+          <div className="collection-banner__overlay" />
+          <h1 className="collection-banner__title">{collectionTitle}</h1>
+        </section>
+      ) : (
+        <section className="collection-banner collection-banner--plain">
+          <h1 className="collection-banner__title">{collectionTitle}</h1>
+        </section>
+      )}
 
-        <select
-          value={sortBy}
-          onChange={e => handleSortChange(e.target.value)}
-          aria-label="Sort products"
-        >
-          {SORT_OPTIONS.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      </div>
+      <div className="collection-inner">
+        {/* Collection description */}
+        {activeCategory?.description && (
+          <div className="collection-description">
+            <p>{activeCategory.description}</p>
+          </div>
+        )}
+
+        {/* Filter / sort bar */}
+        <div className="collection-toolbar">
+          <div className="collection-toolbar__filters">
+            <label className="collection-toolbar__group">
+              <span className="collection-toolbar__label">Filter by</span>
+              <select value={selectedCategory} onChange={e => handleCategoryChange(e.target.value)} aria-label="Filter by collection">
+                <option value="">All products</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.slug}>{cat.title}</option>
+                ))}
+              </select>
+            </label>
+            <label className="collection-toolbar__group">
+              <span className="collection-toolbar__label">Sort by</span>
+              <select value={sortBy} onChange={e => handleSortChange(e.target.value)} aria-label="Sort products">
+                {SORT_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {total > 0 && <div className="collection-toolbar__count">{total} products</div>}
+        </div>
 
       {/* Error */}
       {error && <div className="products-error">{error}</div>}
@@ -248,52 +251,50 @@ function ProductsContent() {
       {/* Product Grid */}
       {!loading && products.length > 0 && (
         <>
-          {/* Debut theme collection grid — 1:1 with the live Shopify store */}
-          <div className="grid grid--uniform products-debut-grid">
+          {/* Collection grid — Debut grid-view-item cards in a 4-up grid (homeu.ph) */}
+          <div className="products-debut-grid">
             {products.map(product => {
               const onSale = product.originalPrice != null && product.price != null && product.originalPrice > product.price
               const href = `/products/${product.slug}`
               return (
-                <div key={product.id} className="grid__item small--one-half medium-up--one-quarter">
-                  <div className="grid-view-item product-card">
-                    <Link href={href} className="grid-view-item__link grid-view-item__image-container">
-                      {product.imageUrl ? (
-                        <img
-                          className="grid-view-item__image"
-                          src={product.imageUrl}
-                          alt={product.title}
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="grid-view-item__image grid-view-item__image--placeholder">No image</div>
-                      )}
+                <div key={product.id} className="grid-view-item product-card">
+                  <Link href={href} className="grid-view-item__link grid-view-item__image-container">
+                    {product.imageUrl ? (
+                      <img
+                        className="grid-view-item__image"
+                        src={product.imageUrl}
+                        alt={product.title}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="grid-view-item__image grid-view-item__image--placeholder">No image</div>
+                    )}
+                  </Link>
+                  <div className="grid-view-item__meta">
+                    <Link href={href} className="grid-view-item__link">
+                      <div className="grid-view-item__title product-card__title">{product.title}</div>
                     </Link>
-                    <div className="grid-view-item__meta">
-                      <Link href={href} className="grid-view-item__link">
-                        <div className="grid-view-item__title product-card__title">{product.title}</div>
-                      </Link>
-                      {product.price != null && (
-                        <div className={`price${onSale ? ' price--on-sale' : ''}`}>
-                          <dl>
-                            <div className="price__regular">
-                              <dd>
-                                <span className="price-item price-item--regular">{formatPrice(product.price)}</span>
-                              </dd>
-                            </div>
-                            <div className="price__sale">
-                              <dd>
-                                <span className="price-item price-item--sale">{formatPrice(product.price)}</span>
-                              </dd>
-                              <dd>
-                                <s className="price-item price-item--regular">
-                                  {onSale ? formatPrice(product.originalPrice) : ''}
-                                </s>
-                              </dd>
-                            </div>
-                          </dl>
-                        </div>
-                      )}
-                    </div>
+                    {product.price != null && (
+                      <div className={`price${onSale ? ' price--on-sale' : ''}`}>
+                        <dl>
+                          <div className="price__regular">
+                            <dd>
+                              <span className="price-item price-item--regular">{formatPrice(product.price)}</span>
+                            </dd>
+                          </div>
+                          <div className="price__sale">
+                            <dd>
+                              <span className="price-item price-item--sale">{formatPrice(product.price)}</span>
+                            </dd>
+                            <dd>
+                              <s className="price-item price-item--regular">
+                                {onSale ? formatPrice(product.originalPrice) : ''}
+                              </s>
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+                    )}
                   </div>
                 </div>
               )
@@ -314,9 +315,10 @@ function ProductsContent() {
         </>
       )}
 
-      <div className="products-chat-prompt">
-        <p>Can't find what you're looking for? Our design consultants can help.</p>
-        <Link href="/quote-cart">Request a Quotation</Link>
+        <div className="products-chat-prompt">
+          <p>Can't find what you're looking for? Our design consultants can help.</p>
+          <Link href="/quote-cart">Request a Quotation</Link>
+        </div>
       </div>
     </main>
   )
