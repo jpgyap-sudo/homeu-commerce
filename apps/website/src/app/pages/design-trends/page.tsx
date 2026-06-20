@@ -1,4 +1,3 @@
-import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { query } from '@/lib/db'
 import { excerptFromHtml } from '@/lib/excerpt'
@@ -7,64 +6,48 @@ interface Article {
   id: number
   handle: string
   title: string
-  author_name: string | null
   published_at: string | null
   image_url: string | null
   image_alt: string | null
   body: string | null
 }
 
-interface Blog {
-  id: number
-  handle: string
-  title: string
-  articles: Article[]
-}
-
-async function getBlog(handle: string): Promise<Blog | null> {
+async function getArticles(): Promise<Article[]> {
   try {
-    const blogRes = await query(`SELECT id, handle, title FROM blogs WHERE handle = $1`, [handle])
-    if (blogRes.rows.length === 0) return null
-    const blog = blogRes.rows[0]
-
-    const artRes = await query(
-      `SELECT id, handle, title, author_name, published_at, image_url, image_alt, body
-       FROM articles WHERE blog_id = $1
-       ORDER BY published_at DESC NULLS LAST`,
-      [blog.id]
+    const res = await query(
+      `SELECT a.id, a.handle, a.title, a.published_at, a.image_url, a.image_alt, a.body
+       FROM articles a JOIN blogs b ON b.id = a.blog_id
+       WHERE b.handle = 'design-trends'
+       ORDER BY a.published_at DESC NULLS LAST`,
+      []
     )
-    return { ...blog, articles: artRes.rows }
-  } catch { return null }
+    return res.rows
+  } catch { return [] }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }) {
-  const { handle } = await params
-  const blog = await getBlog(handle)
-  return { title: blog?.title || handle.replace(/-/g, ' ') }
+export const metadata = {
+  title: 'Interior Design Ideas',
+  description: 'Interior design trends, tips and inspiration from Home Atelier.',
 }
 
-export default async function BlogListPage({ params }: { params: Promise<{ handle: string }> }) {
-  const { handle } = await params
-
-  // "Design Trends" moved off the blog system onto its own page.
-  if (handle === 'design-trends') redirect('/pages/design-trends')
-
-  const blog = await getBlog(handle)
-  if (!blog) notFound()
+// 1:1 clone of https://homeu.ph/blogs/design-trends — moved to a static page
+// per request, instead of living under /blog.
+export default async function DesignTrendsPage() {
+  const articles = await getArticles()
 
   return (
     <article className="page-width">
       <div className="grid">
         <div className="grid__item">
           <div className="section-header text-center">
-            <h1 className="article__title">{blog.title}</h1>
+            <h1 className="article__title">Interior Design Ideas</h1>
           </div>
 
-          {blog.articles.length > 0 ? (
+          {articles.length > 0 ? (
             <ul className="grid grid--uniform grid--blog">
-              {blog.articles.map(article => (
+              {articles.map(article => (
                 <li key={article.id} className="grid__item medium-up--one-third">
-                  <Link href={`/blog/${handle}/${article.handle}`} className="article__link">
+                  <Link href={`/blog/design-trends/${article.handle}`} className="article__link">
                     <div className="article__grid-image-wrapper">
                       <div className="article__grid-image-container" style={{ paddingTop: '100%' }}>
                         {article.image_url ? (
@@ -96,7 +79,7 @@ export default async function BlogListPage({ params }: { params: Promise<{ handl
                     <ul className="list--inline article__meta-buttons">
                       <li>
                         <Link
-                          href={`/blog/${handle}/${article.handle}`}
+                          href={`/blog/design-trends/${article.handle}`}
                           className="btn btn--tertiary btn--small"
                           aria-label={`Read more: ${article.title}`}
                         >
@@ -109,7 +92,7 @@ export default async function BlogListPage({ params }: { params: Promise<{ handl
               ))}
             </ul>
           ) : (
-            <p className="blog-empty">No articles in this blog yet.</p>
+            <p className="blog-empty">No articles yet.</p>
           )}
         </div>
       </div>

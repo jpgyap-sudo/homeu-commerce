@@ -108,7 +108,7 @@
     },
     {
       "title": "Design Trends",
-      "href": "/blog",
+      "href": "/pages/design-trends",
       "originalUrl": "/blogs/design-trends",
       "type": "BLOG",
       "children": []
@@ -123,9 +123,9 @@
     { "title": "3D Showroom", "href": "/pages/3d-showroom", "originalUrl": "/pages/3d-showroom", "type": "PAGE", "children": [] },
     { "title": "About Us", "href": "/pages/modern-furniture-specialist", "originalUrl": "/pages/modern-furniture-specialist", "type": "PAGE", "children": [] },
     { "title": "Reviews", "href": "/pages/furnituremanila", "originalUrl": "/pages/furnituremanila", "type": "PAGE", "children": [] },
-    { "title": "Design Trends", "href": "/blog", "originalUrl": "/blogs/design-trends", "type": "BLOG", "children": [] },
+    { "title": "Design Trends", "href": "/pages/design-trends", "originalUrl": "/blogs/design-trends", "type": "BLOG", "children": [] },
     { "title": "Careers", "href": "/pages/careers", "originalUrl": "/pages/careers", "type": "PAGE", "children": [] },
-    { "title": "Moodboard", "href": "/blog/moodboards", "originalUrl": "/blogs/interior-design-moodboards", "type": "BLOG", "children": [] },
+    { "title": "Moodboard", "href": "/blog/interior-design-moodboards", "originalUrl": "/blogs/interior-design-moodboards", "type": "BLOG", "children": [] },
     { "title": "FAQs", "href": "/pages/faqs-commonly-asked-question", "originalUrl": "/pages/faqs-commonly-asked-question", "type": "PAGE", "children": [] },
     { "title": "Order Instructions", "href": "/pages/how-to-order", "originalUrl": "/pages/how-to-order", "type": "PAGE", "children": [] }
   ]

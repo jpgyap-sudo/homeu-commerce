@@ -1,16 +1,8 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { query } from '@/lib/db'
-
-interface BlogRow {
-  id: number
-  handle: string
-  title: string
-  article_count: number
-  last_published: string | null
-}
+import { excerptFromHtml } from '@/lib/excerpt'
 
 interface ArticlePreview {
   id: number
@@ -19,34 +11,20 @@ interface ArticlePreview {
   published_at: string | null
   image_url: string | null
   image_alt: string | null
+  body: string | null
   blog_handle: string
-  blog_title: string
-}
-
-async function getBlogs(): Promise<BlogRow[]> {
-  try {
-    const res = await query(
-      `SELECT b.id, b.handle, b.title, b.created_at,
-              COUNT(a.id)::int as article_count,
-              MAX(a.published_at) as last_published
-       FROM blogs b
-       LEFT JOIN articles a ON a.blog_id = b.id
-       GROUP BY b.id ORDER BY b.id ASC`,
-      []
-    )
-    return res.rows
-  } catch { return [] }
 }
 
 async function getRecentArticles(): Promise<ArticlePreview[]> {
   try {
     const res = await query(
-      `SELECT a.id, a.handle, a.title, a.published_at, a.image_url, a.image_alt,
-              b.handle as blog_handle, b.title as blog_title
+      `SELECT a.id, a.handle, a.title, a.published_at, a.image_url, a.image_alt, a.body,
+              b.handle as blog_handle
        FROM articles a
        JOIN blogs b ON b.id = a.blog_id
+       WHERE b.handle != 'design-trends'
        ORDER BY a.published_at DESC NULLS LAST
-       LIMIT 6`,
+       LIMIT 12`,
       []
     )
     return res.rows
@@ -59,72 +37,71 @@ export const metadata = {
 }
 
 export default async function BlogIndexPage() {
-  const [blogs, recent] = await Promise.all([getBlogs(), getRecentArticles()])
+  const recent = await getRecentArticles()
 
   return (
-    <>
-      <div className="page-banner">
-        <div className="page-width">
-          <h1 className="page-banner__title">Journal</h1>
-          <p className="page-banner__sub">Design trends, material guides, and interior inspiration</p>
+    <article className="page-width">
+      <div className="grid">
+        <div className="grid__item">
+          <div className="section-header text-center">
+            <h1 className="article__title">Blogs</h1>
+          </div>
+
+          {recent.length > 0 ? (
+            <ul className="grid grid--uniform grid--blog">
+              {recent.map(article => (
+                <li key={article.id} className="grid__item medium-up--one-third">
+                  <Link href={`/blog/${article.blog_handle}/${article.handle}`} className="article__link">
+                    <div className="article__grid-image-wrapper">
+                      <div className="article__grid-image-container" style={{ paddingTop: '100%' }}>
+                        {article.image_url ? (
+                          <img
+                            className="article__grid-image"
+                            src={article.image_url}
+                            alt={article.image_alt || article.title}
+                            loading="lazy"
+                          />
+                        ) : null}
+                      </div>
+                    </div>
+                    <h2 className="article__title h3 article__title--has-image">{article.title}</h2>
+                  </Link>
+
+                  <div className="article__grid-meta article__grid-meta--has-image">
+                    {article.published_at && (
+                      <span className="article__date">
+                        <time dateTime={article.published_at}>
+                          {new Date(article.published_at).toLocaleDateString('en-PH', {
+                            year: 'numeric', month: 'long', day: 'numeric',
+                          })}
+                        </time>
+                      </span>
+                    )}
+                    <div className="rte article__grid-excerpt">
+                      {excerptFromHtml(article.body, 160)}
+                    </div>
+                    <ul className="list--inline article__meta-buttons">
+                      <li>
+                        <Link
+                          href={`/blog/${article.blog_handle}/${article.handle}`}
+                          className="btn btn--tertiary btn--small"
+                          aria-label={`Read more: ${article.title}`}
+                        >
+                          Read more
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="blog-empty">
+              <p>No articles yet.</p>
+            </div>
+          )}
         </div>
       </div>
-
-      <div className="page-width blog-index">
-        {/* Blog categories */}
-        {blogs.length > 0 && (
-          <nav className="blog-nav">
-            <Link href="/blog" className="blog-nav__item blog-nav__item--active">All Posts</Link>
-            {blogs.map(b => (
-              <Link key={b.id} href={`/blog/${b.handle}`} className="blog-nav__item">
-                {b.title}
-                <span className="blog-nav__count">{b.article_count}</span>
-              </Link>
-            ))}
-          </nav>
-        )}
-
-        {/* Recent articles grid */}
-        {recent.length > 0 ? (
-          <div className="blog-grid">
-            {recent.map(article => (
-              <article key={article.id} className="blog-card">
-                <Link href={`/blog/${article.blog_handle}/${article.handle}`} className="blog-card__link">
-                  <div className="blog-card__image-wrap">
-                    {article.image_url ? (
-                      <Image
-                        src={article.image_url}
-                        alt={article.image_alt || article.title}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="blog-card__image-placeholder" />
-                    )}
-                  </div>
-                  <div className="blog-card__meta">
-                    <p className="blog-card__category">{article.blog_title}</p>
-                    <h2 className="blog-card__title">{article.title}</h2>
-                    {article.published_at && (
-                      <p className="blog-card__date">
-                        {new Date(article.published_at).toLocaleDateString('en-PH', {
-                          year: 'numeric', month: 'long', day: 'numeric',
-                        })}
-                      </p>
-                    )}
-                  </div>
-                </Link>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="blog-empty">
-            <p>No articles yet. Run <code>node tools/shopify-import/import-blogs.mjs</code> to import blog content.</p>
-          </div>
-        )}
-      </div>
-    </>
+    </article>
   )
 }

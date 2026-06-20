@@ -74,7 +74,7 @@ export function SiteHeader({ nav, logoUrl, header }: { nav?: NavItem[]; logoUrl?
                   alt={siteConfig.name}
                   width={hs.layout === 'logo-left' ? Math.min(hs.logoMaxWidth || 200, 200) : siteConfig.logo.maxWidth}
                   height={60}
-                  className="site-header__logo-image site-header__logo-image--ghost"
+                  className="site-header__logo-image"
                   priority
                   unoptimized
                 />
@@ -140,7 +140,7 @@ export function SiteHeader({ nav, logoUrl, header }: { nav?: NavItem[]; logoUrl?
           <div className="grid__item text-center site-header__mobile-logo">
             <Link href="/">
               <span className="site-header__logo-anim">
-                <Image src={logoSrc} alt={siteConfig.name} width={140} height={44} className="site-header__logo-image site-header__logo-image--ghost" unoptimized />
+                <Image src={logoSrc} alt={siteConfig.name} width={140} height={44} className="site-header__logo-image" unoptimized />
                 <span
                   className="site-header__logo-anim-color"
                   style={{ WebkitMaskImage: `url(${logoSrc})`, maskImage: `url(${logoSrc})` }}
