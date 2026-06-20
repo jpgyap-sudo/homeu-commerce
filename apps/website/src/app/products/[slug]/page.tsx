@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { renderLexical } from '@/lib/renderLexical'
-import { addToQuoteCart } from '@/components/QuoteCart'
+import { formatPrice } from '@/lib/format-utils'
+import { QuickRFQ } from '@/components/QuoteCart'
 
 interface ProductImage {
   id?: string
@@ -18,6 +19,7 @@ interface Product {
   id: string
   title: string
   slug: string
+  sku?: string
   description?: any
   price?: number
   originalPrice?: number
@@ -51,8 +53,6 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedImage, setSelectedImage] = useState(0)
-  const [quantity, setQuantity] = useState(1)
-  const [addedToCart, setAddedToCart] = useState(false)
   const [related, setRelated] = useState<RelatedProduct[]>([])
 
   useEffect(() => {
@@ -60,7 +60,6 @@ export default function ProductDetailPage() {
     setLoading(true)
     setError('')
     setSelectedImage(0)
-    setAddedToCart(false)
 
     fetch(`/api/products/${slug}`)
       .then(res => {
@@ -85,20 +84,6 @@ export default function ProductDetailPage() {
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
   }, [slug])
-
-  function handleAddToCart() {
-    if (!product) return
-    addToQuoteCart({
-      productId: product.id,
-      title: product.title,
-      slug: product.slug,
-      price: product.price,
-      imageUrl: product.imageUrl || product.images?.[0]?.url,
-      quantity,
-    })
-    setAddedToCart(true)
-    window.dispatchEvent(new CustomEvent('homeu_quote_cart_changed'))
-  }
 
   // ── Loading ────────────────────────────────────────────────────────
   if (loading) {
@@ -221,12 +206,12 @@ export default function ProductDetailPage() {
           {/* Price */}
           {product.showPrice !== false && product.price != null && (
             <div className="product-detail__price">
-              <span className="product-detail__price-current">
-                ₱{product.price.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+              <span className="product-detail__price-current" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, letterSpacing: '-0.02em' }}>
+                {formatPrice(product.price)}
               </span>
               {product.originalPrice && product.originalPrice > product.price && (
                 <span className="product-detail__price-compare">
-                  ₱{product.originalPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                  {formatPrice(product.originalPrice)}
                 </span>
               )}
             </div>
@@ -235,29 +220,18 @@ export default function ProductDetailPage() {
             <p className="product-detail__price-note">{product.priceNote}</p>
           )}
 
-          {/* Add to Quote */}
-          <div className="product-detail__form">
-            <div className="product-detail__qty">
-              <button
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                aria-label="Decrease quantity"
-              >−</button>
-              <span>{quantity}</span>
-              <button
-                onClick={() => setQuantity(q => Math.min(99, q + 1))}
-                aria-label="Increase quantity"
-              >+</button>
-            </div>
-
-            {addedToCart ? (
-              <Link href="/quote-cart" className="btn btn--primary product-detail__cta">
-                View RFQ Cart →
-              </Link>
-            ) : (
-              <button onClick={handleAddToCart} className="btn btn--primary product-detail__cta">
-                Add to RFQ Cart
-              </button>
-            )}
+          {/* THE GENIUS: QuickRFQ with per-item notes */}
+          <div style={{ marginTop: 20 }}>
+            <QuickRFQ
+              product={{
+                id: product.id,
+                title: product.title,
+                slug: product.slug,
+                price: product.price,
+                sku: product.sku,
+                imageUrl: product.imageUrl || product.images?.[0]?.url,
+              }}
+            />
           </div>
 
           <p className="product-detail__disclaimer">
@@ -322,8 +296,8 @@ export default function ProductDetailPage() {
                     <div className="grid-product__meta">
                       <p className="grid-product__title">{rp.title}</p>
                       {rp.price != null && (
-                        <p className="grid-product__price">
-                          ₱{rp.price.toLocaleString('en-PH', { minimumFractionDigits: 0 })}
+                        <p className="grid-product__price" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, letterSpacing: '-0.01em' }}>
+                          {formatPrice(rp.price)}
                         </p>
                       )}
                     </div>

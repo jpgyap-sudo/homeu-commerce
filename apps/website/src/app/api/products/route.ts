@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { buildCategoryTagCondition } from '@/lib/category-filter'
 
 // ── GET (public — no auth required for storefront reads) ─────────────
 
@@ -33,9 +34,20 @@ export async function GET(request: NextRequest) {
 
     if (category) {
       paramIndex++
-      // Match by slug (URL param) OR title (legacy)
-      conditions.push(`EXISTS (SELECT 1 FROM categories c WHERE c.id = p.category_id AND (LOWER(c.slug) = LOWER($${paramIndex}) OR LOWER(c.title) = LOWER($${paramIndex})))`)
+      // Match by the product's assigned category (slug or legacy title)…
+      const categoryChecks = [
+        `EXISTS (SELECT 1 FROM categories c WHERE c.id = p.category_id AND (LOWER(c.slug) = LOWER($${paramIndex}) OR LOWER(c.title) = LOWER($${paramIndex})))`,
+      ]
       values.push(category)
+      // …OR by the Shopify smart-collection TAG rule for this handle, so the
+      // granular nav dropdowns (sofa, pendant-light, rugs, …) resolve.
+      const tagCond = buildCategoryTagCondition(category, paramIndex + 1)
+      if (tagCond) {
+        categoryChecks.push(tagCond.sql)
+        values.push(...tagCond.values)
+        paramIndex += tagCond.values.length
+      }
+      conditions.push(`(${categoryChecks.join(' OR ')})`)
     }
 
     // Missing data filters (admin diagnostic)

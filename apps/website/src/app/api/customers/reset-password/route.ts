@@ -28,12 +28,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Unauthenticated reset request — generate token and store (email delivery pending)
+    // Unauthenticated reset request — generate token and send email
     if (body.email) {
-      const email = body.email.toLowerCase().trim()
+      const customerEmail = body.email.toLowerCase().trim()
       const result = await query(
-        `SELECT id FROM customers WHERE LOWER(email) = $1 LIMIT 1`,
-        [email]
+        `SELECT id, name FROM customers WHERE LOWER(email) = $1 LIMIT 1`,
+        [customerEmail]
       )
       if (result.rows.length > 0) {
         const token = crypto.randomBytes(32).toString('hex')
@@ -53,8 +53,30 @@ export async function POST(request: NextRequest) {
           `INSERT INTO password_reset_tokens (customer_id, token, expires_at) VALUES ($1,$2,$3)`,
           [result.rows[0].id, token, expires]
         )
-        // TODO: send email with link: /customer/reset-password?token=TOKEN
-        console.log(`[reset-password] Token for ${email}: ${token}`)
+
+        const resetLink = `${process.env.PUBLIC_SERVER_URL || 'https://homeu.ph'}/customer/reset-password?token=${token}`
+        const customerName = result.rows[0].name || 'Valued Customer'
+
+        // Send reset email
+        try {
+          const nodemailer = await import('nodemailer')
+          const transporter = nodemailer.default.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+          })
+          await transporter.sendMail({
+            from: process.env.SMTP_FROM || 'noreply@homeu.ph',
+            to: customerEmail,
+            subject: 'Reset Your HomeU Password',
+            text: `Hi ${customerName},\n\nWe received a request to reset your HomeU account password.\n\nClick the link below to set a new password (expires in 1 hour):\n${resetLink}\n\nIf you didn't request this, you can safely ignore this email.\n\n— HomeU Team`,
+            html: `<p>Hi ${customerName},</p><p>We received a request to reset your HomeU account password.</p><p><a href="${resetLink}" style="display:inline-block;padding:12px 24px;background:#1a6d3e;color:#fff;text-decoration:none;border-radius:6px">Reset Password</a></p><p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p><p>— HomeU Team</p>`,
+          })
+          console.log(`[reset-password] Email sent to ${customerEmail}`)
+        } catch (emailErr) {
+          console.error(`[reset-password] Failed to send email to ${customerEmail}:`, emailErr)
+        }
       }
       // Always return OK to prevent email enumeration
       return NextResponse.json({ ok: true })

@@ -112,6 +112,24 @@ export async function syncRFQCart(
 
 export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
   try {
+    // Resolve lead name from chatbot.leads table
+    let customerName = input.leadId || ''
+    let customerEmail = ''
+    let customerPhone = ''
+    if (input.leadId) {
+      try {
+        const leadRes = await query(
+          `SELECT name, email, mobile FROM chatbot.leads WHERE id = $1 LIMIT 1`,
+          [input.leadId]
+        )
+        if (leadRes.rows.length > 0) {
+          customerName = leadRes.rows[0].name || customerName
+          customerEmail = leadRes.rows[0].email || ''
+          customerPhone = leadRes.rows[0].mobile || ''
+        }
+      } catch { /* fall through to defaults */ }
+    }
+
     // Insert into rfq_requests table directly
     const { rows } = await query(
       `INSERT INTO rfq_requests (lead_id, customer_name, email, phone, delivery_location, project_type, notes, items, status, created_at, updated_at)
@@ -119,9 +137,9 @@ export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
        RETURNING id`,
       [
         input.leadId || null,
-        input.leadId || '',          // customerName — will be enriched from lead data
-        '',                           // email — will be enriched from lead data
-        '',                           // phone — will be enriched from lead data
+        customerName,
+        customerEmail,
+        customerPhone,
         input.deliveryLocation || '',
         input.projectType || '',
         input.notes || '',

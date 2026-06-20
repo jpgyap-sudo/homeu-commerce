@@ -22,7 +22,7 @@
   --chat-height: min(620px, 80vh);
 }
 
-/* ── Floating Bubble ─────────────────────────────────────── */
+/* ── Floating Bubble (draggable, logo icon, animated) ────── */
 .chat-bubble {
   position: fixed;
   bottom: 24px;
@@ -31,26 +31,87 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
+  padding: 0;
   border: none;
   border-radius: 50%;
-  background: var(--chat-primary);
-  color: #fff;
-  font-size: 28px;
-  cursor: pointer;
+  background: transparent;
+  cursor: grab;
   box-shadow: var(--chat-shadow);
-  transition: transform 0.2s ease, background 0.2s ease;
+  touch-action: none;           /* let us own the drag gesture on touch */
+  -webkit-user-select: none;
+  user-select: none;
+  /* attention-grabbing jump */
+  animation: chat-bubble-jump 2.6s ease-in-out infinite;
 }
 
-.chat-bubble:hover {
-  transform: scale(1.06);
-  background: var(--chat-primary-hover);
+/* Moving colour ring around the logo */
+.chat-bubble::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    #b88935, #173f2f, #2f6f4f, #d6a94a, #173f2f, #b88935);
+  animation: chat-ring-spin 3.2s linear infinite;
+  z-index: 0;
 }
+/* White disc that turns the gradient into a thin ring */
+.chat-bubble::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #fff;
+  z-index: 0;
+}
+
+.chat-bubble-logo {
+  position: relative;
+  z-index: 1;
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.chat-bubble-logo--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+.chat-bubble:hover { transform: scale(1.06); }
+.chat-bubble:active { cursor: grabbing; }
+
+/* Pause the jump while open or being dragged */
+.chat-bubble--open,
+.chat-bubble--dragging {
+  animation: none;
+  cursor: grabbing;
+}
+.chat-bubble--dragging { transform: scale(1.08); }
 
 .chat-bubble:focus-visible {
   outline: 3px solid var(--chat-accent);
   outline-offset: 3px;
+}
+
+@keyframes chat-bubble-jump {
+  0%, 60%, 100% { transform: translateY(0); }
+  70% { transform: translateY(-12px); }
+  80% { transform: translateY(0); }
+  88% { transform: translateY(-6px); }
+  95% { transform: translateY(0); }
+}
+@keyframes chat-ring-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-bubble { animation: none; }
+  .chat-bubble::before { animation: none; }
 }
 
 .chat-bubble-notification {

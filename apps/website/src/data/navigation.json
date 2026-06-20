@@ -10,7 +10,7 @@
     },
     {
       "title": "Quick Delivery",
-      "href": "/products?tag=quick-delivery",
+      "href": "/products?category=fast-delivery",
       "originalUrl": "/collections/fast-delivery/diningchair+diningtable",
       "type": "COLLECTION",
       "children": [
@@ -78,7 +78,7 @@
     },
     {
       "title": "Stone Options",
-      "href": "/products?category=stone",
+      "href": "/products?category=veratti-sinteredstone",
       "originalUrl": "/collections/veratti-sinteredstone",
       "type": "COLLECTION",
       "children": [

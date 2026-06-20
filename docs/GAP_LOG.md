@@ -3,7 +3,7 @@
 > **Purpose:** Single source of truth for known gaps, missing features, and technical debt across the DaVinciOS system.
 > **Scope:** Covers the DaVinciOS CMS backend, chatbot concierge, API routes, admin panel, frontend components, collections, deployment pipeline, and agent definitions.
 > **Status:** Active — gaps are logged for tracking by all Kilo Code extensions and agents.
-> **Last Updated:** 2026-06-17T15:50
+> **Last Updated:** 2026-06-20T11:29+08:00
 
 ---
 
@@ -12,6 +12,29 @@
 1. **Before coding:** Check this log for known gaps in the area you're working on.
 2. **After fixing a gap:** Update its status to `✅ Resolved` and add a `ResolvedBy` note with the date and agent.
 3. **When discovering a new gap:** Add it to the appropriate priority section with all required fields.
+
+---
+
+## Build / Preflight Gate Policy — Rebuilding When a Gap Blocks
+
+The preflight sweep (`node tools/shared/preflight-sweep.mjs --full`) is a **hard
+gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
+`BLOCK`, follow this policy:
+
+1. **Never force-build through a blocker** and never bypass the gate. Fix the
+   underlying issue and re-run until the sweep is clean (exit 0).
+2. **Triage the blocker against this log first.** If the blocker corresponds to
+   a gap already logged here, fix that gap (preferred) — do not work around it.
+3. **A blocker in pre-existing, unrelated code is still a blocker.** If you only
+   changed area X but the gate blocks on a pre-existing gap in area Y, the build
+   stays blocked until Y is fixed. Don't disable the check to ship X. Either fix
+   Y, or get the repo owner's explicit decision.
+4. **Tooling false positives:** if a blocker is caused by the sweep script
+   itself (not the app), fix the sweep — don't suppress the rule. (Example: the
+   Phase 4 API-wiring check was rewritten 2026-06-20 to be cross-platform and to
+   strip query strings, which removed bogus `/api/<path>?query` blockers.)
+5. **Current known build-blocker:** _none_ — GAP-CRIT-003 (`/api/rfq-requests`)
+   was resolved 2026-06-20; preflight `--full` is clean (81 pass / 0 blockers).
 
 ---
 
@@ -53,7 +76,31 @@
 | **Fix Guidance** | After processing each message, INSERT into `chatbot.messages(conversation_id, role, content, metadata)` using the conversationId from the lead. |
 | **ResolvedBy** | Roo (Code mode) on 2026-06-16 — [`message/route.ts`](apps/website/src/app/api/chat/message/route.ts) already calls `insertMessage()` from [`db.ts`](apps/website/src/lib/chatbot/db.ts) to persist both visitor and bot messages. |
 
+### GAP-CRIT-003: `/api/rfq-requests` Missing + RFQ Schema Inconsistent (BUILD BLOCKER)
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Consumers: [`apps/website/src/app/customer/dashboard/page.tsx:54`](apps/website/src/app/customer/dashboard/page.tsx:54), [`apps/website/src/app/customer/orders/page.tsx:38`](apps/website/src/app/customer/orders/page.tsx:38), [`apps/website/src/app/customer/rfq/[id]/page.tsx:65`](apps/website/src/app/customer/rfq/[id]/page.tsx:65), [`apps/website/src/app/admin/quotations/new/page.tsx:133`](apps/website/src/app/admin/quotations/new/page.tsx:133). Backend: [`apps/website/src/app/api/rfq/route.ts`](apps/website/src/app/api/rfq/route.ts), [`apps/website/src/app/api/rfq/submit/route.ts`](apps/website/src/app/api/rfq/submit/route.ts), [`apps/website/src/app/api/rfq/add-item/route.ts`](apps/website/src/app/api/rfq/add-item/route.ts). DB: `rfq_requests`, `rfq_request_items`. |
+| **Type** | Missing API route + DB schema/code mismatch |
+| **Status** | ✅ Resolved — preflight gate clean (81 pass / 0 blockers, 2026-06-20) |
+| **Description** | Four pages fetch `/api/rfq-requests` (legacy Payload-CMS slug, with `where[customer][equals]=…`, `sort=`, `depth=` query syntax and `{ docs: [...] }` response shape), but **no route exists** at `apps/website/src/app/api/rfq-requests/`. Separately, the RFQ DB schema is inconsistent with the code: `rfq_requests` has **no `customer_id`** column (so the customer filter can't work), the `rfq_request_items` table is **effectively missing** (zero columns), `rfq_requests` has **0 rows**, and `/api/rfq` POST inserts into `customer_id` / `rfq_request_items(...)` columns that don't exist — so RFQ submission would fail at runtime. |
+| **Impact** | Customer RFQ history (dashboard, orders, RFQ detail) and the admin quotation builder are all broken. RFQ submission from `/quote-cart` would fail against the live schema. Preflight `--full` reports 1 blocker; build/deploy is gated. |
+| **Root Cause** | DaVinciOS/Payload removal left the RFQ subsystem half-migrated: consumers still call the old `/api/rfq-requests` collection endpoint, and the schema was never reconciled with the custom `pg` routes. |
+| **Fix Guidance** | (1) Migration: add `rfq_requests.customer_id` (FK → customers) and create `rfq_request_items` (rfq_request_id, product_id, title/productTitleSnapshot, sku/skuSnapshot, unit_price/unitPriceSnapshot, quantity) — see `tools/migrate/` + `homeu-schema.sql` for convention. (2) Reconcile `/api/rfq` POST, `/api/rfq/submit`, `/api/rfq/add-item` with the final schema. (3) Add `apps/website/src/app/api/rfq-requests/route.ts` (GET list, Payload `{docs}` shape, support `where[customer][equals]`, `sort`, `limit`) + `apps/website/src/app/api/rfq-requests/[id]/route.ts` (GET detail, **camelCase** shape with items, auth: customer owns it OR admin) — OR repoint the 4 consumers to existing endpoints (`/api/rfq`, `/api/customers/[id]/rfqs`) and adapt their parsing. A compat route is lower-risk for the 4 callers. (4) Verify: preflight `--full` = 0 blockers, `npx tsc --noEmit` clean, and a customer can submit an RFQ from `/quote-cart` and see it in `/customer/dashboard` + `/customer/orders`. **Do NOT touch** the storefront header, nav, category filtering, chat widget, or QuoteCart UI — those were completed 2026-06-20 and work. Detail page expects: `customerName, email, phone, deliveryLocation, projectType, notes, items[{productTitleSnapshot, skuSnapshot, unitPriceSnapshot, quantity}], estimatedTotal, status, createdAt, updatedAt`. |
+| **ResolvedBy** | External extension on 2026-06-20 — `/api/rfq-requests/route.ts` (list) and `/api/rfq-requests/[id]/route.ts` (detail) now exist; preflight `--full` = 81 pass / 0 blockers, `tsc` clean. |
+
 ---
+
+### GAP-CRIT-004: Admin OTP Is Returned to the Requester
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/api/admin/otp/route.ts`](apps/website/src/app/api/admin/otp/route.ts) |
+| **Type** | Authentication bypass / secret disclosure |
+| **Status** | Active |
+| **Description** | The OTP generation response includes the newly generated OTP in JSON and also logs it. Any requester can generate and immediately read the code instead of proving control of the administrator email account. |
+| **Impact** | The OTP factor provides no security boundary and can enable unauthorized administrative access wherever this verification result is trusted. |
+| **Fix Guidance** | Never return or log the OTP. Verify that the email belongs to an active admin, deliver the code through the configured mail provider, hash stored OTPs, add attempt and resend limits, bind verification to a short-lived challenge, and add an end-to-end negative test. |
 
 ## 🟠 High Severity Gaps
 
@@ -158,6 +205,149 @@
 | **ResolvedBy** | Roo (Code mode) on 2026-06-16 — [`apps/website/src/types/davincios.d.ts`](apps/website/src/types/davincios.d.ts) already exists with `CollectionConfig` and `GlobalConfig` stub types. All 8 collection files already import `CollectionConfig` from `'../types/davincios'` and use `satisfies CollectionConfig`. [`SEOHealth.ts`](apps/website/src/globals/SEOHealth.ts:1) already imports `GlobalConfig` from `'../types/davincios'` and uses `satisfies GlobalConfig`. No code changes needed. |
 
 ---
+
+### GAP-HIGH-010: Admin JWT Uses a Predictable Fallback Secret
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/proxy.ts`](apps/website/src/proxy.ts), [`apps/website/src/lib/env-validator.ts`](apps/website/src/lib/env-validator.ts) |
+| **Type** | Authentication hardening |
+| **Status** | Active |
+| **Description** | The admin proxy falls back to the literal `homeu-admin-secret-change-in-production` when `JWT_SECRET` is unavailable. A misconfigured deployment can therefore accept tokens signed with a public, predictable key. |
+| **Impact** | A missing environment variable can silently become an admin authentication bypass instead of failing deployment or startup. |
+| **Fix Guidance** | Remove the fallback, validate `JWT_SECRET` before serving traffic, require at least 32 random bytes, and add readiness and deployment tests that fail when the secret is absent or weak. |
+
+### GAP-HIGH-011: Password Reset Tokens Are Not Delivered
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/api/customers/reset-password/route.ts`](apps/website/src/app/api/customers/reset-password/route.ts), [`apps/website/src/app/customer/reset-password/page.tsx`](apps/website/src/app/customer/reset-password/page.tsx) |
+| **Type** | Broken customer workflow |
+| **Status** | Active |
+| **Description** | The reset endpoint creates a token but leaves email delivery as a TODO, so a legitimate customer cannot receive the reset link through the intended channel. |
+| **Impact** | Customers can become permanently locked out, increasing support load and weakening repeat-purchase and RFQ continuity. |
+| **Fix Guidance** | Send a single-use, short-lived reset link through the configured mail service, store only a token hash, invalidate prior tokens, avoid account-enumeration responses, and test request, expiry, reuse, and successful reset paths. |
+
+### GAP-HIGH-012: Security Controls and Regression Coverage Are Incomplete
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/api/`](apps/website/src/app/api/), [`apps/website/src/lib/auth.ts`](apps/website/src/lib/auth.ts), [`tools/`](tools/) |
+| **Type** | Security and quality infrastructure |
+| **Status** | Active |
+| **Description** | The platform has more than 80 API routes but no consistent, centrally verified rate-limiting and CSRF policy and only sparse authentication-focused test scripts. Authorization, abuse, replay, and cross-origin behavior are not covered by a systematic regression suite. |
+| **Impact** | New routes can ship without equivalent protection, while login, OTP, chat, newsletter, RFQ, upload, and admin mutations remain vulnerable to abuse or accidental regressions. |
+| **Fix Guidance** | Add shared route guards, origin/CSRF enforcement for cookie-authenticated writes, IP/account rate limits, upload limits, and automated route-matrix tests covering anonymous, customer, admin, expired-session, cross-origin, and throttled requests. |
+
+### GAP-HIGH-013: No Persistent Customer Project or Saved-Product Workspace
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/components/QuoteCart.tsx`](apps/website/src/components/QuoteCart.tsx), [`apps/website/src/app/customer/`](apps/website/src/app/customer/), [`apps/website/src/app/api/cart/sync/route.ts`](apps/website/src/app/api/cart/sync/route.ts) |
+| **Type** | Missing conversion feature |
+| **Status** | Active |
+| **Description** | Customers can create an RFQ cart, but there is no durable room/project workspace that combines saved products, inspiration, measurements, budget, collaborators, notes, revisions, appointments, and quotations across sessions. |
+| **Impact** | High-consideration furniture journeys are reduced to a temporary cart, causing context loss and weak repeat engagement before a customer is ready to request a quote. |
+| **Fix Guidance** | Introduce `projects`, `project_members`, `project_rooms`, and `project_items` models; let authenticated users save or merge anonymous work; support share links, permissions, activity history, and conversion of a project version into an RFQ. |
+
+### GAP-HIGH-014: No Room Fit, Configuration, or Delivery Feasibility Engine
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/components/ProductDNACard.tsx`](apps/website/src/components/ProductDNACard.tsx), [`apps/website/src/app/products/[slug]/page.tsx`](apps/website/src/app/products/[slug]/page.tsx), [`apps/website/src/components/QuoteCart.tsx`](apps/website/src/components/QuoteCart.tsx) |
+| **Type** | Missing furniture-domain intelligence |
+| **Status** | Active |
+| **Description** | Product dimensions and materials are displayed, but the system cannot check room dimensions, clearances, product combinations, doorway/elevator access, finish compatibility, budget, or availability before RFQ submission. |
+| **Impact** | Customers and sales staff can build attractive but infeasible proposals, creating quote rework, delivery surprises, lower confidence, and lost sales. |
+| **Fix Guidance** | Normalize dimensions and variants, collect room and access measurements, implement deterministic fit and budget rules with explainable warnings, and allow staff overrides with recorded reasons. AI can assist extraction, but feasibility decisions must remain rule-backed. |
+
+### GAP-HIGH-015: No Trade and Designer Project Workspace
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/customer/`](apps/website/src/app/customer/), [`apps/website/src/app/admin/customers/`](apps/website/src/app/admin/customers/), [`apps/website/src/app/admin/quotations/`](apps/website/src/app/admin/quotations/) |
+| **Type** | Missing B2B feature |
+| **Status** | Active |
+| **Description** | Customer accounts do not provide a dedicated trade/designer mode with organizations, multiple projects, team members, client approvals, project pricing, tax/company details, reusable specifications, or role-based access. |
+| **Impact** | Designers, contractors, property managers, hospitality teams, and repeat commercial buyers must coordinate outside HomeU, limiting retention and larger project opportunities. |
+| **Fix Guidance** | Add organization accounts, trade verification, team roles, project-level price books, client-facing approval links, reusable product schedules, and quotation ownership/reporting by organization. |
+
+### GAP-HIGH-016: RFQ and Quotation Follow-Up Is Not Automated
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/admin/rfq/`](apps/website/src/app/admin/rfq/), [`apps/website/src/app/admin/quotations/`](apps/website/src/app/admin/quotations/), [`apps/marketing/src/services/scheduler.js`](apps/marketing/src/services/scheduler.js), [`apps/website/src/app/admin/workflows/`](apps/website/src/app/admin/workflows/) |
+| **Type** | Missing lifecycle automation |
+| **Status** | Active |
+| **Description** | Leads, RFQs, quotations, marketing, inboxes, and workflows exist, but there is no documented closed-loop automation for abandoned RFQ carts, unanswered quotations, expiring prices, appointment reminders, or sales-task escalation. |
+| **Impact** | Valuable intent can go cold without a timely, personalized response, and sales staff must manually remember every follow-up. |
+| **Fix Guidance** | Emit lifecycle events, define consent-aware message sequences and stop conditions, create staff tasks for high-value or overdue opportunities, record every contact, and measure recovery and win rates per automation. |
+
+### GAP-HIGH-017: Discovery-to-Revenue Attribution Is Incomplete
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/admin/analytics/`](apps/website/src/app/admin/analytics/), [`apps/website/src/app/api/analytics/`](apps/website/src/app/api/analytics/), [`apps/website/src/lib/chatbot/`](apps/website/src/lib/chatbot/) |
+| **Type** | Analytics and decision-support gap |
+| **Status** | Active |
+| **Description** | HomeU tracks page views, visitors, leads, RFQs, messages, appointments, products, and pipeline stages, but identity and event linkage are not yet a reliable journey from campaign/referrer through viewed and recommended products to quotation revisions, approval, deposit, and won revenue. |
+| **Impact** | The business cannot confidently identify which content, recommendations, products, campaigns, or staff actions create revenue, limiting optimization and AI learning. |
+| **Fix Guidance** | Define a canonical event taxonomy and identity graph for anonymous visitor, customer, lead, project, RFQ, quotation, and order/payment entities. Preserve first/last touch, recommendation provenance, consent, and immutable conversion events. |
+
+### GAP-HIGH-018: HomeU Room Passport / Project Twin Is Not Implemented
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/components/ProductDNACard.tsx`](apps/website/src/components/ProductDNACard.tsx), [`apps/website/src/components/chat/ChatWidget.tsx`](apps/website/src/components/chat/ChatWidget.tsx), [`apps/website/src/components/QuoteCart.tsx`](apps/website/src/components/QuoteCart.tsx), [`apps/website/src/app/admin/apps/central-inbox/page.tsx`](apps/website/src/app/admin/apps/central-inbox/page.tsx) |
+| **Type** | Strategic product opportunity |
+| **Status** | Active |
+| **Description** | The platform has most enabling components but no unified Room Passport: a persistent digital room/project twin containing photos, measurements, style, budget, real HomeU product scenes, feasibility checks, alternatives, collaborators, approvals, RFQ versions, appointments, conversations, and sales actions. |
+| **Impact** | HomeU cannot yet turn visual inspiration into a differentiated, measurable, end-to-end furniture project experience. Existing AI, RFQ, inbox, analytics, and Product DNA capabilities remain useful but fragmented. |
+| **Fix Guidance** | Start with a living-room MVP. Upload a room photo and measurements; extract editable constraints; create three catalog-grounded bundles; show confidence, fit, budget, and availability checks; support customer/designer approval; convert a frozen project version to RFQ; give sales an AI-drafted next action and quotation. Learn only from consented, attributable outcomes. |
+
+### GAP-HIGH-019: Theme Editor Does Not Use the Typed Dynamic Settings Form
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/admin/theme/ThemeEditor.tsx`](apps/website/src/app/admin/theme/ThemeEditor.tsx), [`apps/website/src/app/admin/theme/theme-schemas.ts`](apps/website/src/app/admin/theme/theme-schemas.ts), [`apps/website/src/components/admin/DynamicSettingsForm.tsx`](apps/website/src/components/admin/DynamicSettingsForm.tsx) |
+| **Type** | Core no-code editor wiring gap |
+| **Status** | Active |
+| **Description** | The canonical settings registry defines selects, checkboxes, ranges, conditional fields, repeaters, image pickers, links, fonts, alignment, product pickers, and collection pickers. `ThemeEditor` still imports the backward-compatibility `SECTION_SCHEMAS` adapter and its local `renderField()`. That adapter collapses most modern setting types into plain text or number inputs, hides universal advanced controls, ignores options and conditions, and renders repeater sub-fields as basic text inputs. The complete `DynamicSettingsForm` exists but is never imported by `ThemeEditor`. |
+| **Impact** | The builder looks comprehensive but is not reliably no-code: users must know internal values such as `auto`, `curated`, `fadeIn`, percentages, booleans, and URLs, and can easily save invalid strings. Image and nested item editing is unnecessarily technical. |
+| **Fix Guidance** | Replace the compatibility adapter and local renderer with `getSectionSettings()` plus `DynamicSettingsForm`. Add first-class product/collection callbacks to the dynamic form, preserve conditions and units, render media pickers inside repeaters, and remove `theme-schemas.ts` after migration. Verify every setting type with component tests. |
+
+### GAP-HIGH-020: Theme Mutations Can Report Success After Failure and Import Is Destructive
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/admin/theme/ThemeEditor.tsx`](apps/website/src/app/admin/theme/ThemeEditor.tsx), [`apps/website/src/app/api/theme/sections/route.ts`](apps/website/src/app/api/theme/sections/route.ts), [`apps/website/src/app/api/theme/sections/[id]/route.ts`](apps/website/src/app/api/theme/sections/[id]/route.ts) |
+| **Type** | Data integrity and recovery gap |
+| **Status** | Active |
+| **Description** | Save, reorder, enable, add, duplicate, delete, header, palette, CSS, and navigation calls generally do not check `response.ok`, yet the UI flashes success. Import deletes every existing section one request at a time before validating and recreating the full theme, is not transactional, and says "review and save" after the destructive writes have already happened. Undo/redo changes local arrays but cannot reliably reverse already-persisted add/delete/import mutations. |
+| **Impact** | Network, auth, validation, or database failures can leave the live theme partially changed while telling the user it was saved. A failed import can remove the existing website layout with no atomic rollback. |
+| **Fix Guidance** | Add a versioned theme-draft API with a single database transaction for import/publish/restore. Check every HTTP status and return structured field errors. Keep draft and published revisions, autosave drafts, expose revision history, and make undo/redo operate on persisted revisions or clearly label it as unsaved-only. Never delete the current published theme before a replacement validates successfully. |
+
+### GAP-HIGH-021: Many Theme Controls Do Not Affect Storefront Output
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/lib/theme-builder-settings.ts`](apps/website/src/lib/theme-builder-settings.ts), [`apps/website/src/lib/theme-styles.ts`](apps/website/src/lib/theme-styles.ts), [`apps/website/src/components/home/HomeSections.tsx`](apps/website/src/components/home/HomeSections.tsx) |
+| **Type** | Schema-to-renderer wiring gap |
+| **Status** | Active |
+| **Description** | Static section-by-section tracing found numerous exposed keys with no matching renderer or scoped-style behavior. Verified examples include slideshow button style/mobile image/content alignment; collection aspect ratio/overlay/hover; image-with-text position and typography; image-bar columns/hover zoom; featured-products mobile columns/aspect ratio/show price/view-all controls; reviews auto-scroll/max/columns; Instagram responsive columns/gap/profile link; testimonial avatar/columns/border/style; stats suffix/columns/animation; blog columns/date/category/image sizing; promo sticky/dismissible; video muted/loop/overlay opacity; and lookbook title visibility. |
+| **Impact** | Users move controls and see no result, which destroys trust in the builder and makes troubleshooting impossible. Some settings appear functional only because another section happens to use a key with the same name. |
+| **Fix Guidance** | Create an executable contract per section: every registry key must map to a renderer prop, scoped CSS rule, data query, or explicit unsupported marker. Fail CI when a setting lacks a consumer. Remove controls that are not ready, then restore them only with visual and behavioral tests at desktop, tablet, and mobile widths. |
+
+### GAP-HIGH-022: Theme Builder Only Builds the Homepage, Header, Navigation, and Footer
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/admin/theme/ThemeEditor.tsx`](apps/website/src/app/admin/theme/ThemeEditor.tsx), [`apps/website/src/app/page.tsx`](apps/website/src/app/page.tsx), [`apps/website/src/components/home/HomeSections.tsx`](apps/website/src/components/home/HomeSections.tsx) |
+| **Type** | Website-builder scope gap |
+| **Status** | Active |
+| **Description** | The interface is presented as a theme/website builder, but its section model is attached only to `homepage_sections`. Product, collection, search, blog, article, standard page, customer, RFQ, and quotation templates have no visual layout or block editor. |
+| **Impact** | A non-technical user cannot build or brand the complete website without code; most customer-facing page types remain fixed templates. |
+| **Fix Guidance** | Introduce template assignments and reusable sections for homepage, product, collection, page, blog/article, search, customer, and quotation surfaces. Start with global design tokens plus product and collection templates. Provide safe locked commerce blocks and editable surrounding content so critical data and actions cannot be accidentally removed. |
 
 ## 🟡 Medium Severity Gaps
 
@@ -598,6 +788,127 @@
 
 ---
 
+### GAP-MED-036: Chat Lead Lookup Still Uses a Stub Response
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/api/chat/leads/lookup/route.ts`](apps/website/src/app/api/chat/leads/lookup/route.ts) |
+| **Type** | Incomplete integration |
+| **Status** | Active |
+| **Description** | The lookup route explicitly notes that it is not wired to the real `chatbot.leads` data. |
+| **Impact** | Returning visitors and sales workflows cannot reliably recover or associate existing lead context. |
+| **Fix Guidance** | Query the canonical lead store using normalized, privacy-safe identifiers; enforce authorization and enumeration resistance; return only the minimum fields required by the caller; add found, not-found, and duplicate-identity tests. |
+
+### GAP-MED-037: RFQ Notification Uses Lead ID as the Customer Name
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/lib/chatbot/rfq-service.ts`](apps/website/src/lib/chatbot/rfq-service.ts) |
+| **Type** | Data mapping defect |
+| **Status** | Active |
+| **Description** | The RFQ alert payload assigns `input.leadId` to `leadName` as a placeholder instead of resolving the lead's actual display name. |
+| **Impact** | Sales notifications are confusing and less actionable, especially when multiple new RFQs arrive close together. |
+| **Fix Guidance** | Resolve the lead once inside the RFQ transaction/service, populate the real name and contact context, use a clear anonymous fallback, and cover notification mapping with a service test. |
+
+### GAP-MED-038: Quotations Lack Customer Approval, Versioning, and Deposit Flow
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/admin/quotations/`](apps/website/src/app/admin/quotations/), [`apps/website/src/app/quotation/[id]/page.tsx`](apps/website/src/app/quotation/[id]/page.tsx), [`apps/website/src/app/customer/quotation/[id]/page.tsx`](apps/website/src/app/customer/quotation/[id]/page.tsx) |
+| **Type** | Missing sales workflow |
+| **Status** | Active |
+| **Description** | Formal quotation creation and PDF output exist, but there is no immutable revision history, structured customer approval/rejection, item-level change request, expiry acceptance, e-signature, or deposit/payment milestone. |
+| **Impact** | Agreement and changes move into email or chat, weakening auditability and making quotation-to-close conversion difficult to measure. |
+| **Fix Guidance** | Add quotation revisions and snapshots, secure approval links, expiry and terms acknowledgement, comments/change requests, staff countersignature where needed, and provider-neutral deposit records before adding payment execution. |
+
+### GAP-MED-039: Product Completeness and Image Quality Are Not Enforced
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/admin/products/`](apps/website/src/app/admin/products/), [`apps/website/src/app/admin/media/`](apps/website/src/app/admin/media/), [`apps/website/src/components/admin/SeoPreview.tsx`](apps/website/src/components/admin/SeoPreview.tsx) |
+| **Type** | Catalog operations gap |
+| **Status** | Active |
+| **Description** | Missing-data filters and SEO preview capabilities exist or are planned, but publication does not enforce a measurable minimum for images, alt text, dimensions, materials, category, variant data, pricing policy, SEO, and delivery metadata. |
+| **Impact** | Incomplete product data weakens search, recommendations, Room Passport feasibility, accessibility, SEO, and buyer confidence. |
+| **Fix Guidance** | Implement a weighted completeness score, publication gates, batch remediation queues, image dimension/format checks, duplicate detection, and admin reports grouped by the business impact of each missing field. |
+
+### GAP-MED-040: End-to-End Coverage Does Not Match the Platform Surface
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`tools/`](tools/), [`apps/website/src/app/`](apps/website/src/app/) |
+| **Type** | Test coverage gap |
+| **Status** | Active |
+| **Description** | TypeScript currently passes, but the explicit test scripts found are concentrated around login, deployment, theme sections, and ad hoc audits. Core customer, RFQ, quotation, marketing, inbox, analytics, media, blog, and authorization journeys lack a coherent automated suite. |
+| **Impact** | A large route and feature surface can regress while compilation remains green, making releases dependent on manual inspection. |
+| **Fix Guidance** | Establish unit, API integration, and Playwright suites around the highest-value journeys. Add deterministic test data, route authorization matrices, visual checks for key responsive views, and CI gates for customer registration/reset, project/cart persistence, RFQ submission, quote lifecycle, and admin CRUD. |
+
+### GAP-MED-041: Global Theme Settings Schema Exceeds What Can Be Saved or Rendered
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/lib/theme-builder-settings.ts`](apps/website/src/lib/theme-builder-settings.ts), [`apps/website/src/app/api/theme/settings/route.ts`](apps/website/src/app/api/theme/settings/route.ts), [`apps/website/src/app/admin/theme/ThemeEditor.tsx`](apps/website/src/app/admin/theme/ThemeEditor.tsx), [`apps/website/src/app/layout.tsx`](apps/website/src/app/layout.tsx) |
+| **Type** | Global settings contract mismatch |
+| **Status** | Active |
+| **Description** | The schema API advertises 16 global settings, but the editor and settings allowlist support only a subset. Body background, base text/muted/border colors, button style, uppercase buttons, layout width, default section gap, and favicon are not consistently editable, accepted, stored, or injected. |
+| **Impact** | API consumers and future UI generation see options that cannot be completed end to end, while users still need CSS for common site-wide changes. |
+| **Fix Guidance** | Define one typed global-theme object and generate the UI, API validation, storage keys, and root CSS variables from it. Add migration/default handling and a contract test proving every global key can round-trip and visibly affect the preview. |
+
+### GAP-MED-042: Footer Settings Do Not Match Footer Component Props
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/lib/theme-builder-settings.ts`](apps/website/src/lib/theme-builder-settings.ts), [`apps/website/src/components/SiteFooter.tsx`](apps/website/src/components/SiteFooter.tsx), [`apps/website/src/components/home/FooterQuickLinks.tsx`](apps/website/src/components/home/FooterQuickLinks.tsx), [`apps/website/src/components/home/FooterSocial.tsx`](apps/website/src/components/home/FooterSocial.tsx) |
+| **Type** | Section configuration mismatch |
+| **Status** | Active |
+| **Description** | Footer Quick Links exposes a configurable `title`, but `SiteFooter` does not pass config and the component hardcodes "Quick Links". Footer Social exposes `heading`, individual network URLs, and `showIcons`, while the component expects `title` and a `platforms[]` array. Several edited values therefore never render. |
+| **Impact** | Footer edits appear to save but do not change the website, and social-network additions such as X, TikTok, or LinkedIn cannot be represented by the current icon map and prop contract. |
+| **Fix Guidance** | Align each footer schema with its component props, pass every footer config through `SiteFooter`, support ordered social repeaters with icon validation, and add a footer preview plus round-trip tests. |
+
+### GAP-MED-043: Preview Mode Is Obscured and Hides Important Empty States
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/layout.tsx`](apps/website/src/app/layout.tsx), [`apps/website/src/components/chat/ChatWidget.tsx`](apps/website/src/components/chat/ChatWidget.tsx), [`apps/website/src/components/home/HomeSections.tsx`](apps/website/src/components/home/HomeSections.tsx), [`apps/website/src/components/home/PreviewBridge.tsx`](apps/website/src/components/home/PreviewBridge.tsx) |
+| **Type** | Preview usability gap |
+| **Status** | Active |
+| **Description** | The storefront chat widget remains active and open over the preview, covering a large portion of the first viewport. Data-driven sections return `null` when products, collections, logos, testimonials, articles, or lookbook items are unavailable, so the editor loses the section outline and provides no in-preview explanation or direct repair action. Preview tools activate only inside an iframe, but opening the preview URL directly gives no indication that editing is disabled. |
+| **Impact** | Users cannot accurately inspect the hero/header, cannot click or recover empty sections from the canvas, and may believe a saved section disappeared. |
+| **Fix Guidance** | Add a dedicated preview shell flag that suppresses chat, tracking, and unrelated overlays. Render editor-only empty placeholders for every section with a direct "Add content" action. Show a clear read-only banner when preview is opened outside the editor iframe. |
+
+### GAP-MED-044: Theme Builder Does Not Validate Asset Health or Accessibility Metadata
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/admin/theme/MediaPicker.tsx`](apps/website/src/app/admin/theme/MediaPicker.tsx), [`apps/website/src/components/home/HomeSections.tsx`](apps/website/src/components/home/HomeSections.tsx), [`apps/website/src/components/HomepageSlideshow.tsx`](apps/website/src/components/HomepageSlideshow.tsx) |
+| **Type** | Media quality and publishing gap |
+| **Status** | Active |
+| **Description** | Desktop/mobile runtime inspection found multiple current collection/product images that failed to load. The theme editor accepts arbitrary URLs without a health check, dimensions/aspect preview, focal point, responsive crop, alt-text requirement, or broken-asset warning. Several decorative and content images use empty or generic alt text. |
+| **Impact** | A user can publish broken, badly cropped, slow, or inaccessible imagery while the theme save still succeeds. Visual sections may silently degrade after remote assets move. |
+| **Fix Guidance** | Validate uploads and external URLs, persist width/height/type/alt/focal point, generate responsive variants, show broken-asset badges in the rail and preview, and block publication only for required hero/product assets. Add an automated asset-health report and replacement workflow. |
+
+### GAP-MED-045: Responsive Controls Are Incomplete and Not Preview-Tested Per Section
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/lib/theme-builder-settings.ts`](apps/website/src/lib/theme-builder-settings.ts), [`apps/website/src/lib/theme-styles.ts`](apps/website/src/lib/theme-styles.ts), [`apps/website/src/app/admin/theme/ThemeEditor.tsx`](apps/website/src/app/admin/theme/ThemeEditor.tsx) |
+| **Type** | Responsive no-code gap |
+| **Status** | Active |
+| **Description** | The editor offers desktop/tablet/mobile preview widths, but responsive configuration is inconsistent. Collection Grid has desktop/tablet columns but no mobile control; Featured Products exposes mobile columns but does not consume them; many sections have one fixed height, grid, font size, or alignment for all breakpoints. Current mobile preview shows overly dense collection tiles and very long section stacks. |
+| **Impact** | Users cannot intentionally design mobile layouts and must rely on hidden CSS defaults or custom code, undermining the no-code promise. |
+| **Fix Guidance** | Define a consistent responsive-value model for layout-critical settings, provide linked/unlinked desktop/tablet/mobile controls, and add screenshot assertions for every section at the three editor viewports. Keep advanced breakpoint controls collapsed by default. |
+
+### GAP-MED-046: Section Discovery and Onboarding Are Too Technical
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/admin/theme/ThemeEditor.tsx`](apps/website/src/app/admin/theme/ThemeEditor.tsx), [`apps/website/src/lib/theme-types.ts`](apps/website/src/lib/theme-types.ts) |
+| **Type** | No-code onboarding and workflow friction |
+| **Status** | Active |
+| **Description** | Add Section is a flat grid of 18 labels without categories, search, thumbnail examples, recommended use, required-data warnings, or starter layouts. New sections use one hardcoded preset each. There is no guided setup, reusable section library, saved block, page/theme template gallery, style preset, reset-to-default, or duplicate-from-existing-site workflow. |
+| **Impact** | Non-designers must understand section names and assemble a coherent site from scratch, increasing decision fatigue and dependence on custom CSS or developer help. |
+| **Fix Guidance** | Group sections by hero, content, commerce, social, conversion, and advanced; add searchable visual thumbnails and "best for" guidance; provide HomeU-ready page presets; support saved reusable blocks and style presets; and offer a first-run checklist for logo, colors, navigation, hero, featured products, contact/RFQ, footer, mobile review, and publish. |
+
 ## 🔵 Low Severity Gaps
 
 ### GAP-LOW-001: Bank Account Details are Placeholder Text
@@ -874,16 +1185,91 @@
 
 ---
 
+## 2026-06-20 Comprehensive Feature Audit Baseline
+
+The audit verified that HomeU already has a broad operating platform. New work should extend or connect these capabilities instead of recreating them.
+
+| Capability | Existing Surface |
+|------------|------------------|
+| Storefront and discovery | Product catalog and detail pages, collections, search, recommendations, navigation, homepage sections, SEO metadata, blogs, and pages |
+| Consultation and sales | RFQ cart, RFQ submission, admin RFQ management, quotation management, PDF generation, appointments, and customer-facing quotation views |
+| Customer experience | Registration, login, activation, password-reset UI, account, addresses, dashboard, RFQ history, quotation history, and cart synchronization |
+| AI concierge | Product discovery, recommendations, lead capture, image upload, conversation persistence, appointment scheduling, RFQ creation, Viber handoff, and Telegram alerts |
+| DaVinciOS administration | Dashboard and CRUD surfaces for products, categories, collections, customers, media, pages, redirects, blogs, users, settings, navigation, and theme editing |
+| Analytics and operations | Live visitors, traffic, leads, product interest, funnel/pipeline, reports, workflows, health/readiness endpoints, activity, and deployment tooling |
+| Growth applications | Campaigns, contacts, segments, templates, email inbox, central inbox, Instagram posts/grids, newsletter capture, and webhook support |
+| Platform tooling | Shopify import/export, crawler and visual audits, SEO audit, migration runner, CDN migration, preflight checks, deployer agent, nightly QA, and learning layer |
+
+### Verified Audit Notes
+
+- The website workspace TypeScript check passed on 2026-06-20.
+- The repository status and gap matrices contain stale descriptions of features that now exist; live routes and implementations must remain the source of truth when resolving older gaps.
+- Compilation success is not behavioral verification. Automated tests cover only a small portion of the customer, sales, growth, and administration surface.
+- Existing enabling capabilities are fragmented across discovery, RFQ, quotation, inbox, analytics, and AI experiences; the next product advantage comes from connecting them into one persistent project loop.
+
+### Current Market Signals
+
+- [Wayfair Muse](https://www.aboutwayfair.com/category/company-news/wayfair-introduces-new-ai-powered-tool-muse-to-inspire-and-personalize-the-home-shopping-experience) uses generative AI for visual, personalized home-shopping inspiration.
+- [Wayfair Professional My Projects](https://www.aboutwayfair.com/category/company-news/my-projects-wayfair-professionals-new-project-management-tool) brings product sourcing, task tracking, approvals, and communication into a project workspace.
+- [Wayfair Agent Co-Pilot](https://www.aboutwayfair.com/careers/tech-blog/agent-co-pilot-wayfairs-gen-ai-assistant-for-digital-sales-agents) assists sales agents during personalized customer support.
+- [Shopify Sidekick](https://www.shopify.com/magic) positions AI as an operational commerce assistant for building and growing a store.
+
+The market gap HomeU can own is the combination of inspiration, real-catalog grounding, room and delivery feasibility, collaborative project decisions, RFQ and quotation workflow, and measurable human-assisted closing in one Philippine furniture experience.
+
+### Room Passport Delivery Sequence
+
+1. Close CRIT-004 and HIGH-010 through HIGH-012 before adding new authentication-dependent workflows.
+2. Complete product variants/options under GAP-MED-005 and catalog quality under GAP-MED-039.
+3. Define canonical project, room, item, collaborator, event, RFQ-version, and quotation-version data contracts.
+4. Implement a living-room Room Passport MVP: photo, editable measurements, style, budget, and three catalog-grounded bundles.
+5. Add deterministic fit, clearance, access, budget, variant, availability, and explainable confidence checks.
+6. Add customer/designer collaboration, approvals, saved versions, and one-click project-to-RFQ conversion.
+7. Add the sales co-pilot, consent-aware follow-up automations, and discovery-to-won-revenue attribution.
+
+### Theme Builder Audit Scorecard
+
+Audited 2026-06-20 using static schema-to-consumer tracing, the repository Playwright theme audit, live API calls, TypeScript, and desktop/mobile screenshots against the local database-backed storefront.
+
+| Area | Result | Evidence |
+|------|--------|----------|
+| Section registration | Pass | All 22 section types exist in metadata and the canonical settings registry |
+| Storefront renderers | Pass with gaps | All 18 body section types have renderer branches; four footer types have components |
+| Current live composition | Pass | 13 database sections returned: nine enabled body sections plus four footer sections |
+| API availability | Pass | Settings schema, theme settings, section list/create/update/delete/reorder routes respond and TypeScript passes |
+| Preview bridge | Structurally present | Select, inline text, image, product, insert, and reorder message handlers exist; behavioral coverage remains incomplete |
+| Typed form controls | Fail | `DynamicSettingsForm` is unused; compatibility adapter degrades modern controls to text/number fields |
+| Setting-to-output contract | Fail | Many advertised section and global settings have no visible renderer/style/API effect |
+| Save and recovery safety | Fail | Mutation responses are not checked consistently; import is destructive and non-transactional |
+| Footer contract | Fail | Quick Links and Social schema keys do not match component props/usage |
+| Responsive rendering | Partial | No horizontal overflow at 1440px or 390px, but controls and mobile layouts are incomplete |
+| Visual asset health | Fail | Multiple current collection/product images failed during desktop/mobile runtime inspection |
+| Complete website editing | Fail | Builder covers homepage, global header/navigation, and footer only; other page templates are fixed |
+
+The existing Playwright audit reported 113 passes, one timeout, and five warnings. The timeout is an audit-harness issue: it waits for `networkidle` on a storefront with ongoing analytics/live-visitor traffic. DOM-based inspection returned HTTP 200 and rendered successfully. The stronger issue is that the audit checks existence and broad key references, not whether every control round-trips and visibly changes its own section.
+
+### Theme Builder Repair Order
+
+1. Make import/publish/revisions atomic and show real save errors (GAP-HIGH-020).
+2. Replace the compatibility form with the typed dynamic form (GAP-HIGH-019).
+3. Establish and test the setting-to-output contract; hide unfinished controls (GAP-HIGH-021).
+4. Align global and footer schemas with storage and components (GAP-MED-041, GAP-MED-042).
+5. Create a clean editor preview shell with repairable empty states (GAP-MED-043).
+6. Add asset validation and consistent responsive controls (GAP-MED-044, GAP-MED-045).
+7. Add visual section discovery, starter templates, and guided onboarding (GAP-MED-046).
+8. Expand from homepage editing to product and collection templates, then other page types (GAP-HIGH-022).
+
+---
+
 ## 📊 Summary
 
 | Priority | Active Count | Key Items |
 |----------|-------------|-----------|
-| 🔴 Critical | 0 | — |
-| 🟠 High | 0 | All 9 HIGH gaps resolved (HIGH-001 through HIGH-009) |
-| 🟡 Medium | 17 | No PDF quotes, No product variants, No bulk edit, No missing-data filters, Customer dashboard incomplete, Dead DaVinciOS_* DB tables, Stale @davincios/* packages, payloadcms-ui.tgz, homeu-schema.sql dead DDL, Deployer MCP column name, package.json docker tag, GitHub Actions deploy.yml, Dead cleanup scripts, build-and-deploy dead commands, Stale cdn-reverse-migration comments, Domain references (homeu.ph→homeatelier.ph), **Admin uploads not wired to DO Spaces** |
+| 🔴 Critical | 1 | **Admin OTP returned to requester (CRIT-004)** |
+| 🟠 High | 13 | Existing 9 items plus typed theme form wiring, safe theme mutations/import, setting-to-output contracts, and complete website-template editing |
+| 🟡 Medium | 28 | Existing 22 items plus global theme contract, footer wiring, preview usability, asset health, responsive controls, and no-code onboarding |
 | 🔵 Low | 20 | Bank placeholder, Viber placeholder, Schema migration pending, component-map.md missing, Bare catch blocks, Inline auth styles, UX inconsistency, Dual rendering paths, msgCounter reset, Silent catch, Product URL unused, Viber not clickable, No delete on edit page, Contextual back-link, Admin login branding (DaVinciOS logo class), E2e test Turbopack patterns, Stale homeu.ph domain references, **Slideshow Shopify CDN URLs**, **Favicon Shopify CDN URL**, **Chat uploads local disk** |
 | ✅ Resolved | 36 | **Previously:** CRIT-001, CRIT-002, HIGH-001 through HIGH-009, MED-001,002,003,009-015,017,018, LOW-016,017,018, RES-001-003 (22 gaps). **2026-06-17 false-positive sweep:** MED-021 (DaVinciOS variable naming), MED-026 (17 agent/skill files), MED-027 (Claude DO-Spaces skill), MED-028 (design resources), MED-029 (agent definitions), MED-030 (AI instructions), MED-032 (.env.example), MED-033 (kilo.json ref) — all 9 flagged DaVinciOS references are correct (DaVinciOS IS the backend). Plus corrected MED-018 rationale. |
-| **Total** | **73** | **37 active + 36 resolved** |
+| **Total** | **98** | **62 active + 36 resolved** |
 
 ---
 
@@ -994,6 +1380,12 @@
 
 | Date | Gap ID | Discovered By | Notes |
 |------|--------|---------------|-------|
+| 2026-06-20 | GAP-HIGH-019 through GAP-HIGH-022 | Codex theme-builder audit | Typed form is bypassed, mutations/import are unsafe, many settings are inert, and editing scope stops at homepage/header/footer |
+| 2026-06-20 | GAP-MED-041 through GAP-MED-046 | Codex theme-builder audit | Global/footer contracts, preview usability, asset health, responsive controls, and onboarding gaps |
+| 2026-06-20 | GAP-CRIT-004 | Codex comprehensive feature audit | Admin OTP generation returns the OTP to the requester and logs it |
+| 2026-06-20 | GAP-HIGH-010 through GAP-HIGH-012 | Codex comprehensive feature audit | JWT fallback secret, undelivered password reset, and incomplete API security controls/regression coverage |
+| 2026-06-20 | GAP-HIGH-013 through GAP-HIGH-018 | Codex product and market audit | Persistent project, feasibility, trade, lifecycle, attribution, and Room Passport opportunities |
+| 2026-06-20 | GAP-MED-036 through GAP-MED-040 | Codex comprehensive feature audit | Lead lookup, RFQ notification mapping, quote lifecycle, catalog quality, and end-to-end coverage gaps |
 | 2026-06-16 | GAP-CRIT-001 | System Analysis | Manual review of leads route — commented MVP shortcut |
 | 2026-06-16 | GAP-CRIT-002 | System Analysis | Messages route has no DB writes |
 | 2026-06-16 | GAP-HIGH-001 | System Analysis | QuoteCart.tsx uses localStorage exclusively |
@@ -1069,6 +1461,8 @@
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-06-20 | **Complete no-code theme-builder audit** - Verified 22 registered section types, 18 body renderers, four footer components, 13 current database sections, API availability, and passing TypeScript. Added 10 active gaps covering typed editor controls, mutation/import safety, inert settings, full-site template scope, global/footer contracts, preview usability, media health, responsive controls, and onboarding. Added audit scorecard and repair order. Summary updated to 62 active + 36 resolved. | Codex |
+| 2026-06-20 | **Comprehensive feature, market, and product-gap audit** - Added 15 active gaps: OTP disclosure (critical); authentication, customer recovery, API security, persistent projects, room feasibility, trade workflows, follow-up automation, attribution, and Room Passport (high); lead lookup, RFQ mapping, quotation lifecycle, catalog quality, and E2E coverage (medium). Added the verified feature baseline, current market signals, and Room Passport delivery sequence. Summary updated to 52 active + 36 resolved. | Codex |
 | 2026-06-17 | **False-positive sweep corrected** — 9 medium gaps marked resolved (false positives): MED-021 (DaVinciOS variable naming correct), MED-026 (17 agent/skill files correct), MED-027 (Claude DO-Spaces skill correct), MED-028 (design resources correct), MED-029 (agent definitions correct), MED-030 (AI instructions correct), MED-032 (.env.example DAVINCIOS_SECRET correct — separate from JWT_SECRET), MED-033 (kilo.json ref correct). MED-018 rationale corrected (DaVinciOS- prefix restored). **DaVinciOS IS the backend CMS.** The gap scanner incorrectly flagged legitimate backend references as stale. Summary updated: 33 active (0 critical, 0 high, 16 medium, 17 low) + 36 resolved. Also undid Codex's file rename sweep — restored `DaVinciOS-products.json` etc. across 11 files. | Kilo (thinker) |
 | 2026-06-16 | Initial gap analysis created (22 entries: 19 active, 3 resolved) | System |
 | 2026-06-16 | Frontend audit completed — added 17 new gaps (7 medium, 10 low) covering storefront, admin panel, and chat widget components. Total: 39 entries (36 active, 3 resolved) | System |
@@ -1081,3 +1475,4 @@
 | 2026-06-16 | **Gap verification sweep** — Audited all 6 compilation-blocking and critical gaps against live code. Found all already resolved: ✅ **CRIT-001** (leads insert in route.ts + db.ts), ✅ **CRIT-002** (messages insert in message/route.ts + db.ts), ✅ **HIGH-006** (4 chatbot services use direct DB, no HTTP calls), ✅ **HIGH-002** (Telegram alerts wired to leads, messages, rfq routes), ✅ **HIGH-007** (SEOHealth.ts imports from local types/davincios, not @davincios/cms), ✅ **HIGH-008** (davincios.d.ts exists, all 8 collections import CollectionConfig/GlobalConfig). Updated GAP_LOG.md status, Summary counts (55 active, 14 resolved), and Phase 2 plan to reflect resolved state. Total: 69 entries (55 active, 14 resolved) | Roo (Code mode) |
 | 2026-06-16 | ✅ **GAP-MED-001** resolved — duplicate `case 'CUSTOM_FURNITURE'` already removed from message router. Only one case remains, paired with COMPLAINT. Summary updated (54 active, 15 resolved) | Roo (Code mode) |
 | 2026-06-19 | **CDN media wiring audit** — Added 4 new gaps (1 medium, 3 low) covering the DO Spaces CDN not being wired for admin uploads, slideshow Shopify URLs, favicon Shopify URL, and chat uploads to local disk. Products/categories bulk migration to DO Spaces was ✅ done, but live upload pipeline and a few frontend assets still bypass the CDN. Summary updated (37 active, 36 resolved) | Roo (Debug mode) |
+| 2026-06-19 | **Featured pieces product curator** — Added new "curated" source mode for `featured_products` section, visual ProductPicker modal with category filter tabs, search, and multi-select. Created API endpoint `/api/admin/products/picker`, `ProductPicker.tsx` component, and wired in-preview product click → picker flow. Updated HomeSections renderer, theme-schemas, ThemeEditor, PreviewBridge, and admin exports. ✅ Resolved GAP-MED-FEATURED-PICKER. Summary updated (37 active, 37 resolved) | SuperRoo (Code mode) |

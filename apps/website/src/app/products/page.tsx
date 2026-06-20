@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { formatPrice } from '@/lib/format-utils'
 
 interface Product {
   id: string
@@ -269,11 +270,11 @@ function ProductsContent() {
                     <p className="product-card-category">{product.category.title}</p>
                   )}
                   {product.price != null && (
-                    <p className="product-card-price">
-                      ₱{product.price.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                    <p className="product-card-price" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, letterSpacing: '-0.01em' }}>
+                      {formatPrice(product.price)}
                       {product.originalPrice && product.originalPrice > product.price && (
-                        <span className="product-card-price-original">
-                          ₱{product.originalPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                        <span className="product-card-price-original" style={{ fontWeight: 400 }}>
+                          {formatPrice(product.originalPrice)}
                         </span>
                       )}
                     </p>

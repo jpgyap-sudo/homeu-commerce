@@ -30,6 +30,16 @@ export function PreviewBridge() {
 
     document.body.classList.add('homeu-preview-mode')
 
+    // ── Hover swap buttons for featured product tiles ──────────────
+    const swapBtnStyle = document.createElement('style')
+    swapBtnStyle.textContent = `
+      .homeu-preview-mode .grid-product__image-wrap { position: relative; }
+      .homeu-preview-mode .grid-product__image-wrap:hover .homeu-product-swap-btn {
+        display: flex !important;
+      }
+    `
+    document.head.appendChild(swapBtnStyle)
+
     // ── Outline + label ─────────────────────────────────────────────
     const outline = document.createElement('div')
     outline.className = 'homeu-preview-outline'
@@ -233,6 +243,37 @@ export function PreviewBridge() {
         return
       }
 
+      // Swap button click → replace a single product slot
+      const swapBtn = (e.target as HTMLElement).closest('.homeu-product-swap-btn') as HTMLElement | null
+      if (swapBtn) {
+        e.preventDefault(); e.stopPropagation()
+        const section = swapBtn.closest('[data-section-id]') as HTMLElement
+        if (!section) return
+        const id = Number(section.getAttribute('data-section-id'))
+        const productIndex = Number(swapBtn.getAttribute('data-product-index'))
+        window.parent.postMessage({
+          source: 'homeu-preview', kind: 'pick-product-slot', id, productIndex,
+        }, '*')
+        highlightSection(id)
+        return
+      }
+
+      // Product card click (featured_products section) → postMessage for product picker
+      const productLink = (e.target as HTMLElement).closest('.grid-product__link') as HTMLElement | null
+      if (productLink) {
+        e.preventDefault(); e.stopPropagation()
+        const section = productLink.closest('[data-section-id]') as HTMLElement
+        if (!section) return
+        const id = Number(section.getAttribute('data-section-id'))
+        const productIndex = productLink.getAttribute('data-product-index')
+        window.parent.postMessage({
+          source: 'homeu-preview', kind: 'pick-product', id,
+          productIndex: productIndex ? Number(productIndex) : undefined,
+        }, '*')
+        highlightSection(id)
+        return
+      }
+
       e.preventDefault(); e.stopPropagation()
       const isHeader = t.getAttribute('data-section-type') === 'header-section'
       window.parent.postMessage({
@@ -364,6 +405,7 @@ export function PreviewBridge() {
       document.body.classList.remove('homeu-preview-mode')
       outline.remove(); dropline.remove()
       document.querySelectorAll('.homeu-preview-insert').forEach(el => el.remove())
+      swapBtnStyle.remove()
       observer.disconnect()
     }
   }, [])

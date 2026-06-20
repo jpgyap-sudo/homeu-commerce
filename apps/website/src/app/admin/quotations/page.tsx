@@ -27,6 +27,8 @@ interface Quotation {
   createdAt: string
   items?: QuotationItem[]
   rfq?: { id: string }
+  pending_revision?: boolean
+  revision_request?: string
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -273,6 +275,16 @@ export default function AdminQuotationsPage() {
                       }}>
                         {statusInfo.label}
                       </span>
+                      {q.pending_revision && (
+                        <span style={{
+                          display: 'inline-block', marginLeft: 6,
+                          background: '#fff3cd', color: '#856404',
+                          padding: '2px 8px', borderRadius: 12,
+                          fontSize: 11, fontWeight: 700,
+                        }}>
+                          🔄 Revise
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: '#666' }}>
                       {q.validUntil

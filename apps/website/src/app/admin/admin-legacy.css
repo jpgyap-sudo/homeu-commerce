@@ -4,25 +4,29 @@
    ========================================================================== */
 
 :root {
-  /* Brand palette — aligned with DaVinciOS Command Center luxury theme */
-  --admin-bg-dark: #0c1524;
-  --admin-bg-warm: #f5f2ed;
+  /* Brand palette — HomeU green (aligned with the storefront brand) */
+  --admin-bg-dark: #0f2e22;
+  --admin-bg-warm: #f3f5f2;
   --admin-bg-card: #ffffff;
-  --admin-text-primary: #171717;
-  --admin-text-secondary: #475569;
-  --admin-text-muted: #94a3b8;
-  --admin-line: #ebe5dc;
-  --admin-line-strong: #d9cfc3;
-  --admin-accent: #c9a050;
-  --admin-accent-light: #dec684;
-  --admin-accent-dark: #8c7d6b;
+  --admin-text-primary: #16201b;
+  --admin-text-secondary: #4a5852;
+  --admin-text-muted: #93a39a;
+  --admin-line: #e3e8e3;
+  --admin-line-strong: #cdd6cf;
+  /* Primary green accent (buttons, links, focus) */
+  --admin-accent: #1a6d3e;
+  --admin-accent-light: #2f8d57;
+  --admin-accent-dark: #134e2c;
+  --admin-accent-ring: rgba(26, 109, 62, 0.18);
+  /* Subtle gold kept only as a luxury micro-accent */
+  --admin-gold: #b8935a;
   --admin-error-bg: #fff1f2;
   --admin-error-border: #fecdd3;
   --admin-error-text: #be123c;
-  --admin-success: #059669;
+  --admin-success: #1a6d3e;
   --admin-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --admin-radius: 10px;
-  --admin-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+  --admin-radius: 12px;
+  --admin-shadow: 0 1px 3px rgba(16, 40, 28, 0.05), 0 12px 32px rgba(16, 40, 28, 0.08);
 }
 
 /* ========================================================================
@@ -49,10 +53,10 @@
   width: 45%;
   min-height: 100vh;
   background:
-    radial-gradient(ellipse 120% 60% at 30% 20%, rgba(184, 151, 90, 0.12), transparent 60%),
-    radial-gradient(ellipse 80% 50% at 70% 80%, rgba(184, 151, 90, 0.06), transparent 50%),
-    linear-gradient(175deg, #1a1917 0%, #141312 35%, #1e1c1a 65%, #121110 100%);
-  color: #f7f5f0;
+    radial-gradient(ellipse 120% 60% at 25% 15%, rgba(255, 255, 255, 0.10), transparent 55%),
+    radial-gradient(ellipse 90% 60% at 80% 90%, rgba(8, 28, 19, 0.55), transparent 55%),
+    linear-gradient(165deg, #246046 0%, #173f2f 42%, #0f2e22 100%);
+  color: #f3f7f4;
   overflow: hidden;
 }
 
@@ -88,18 +92,40 @@
   background-size: 80px 140px;
 }
 
-/* DaVinciOS Logo */
+/* Brand logo (CDN image, rendered white on the green panel) */
 .admin-login-brand-header {
   position: relative;
   z-index: 1;
   padding-top: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
 }
 
 .admin-login-brand-logo {
-  color: #f7f5f0;
-  height: 38px;
+  height: 52px;
   width: auto;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
+  max-width: 240px;
+  object-fit: contain;
+  /* Render the dark CDN wordmark as clean white on the green panel */
+  filter: brightness(0) invert(1) drop-shadow(0 2px 10px rgba(0, 0, 0, 0.25));
+}
+
+.admin-login-brand-wordmark {
+  font-family: var(--font-display, 'Playfair Display', Georgia, serif);
+  font-size: 30px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.admin-login-brand-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(243, 247, 244, 0.62);
 }
 
 /* Brand message section */
@@ -160,6 +186,13 @@
   color: var(--admin-text-primary);
 }
 
+.admin-login-mobile-logo {
+  height: 38px;
+  width: auto;
+  max-width: 180px;
+  object-fit: contain;
+}
+
 @media (min-width: 1024px) {
   .admin-login-mobile-brand {
     display: none;
@@ -168,18 +201,32 @@
 
 /* Login card */
 .admin-login-card {
+  position: relative;
   background: var(--admin-bg-card);
   border: 1px solid var(--admin-line);
   border-radius: var(--admin-radius);
   padding: 40px 36px 36px;
   box-shadow: var(--admin-shadow);
+  overflow: hidden;
+}
+
+/* Thin brand accent bar across the top of the card */
+.admin-login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--admin-accent-dark), var(--admin-accent-light), var(--admin-gold));
 }
 
 .admin-login-title {
   margin: 0 0 4px;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display, 'Playfair Display', Georgia, serif);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
   color: var(--admin-text-primary);
 }
 
@@ -301,7 +348,7 @@
 .admin-login-input-wrap input:focus {
   background: #ffffff;
   border-color: var(--admin-accent);
-  box-shadow: 0 0 0 3px rgba(201, 160, 80, 0.15);
+  box-shadow: 0 0 0 3px var(--admin-accent-ring);
 }
 
 /* Password toggle button */
@@ -337,25 +384,25 @@
   font-weight: 600;
   font-family: var(--admin-font);
   letter-spacing: 0.01em;
-  background: var(--admin-accent);
+  background: linear-gradient(180deg, var(--admin-accent-light) 0%, var(--admin-accent) 60%, var(--admin-accent-dark) 100%);
   border: none;
   border-radius: 10px;
   color: #ffffff;
   cursor: pointer;
   transition: all 180ms ease;
-  box-shadow: 0 4px 14px rgba(201, 160, 80, 0.3);
+  box-shadow: 0 4px 14px rgba(26, 109, 62, 0.32);
   margin-top: 4px;
 }
 
 .admin-login-submit:hover {
-  background: var(--admin-accent-dark);
-  box-shadow: 0 6px 20px rgba(201, 160, 80, 0.4);
+  background: linear-gradient(180deg, var(--admin-accent) 0%, var(--admin-accent-dark) 100%);
+  box-shadow: 0 6px 22px rgba(26, 109, 62, 0.42);
   transform: translateY(-1px);
 }
 
 .admin-login-submit:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(201, 160, 80, 0.25);
+  box-shadow: 0 2px 8px rgba(26, 109, 62, 0.28);
 }
 
 .admin-login-submit:disabled {

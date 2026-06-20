@@ -130,12 +130,12 @@ export default function NewQuotationPage() {
   async function loadRfqs() {
     setLoadingRfqs(true)
     try {
-      let url = '/api/rfq-requests?limit=20&sort=-createdAt&depth=2'
-      if (rfqSearch) url += `&where[or][0][customerName][contains]=${encodeURIComponent(rfqSearch)}`
-      const res = await fetch(url)
+      let url = '/api/rfq-requests?limit=20'
+      if (rfqSearch) url += `&search=${encodeURIComponent(rfqSearch)}`
+      const res = await fetch(url, { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
-        setRfqs(data.docs || [])
+        setRfqs(data.rfqs || [])
       }
     } catch {
       // ignore

@@ -37,6 +37,8 @@ interface QuotationData {
   termsDeliveryLeadtime?: string
   termsPaymentTerms?: string
   termsWarranty?: string
+  pending_revision?: boolean
+  revision_request?: string
   termsBankDetails?: string
   termsCancellationPolicy?: string
   termsReturnPolicy?: string
@@ -268,6 +270,87 @@ export default function CustomerQuotationPage() {
         Thank you for ordering your new beloved furnishing piece at Home Atelier.
       </div>
 
+      {/* ── Revision Request Section (THE GENIUS) ── */}
+      {quotation.status === 'sent' && (
+        <div style={{
+          background: '#f9f9f9', border: '1px solid #eee', borderRadius: 8,
+          padding: 20, marginTop: 24,
+        }}>
+          {quotation.pending_revision ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 24 }}>🔄</span>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: 16 }}>Revision Requested</h3>
+                <p style={{ margin: 0, fontSize: 13, color: '#555' }}>
+                  The HomeU team is reviewing your revision request. They will update the quotation and notify you.
+                </p>
+                {quotation.revision_request && (
+                  <p style={{ margin: '8px 0 0', fontSize: 13, color: '#333', fontStyle: 'italic' }}>
+                    Your message: &ldquo;{quotation.revision_request}&rdquo;
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <h3 style={{ margin: '0 0 8px', fontSize: 16 }}>Need changes?</h3>
+              <p style={{ margin: '0 0 12px', fontSize: 13, color: '#555' }}>
+                If you'd like to revise pricing, items, or terms, let us know what you need and we'll create an updated quotation.
+              </p>
+              <textarea
+                id="revision-message"
+                rows={3}
+                placeholder="E.g. Can you adjust the pricing for Item X? We'd also like to add..."
+                style={{
+                  width: '100%', padding: '10px 12px', border: '1.5px solid #d9e0d7',
+                  borderRadius: 8, fontSize: 13, fontFamily: 'inherit', resize: 'vertical',
+                  marginBottom: 10, boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={async () => {
+                    const msg = (document.getElementById('revision-message') as HTMLTextAreaElement).value
+                    if (!msg.trim()) return alert('Please enter your revision request.')
+                    try {
+                      const res = await fetch(`/api/quotations/${quotation.id}/revision-request`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: msg.trim() }),
+                      })
+                      if (res.ok) {
+                        // Update state to show pending
+                        setQuotation(prev => prev ? { ...prev, pending_revision: true, revision_request: msg.trim() } : prev)
+                      } else {
+                        const data = await res.json()
+                        alert(data.error || 'Failed to submit revision request')
+                      }
+                    } catch {
+                      alert('Failed to submit revision request. Please try again.')
+                    }
+                  }}
+                  style={{
+                    padding: '10px 24px', background: '#1a6d3e', color: '#fff',
+                    border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ✏️ Request Revision
+                </button>
+                <a href={`mailto:sales@homeu.ph?subject=Question about Quotation ${quotation.quotationNumber}`}
+                  style={{
+                    padding: '10px 24px', background: '#222', color: '#fff',
+                    borderRadius: 6, textDecoration: 'none', fontSize: 14, display: 'inline-flex',
+                    alignItems: 'center',
+                  }}>
+                  ✉ Email Us
+                </a>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Actions */}
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 24 }}>
         <Link href="/customer/dashboard" style={{
@@ -276,7 +359,7 @@ export default function CustomerQuotationPage() {
         }}>
           &larr; Back to Dashboard
         </Link>
-        {quotation.status !== 'accepted' && quotation.status !== 'rejected' && (
+        {quotation.status !== 'accepted' && quotation.status !== 'rejected' && !quotation.pending_revision && (
           <a href={`mailto:sales@homeu.ph?subject=Question about Quotation ${quotation.quotationNumber}`}
             style={{
               padding: '10px 24px', background: '#222', color: '#fff',

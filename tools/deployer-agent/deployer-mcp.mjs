@@ -784,7 +784,7 @@ async function enforceSyncGate(options = {}) {
 async function executeBuild() {
   console.error('🏗️  Building...')
   const result = await connectToVPS(
-    'cd /opt/homeu-commerce && docker compose build --no-cache 2>&1 | tail -5'
+    'cd /opt/homeu-commerce/apps/website && npx next build 2>&1 | tail -10'
   )
   return result
 }
@@ -800,12 +800,12 @@ async function executeDeploy() {
   const headResult = await connectToVPS('cd /opt/homeu-commerce && git rev-parse HEAD 2>&1')
   const commitSha = headResult.success ? headResult.output.trim() : (pull.output.match(/[a-f0-9]{7,40}/)?.[0] || '')
   
-  // 3. Build
-  const build = await connectToVPS('cd /opt/homeu-commerce && docker compose build --no-cache 2>&1 | tail -5')
+  // 3. Build (Next.js standalone with Turbopack incremental cache)
+  const build = await connectToVPS('cd /opt/homeu-commerce/apps/website && npx next build 2>&1 | tail -10')
   if (!build.success) return build
-  
-  // 4. Start services
-  const start = await connectToVPS('cd /opt/homeu-commerce && docker compose up -d 2>&1')
+
+  // 4. Restart PM2 cluster (zero-downtime reload)
+  const start = await connectToVPS('pm2 reload homeu-website --update-env 2>&1 || pm2 restart homeu-website')
   if (!start.success) return start
   
   // 5. Health check
@@ -817,8 +817,8 @@ async function executeDeploy() {
   // 6. Record history with full commit SHA
   const pool = await getPg()
   await pool.query(
-    `INSERT INTO deployer_history (commit_sha, status, docker_image, deployed_by)
-     VALUES ($1, $2, 'homeu-commerce-website:latest', $3)`,
+    `INSERT INTO deployer_history (commit_sha, status, deployment_type, deployed_by)
+     VALUES ($1, $2, 'pm2-cluster', $3)`,
     [commitSha, health.success ? 'success' : 'degraded', EXTENSION_ID]
   )
   
@@ -1291,7 +1291,7 @@ async function main() {
 
         case 'deployer_health': {
           const result = await connectToVPS(
-            "curl -s -o /dev/null -w 'homepage:%{http_code}' http://localhost:3000/ && echo -n ' ' && curl -s -o /dev/null -w 'admin:%{http_code}' http://localhost:3000/admin && echo -n ' ' && docker compose ps --format '{{.Name}}:{{.Status}}' 2>/dev/null"
+            "curl -s -o /dev/null -w 'homepage:%{http_code}' http://localhost:3000/ && echo -n ' ' && curl -s -o /dev/null -w 'admin:%{http_code}' http://localhost:3000/admin && echo -n ' ' && pm2 show homeu-website 2>/dev/null | grep 'online\\|status' | head -2"
           )
           return { content: [{ type: 'text', text: result.output || `Error: ${result.error}` }] }
         }

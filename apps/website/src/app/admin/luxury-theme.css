@@ -16,13 +16,15 @@
   --luxe-navy-700: #64748b;
   --luxe-navy-600: #94a3b8;
   --luxe-navy-500: #cbd5e1;
-  --luxe-blue-600: #2563eb;
-  --luxe-blue-500: #3b82f6;
-  --luxe-blue-400: #60a5fa;
-  --luxe-blue-300: #93c5fd;
-  --luxe-blue-200: #bfdbfe;
-  --luxe-blue-100: #dbeafe;
-  --luxe-blue-50:  #eff6ff;
+  /* Primary accent — HomeU green (remapped from the original blue scale so the
+     whole admin inherits the brand green; var names kept for compatibility) */
+  --luxe-blue-600: #1a6d3e;
+  --luxe-blue-500: #2f8d57;
+  --luxe-blue-400: #57ab79;
+  --luxe-blue-300: #8fc8a6;
+  --luxe-blue-200: #c2e0cc;
+  --luxe-blue-100: #dcefe2;
+  --luxe-blue-50:  #eef6f0;
   --luxe-gold-500:  #c9a050;
   --luxe-gold-400:  #d4b36a;
   --luxe-gold-300:  #dec684;
@@ -45,8 +47,8 @@
   --luxe-merlot-bg: #fff1f2;
   --luxe-amber:     #d97706;
   --luxe-amber-bg:  #fffbeb;
-  --luxe-sapphire:  #2563eb;
-  --luxe-sapphire-bg:#eff6ff;
+  --luxe-sapphire:  #1a6d3e;
+  --luxe-sapphire-bg:#eef6f0;
 
   /* ── Typography ── */
   --font-display: 'Playfair Display', 'Georgia', 'Times New Roman', serif;

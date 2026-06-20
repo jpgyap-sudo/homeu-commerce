@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import navigation from '@/data/navigation.json'
 import siteConfig from '@/data/site-config.json'
+import { QuoteCartBadge } from '@/components/QuoteCart'
 
 type NavItem = { title: string; href: string; type?: string; children: NavItem[] }
 
@@ -29,9 +30,11 @@ export function SiteHeader({ nav, logoUrl, header }: { nav?: NavItem[]; logoUrl?
       <Link href="/search" className="site-header__icon-btn" aria-label="Search">
         <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M17 17l-4-4"/></svg>
       </Link>
-      <Link href="/customer/dashboard" className="site-header__icon-btn" aria-label="Account">
+      <Link href="/customer/dashboard" className="site-header__icon-btn site-header__login-btn" aria-label="Log in">
         <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="10" cy="6" r="3.5"/><path d="M3 18c0-3.87 3.13-7 7-7s7 3.13 7 7"/></svg>
+        <span className="site-header__login-label">Log in</span>
       </Link>
+      <QuoteCartBadge />
     </>
   )
 

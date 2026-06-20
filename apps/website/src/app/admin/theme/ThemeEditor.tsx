@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { SECTION_META, SECTION_TYPES, type SectionType } from '@/lib/theme-types'
 import { SECTION_SCHEMAS, type FieldDef } from './theme-schemas'
 import { MediaPicker } from './MediaPicker'
+import { ProductPicker } from '@/components/admin/ProductPicker'
+import { CollectionPicker } from '@/components/admin/CollectionPicker'
+import { HOMEU_CURATED_COLLECTION_SLUGS } from '@/lib/homepage-collections'
 
 // ── Default content presets for new sections ─────────────────────────
 const SECTION_PRESETS: Record<string, Record<string, any>> = {
@@ -15,10 +18,10 @@ const SECTION_PRESETS: Record<string, Record<string, any>> = {
     ],
   },
   brand_text: { title: 'Our Story', body: 'Write your brand statement here...' },
-  collection_grid: { heading: 'Shop by Collection', source: 'featured', limit: 8 },
+  collection_grid: { heading: '', source: 'curated', curatedSlugs: [...HOMEU_CURATED_COLLECTION_SLUGS] },
   image_with_text: { image: '', title: 'Title', text: 'Describe this image...', buttonText: 'Learn More', buttonLink: '/products' },
   image_bar: { images: [{ image: '', link: '' }, { image: '', link: '' }, { image: '', link: '' }] },
-  featured_products: { heading: 'Featured Pieces', source: 'auto', limit: 8 },
+  featured_products: { heading: 'Featured Pieces', source: 'auto', limit: 8, curatedIds: [] },
   reviews: { heading: 'What Our Customers Say' },
   instagram: { heading: 'Follow Us', handle: 'homeatelierph', tiles: 6 },
   cta: { heading: 'Get in Touch', text: 'We\'d love to hear from you', primaryText: 'Contact Us', primaryLink: '/contact', bgColor: '' },
@@ -73,6 +76,11 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
   const [toast, setToast] = useState('')
   const [previewKey, setPreviewKey] = useState(0)
   const sectionsRef = useRef<Section[]>(initial)
+
+  // ── Reorder confirmation ─────────────────────────────────────────
+  const [pendingMove, setPendingMove] = useState<{
+    bodyIdx: number; dir: -1 | 1; fromId: number; toId: number; sectionName: string
+  } | null>(null)
 
   // Keep sectionsRef in sync with sections state (for message handlers that need latest)
   useEffect(() => { sectionsRef.current = sections }, [sections])
@@ -238,6 +246,24 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
   const [mediaCurrentUrl, setMediaCurrentUrl] = useState('')
   const mediaResolveRef = useRef<((url: string | null) => void) | null>(null)
 
+  // ── Product picker state ──────────────────────────────────────────
+  const [productPickerOpen, setProductPickerOpen] = useState(false)
+  const [productPickerSectionId, setProductPickerSectionId] = useState<number | null>(null)
+  const productPickerResolveRef = useRef<((ids: number[]) => void) | null>(null)
+
+  // Collection picker state
+  const [collectionPickerOpen, setCollectionPickerOpen] = useState(false)
+  const [collectionPickerSelected, setCollectionPickerSelected] = useState<string[]>([])
+  const [collectionPickerMulti, setCollectionPickerMulti] = useState(false)
+  const collectionPickerResolveRef = useRef<((slugs: string[]) => void) | null>(null)
+
+  function openCollectionPicker(selected: string[], multiSelect: boolean, onSelect: (slugs: string[]) => void) {
+    setCollectionPickerSelected(selected)
+    setCollectionPickerMulti(multiSelect)
+    collectionPickerResolveRef.current = onSelect
+    setCollectionPickerOpen(true)
+  }
+
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2000) }
   const refreshPreview = () => setPreviewKey(k => k + 1)
 
@@ -319,6 +345,132 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
         return
       }
 
+      // ── Product picker: click product in preview → open ProductPicker ──
+      if (d.kind === 'pick-product') {
+        const id = Number(d.id)
+        const productIndex = d.productIndex !== undefined ? Number(d.productIndex) : undefined
+
+        // If we have a specific slot AND the section is already curated, do slot replacement
+        if (productIndex !== undefined && !isNaN(productIndex)) {
+          const sec = sectionsRef.current.find(x => x.id === id)
+          const existingIds: number[] = sec?.config?.curatedIds || []
+          if (existingIds.length > productIndex) {
+            // Slot replacement — route to pick-product-slot logic
+            setProductPickerSectionId(id)
+            setProductPickerOpen(true)
+            productPickerResolveRef.current = (chosenIds: number[]) => {
+              if (!chosenIds || chosenIds.length === 0) return
+              const chosenId = chosenIds[0]
+              setSections(prev => {
+                const idx = prev.findIndex(s => s.id === id)
+                if (idx === -1) return prev
+                const ids: number[] = [...(prev[idx].config?.curatedIds || [])]
+                if (productIndex < ids.length) ids[productIndex] = chosenId
+                else ids.push(chosenId)
+                const next = [...prev]
+                next[idx] = { ...next[idx], config: { ...next[idx].config, curatedIds: ids, source: 'curated' } }
+                return next
+              })
+              setDirty(true)
+              const secData = sectionsRef.current.find(x => x.id === id)
+              if (secData) {
+                const ids: number[] = [...(secData.config?.curatedIds || [])]
+                if (productIndex < ids.length) ids[productIndex] = chosenId
+                else ids.push(chosenId)
+                fetch(`/api/theme/sections/${id}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ config: { ...secData.config, curatedIds: ids, source: 'curated' } }),
+                })
+              }
+              refreshPreview()
+            }
+            return
+          }
+        }
+
+        // Full replacement (no slot or section not yet curated)
+        setProductPickerSectionId(id)
+        setProductPickerOpen(true)
+        productPickerResolveRef.current = (chosenIds: number[]) => {
+          if (!chosenIds) return
+          setSections(prev => {
+            const idx = prev.findIndex(s => s.id === id)
+            if (idx === -1) return prev
+            const next = [...prev]
+            next[idx] = { ...next[idx], config: { ...next[idx].config, curatedIds: chosenIds, source: 'curated' } }
+            return next
+          })
+          setDirty(true)
+          const secData = sectionsRef.current.find(x => x.id === id)
+          if (secData) {
+            const newConfig = { ...secData.config, curatedIds: chosenIds, source: 'curated' }
+            fetch(`/api/theme/sections/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ config: newConfig }) })
+          }
+          refreshPreview()
+        }
+        return
+      }
+
+      // ── Per-slot product replace: click a single product box's swap button ──
+      if (d.kind === 'pick-product-slot') {
+        const id = Number(d.id)
+        const productIndex = Number(d.productIndex)
+        if (isNaN(productIndex)) return
+        setProductPickerSectionId(id)
+        setProductPickerOpen(true)
+        const sec = sectionsRef.current.find(x => x.id === id)
+        const currentIds: number[] = sec?.config?.curatedIds || []
+
+        productPickerResolveRef.current = (chosenIds: number[]) => {
+          if (!chosenIds || chosenIds.length === 0) return
+          const chosenId = chosenIds[0] // single select
+
+          setSections(prev => {
+            const idx = prev.findIndex(s => s.id === id)
+            if (idx === -1) return prev
+            const existingIds: number[] = prev[idx].config?.curatedIds || []
+            let newIds: number[]
+            if (existingIds.length > 0) {
+              newIds = [...existingIds]
+              if (productIndex < newIds.length) {
+                newIds[productIndex] = chosenId
+              } else {
+                newIds.push(chosenId)
+              }
+            } else {
+              newIds = [chosenId]
+            }
+            const next = [...prev]
+            next[idx] = { ...next[idx], config: { ...next[idx].config, curatedIds: newIds, source: 'curated' } }
+            return next
+          })
+          setDirty(true)
+          const secData = sectionsRef.current.find(x => x.id === id)
+          if (secData) {
+            const existingIds: number[] = secData.config?.curatedIds || []
+            let newIds: number[]
+            if (existingIds.length > 0) {
+              newIds = [...existingIds]
+              if (productIndex < newIds.length) {
+                newIds[productIndex] = chosenId
+              } else {
+                newIds.push(chosenId)
+              }
+            } else {
+              newIds = [chosenId]
+            }
+            fetch(`/api/theme/sections/${id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ config: { ...secData.config, curatedIds: newIds, source: 'curated' } }),
+            })
+          }
+          refreshPreview()
+        }
+        return
+      }
+
       // ── Image picker (Phase 3: click image → open media picker) ──
       if (d.kind === 'pick-image') {
         const id = Number(d.id)
@@ -389,15 +541,17 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
         const id = Number(d.id)
         if (d.action === 'edit') { openAndScroll(id); return }
         if (d.action === 'up' || d.action === 'down') {
-          setSections(prev => {
-            const idx = prev.findIndex(s => s.id === id)
-            const j = d.action === 'up' ? idx - 1 : idx + 1
-            if (idx === -1 || j < 0 || j >= prev.length) return prev
-            const next = [...prev]
-            ;[next[idx], next[j]] = [next[j], next[idx]]
-            return next
+          const dir = d.action === 'up' ? -1 : 1
+          const idx = sectionsRef.current.findIndex(s => s.id === id)
+          const j = idx + dir
+          if (idx === -1 || j < 0 || j >= sectionsRef.current.length) return
+          const sec = sectionsRef.current[idx]
+          const meta = SECTION_META[sec.type]
+          setPendingMove({
+            bodyIdx: idx, dir, fromId: id,
+            toId: sectionsRef.current[j].id,
+            sectionName: meta?.label || sec.type,
           })
-          setDirty(true)
         }
         return
       }
@@ -535,8 +689,16 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
     const bodySections = sections.filter(s => !FOOTER_SECTION_TYPES.has(s.type))
     const j = bodyIdx + dir
     if (j < 0 || j >= bodySections.length) return
-    const fromId = bodySections[bodyIdx].id
-    const toId = bodySections[j].id
+    const sec = bodySections[bodyIdx]
+    const meta = SECTION_META[sec.type]
+    setPendingMove({
+      bodyIdx, dir, fromId: sec.id,
+      toId: bodySections[j].id,
+      sectionName: meta?.label || sec.type,
+    })
+  }
+
+  function executeMove(fromId: number, toId: number) {
     setSectionsWithHistory(prev => {
       const next = [...prev]
       const fromGlobalIdx = next.findIndex(s => s.id === fromId)
@@ -546,6 +708,15 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
       return next
     })
     setDirty(true)
+    // Persist immediately and refresh preview
+    fetch('/api/theme/sections', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order: sections.map(s => s.id === fromId ? toId : s.id === toId ? fromId : s.id) }),
+    })
+    refreshPreview()
+    flash('Section moved')
+    setPendingMove(null)
   }
 
   async function addSection(type: SectionType) {
@@ -721,6 +892,105 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
         </div>
       )
     }
+
+    // ── Product picker field ──────────────────────────────────────────
+    if (f.type === 'product_picker') {
+      const curatedIds: number[] = sec.config.curatedIds || []
+      return (
+        <div key={f.key} style={{ marginBottom: 16 }}>
+          <label style={lbl}>{f.label}</label>
+          <div style={{ border: '1px solid #eef1ed', borderRadius: 8, padding: 12, background: '#fafbf9' }}>
+            {curatedIds.length > 0 ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                {curatedIds.map(id => (
+                  <span key={id} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '4px 10px', background: '#e8f2ec', borderRadius: 999,
+                    fontSize: 12, fontWeight: 600, color: '#1a6d3e',
+                  }}>
+                    #{id}
+                    <button onClick={() => {
+                      const next = curatedIds.filter(x => x !== id)
+                      setConfig(sec.id, 'curatedIds', next)
+                    }} style={{ border: 'none', background: 'transparent', color: '#b0392f', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontSize: 12, color: '#9aa69c', margin: '0 0 8px' }}>No products selected yet.</p>
+            )}
+            <button onClick={() => {
+              setProductPickerSectionId(sec.id)
+              setProductPickerOpen(true)
+              productPickerResolveRef.current = (chosenIds: number[]) => {
+                if (chosenIds && chosenIds.length > 0) {
+                  setConfig(sec.id, 'curatedIds', chosenIds)
+                  setConfig(sec.id, 'source', 'curated')
+                }
+              }
+            }} style={{
+              padding: '8px 16px', border: '1.5px dashed #9cc4a9', borderRadius: 8,
+              background: '#f0f7f2', color: '#1e7a47', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              width: '100%',
+            }}>
+              🏷️ Pick products
+            </button>
+          </div>
+          {f.help && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa69c' }}>{f.help}</p>}
+        </div>
+      )
+    }
+
+    if (f.type === 'collection_picker') {
+      const curatedSlugs: string[] = Array.isArray(sec.config.curatedSlugs) && sec.config.curatedSlugs.length > 0
+        ? sec.config.curatedSlugs.slice(0, 15)
+        : [...HOMEU_CURATED_COLLECTION_SLUGS]
+      const replaceAt = (index: number, slug: string) => {
+        const next = [...curatedSlugs]
+        const duplicateIndex = next.indexOf(slug)
+        if (duplicateIndex >= 0 && duplicateIndex !== index) {
+          next[duplicateIndex] = next[index]
+        }
+        next[index] = slug
+        setConfig(sec.id, 'curatedSlugs', next)
+        setConfig(sec.id, 'source', 'curated')
+      }
+      const move = (index: number, direction: -1 | 1) => {
+        const target = index + direction
+        if (target < 0 || target >= curatedSlugs.length) return
+        const next = [...curatedSlugs]
+        ;[next[index], next[target]] = [next[target], next[index]]
+        setConfig(sec.id, 'curatedSlugs', next)
+      }
+      return (
+        <div key={f.key} style={{ marginBottom: 16 }}>
+          <label style={lbl}>{f.label}</label>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {curatedSlugs.map((slug, index) => (
+              <div key={`${slug}-${index}`} style={{ display: 'grid', gridTemplateColumns: '26px minmax(0, 1fr) auto', alignItems: 'center', gap: 7, padding: '7px 8px', border: '1px solid #e4e9e2', borderRadius: 8, background: '#fafbf9' }}>
+                <span style={{ color: '#8a948b', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>{index + 1}</span>
+                <span style={{ minWidth: 0, overflow: 'hidden', color: '#273128', fontSize: 12, fontWeight: 600, textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slug}</span>
+                <span style={{ display: 'flex', gap: 3 }}>
+                  <button type="button" onClick={() => move(index, -1)} disabled={index === 0} title="Move up" style={{ border: 0, background: 'transparent', cursor: index === 0 ? 'default' : 'pointer', opacity: index === 0 ? .25 : 1 }}>↑</button>
+                  <button type="button" onClick={() => move(index, 1)} disabled={index === curatedSlugs.length - 1} title="Move down" style={{ border: 0, background: 'transparent', cursor: index === curatedSlugs.length - 1 ? 'default' : 'pointer', opacity: index === curatedSlugs.length - 1 ? .25 : 1 }}>↓</button>
+                  <button type="button" onClick={() => openCollectionPicker([slug], false, chosen => { if (chosen[0]) replaceAt(index, chosen[0]) })} style={{ padding: '3px 7px', border: '1px solid #b9cdbf', borderRadius: 5, background: '#f0f7f2', color: '#1a6d3e', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Replace</button>
+                </span>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => openCollectionPicker(curatedSlugs, true, chosen => {
+            if (chosen.length > 0) {
+              setConfig(sec.id, 'curatedSlugs', chosen.slice(0, 15))
+              setConfig(sec.id, 'source', 'curated')
+            }
+          })} style={{ width: '100%', marginTop: 8, padding: '8px 12px', border: '1.5px dashed #9cc4a9', borderRadius: 8, background: '#f0f7f2', color: '#1e7a47', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            Choose or replace collections
+          </button>
+          {f.help && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa69c' }}>{f.help}</p>}
+        </div>
+      )
+    }
+
     const val = sec.config[f.key] ?? ''
     return (
       <div key={f.key} style={{ marginBottom: 14 }}>
@@ -760,6 +1030,69 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
           mediaResolveRef.current = null
         }}
       />
+
+      {/* ── Product picker modal ── */}
+      <ProductPicker
+        open={productPickerOpen}
+        selectedIds={(() => {
+          const sec = productPickerSectionId ? sectionsRef.current.find(x => x.id === productPickerSectionId) : null
+          return sec?.config?.curatedIds || []
+        })()}
+        multiSelect={true}
+        onSelect={(ids) => {
+          setProductPickerOpen(false)
+          productPickerResolveRef.current?.(ids)
+          productPickerResolveRef.current = null
+          setProductPickerSectionId(null)
+        }}
+        onClose={() => {
+          setProductPickerOpen(false)
+          productPickerResolveRef.current?.([])
+          productPickerResolveRef.current = null
+          setProductPickerSectionId(null)
+        }}
+      />
+
+      <CollectionPicker
+        open={collectionPickerOpen}
+        selectedSlugs={collectionPickerSelected}
+        multiSelect={collectionPickerMulti}
+        maxSelections={15}
+        onSelect={(slugs) => {
+          setCollectionPickerOpen(false)
+          collectionPickerResolveRef.current?.(slugs)
+          collectionPickerResolveRef.current = null
+        }}
+        onClose={() => {
+          setCollectionPickerOpen(false)
+          collectionPickerResolveRef.current = null
+        }}
+      />
+
+      {/* ── Reorder confirmation bar ── */}
+      {pendingMove && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 300,
+          background: '#151a17', color: '#fff', padding: '14px 24px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16,
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.25)',
+          fontFamily: 'Inter, sans-serif', fontSize: 14,
+        }}>
+          <span>Move <strong>{pendingMove.sectionName}</strong> {pendingMove.dir === -1 ? 'up' : 'down'} one position?</span>
+          <button onClick={() => executeMove(pendingMove.fromId, pendingMove.toId)}
+            style={{
+              padding: '8px 22px', border: 'none', borderRadius: 8,
+              background: 'linear-gradient(180deg, #1e7a47, #0f4f2b)', color: '#fff',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}>✓ Confirm</button>
+          <button onClick={() => setPendingMove(null)}
+            style={{
+              padding: '8px 18px', border: '1.5px solid #667168', borderRadius: 8,
+              background: 'transparent', color: '#c2cdbe',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}>✕ Cancel</button>
+        </div>
+      )}
 
       {/* ── Left: editor (compact, resizable rail) ── */}
       <div style={{ flex: `0 0 ${railWidth}px`, width: railWidth, minWidth: railWidth, overflowY: 'auto', padding: '20px 16px', borderRight: resizing ? 'none' : '1px solid #e3e8e0' }}>

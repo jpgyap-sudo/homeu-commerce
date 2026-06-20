@@ -12,6 +12,16 @@ interface Slide {
   buttonLink?: string
 }
 
+interface SlideshowProps {
+  slides?: Slide[]
+  autoRotate?: boolean
+  showArrows?: boolean
+  showDots?: boolean
+  rotateInterval?: number
+  height?: number
+  contentPosition?: string
+}
+
 const DEFAULT_SLIDES: Slide[] = [
   {
     image: 'https://cdn.shopify.com/s/files/1/0559/7377/3476/files/b77cb11ff1.webp?v=1697613842',
@@ -33,9 +43,15 @@ const DEFAULT_SLIDES: Slide[] = [
   },
 ]
 
-const AUTOROTATE_SPEED = 3000
-
-export function HomepageSlideshow({ slides }: { slides?: Slide[] }) {
+export function HomepageSlideshow({
+  slides,
+  autoRotate = true,
+  showArrows = true,
+  showDots = true,
+  rotateInterval = 6000,
+  height,
+  contentPosition = 'bottom',
+}: SlideshowProps) {
   const SLIDES = slides && slides.length > 0 ? slides : DEFAULT_SLIDES
   const [current, setCurrent] = useState(0)
   const [paused, setPaused] = useState(false)
@@ -44,14 +60,21 @@ export function HomepageSlideshow({ slides }: { slides?: Slide[] }) {
   const prev = useCallback(() => setCurrent(c => (c - 1 + SLIDES.length) % SLIDES.length), [SLIDES.length])
 
   useEffect(() => {
-    if (paused) return
-    const id = setInterval(next, AUTOROTATE_SPEED)
+    if (!autoRotate || paused) return
+    const id = setInterval(next, rotateInterval)
     return () => clearInterval(id)
-  }, [paused, next])
+  }, [autoRotate, paused, next, rotateInterval])
+
+  const positionStyles: Record<string, string> = {
+    top: 'flex-start',
+    center: 'center',
+    bottom: 'flex-end',
+  }
 
   return (
     <div
       className="slideshow"
+      style={height ? { height: `${height}vh` } : undefined}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       aria-label="Homepage slideshow"
@@ -80,7 +103,7 @@ export function HomepageSlideshow({ slides }: { slides?: Slide[] }) {
               </div>
             )}
             {(slide.heading || slide.subheading || (slide.buttonLabel && slide.buttonLink)) && (
-              <div className="slideshow__overlay">
+              <div className="slideshow__overlay" style={{ justifyContent: positionStyles[contentPosition] || 'flex-end' }}>
                 {slide.heading && <h2 className="slideshow__heading" data-edit={`slides.${idx}.heading`}>{slide.heading}</h2>}
                 {slide.subheading && <p className="slideshow__subheading" data-edit={`slides.${idx}.subheading`}>{slide.subheading}</p>}
                 {slide.buttonLabel && slide.buttonLink && (
@@ -95,34 +118,40 @@ export function HomepageSlideshow({ slides }: { slides?: Slide[] }) {
       </div>
 
       {/* Prev / Next */}
-      <button
-        className="slideshow__arrow slideshow__arrow--prev"
-        onClick={prev}
-        aria-label="Previous slide"
-      >
-        &#8249;
-      </button>
-      <button
-        className="slideshow__arrow slideshow__arrow--next"
-        onClick={next}
-        aria-label="Next slide"
-      >
-        &#8250;
-      </button>
+      {showArrows && (
+        <>
+          <button
+            className="slideshow__arrow slideshow__arrow--prev"
+            onClick={prev}
+            aria-label="Previous slide"
+          >
+            &#8249;
+          </button>
+          <button
+            className="slideshow__arrow slideshow__arrow--next"
+            onClick={next}
+            aria-label="Next slide"
+          >
+            &#8250;
+          </button>
+        </>
+      )}
 
       {/* Dots */}
-      <div className="slideshow__dots" role="tablist">
-        {SLIDES.map((_, idx) => (
-          <button
-            key={idx}
-            role="tab"
-            aria-selected={idx === current}
-            className={`slideshow__dot${idx === current ? ' is-active' : ''}`}
-            onClick={() => setCurrent(idx)}
-            aria-label={`Go to slide ${idx + 1}`}
-          />
-        ))}
-      </div>
+      {showDots && (
+        <div className="slideshow__dots" role="tablist">
+          {SLIDES.map((_, idx) => (
+            <button
+              key={idx}
+              role="tab"
+              aria-selected={idx === current}
+              className={`slideshow__dot${idx === current ? ' is-active' : ''}`}
+              onClick={() => setCurrent(idx)}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

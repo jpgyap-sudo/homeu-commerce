@@ -37,9 +37,38 @@ export async function PATCH(
     }
     const { id } = await params
     const body = await request.json()
-    const fields = Object.keys(body)
+
+    // ── Version control: create snapshot BEFORE applying changes ──
+    // If this is not a resolveRevision call, create a version snapshot
+    if (!body.resolveRevision && !body.clearRevisionFlag) {
+      try {
+        const { createVersion } = await import('@/lib/quotation-versions')
+        await createVersion(
+          id,
+          body.resolveRevision === true ? 'reverted' : 'admin_edit',
+          '',
+          'admin'
+        )
+      } catch (verr) {
+        console.warn('[quotation] Version snapshot skipped (table may not exist yet):', verr)
+      }
+    }
+
+    // Handle resolveRevision — admin resolved a customer's revision request
+    if (body.resolveRevision === true) {
+      await query(
+        `UPDATE quotations SET pending_revision = false, revision_request = '', current_version = current_version + 1, updated_at = NOW() WHERE id = $1`,
+        [id]
+      )
+      const row = await query('SELECT * FROM quotations WHERE id = $1', [id])
+      return NextResponse.json({ ...row.rows[0], revisionResolved: true })
+    }
+
+    const fields = Object.keys(body).filter(k => k !== 'resolveRevision' && k !== 'clearRevisionFlag')
     if (fields.length === 0) {
-      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+      // Just the revision resolve, no data changes
+      const row = await query('SELECT * FROM quotations WHERE id = $1', [id])
+      return NextResponse.json({ ...row.rows[0], revisionResolved: true })
     }
     const sets = fields.map((f, i) => `"${f}" = $${i + 1}`).join(', ')
     const values = fields.map((f) => body[f])

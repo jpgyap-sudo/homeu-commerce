@@ -13,6 +13,7 @@ type RFQItemInput = {
   unitPriceSnapshot?: number
   price?: number
   quantity?: number
+  notes?: string
 }
 
 /**
@@ -104,7 +105,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { customerName, email, phone, address, message, items, productId, quantity } = body
+    const { customer, customerName, email, phone, deliveryLocation, projectType, notes, address, message, items } = body
 
     if (!email) {
       return NextResponse.json(
@@ -113,34 +114,59 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Look up or create customer
+    // Determine customer ID from body.customer or look up / create by email
     let customerId: number | null = null
-    const existing = await query('SELECT id FROM customers WHERE email = $1 LIMIT 1', [email.toLowerCase()])
-    if (existing.rows.length > 0) {
-      customerId = existing.rows[0].id
-    } else if (customerName) {
-      const newCustomer = await query(
-        'INSERT INTO customers (email, name, phone, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id',
-        [email.toLowerCase(), customerName, phone || '']
-      )
-      customerId = newCustomer.rows[0].id
+
+    // If customer is provided as an object with id, extract it
+    if (customer && typeof customer === 'object' && customer.id) {
+      customerId = parseInt(customer.id) || null
+    } else if (customer && typeof customer === 'string') {
+      customerId = parseInt(customer) || null
     }
 
-    // Create RFQ request
+    // If no customerId yet, look up or create by email
+    if (!customerId) {
+      const existing = await query('SELECT id FROM customers WHERE email = $1 LIMIT 1', [email.toLowerCase()])
+      if (existing.rows.length > 0) {
+        customerId = existing.rows[0].id
+      } else if (customerName) {
+        const newCustomer = await query(
+          'INSERT INTO customers (email, name, phone, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id',
+          [email.toLowerCase(), customerName, phone || '']
+        )
+        customerId = newCustomer.rows[0].id
+      }
+    }
+
+    // Create RFQ request with ALL fields
     const rfqResult = await query(
-      `INSERT INTO rfq_requests (customer_id, customer_name, email, phone, address, message, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, 'pending', NOW(), NOW()) RETURNING *`,
-      [customerId, customerName || '', email, phone || '', address || '', message || '']
+      `INSERT INTO rfq_requests (customer_id, customer_name, email, phone, delivery_location, project_type, notes, address, message, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', NOW(), NOW()) RETURNING *`,
+      [
+        customerId,
+        customerName || '',
+        email,
+        phone || '',
+        deliveryLocation || '',
+        projectType || '',
+        notes || '',
+        address || '',
+        message || '',
+      ]
     )
     const rfq = rfqResult.rows[0]
 
-    // Add items if provided
+    // Add items if provided — use snapshot fields
     if (items && Array.isArray(items)) {
       for (const item of items as RFQItemInput[]) {
+        const productTitleSnapshot = item.productTitleSnapshot || item.title || ''
+        const skuSnapshot = item.skuSnapshot || item.sku || ''
+        const unitPriceSnapshot = item.unitPriceSnapshot || item.price || 0
+        const itemNotes = item.notes || ''
         await query(
-          `INSERT INTO rfq_request_items (rfq_request_id, product, title, sku, unit_price, quantity, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
-          [rfq.id, item.product || null, item.title || null, item.sku || null, item.unitPriceSnapshot || item.price || 0, item.quantity || 1]
+          `INSERT INTO rfq_request_items (rfq_request_id, product_id, product_title_snapshot, sku_snapshot, unit_price_snapshot, quantity, notes, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
+          [rfq.id, item.product || null, productTitleSnapshot, skuSnapshot, unitPriceSnapshot, item.quantity || 1, itemNotes]
         )
       }
     }

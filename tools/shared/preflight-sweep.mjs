@@ -9,7 +9,7 @@
  */
 
 import { execSync } from "child_process";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -127,9 +127,30 @@ if (full) {
   // ═══════════════════════════════════════════════════════════════════════
   console.log(BOLD("\n=== PHASE 4: API Wiring ===\n"));
 
-  // Check for broken API consumers
-  const consumersOut = sh(`rg --no-filename -o "['\\"]/api/([^'\\"]+)" src/ --replace '$1' | sort -u`, { cwd: WEBSITE });
-  const consumers = consumersOut.split("\n").filter(Boolean);
+  // Check for broken API consumers. Done in pure Node (not shelled rg) so it
+  // works cross-platform — the old `rg … --replace '$1'` mangled its output
+  // under Windows cmd quoting. We also strip query strings and skip dynamic
+  // `${…}` path segments, which previously produced false "missing route"
+  // blockers (e.g. `/api/categories?limit=100`).
+  const exts = /\.(ts|tsx|js|jsx)$/;
+  let srcFiles = [];
+  try {
+    srcFiles = readdirSync(resolve(WEBSITE, "src"), { recursive: true, encoding: "utf-8" }).filter((f) => exts.test(f));
+  } catch { srcFiles = []; }
+  const consumerSet = new Set();
+  const apiRe = /['"`]\/api\/([A-Za-z0-9._\-/]+)/g;
+  for (const rel of srcFiles) {
+    let txt = "";
+    try { txt = readFileSync(resolve(WEBSITE, "src", rel), "utf-8"); } catch { continue; }
+    let m;
+    while ((m = apiRe.exec(txt))) {
+      const nextChar = txt[apiRe.lastIndex];
+      if (nextChar === "$" || nextChar === "{") continue; // dynamic segment follows → can't verify statically
+      const ep = m[1].replace(/\/+$/, "");
+      if (ep) consumerSet.add(ep);
+    }
+  }
+  const consumers = [...consumerSet].sort();
   for (const ep of consumers) {
     const routeFile = resolve(WEBSITE, "src", "app", "api", ep, "route.ts");
     existsSync(routeFile) ? ok(`API: /api/${ep}`) : block(`API consumer has no route: /api/${ep}`);

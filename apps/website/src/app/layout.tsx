@@ -1,7 +1,6 @@
 import './globals.css'
 import '../components/chat/chat.css'
 import { headers } from 'next/headers'
-import { QuoteCartBadge } from '@/components/QuoteCart'
 import { ChatWidget } from '@/components/chat/ChatWidget'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
@@ -84,9 +83,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {children}
         </main>
         <SiteFooter />
-        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 999 }}>
-          <QuoteCartBadge />
-        </div>
         <ChatWidget />
       </body>
     </html>

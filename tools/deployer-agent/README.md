@@ -304,14 +304,14 @@ curl -X POST http://localhost:3457/exec \
 2. **Public IP SSH** (`104.248.225.250`) — Fallback if Tailscale is down
 3. **VPS MCP** (`localhost:3457`) — Last resort HTTP-based
 
-## Build Container
+## Build (Next.js Turbopack)
 
 ```bash
-# Separate build container (doesn't affect running site)
-docker build -f docker/build.Dockerfile -t homeu-build .
+# Incremental build on VPS (cached — only changed files recompile)
+ssh root@vps "cd /opt/homeu-commerce/apps/website && npx next build"
 
-# Or
-docker compose --profile build up builder
+# Zero-downtime restart
+ssh root@vps "pm2 reload homeu-website"
 ```
 
 ## How It Works Under The Hood

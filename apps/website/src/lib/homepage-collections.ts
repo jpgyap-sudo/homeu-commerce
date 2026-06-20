@@ -1,0 +1,17 @@
+export const HOMEU_CURATED_COLLECTION_SLUGS = [
+  'sofa',
+  'armchair',
+  'bench-chaises',
+  'center-table',
+  'side-table',
+  'dining-table',
+  'console-table',
+  'stools',
+  'dining-chair',
+  'carpet',
+  'bed',
+  'lighting-1',
+  'decor',
+  'sideboard',
+  'nightstand-tvcabinet',
+] as const

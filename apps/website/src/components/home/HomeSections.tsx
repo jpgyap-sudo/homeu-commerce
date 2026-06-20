@@ -1,7 +1,7 @@
 /**
  * Server component that renders the homepage from DB-driven sections.
- * Each section type maps to a block of markup (Debut CSS classes preserved).
- * Data needed by data-driven sections (collections, products) is fetched here.
+ * Every section config is merged with defaults from theme-builder-settings
+ * so ALL keys (including new ones) are always present.
  */
 
 import Link from 'next/link'
@@ -11,6 +11,10 @@ import { HomepageSlideshow } from '@/components/HomepageSlideshow'
 import { PreviewBridge } from '@/components/home/PreviewBridge'
 import type { HomepageSection } from '@/lib/theme'
 import { SECTION_META } from '@/lib/theme-types'
+import { HOMEU_CURATED_COLLECTION_SLUGS } from '@/lib/homepage-collections'
+import { mergeWithDefaults } from '@/lib/theme-builder-settings'
+import { generateSectionStyles, ANIMATION_CSS, GRADIENT_TEXT_CSS } from '@/lib/theme-styles'
+import SectionAnimation from '@/components/home/SectionAnimation'
 
 // ── Data fetchers ────────────────────────────────────────────────────────
 interface CollectionTile { id: number; title: string; slug: string; image_url: string | null }
@@ -31,6 +35,20 @@ async function fetchCollections(featuredOnly: boolean, limit: number): Promise<C
       [limit]
     )
     return res.rows
+  } catch { return [] }
+}
+
+async function fetchCollectionsBySlugs(slugs: string[]): Promise<CollectionTile[]> {
+  if (slugs.length === 0) return []
+  try {
+    const res = await query(
+      `SELECT c.id, c.title, c.slug, c.image_url
+       FROM categories c
+       WHERE c.published = true AND c.slug = ANY($1::text[])`,
+      [slugs]
+    )
+    const bySlug = new Map(res.rows.map((row: CollectionTile) => [row.slug, row]))
+    return slugs.map(slug => bySlug.get(slug)).filter((row): row is CollectionTile => Boolean(row))
   } catch { return [] }
 }
 
@@ -71,6 +89,26 @@ async function fetchProductsAuto(limit: number): Promise<ProductCard[]> {
   } catch { return [] }
 }
 
+// ── Fetch products by explicit IDs (for "curated" source mode) ─────────
+async function fetchProductsByIds(ids: number[]): Promise<ProductCard[]> {
+  if (ids.length === 0) return []
+  try {
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',')
+    const res = await query(
+      `SELECT p.id, p.title, p.slug, p.price, p.sale_price,
+              (SELECT url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1) AS image_url,
+              cat.title AS category_title
+       FROM products p
+       LEFT JOIN categories cat ON cat.id = p.category_id
+       WHERE p.id IN (${placeholders}) AND p.status = 'active'`,
+      ids
+    )
+    // Preserve the original ordering from the ids array
+    const map = new Map(res.rows.map((r: any) => [r.id, r]))
+    return ids.map(id => map.get(id)).filter(Boolean)
+  } catch { return [] }
+}
+
 function peso(n: number | null): string {
   if (n == null) return ''
   return `₱${n.toLocaleString('en-PH', { maximumFractionDigits: 0 })}`
@@ -78,7 +116,8 @@ function peso(n: number | null): string {
 
 // ── Individual section renderers ─────────────────────────────────────────
 async function renderSection(section: HomepageSection) {
-  const cfg = section.config || {}
+  // Merge DB config with full defaults so every setting key always exists
+  const cfg = mergeWithDefaults(section.type, section.config)
 
   switch (section.type) {
     case 'slideshow': {
@@ -86,39 +125,61 @@ async function renderSection(section: HomepageSection) {
         image: s.image, heading: s.heading, subheading: s.subheading,
         buttonLabel: s.buttonText || s.buttonLabel, buttonLink: s.buttonLink,
       }))
-      return <HomepageSlideshow slides={slides} />
+      return (
+        <HomepageSlideshow
+          slides={slides}
+          autoRotate={cfg.autoRotate !== false}
+          showArrows={cfg.showArrows !== false}
+          showDots={cfg.showDots !== false}
+          rotateInterval={(cfg.rotateInterval || 6) * 1000}
+          height={cfg.height || 80}
+          contentPosition={cfg.contentPosition || 'bottom'}
+        />
+      )
     }
 
     case 'brand_text':
       return (
         <section className="index-section homepage-brand-text text-center">
           <div className="page-width">
-            <h2 className="homepage-brand-text__title h2" data-edit="title">{cfg.title || 'HOME ATELIER'}</h2>
+            <h2 className={`homepage-brand-text__title h2${cfg.logoAnim ? ' homeu-gradient-text' : ''}`} data-edit="title">{cfg.title || 'HOME ATELIER'}</h2>
             <p className="homepage-brand-text__body" data-edit="body">{cfg.body}</p>
           </div>
         </section>
       )
 
     case 'collection_grid': {
-      const cols = await fetchCollections(cfg.source === 'featured', cfg.limit || 15)
+      const configuredSlugs = Array.isArray(cfg.curatedSlugs)
+        ? cfg.curatedSlugs.filter((slug: unknown): slug is string => typeof slug === 'string' && slug.length > 0)
+        : []
+      const curatedSlugs = configuredSlugs.length > 0
+        ? configuredSlugs.slice(0, 15)
+        : [...HOMEU_CURATED_COLLECTION_SLUGS]
+      const cols = cfg.source === 'all' || cfg.source === 'featured'
+        ? await fetchCollections(cfg.source === 'featured', cfg.limit || 15)
+        : await fetchCollectionsBySlugs(curatedSlugs)
       if (cols.length === 0) return null
       return (
         <section className="index-section homepage-collections">
           <div className="page-width">
-            <div className="section-header text-center">
-              <h2 className="section-header__title h2" data-edit="heading">{cfg.heading || 'Shop by Collection'}</h2>
-            </div>
-            <ul className="collection-list grid grid--uniform">
-              {cols.map(c => (
-                <li key={c.id} className="collection-list__item grid__item medium-up--one-quarter small--one-half">
-                  <Link href={`/products?category=${c.slug}`} className="collection-list__item-link">
-                    <div className="collection-list__image-wrapper">
+            {cfg.heading && <div className="section-header text-center">
+              <h2 className="section-header__title h2" data-edit="heading">{cfg.heading}</h2>
+            </div>}
+            <ul className="homeu-collection-grid" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 30 }}>
+              {cols.map((c, index) => (
+                <li key={c.id} className="homeu-collection-grid__cell" data-collection-index={index} style={{ display: 'block', width: '100%', minWidth: 0, margin: 0, padding: 0 }}>
+                  <div className="homeu-collection-card" style={{ position: 'relative', width: '100%', aspectRatio: '1', overflow: 'hidden' }}>
+                  <Link href={`/products?category=${c.slug}`} className="homeu-collection-card__link" aria-label={`Browse ${c.title}`} style={{ position: 'absolute', inset: 0, display: 'block', color: '#fff', textDecoration: 'none' }}>
+                    <div className="homeu-collection-card__media" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
                       {c.image_url
-                        ? <Image src={c.image_url} alt={c.title} width={400} height={300} className="collection-list__image" style={{ objectFit: 'cover', width: '100%', height: '100%' }} unoptimized />
-                        : <div className="collection-list__image-placeholder" />}
+                        ? <Image src={c.image_url} alt="" fill sizes="(max-width: 749px) 50vw, 33vw" className="homeu-collection-card__image" style={{ objectFit: 'cover', objectPosition: 'center top' }} unoptimized />
+                        : <div className="homeu-collection-card__placeholder" />}
                     </div>
-                    <p className="collection-list__title h4">{c.title}</p>
+                    <div className="homeu-collection-card__title-wrap" style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
+                      <h3 className="homeu-collection-card__title" style={{ position: 'absolute', top: '50%', width: '100%', margin: 0, padding: '0 15px', transform: 'translateY(-50%)', color: '#fff', fontFamily: "var(--debut-font-heading, 'Crimson Text', Georgia, serif)", fontSize: 29, fontWeight: 400, lineHeight: 1.2, textAlign: 'center', textShadow: '0 0 4px rgba(0, 0, 0, 0.4)' }}>{c.title}</h3>
+                    </div>
                   </Link>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -163,28 +224,56 @@ async function renderSection(section: HomepageSection) {
       )
 
     case 'featured_products': {
-      const products = cfg.source === 'collection' && cfg.collectionSlug
-        ? await fetchProductsByCollection(cfg.collectionSlug, cfg.limit || 12)
-        : await fetchProductsAuto(cfg.limit || 12)
+      // Three sourcing modes:
+      // "curated" — hand-picked product IDs stored in curatedIds[]
+      // "collection" — pull from a specific collection slug
+      // "auto" (default) — newest active products with images
+      const limit = cfg.limit || 10
+      let products: ProductCard[] = []
+      let viewAllHref = '/products'
+
+      if (cfg.source === 'curated' && Array.isArray(cfg.curatedIds) && cfg.curatedIds.length > 0) {
+        products = await fetchProductsByIds(cfg.curatedIds.slice(0, limit))
+        viewAllHref = '/products'
+      } else {
+        const featuredSlug = (cfg.source === 'collection' && cfg.collectionSlug) ? cfg.collectionSlug : 'feature'
+        products = await fetchProductsByCollection(featuredSlug, limit)
+        if (products.length === 0) products = await fetchProductsAuto(limit)
+        viewAllHref = `/collections/${featuredSlug}`
+      }
+
       if (products.length === 0) return null
+      const isCurated = cfg.source === 'curated'
+
       return (
-        <section className="index-section homepage-featured-products">
+        <section className="index-section homepage-featured-products" data-section-type="featured_products">
           <div className="page-width">
             <div className="section-header text-center">
               <h2 className="section-header__title h2" data-edit="heading">{cfg.heading || 'More Featured Pieces'}</h2>
             </div>
-            <ul className="grid grid--uniform product-grid">
-              {products.map(p => (
-                <li key={p.id} className="grid__item medium-up--one-quarter small--one-half">
+            <ul className="homeu-featured-grid product-grid" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '36px 24px' }}>
+              {products.map((p, pIndex) => (
+                <li key={p.id} className="homeu-featured-grid__cell" style={{ display: 'block', width: '100%', minWidth: 0, margin: 0, padding: 0 }}>
                   <div className="grid-product">
-                    <Link href={`/products/${p.slug}`} className="grid-product__link">
-                      <div className="grid-product__image-wrap">
+                    <Link href={`/products/${p.slug}`} className="grid-product__link" data-product-index={pIndex}>
+                      <div className="grid-product__image-wrap" style={{ position: 'relative', width: '100%', aspectRatio: '1', overflow: 'hidden', background: '#fff' }}>
                         {p.image_url
-                          ? <Image src={p.image_url} alt={p.title} width={400} height={400} className="grid-product__image" style={{ objectFit: 'cover', width: '100%', height: '100%' }} unoptimized />
+                          ? <Image src={p.image_url} alt={p.title} width={600} height={600} sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 25vw" className="grid-product__image" style={{ objectFit: 'contain', width: '100%', height: '100%', background: '#fff' }} unoptimized />
                           : <div className="grid-product__image-placeholder" />}
+                        {/* Preview-only swap button overlay */}
+                        <div className="homeu-product-swap-btn" data-product-index={pIndex}
+                          style={{
+                            position: 'absolute', top: 8, right: 8, zIndex: 5,
+                            width: 32, height: 32, borderRadius: '50%',
+                            background: 'rgba(0,0,0,0.55)', color: '#fff',
+                            display: 'none', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 15, cursor: 'pointer', lineHeight: 1,
+                            backdropFilter: 'blur(4px)',
+                            transition: 'all 150ms ease',
+                          }}
+                          title="Replace this product">🔄</div>
                       </div>
                       <div className="grid-product__meta">
-                        {p.category_title && <p className="grid-product__vendor">{p.category_title}</p>}
                         <p className="grid-product__title">{p.title}</p>
                         <div className="grid-product__price">
                           {p.sale_price
@@ -197,8 +286,8 @@ async function renderSection(section: HomepageSection) {
                 </li>
               ))}
             </ul>
-            <div className="text-center" style={{ marginTop: 32 }}>
-              <Link href="/products" className="btn btn--secondary">View All Products</Link>
+            <div className="text-center homepage-featured-products__more">
+              <Link href={viewAllHref} className="btn btn--secondary">View all</Link>
             </div>
           </div>
         </section>
@@ -265,7 +354,7 @@ async function renderSection(section: HomepageSection) {
 
     case 'newsletter':
       return (
-        <section className="index-section homepage-newsletter" style={{ background: cfg.bgColor || '#f4f1ec' }}>
+        <section className="index-section homepage-newsletter" style={{ background: cfg.bgColor || '#f9fafb' }}>
           <div className="page-width text-center" style={{ padding: '48px 0' }}>
             <h2 className="h2" data-edit="heading">{cfg.heading || 'Join our mailing list'}</h2>
             {cfg.subtext && <p style={{ marginBottom: 24, color: '#6b6b6b' }} data-edit="subtext">{cfg.subtext}</p>}
@@ -312,7 +401,7 @@ async function renderSection(section: HomepageSection) {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
               {items.map((t, i) => (
-                <div key={i} style={{ background: '#fafbf9', border: '1px solid #eef1ed', borderRadius: 12, padding: 28, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div key={i} style={{ background: '#ffffff', border: '1px solid #eef1ed', borderRadius: 12, padding: 28, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {t.avatar ? (
                     <Image src={t.avatar} data-edit-image={`testimonials.${i}.avatar`} alt={t.author} width={48} height={48} style={{ borderRadius: '50%', objectFit: 'cover' }} unoptimized />
                   ) : <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#eef1ed' }} />}
@@ -520,24 +609,34 @@ export async function HomeSections({ sections, preview = false }: { sections: Ho
   const rendered = await Promise.all(bodySections.map(s => renderSection(s)))
   return (
     <>
+      {/* Global animation and gradient text CSS injected once */}
+      {!preview && <style id="homeu-anim-css">{ANIMATION_CSS}{GRADIENT_TEXT_CSS}</style>}
       {rendered.map((node, i) => {
         const sec = bodySections[i]
         const gap = defaultGap(sec.type)
-        return (
-        <div
-          key={sec.id}
-          data-section-id={sec.id}
-          data-section-type={sec.type}
-          data-section-label={SECTION_META[sec.type]?.label || sec.type}
-          className={preview ? 'homeu-preview-section' : undefined}
-          style={{
-            marginTop: sec.config?.spacingTop != null ? Number(sec.config.spacingTop) : undefined,
-            marginBottom: sec.config?.spacingBottom != null ? Number(sec.config.spacingBottom) : gap,
-          }}
-        >
-          {node}
-        </div>
-      )})}
+        const cfg = mergeWithDefaults(sec.type, sec.config)
+        const sectionContent = (
+          <div
+            key={sec.id}
+            data-section-id={sec.id}
+            data-section-type={sec.type}
+            data-section-label={SECTION_META[sec.type]?.label || sec.type}
+            className={preview ? 'homeu-preview-section' : undefined}
+            style={{
+              marginTop: sec.config?.spacingTop != null ? Number(sec.config.spacingTop) : undefined,
+              marginBottom: sec.config?.spacingBottom != null ? Number(sec.config.spacingBottom) : gap,
+            }}
+          >
+            {/* Runtime CSS injection from section settings */}
+            <style>{generateSectionStyles(sec.id, cfg, sec.type)}</style>
+            {node}
+          </div>
+        )
+        // Wrap in SectionAnimation if not in preview mode
+        return preview
+          ? sectionContent
+          : <SectionAnimation key={sec.id} anim={cfg.animation} delay={cfg.animationDelay}>{sectionContent}</SectionAnimation>
+      })}
       {preview && <PreviewBridge />}
     </>
   )

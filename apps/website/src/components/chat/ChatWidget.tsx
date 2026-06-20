@@ -8,7 +8,11 @@ import { RFQCartDrawer } from './RFQCartDrawer'
 import { AppointmentPicker } from './AppointmentPicker'
 import { ViberHandoff } from './ViberHandoff'
 import { getQuoteCart, addToQuoteCart, setQuoteCartLeadId } from '@/components/QuoteCart'
+import siteConfig from '@/data/site-config.json'
 import './chat.css'
+
+const BUBBLE_POS_KEY = 'homeu_chat_bubble_pos'
+const BUBBLE_LOGO = siteConfig.favicon?.shopifyUrl || siteConfig.logo?.shopifyUrl || ''
 
 interface CustomerProfile {
   id: string
@@ -71,6 +75,59 @@ export function ChatWidget() {
   const [customer, setCustomer] = useState<CustomerProfile | null>(null)
   const [customerLoaded, setCustomerLoaded] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // ── Draggable launcher bubble ─────────────────────────────
+  const bubbleRef = useRef<HTMLButtonElement>(null)
+  const [bubblePos, setBubblePos] = useState<{ x: number; y: number } | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const posRef = useRef<{ x: number; y: number } | null>(null)
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number; moved: boolean; pointerId: number } | null>(null)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(BUBBLE_POS_KEY)
+      if (raw) {
+        const p = JSON.parse(raw)
+        if (typeof p?.x === 'number' && typeof p?.y === 'number') { setBubblePos(p); posRef.current = p }
+      }
+    } catch { /* ignore */ }
+  }, [])
+
+  const onBubblePointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const el = bubbleRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: rect.left, origY: rect.top, moved: false, pointerId: e.pointerId }
+    try { el.setPointerCapture(e.pointerId) } catch { /* ignore */ }
+  }, [])
+
+  const onBubblePointerMove = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const ds = dragRef.current
+    if (!ds || ds.pointerId !== e.pointerId) return
+    const dx = e.clientX - ds.startX
+    const dy = e.clientY - ds.startY
+    if (!ds.moved && Math.hypot(dx, dy) < 5) return // ignore tiny jitter → treat as click
+    ds.moved = true
+    if (!dragging) setDragging(true)
+    const size = bubbleRef.current?.offsetWidth || 60
+    const nx = Math.max(8, Math.min(window.innerWidth - size - 8, ds.origX + dx))
+    const ny = Math.max(8, Math.min(window.innerHeight - size - 8, ds.origY + dy))
+    const next = { x: nx, y: ny }
+    posRef.current = next
+    setBubblePos(next)
+  }, [dragging])
+
+  const onBubblePointerUp = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const ds = dragRef.current
+    dragRef.current = null
+    try { bubbleRef.current?.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
+    if (ds && ds.moved) {
+      setDragging(false)
+      if (posRef.current) { try { localStorage.setItem(BUBBLE_POS_KEY, JSON.stringify(posRef.current)) } catch { /* ignore */ } }
+    } else {
+      toggleChat() // a real click, not a drag
+    }
+  }, [])
 
   const greetingDelay = parseInt(process.env.NEXT_PUBLIC_CHAT_GREETING_DELAY || '4000', 10)
   const productPageDelay = parseInt(process.env.NEXT_PUBLIC_CHAT_PRODUCT_PAGE_DELAY || '7000', 10)
@@ -502,9 +559,20 @@ export function ChatWidget() {
 
   return (
     <>
-      {/* Floating Bubble */}
-      <button className="chat-bubble" onClick={toggleChat} aria-label="Open chat" title="HomeU Concierge">
-        💬
+      {/* Floating Bubble — draggable, logo icon, attention bounce + moving color ring */}
+      <button
+        ref={bubbleRef}
+        className={`chat-bubble${isOpen ? ' chat-bubble--open' : ''}${dragging ? ' chat-bubble--dragging' : ''}`}
+        onPointerDown={onBubblePointerDown}
+        onPointerMove={onBubblePointerMove}
+        onPointerUp={onBubblePointerUp}
+        style={bubblePos ? { left: bubblePos.x, top: bubblePos.y, right: 'auto', bottom: 'auto' } : undefined}
+        aria-label={isOpen ? 'Close chat' : 'Open chat'}
+        title="HomeU Concierge — drag to move"
+      >
+        {BUBBLE_LOGO
+          ? <img className="chat-bubble-logo" src={BUBBLE_LOGO} alt="HomeU" draggable={false} />
+          : <span className="chat-bubble-logo chat-bubble-logo--fallback">💬</span>}
       </button>
 
       {/* Chat Window */}

@@ -1,6 +1,9 @@
 'use client'
 
 import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { formatPrice, formatQuantity } from '@/lib/format-utils'
+
+// ── Types ──────────────────────────────────────────────────────────────────
 
 export type QuoteItem = {
   productId: string
@@ -10,6 +13,8 @@ export type QuoteItem = {
   quantity: number
   imageUrl?: string
   slug?: string
+  /** THE GENIUS: per-item notes/questions — the missing friction-reducer */
+  notes?: string
 }
 
 type CustomerProfile = {
@@ -28,6 +33,8 @@ type QuoteForm = {
   projectType: string
   notes: string
 }
+
+// ── Storage ────────────────────────────────────────────────────────────────
 
 const CART_KEY = 'homeu_quote_cart'
 const CART_EVENT = 'homeu_quote_cart_changed'
@@ -60,6 +67,7 @@ export function getQuoteCart(): QuoteItem[] {
         quantity: normalizeQuantity(Number(item.quantity) || 1),
         imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : undefined,
         slug: typeof item.slug === 'string' ? item.slug : undefined,
+        notes: typeof item.notes === 'string' ? item.notes : '',
       }))
   } catch {
     return []
@@ -76,14 +84,25 @@ export function addToQuoteCart(item: QuoteItem) {
   const items = getQuoteCart()
   const existing = items.find((i) => i.productId === item.productId)
   const quantity = normalizeQuantity(item.quantity)
-  if (existing) existing.quantity = normalizeQuantity(existing.quantity + quantity)
-  else items.push({ ...item, quantity })
+  if (existing) {
+    existing.quantity = normalizeQuantity(existing.quantity + quantity)
+    // Preserve existing notes unless new notes were explicitly provided
+    if (item.notes && !existing.notes) existing.notes = item.notes
+  } else {
+    items.push({ ...item, quantity, notes: item.notes || '' })
+  }
   saveQuoteCart(items)
 }
 
 export function updateQuoteCartQuantity(productId: string, quantity: number) {
   const items = getQuoteCart()
     .map((item) => item.productId === productId ? { ...item, quantity: normalizeQuantity(quantity) } : item)
+  saveQuoteCart(items)
+}
+
+export function updateQuoteItemNotes(productId: string, notes: string) {
+  const items = getQuoteCart()
+    .map((item) => item.productId === productId ? { ...item, notes } : item)
   saveQuoteCart(items)
 }
 
@@ -95,40 +114,23 @@ export function clearQuoteCart() {
   saveQuoteCart([])
 }
 
-// ── Lead ID helpers (shared between chat widget and quote cart) ──
-
 export function getQuoteCartLeadId(): string | null {
   if (typeof window === 'undefined') return null
-  try {
-    return localStorage.getItem(CART_LEAD_ID_KEY)
-  } catch {
-    return null
-  }
+  try { return localStorage.getItem(CART_LEAD_ID_KEY) }
+  catch { return null }
 }
 
 export function setQuoteCartLeadId(leadId: string | null) {
   if (typeof window === 'undefined') return
   try {
-    if (leadId) {
-      localStorage.setItem(CART_LEAD_ID_KEY, leadId)
-    } else {
-      localStorage.removeItem(CART_LEAD_ID_KEY)
-    }
-  } catch {
-    // Silently fail
-  }
+    if (leadId) localStorage.setItem(CART_LEAD_ID_KEY, leadId)
+    else localStorage.removeItem(CART_LEAD_ID_KEY)
+  } catch { /* silent */ }
 }
 
-// ── Server-side sync ──────────────────────────────────────────
-
-/**
- * Sync the current localStorage cart to the server.
- * Requires a leadId. No-op if leadId is not available.
- */
 export async function syncCartToServer(): Promise<void> {
   const leadId = getQuoteCartLeadId()
   if (!leadId) return
-
   const items = getQuoteCart()
   try {
     await fetch('/api/cart/sync', {
@@ -142,72 +144,48 @@ export async function syncCartToServer(): Promise<void> {
           sku: item.sku,
           referencePrice: item.price,
           quantity: item.quantity,
+          notes: item.notes,
         })),
       }),
     })
-  } catch (err) {
-    console.warn('[quotecart] Server sync failed (will retry on next mutation):', err)
-  }
+  } catch { /* silent */ }
 }
 
-/**
- * Fetch the server-side cart for the current leadId and merge it into
- * localStorage. Client items take priority (most recent session wins).
- * Call this when the QuoteCartExperience mounts and a leadId is available.
- */
 export async function fetchServerCart(): Promise<void> {
   const leadId = getQuoteCartLeadId()
   if (!leadId) return
-
   try {
     const res = await fetch(`/api/cart/sync?leadId=${encodeURIComponent(leadId)}`)
     if (!res.ok) return
-
     const data = await res.json()
     if (!Array.isArray(data.items) || data.items.length === 0) return
-
     const serverItems: QuoteItem[] = data.items.map((item: any) => ({
       productId: item.productId,
       title: item.productTitle,
       sku: item.sku || undefined,
       price: typeof item.referencePrice === 'number' ? item.referencePrice : undefined,
       quantity: normalizeQuantity(item.quantity),
+      notes: item.notes || '',
     }))
-
-    // Merge: if client has items, those take priority (keep both, deduplicate by productId)
     const clientItems = getQuoteCart()
     if (clientItems.length === 0) {
-      // No client items — use server items
       saveQuoteCart(serverItems)
     } else {
-      // Merge: add server items that don't exist in client
       const clientProductIds = new Set(clientItems.map((i) => i.productId))
-      const newServerItems = serverItems.filter((i: QuoteItem) => !clientProductIds.has(i.productId))
-      if (newServerItems.length > 0) {
-        saveQuoteCart([...clientItems, ...newServerItems])
-      }
+      const newServerItems = serverItems.filter((i) => !clientProductIds.has(i.productId))
+      if (newServerItems.length > 0) saveQuoteCart([...clientItems, ...newServerItems])
     }
-  } catch (err) {
-    console.warn('[quotecart] Failed to fetch server cart:', err)
-  }
+  } catch { /* silent */ }
 }
 
-/**
- * Delete the server-side cart for the current leadId.
- * Called when the user clears their cart.
- */
 export async function clearServerCart(): Promise<void> {
   const leadId = getQuoteCartLeadId()
   if (!leadId) return
-
-  try {
-    await fetch(`/api/cart/sync?leadId=${encodeURIComponent(leadId)}`, { method: 'DELETE' })
-  } catch {
-    // Best-effort
-  }
+  try { await fetch(`/api/cart/sync?leadId=${encodeURIComponent(leadId)}`, { method: 'DELETE' }) }
+  catch { /* silent */ }
 }
 
-// ── Components ────────────────────────────────────────────────
+// ── QuoteCartBadge ─────────────────────────────────────────────────────────
 
 export function QuoteCartBadge() {
   const [count, setCount] = useState(0)
@@ -224,22 +202,270 @@ export function QuoteCartBadge() {
   }, [])
 
   return (
-    <a className="quote-cart-link" href="/quote-cart" aria-label={`Quote cart with ${count} item${count === 1 ? '' : 's'}`}>
-      Quote cart
-      <span>{count}</span>
+    <a
+      className="site-header__icon-btn site-header__rfq-btn"
+      href="/quote-cart"
+      aria-label={`RFQ cart with ${count} item${count === 1 ? '' : 's'}`}
+    >
+      <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+        <path d="M3 4h2l1.6 9.2a1 1 0 0 0 1 .8h7.2a1 1 0 0 0 1-.82L18 7H6" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="8.5" cy="17" r="1" fill="currentColor" stroke="none" />
+        <circle cx="15.5" cy="17" r="1" fill="currentColor" stroke="none" />
+      </svg>
+      <span className="site-header__rfq-label">RFQ</span>
+      {count > 0 && <span className="site-header__rfq-count" aria-hidden="true">{count}</span>}
     </a>
   )
 }
 
+// ── QuickRFQ Inline Widget (THE GENIUS) ────────────────────────────────────
+
+interface QuickRFQProps {
+  product: {
+    id: number | string
+    title: string
+    slug: string
+    price?: number | null
+    sku?: string
+    imageUrl?: string | null
+  }
+  /** Optional note preset — e.g., "I need this in walnut finish" */
+  presetNote?: string
+}
+
+/**
+ * QuickRFQ — Frictionless "Add to RFQ" with optional per-item notes.
+ *
+ * THE GENIUS: Instead of a plain "Add to RFQ" button, this widget:
+ * 1. Shows a one-tap "Add to RFQ" button with minimalist price
+ * 2. Has an optional notes expander (click to add questions/notes for THIS item)
+ * 3. Auto-rotates to "View in RFQ" when item is already in cart
+ * 4. Shows inline quantity selector for bulk inquiries
+ */
+export function QuickRFQ({ product, presetNote }: QuickRFQProps) {
+  const [inCart, setInCart] = useState(false)
+  const [showNotes, setShowNotes] = useState(false)
+  const [quantity, setQuantity] = useState(1)
+  const [notes, setNotes] = useState(presetNote || '')
+
+  useEffect(() => {
+    const check = () => {
+      const items = getQuoteCart()
+      setInCart(items.some((i) => i.productId === String(product.id)))
+    }
+    check()
+    window.addEventListener(CART_EVENT, check)
+    return () => window.removeEventListener(CART_EVENT, check)
+  }, [product.id])
+
+  function handleAdd() {
+    addToQuoteCart({
+      productId: String(product.id),
+      title: product.title,
+      slug: product.slug,
+      sku: product.sku,
+      price: product.price ?? undefined,
+      imageUrl: product.imageUrl ?? undefined,
+      quantity,
+      notes: notes.trim() || undefined,
+    })
+    setInCart(true)
+    setShowNotes(false)
+  }
+
+  const priceEl = product.price != null ? (
+    <span style={priceStyle}>{formatPrice(product.price)}</span>
+  ) : null
+
+  if (inCart) {
+    return (
+      <a href="/quote-cart" style={inCartBtnStyle}>
+        ✓ View in RFQ Cart
+      </a>
+    )
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+        {/* Qty */}
+        <div style={qtyGroupStyle}>
+          <button
+            type="button"
+            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+            style={qtyBtnStyle}
+            disabled={quantity <= 1}
+          >−</button>
+          <span style={qtyValStyle}>{quantity}</span>
+          <button
+            type="button"
+            onClick={() => setQuantity(Math.min(999, quantity + 1))}
+            style={qtyBtnStyle}
+            disabled={quantity >= 999}
+          >+</button>
+        </div>
+
+        {/* Add to RFQ */}
+        <button
+          type="button"
+          onClick={handleAdd}
+          style={addBtnStyle}
+          onMouseEnter={(e) => (e.currentTarget.style.background = '#0f4f2b')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = '#1a6d3e')}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path d="M3 4h2l1.6 9.2a1 1 0 0 0 1 .8h7.2a1 1 0 0 0 1-.82L18 7H6" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="8.5" cy="17" r="1" fill="currentColor" stroke="none" />
+              <circle cx="15.5" cy="17" r="1" fill="currentColor" stroke="none" />
+            </svg>
+            Add to RFQ
+          </span>
+          {priceEl}
+        </button>
+
+        {/* Notes toggle */}
+        <button
+          type="button"
+          onClick={() => setShowNotes(!showNotes)}
+          style={noteToggleStyle}
+          title="Add questions or notes for this item"
+        >
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path d="M16 2H4a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h8l4-4V3a1 1 0 0 0-1-1z" />
+            <path d="M6 6h8M6 10h8M6 14h4" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Notes expander */}
+      {showNotes && (
+        <div style={{ marginTop: 8 }}>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={`Questions about this ${product.title}? E.g. finish, size, timeline…`}
+            rows={2}
+            style={notesInputStyle}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Minimalist price styling ───────────────────────────────────────────────
+
+const priceStyle: React.CSSProperties = {
+  fontFamily: "'Inter', -apple-system, sans-serif",
+  fontWeight: 500,
+  fontSize: 13,
+  letterSpacing: '-0.01em',
+  opacity: 0.9,
+}
+
+const addBtnStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  padding: '10px 18px',
+  background: '#1a6d3e',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 8,
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
+  transition: 'background 150ms ease',
+  whiteSpace: 'nowrap',
+}
+
+const qtyGroupStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  border: '1.5px solid #d9e0d7',
+  borderRadius: 8,
+  overflow: 'hidden',
+  background: '#fff',
+}
+
+const qtyBtnStyle: React.CSSProperties = {
+  width: 34,
+  height: 38,
+  border: 'none',
+  background: '#f4f6f2',
+  fontSize: 16,
+  fontWeight: 600,
+  cursor: 'pointer',
+  color: '#151a17',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  lineHeight: 1,
+}
+
+const qtyValStyle: React.CSSProperties = {
+  width: 38,
+  textAlign: 'center',
+  fontSize: 14,
+  fontWeight: 700,
+  color: '#151a17',
+}
+
+const noteToggleStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 40,
+  height: 38,
+  border: '1.5px solid #d9e0d7',
+  borderRadius: 8,
+  background: '#fff',
+  color: '#667168',
+  cursor: 'pointer',
+  transition: 'all 150ms ease',
+  fontSize: 16,
+}
+
+const notesInputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 12px',
+  border: '1.5px solid #d9e0d7',
+  borderRadius: 8,
+  fontSize: 13,
+  fontFamily: 'inherit',
+  resize: 'vertical',
+  minHeight: 48,
+  background: '#fbfcfa',
+  color: '#151a17',
+  outline: 'none',
+  boxSizing: 'border-box',
+}
+
+// ── In-cart button style (reused) ──────────────────────────────────────────
+
+const inCartBtnStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '10px 18px',
+  background: '#e8f2ec',
+  color: '#1a6d3e',
+  border: '1.5px solid #b7d4c2',
+  borderRadius: 8,
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
+  textDecoration: 'none',
+  transition: 'all 150ms ease',
+}
+
+// ── QuoteCartExperience (Redesigned) ───────────────────────────────────────
+
 export function QuoteCartExperience() {
   const [items, setItems] = useState<QuoteItem[]>([])
   const [form, setForm] = useState<QuoteForm>({
-    customerName: '',
-    email: '',
-    phone: '',
-    deliveryLocation: '',
-    projectType: 'home',
-    notes: '',
+    customerName: '', email: '', phone: '', deliveryLocation: '', projectType: 'home', notes: '',
   })
   const [customerId, setCustomerId] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -248,17 +474,10 @@ export function QuoteCartExperience() {
 
   useEffect(() => {
     setItems(getQuoteCart())
-
-    // If we have a leadId, fetch server cart to merge any items the user
-    // may have added on another device or in a previous session
     const leadId = getQuoteCartLeadId()
     if (leadId) {
-      fetchServerCart().then(() => {
-        // Re-read items after server merge
-        setItems(getQuoteCart())
-      })
+      fetchServerCart().then(() => setItems(getQuoteCart()))
     }
-
     async function hydrateCustomer() {
       try {
         const res = await fetch('/api/customers/me', { credentials: 'include' })
@@ -274,19 +493,13 @@ export function QuoteCartExperience() {
           phone: current.phone || user.phone || '',
           deliveryLocation: current.deliveryLocation || user.address || '',
         }))
-      } catch {
-        // Guest RFQs are allowed.
-      }
+      } catch { /* guest OK */ }
     }
-
     hydrateCustomer()
   }, [])
 
-  const subtotal = useMemo(
-    () => items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0),
-    [items],
-  )
-  const totalQuantity = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items])
+  const subtotal = useMemo(() => items.reduce((s, i) => s + (i.price || 0) * i.quantity, 0), [items])
+  const totalQuantity = useMemo(() => items.reduce((s, i) => s + i.quantity, 0), [items])
 
   function lineTotal(item: QuoteItem): number {
     return (item.price || 0) * item.quantity
@@ -296,17 +509,21 @@ export function QuoteCartExperience() {
     setItems(nextItems)
     saveQuoteCart(nextItems)
     setSuccessId('')
-
-    // Sync to server in the background
     syncCartToServer()
   }
 
+  function updateItemNotes(productId: string, notes: string) {
+    const next = items.map((i) => i.productId === productId ? { ...i, notes } : i)
+    setItems(next)
+    saveQuoteCart(next)
+  }
+
   function changeQuantity(productId: string, quantity: number) {
-    syncItems(items.map((item) => item.productId === productId ? { ...item, quantity: normalizeQuantity(quantity) } : item))
+    syncItems(items.map((i) => i.productId === productId ? { ...i, quantity: normalizeQuantity(quantity) } : i))
   }
 
   function removeItem(productId: string) {
-    syncItems(items.filter((item) => item.productId !== productId))
+    syncItems(items.filter((i) => i.productId !== productId))
   }
 
   function updateForm(field: keyof QuoteForm, value: string) {
@@ -316,19 +533,9 @@ export function QuoteCartExperience() {
 
   async function submitRFQ(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setError('')
-    setSuccessId('')
-
-    if (items.length === 0) {
-      setError('Add at least one product before submitting an RFQ.')
-      return
-    }
-
-    if (!form.customerName.trim() || !form.phone.trim()) {
-      setError('Name and phone are required so the HomeU team can follow up.')
-      return
-    }
-
+    setError(''); setSuccessId('')
+    if (items.length === 0) { setError('Add at least one product before submitting.'); return }
+    if (!form.customerName.trim() || !form.phone.trim()) { setError('Name and phone are required.'); return }
     setSubmitting(true)
     try {
       const res = await fetch('/api/rfq', {
@@ -349,51 +556,39 @@ export function QuoteCartExperience() {
             skuSnapshot: item.sku,
             unitPriceSnapshot: item.price || 0,
             quantity: item.quantity,
+            notes: item.notes || undefined,
           })),
         }),
       })
-
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to submit RFQ.')
-
       setSuccessId(data.rfqId || '')
-      clearQuoteCart()
-      setItems([])
-
-      // Clear server cart too
-      clearServerCart()
+      clearQuoteCart(); setItems([]); clearServerCart()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit RFQ.')
-    } finally {
-      setSubmitting(false)
-    }
+    } finally { setSubmitting(false) }
   }
 
   return (
     <main className="quote-cart-shell">
-      {/* Breadcrumb */}
       <nav className="quote-cart-breadcrumb" aria-label="Breadcrumb">
         <a href="/products">&larr; Continue Shopping</a>
         <span>/</span>
         <span>Request for Quotation</span>
       </nav>
 
-      {/* Hero */}
       <section className="quote-cart-hero">
         <div>
           <p className="eyebrow">HomeU RFQ Cart</p>
           <h1>Request a quotation</h1>
-          <p>
-            Review your selected items, tell us about your project, and receive a formal quotation
-            from the HomeU team.
-          </p>
+          <p>Review items, add notes per item, and submit for a formal quotation.</p>
         </div>
-        <div className="quote-cart-summary-hero" aria-label="Cart summary">
+        <div className="quote-cart-summary-hero">
           <strong>{totalQuantity}</strong>
-          <span>{totalQuantity === 1 ? 'item' : 'items'}</span>
+          <span>{formatQuantity(totalQuantity, 'item')}</span>
           {subtotal > 0 && (
             <span className="quote-cart-subtotal-hero">
-              Est. ₱{subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+              {formatPrice(subtotal, 'always')}
             </span>
           )}
         </div>
@@ -421,10 +616,7 @@ export function QuoteCartExperience() {
         <section className="quote-cart-success" role="status">
           <div className="quote-cart-success-icon">✅</div>
           <h2>RFQ Submitted Successfully</h2>
-          <p>
-            Your request is now in the HomeU queue.
-            Reference: <strong>RFQ #{successId.slice(-6).toUpperCase()}</strong>
-          </p>
+          <p>Reference: <strong>RFQ #{successId.slice(-6).toUpperCase()}</strong></p>
           <div className="quote-cart-actions">
             <a href={`/customer/rfq/${successId}`} className="primary-button">Track RFQ Status</a>
             <a href="/products">Continue Browsing</a>
@@ -443,9 +635,7 @@ export function QuoteCartExperience() {
               </h2>
             </div>
             {items.length > 0 && (
-              <button type="button" className="text-button" onClick={() => syncItems([])}>
-                Clear All
-              </button>
+              <button type="button" className="text-button" onClick={() => syncItems([])}>Clear All</button>
             )}
           </div>
 
@@ -460,98 +650,82 @@ export function QuoteCartExperience() {
             <div className="quote-cart-lines">
               {items.map((item) => (
                 <article className="quote-cart-line" key={item.productId}>
-                  {/* Product thumbnail */}
+                  {/* Thumbnail */}
                   <div className="quote-cart-line-image">
                     {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        loading="lazy"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                      />
+                      <img src={item.imageUrl} alt={item.title} loading="lazy"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     ) : (
                       <div className="quote-cart-line-image-placeholder">🛋️</div>
                     )}
                   </div>
 
-                  {/* Product info */}
+                  {/* Info + Notes */}
                   <div className="quote-cart-line-info">
                     <h3>
-                      {item.slug ? (
-                        <a href={`/products/${item.slug}`}>{item.title}</a>
-                      ) : (
-                        item.title
-                      )}
+                      {item.slug ? <a href={`/products/${item.slug}`}>{item.title}</a> : item.title}
                     </h3>
                     {item.sku && <p className="quote-cart-line-sku">SKU: {item.sku}</p>}
-                    {item.price ? (
+                    {item.price != null ? (
                       <span className="quote-cart-line-unit-price">
-                        ₱{item.price.toLocaleString('en-PH', { minimumFractionDigits: 2 })} each
+                        {formatPrice(item.price)} each
                       </span>
                     ) : (
                       <span className="quote-cart-line-unit-price">Price by quotation</span>
                     )}
+
+                    {/* Per-item notes (THE GENIUS) */}
+                    <div style={{ marginTop: 8 }}>
+                      <textarea
+                        value={item.notes || ''}
+                        onChange={(e) => updateItemNotes(item.productId, e.target.value)}
+                        placeholder={`Questions about ${item.title}? E.g. color, finish, size, timeline…`}
+                        rows={1}
+                        style={{
+                          width: '100%', padding: '7px 10px', border: '1px solid #e3e8e0', borderRadius: 6,
+                          fontSize: 12, fontFamily: 'inherit', resize: 'vertical', minHeight: 32,
+                          background: '#fafbf9', color: '#3a4339', outline: 'none', boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
                   </div>
 
-                  {/* Quantity stepper */}
+                  {/* Qty */}
                   <div className="quote-cart-line-qty">
-                    <button
-                      type="button"
-                      className="qty-btn"
+                    <button type="button" className="qty-btn"
                       onClick={() => changeQuantity(item.productId, item.quantity - 1)}
-                      disabled={item.quantity <= 1}
-                      aria-label="Decrease quantity"
-                    >
-                      −
-                    </button>
+                      disabled={item.quantity <= 1}>−</button>
                     <span className="qty-value">{item.quantity}</span>
-                    <button
-                      type="button"
-                      className="qty-btn"
+                    <button type="button" className="qty-btn"
                       onClick={() => changeQuantity(item.productId, item.quantity + 1)}
-                      disabled={item.quantity >= 999}
-                      aria-label="Increase quantity"
-                    >
-                      +
-                    </button>
+                      disabled={item.quantity >= 999}>+</button>
                   </div>
 
-                  {/* Line subtotal */}
+                  {/* Subtotal */}
                   <div className="quote-cart-line-subtotal">
                     <span className="subtotal-label">Subtotal</span>
-                    <strong>
-                      {item.price
-                        ? `₱${lineTotal(item).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
-                        : '—'}
-                    </strong>
+                    <strong>{item.price ? formatPrice(lineTotal(item), 'always') : '—'}</strong>
                   </div>
 
                   {/* Remove */}
-                  <button
-                    type="button"
-                    className="quote-cart-line-remove"
+                  <button type="button" className="quote-cart-line-remove"
                     onClick={() => removeItem(item.productId)}
-                    aria-label={`Remove ${item.title}`}
-                    title="Remove"
-                  >
-                    ✕
-                  </button>
+                    aria-label={`Remove ${item.title}`}>✕</button>
                 </article>
               ))}
             </div>
           )}
         </section>
 
-        {/* Right: Contact Form + Order Summary (sticky) */}
+        {/* Right: Contact Form */}
         <aside className="quote-cart-sidebar">
           <div className="quote-cart-sidebar-sticky">
-            {/* Order Summary */}
             <div className="quote-cart-order-summary">
               <h3>Order Summary</h3>
               <div className="order-summary-rows">
                 <div className="order-summary-row">
                   <span>Items ({totalQuantity})</span>
-                  <span>{subtotal > 0 ? `₱${subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '—'}</span>
+                  <span>{subtotal > 0 ? formatPrice(subtotal, 'always') : '—'}</span>
                 </div>
                 <div className="order-summary-row">
                   <span>Delivery</span>
@@ -559,55 +733,33 @@ export function QuoteCartExperience() {
                 </div>
                 <div className="order-summary-row order-summary-total">
                   <span>Estimated Total</span>
-                  <span>{subtotal > 0 ? `₱${subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '—'}</span>
+                  <span>{subtotal > 0 ? formatPrice(subtotal, 'always') : '—'}</span>
                 </div>
               </div>
               <p className="order-summary-disclaimer">
-                Final pricing, delivery fees, and availability will be confirmed in your formal quotation.
+                Final pricing, delivery fees, and availability confirmed in formal quotation.
               </p>
             </div>
 
-            {/* Contact Form */}
             <form className="quote-form" onSubmit={submitRFQ}>
               <h3>Contact Details</h3>
-
-              <label>
-                Full Name <span className="required">*</span>
-                <input
-                  value={form.customerName}
-                  onChange={(e) => updateForm('customerName', e.target.value)}
-                  placeholder="Juan dela Cruz"
-                  required
-                />
+              <label>Full Name <span className="required">*</span>
+                <input value={form.customerName} onChange={(e) => updateForm('customerName', e.target.value)}
+                  placeholder="Juan dela Cruz" required />
               </label>
-              <label>
-                Phone Number <span className="required">*</span>
-                <input
-                  value={form.phone}
-                  onChange={(e) => updateForm('phone', e.target.value)}
-                  placeholder="+63 9XX XXX XXXX"
-                  required
-                />
+              <label>Phone <span className="required">*</span>
+                <input value={form.phone} onChange={(e) => updateForm('phone', e.target.value)}
+                  placeholder="+63 9XX XXX XXXX" required />
               </label>
-              <label>
-                Email
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => updateForm('email', e.target.value)}
-                  placeholder="juan@example.com"
-                />
+              <label>Email
+                <input type="email" value={form.email} onChange={(e) => updateForm('email', e.target.value)}
+                  placeholder="juan@example.com" />
               </label>
-              <label>
-                Delivery Location
-                <input
-                  value={form.deliveryLocation}
-                  onChange={(e) => updateForm('deliveryLocation', e.target.value)}
-                  placeholder="City, province, or building address"
-                />
+              <label>Delivery Location
+                <input value={form.deliveryLocation} onChange={(e) => updateForm('deliveryLocation', e.target.value)}
+                  placeholder="City, province, or building address" />
               </label>
-              <label>
-                Project Type
+              <label>Project Type
                 <select value={form.projectType} onChange={(e) => updateForm('projectType', e.target.value)}>
                   <option value="home">Home</option>
                   <option value="condo">Condo</option>
@@ -617,28 +769,20 @@ export function QuoteCartExperience() {
                   <option value="other">Other</option>
                 </select>
               </label>
-              <label>
-                Notes / Special Requests
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => updateForm('notes', e.target.value)}
-                  placeholder="Preferred timeline, finishes, dimensions, or any questions for the HomeU team"
-                  rows={3}
-                />
+              <label>Additional Notes
+                <textarea value={form.notes} onChange={(e) => updateForm('notes', e.target.value)}
+                  placeholder="Timeline, budget range, or any other details for the HomeU team"
+                  rows={3} />
               </label>
 
               {error && <p className="quote-form-error" role="alert">{error}</p>}
 
-              <button
-                className="primary-button quote-submit-btn"
-                type="submit"
-                disabled={submitting || items.length === 0}
-              >
+              <button className="primary-button quote-submit-btn" type="submit"
+                disabled={submitting || items.length === 0}>
                 {submitting ? 'Submitting...' : 'Submit Request for Quotation'}
               </button>
-
               <p className="quote-form-note">
-                No payment required. HomeU will review and send a formal quotation with final pricing.
+                No payment required. HomeU will send a formal quotation.
               </p>
             </form>
           </div>

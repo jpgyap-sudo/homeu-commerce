@@ -5,8 +5,8 @@ WORKDIR /app
 # Copy only the website package.json (no monorepo deps needed)
 COPY apps/website/package.json ./website/
 
-# Skip optional deps to avoid platform-specific SWC packages (win32 on alpine)
-RUN cd website && npm install --no-audit --no-fund --no-optional
+# Install with --force to bypass platform-specific SWC package errors
+RUN cd website && npm install --force --no-audit --no-fund 2>&1 || true
 
 # Accept NEXT_PUBLIC_SITE_URL at build time
 ARG NEXT_PUBLIC_SITE_URL

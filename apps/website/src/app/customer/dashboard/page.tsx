@@ -50,13 +50,13 @@ export default function CustomerDashboardPage() {
         const user = meData?.user || meData
         setCustomer(user)
 
-        // Fetch this customer's RFQs
-        const rfqRes = await fetch(`/api/rfq-requests?where[customer][equals]=${user.id}&sort=-createdAt`, {
+        // Fetch this customer's RFQs via the new rfq-requests endpoint
+        const rfqRes = await fetch(`/api/rfq-requests?customerId=${user.id}&limit=50`, {
           credentials: 'include',
         })
         if (rfqRes.ok) {
           const rfqData = await rfqRes.json()
-          setRfqs(rfqData.docs || [])
+          setRfqs(rfqData.rfqs || [])
         }
       } catch (err: any) {
         setError(err.message || 'Failed to load dashboard')

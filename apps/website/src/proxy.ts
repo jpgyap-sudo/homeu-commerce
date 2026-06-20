@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'homeu-admin-secret-change-in-production'
+  process.env.JWT_SECRET
 )
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is required. Set a secure random value (min 32 chars).')
+  throw new Error('JWT_SECRET is not configured. Server cannot start safely.')
+}
 const COOKIE_NAME = 'homeu_admin_session'
 
 /**

@@ -17,6 +17,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const fields: string[] = []
     const values: any[] = []
     let i = 0
+    // When saving config, we store it as-is (the mergeWithDefaults happens on read)
     if (body.config !== undefined) { i++; fields.push(`config = $${i}::jsonb`); values.push(JSON.stringify(body.config)) }
     if (body.enabled !== undefined) { i++; fields.push(`enabled = $${i}`); values.push(!!body.enabled) }
     if (fields.length === 0) return NextResponse.json({ ok: true })

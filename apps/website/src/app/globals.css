@@ -3,12 +3,12 @@
 @import '../styles/debut-overrides.css';
 
 :root {
-  --bg: #f6f3ee;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-soft: #faf8f4;
+  --surface-soft: #fafafa;
   --text: #1f2420;
   --muted: #67706a;
-  --line: #dfd8ce;
+  --line: #e5e7eb;
   --brand: #173f2f;
   --brand-strong: #0f2e22;
   --gold: #b88935;
@@ -22,7 +22,7 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: #ffffff;
   color: var(--text);
   font-family: var(--debut-font-body, 'Cardo', Georgia, serif);
 }
@@ -38,66 +38,11 @@ textarea {
   font: inherit;
 }
 
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  min-height: 64px;
-  padding: 12px 24px;
-  background: rgba(255, 255, 255, 0.92);
-  border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(12px);
-}
-
-.site-logo {
-  color: var(--brand);
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-decoration: none;
-}
-
-.site-header nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.site-header nav a,
-.quote-cart-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: none;
-  transition: background 180ms ease;
-}
-
-.quote-cart-link:hover {
-  border-color: var(--brand);
-  background: var(--surface-soft);
-}
-
-.quote-cart-link span {
-  min-width: 22px;
-  border-radius: 12px;
-  background: var(--brand);
-  color: #fff;
-  font-size: 12px;
-  line-height: 22px;
-  text-align: center;
-}
+/* NOTE: The storefront header/nav is styled entirely by
+   styles/debut-overrides.css (Debut-themed: centered logo, icons pinned
+   right, single-row centered nav matching homeu.ph). The old simple
+   flex header that used to live here was removed because it overrode the
+   Debut header and caused the nav to wrap into two rows. */
 
 /* ══════════════════════════════════════════════════════════════
    RFQ Quote Cart — Premium Shopify-Style Design
@@ -730,23 +675,6 @@ textarea {
   }
 }
 
-.site-header nav a:hover,
-.quote-cart-link:hover {
-  background: #ece7df;
-}
-
-.quote-cart-link span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--brand);
-  color: #fff;
-  font-size: 12px;
-}
 
 .hero {
   max-width: 1100px;
