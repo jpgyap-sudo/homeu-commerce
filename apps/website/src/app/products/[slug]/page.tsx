@@ -205,8 +205,8 @@ export default function ProductDetailPage() {
 
           {/* Price */}
           {product.showPrice !== false && product.price != null && (
-            <div className="product-detail__price">
-              <span className="product-detail__price-current" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, letterSpacing: '-0.02em' }}>
+            <div className={`product-detail__price${product.originalPrice && product.originalPrice > product.price ? ' is-sale' : ''}`}>
+              <span className="product-detail__price-current">
                 {formatPrice(product.price)}
               </span>
               {product.originalPrice && product.originalPrice > product.price && (
@@ -266,46 +266,39 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Related Products */}
+      {/* Related Products — same Debut cards as the collection grid */}
       {related.length > 0 && (
-        <section className="index-section page-width">
-          <div className="section-header">
-            <h2 className="section-header__title h2">
-              More from {product.category?.title || 'our collection'}
-            </h2>
+        <section className="collection-inner" style={{ paddingTop: 8 }}>
+          <div className="collection-related-header">
+            <h2>You may also like</h2>
           </div>
-          <ul className="grid grid--uniform product-grid" style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24 }}>
+          <div className="products-debut-grid">
             {related.map(rp => (
-              <li key={rp.id}>
-                <div className="grid-product">
-                  <Link href={`/products/${rp.slug}`} className="grid-product__link">
-                    <div className="grid-product__image-wrap">
-                      {rp.imageUrl ? (
-                        <Image
-                          src={rp.imageUrl}
-                          alt={rp.title}
-                          fill
-                          style={{ objectFit: 'cover' }}
-                          sizes="(max-width: 768px) 50vw, 25vw"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="grid-product__image-placeholder" />
-                      )}
-                    </div>
-                    <div className="grid-product__meta">
-                      <p className="grid-product__title">{rp.title}</p>
-                      {rp.price != null && (
-                        <p className="grid-product__price" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, letterSpacing: '-0.01em' }}>
-                          {formatPrice(rp.price)}
-                        </p>
-                      )}
-                    </div>
+              <div key={rp.id} className="grid-view-item product-card">
+                <Link href={`/products/${rp.slug}`} className="grid-view-item__link grid-view-item__image-container">
+                  {rp.imageUrl ? (
+                    <img className="grid-view-item__image" src={rp.imageUrl} alt={rp.title} loading="lazy" />
+                  ) : (
+                    <div className="grid-view-item__image grid-view-item__image--placeholder">No image</div>
+                  )}
+                </Link>
+                <div className="grid-view-item__meta">
+                  <Link href={`/products/${rp.slug}`} className="grid-view-item__link">
+                    <div className="grid-view-item__title product-card__title">{rp.title}</div>
                   </Link>
+                  {rp.price != null && (
+                    <div className="price">
+                      <dl>
+                        <div className="price__regular">
+                          <dd><span className="price-item price-item--regular">{formatPrice(rp.price)}</span></dd>
+                        </div>
+                      </dl>
+                    </div>
+                  )}
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
