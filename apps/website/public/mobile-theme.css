@@ -1,0 +1,975 @@
+/* ═══════════════════════════════════════════════════════════════════
+   HomeU Mobile Theme — v2.0
+   ═══════════════════════════════════════════════════════════════════
+   A fundamentally redesigned mobile experience, not just breakpoints.
+   
+   Architecture:
+   - Desktop header hidden on mobile → replaced by sticky top bar
+   - Desktop nav hidden → replaced by fixed bottom navigation bar
+   - Desktop mega menus hidden → replaced by bottom sheet drawer
+   - Full-width layouts become card-based on mobile
+   - Touch targets 44px minimum everywhere
+   
+   Inspired by: IKEA, West Elm, CB2 mobile patterns
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Viewport lock ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE DRAWER — Slide-out navigation
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  body.drawer-open {
+    overflow: hidden;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE HEADER — Minimal top bar
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Hide desktop header elements */
+  .site-header__desktop-nav,
+  .site-nav,
+  .site-header__top-bar,
+  .medium-up--hide-nav {
+    display: none !important;
+  }
+
+  /* Mobile header: thin, fixed, with safe-area */
+  .site-header__mobile-nav {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: var(--debut-header-bg, #3a3a3a);
+    color: var(--debut-header-text, #fff);
+    height: 52px;
+  }
+
+  /* Push main content down below fixed header */
+  .content-for-layout {
+    padding-top: 52px;
+  }
+
+  /* Logo in mobile header — smaller */
+  .site-header__mobile-nav .site-header__logo-image {
+    max-width: 120px !important;
+    height: auto;
+  }
+
+  .site-header__mobile-nav .site-header__logo-link {
+    padding: 0;
+  }
+
+  .site-header__mobile-nav .site-header__icon-button {
+    padding: 6px;
+  }
+
+  .site-header__mobile-nav .icon-bar {
+    width: 20px;
+    height: 2px;
+  }
+
+  /* Mobile header icon cluster */
+  .site-header__mobile-icons {
+    display: flex !important;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .site-header__mobile-icons .site-header__icon-btn {
+    padding: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .site-header__login-label {
+    display: none !important;
+  }
+
+  .site-header {
+    position: static !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BOTTOM NAVIGATION — Fixed thumb-friendly bar
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homeu-mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: #fff;
+    border-top: 1px solid #eef1ed;
+    padding: 4px 0;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+  }
+
+  .homeu-mobile-bottom-nav__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 4px 8px;
+    min-width: 48px;
+    min-height: 44px;
+    text-decoration: none;
+    color: #667168;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    transition: color 0.12s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .homeu-mobile-bottom-nav__item:active {
+    color: #1a6d3e;
+  }
+
+  .homeu-mobile-bottom-nav__item.active {
+    color: #1e7a47;
+    font-weight: 700;
+  }
+
+  .homeu-mobile-bottom-nav__item svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Push page content above bottom nav */
+  body {
+    padding-bottom: 60px;
+  }
+
+  /* Footer loses bottom padding since nav is fixed there */
+  .site-footer {
+    padding-bottom: 0 !important;
+    margin-bottom: 56px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE: HIDE HERO SLIDESHOW — Goes straight to content
+   ═══════════════════════════════════════════════════════════════════
+   The slideshow takes too much vertical space on mobile.
+   Collections + featured products load immediately instead.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  [data-section-type="slideshow"] {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE CATEGORY CHIPS — Horizontal scrollable
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homeu-category-chips {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .homeu-category-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .homeu-category-chip {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: #f0f7f2;
+    border: 1.5px solid #cfe3d6;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a6d3e;
+    text-decoration: none;
+    white-space: nowrap;
+    min-height: 40px;
+    transition: background 0.12s, border-color 0.12s;
+  }
+
+  .homeu-category-chip:active {
+    background: #1a6d3e;
+    color: #fff;
+    border-color: #1a6d3e;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE QUICK ACTION BAR — Above collections
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homeu-mobile-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 16px;
+    padding-bottom: 4px;
+  }
+
+  .homeu-mobile-quick-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 4px;
+    background: #f7f9f6;
+    border-radius: 12px;
+    border: 1px solid #eef1ed;
+    text-decoration: none;
+    min-height: 64px;
+    transition: background 0.12s;
+  }
+
+  .homeu-mobile-quick-action:active {
+    background: #eef5f0;
+  }
+
+  .homeu-mobile-quick-action__icon {
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .homeu-mobile-quick-action__label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #3a4339;
+    text-align: center;
+    line-height: 1.2;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE SECTION WELCOME — Brief intro text
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homeu-mobile-welcome {
+    padding: 20px 16px 8px;
+  }
+
+  .homeu-mobile-welcome h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: #151a17;
+  }
+
+  .homeu-mobile-welcome p {
+    font-size: 13px;
+    color: #667168;
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE RECENTLY VIEWED — Compact row
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homeu-recently-viewed {
+    padding: 16px;
+    padding-top: 0;
+  }
+
+  .homeu-recently-viewed__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #667168;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+
+  .homeu-recently-viewed__list {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .homeu-recently-viewed__list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .homeu-recently-viewed__item {
+    flex-shrink: 0;
+    width: 100px;
+    text-decoration: none;
+  }
+
+  .homeu-recently-viewed__thumb {
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    background: #f7f9f6;
+    margin-bottom: 6px;
+    overflow: hidden;
+  }
+
+  .homeu-recently-viewed__name {
+    font-size: 11px;
+    color: #3a4339;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE PAGE LAYOUT — Compact spacing
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .page-width {
+    padding: 0 16px;
+  }
+
+  .index-section {
+    padding: 28px 0;
+  }
+
+  .section-header {
+    margin-bottom: 20px;
+  }
+
+  .section-header__title {
+    font-size: 20px !important;
+  }
+
+  .section-header__sub {
+    font-size: 13px;
+  }
+
+  /* Reduce hero section padding */
+  .homepage-hero {
+    padding: 36px 16px !important;
+  }
+
+  .homepage-hero__heading {
+    font-size: clamp(24px, 7vw, 32px) !important;
+  }
+
+  .homepage-hero__sub {
+    font-size: 14px !important;
+  }
+
+  /* Card-style sections */
+  .homepage-brand-text__title {
+    font-size: 22px !important;
+  }
+
+  .homepage-brand-text__body {
+    font-size: 14px !important;
+    line-height: 1.65;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE PRODUCT GRID — 2 columns, compact cards
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homepage-featured-products .product-grid,
+  [class*="product-grid"] {
+    gap: 14px 10px !important;
+  }
+
+  .grid-product__image-wrap {
+    margin-bottom: 8px;
+    border-radius: 4px;
+  }
+
+  .grid-product__title {
+    font-size: 13px !important;
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+
+  .grid-product__meta {
+    text-align: left;
+    padding: 0 2px;
+  }
+
+  .grid-product__price {
+    font-size: 12px !important;
+  }
+
+  .grid-product__price--current {
+    font-weight: 600;
+  }
+
+  .grid-product__price--original {
+    font-size: 11px;
+  }
+
+  /* Featured product tweaks */
+  .homepage-featured-products {
+    padding: 8px 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE COLLECTION GRID — Card tiles
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homepage-collections .homeu-collection-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .homeu-collection-card__title {
+    font-size: 18px !important;
+    padding: 0 8px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE PRODUCT DETAIL — Stacked, touch-friendly
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .product-detail {
+    padding: 0;
+    gap: 16px;
+  }
+
+  .product-detail__gallery {
+    margin: 0 -16px; /* edge-to-edge images */
+    width: calc(100% + 32px);
+    gap: 4px;
+  }
+
+  .product-detail__main-image {
+    border-radius: 0;
+    aspect-ratio: 4/3;
+  }
+
+  .product-detail__thumbnails {
+    padding: 0 16px 8px;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .product-detail__thumb {
+    width: 48px !important;
+    height: 48px !important;
+    flex-shrink: 0;
+    border-radius: 6px;
+  }
+
+  .product-detail__info {
+    padding: 0 16px;
+  }
+
+  .product-detail__title {
+    font-size: 20px !important;
+    line-height: 1.25;
+  }
+
+  .product-detail__vendor {
+    font-size: 12px;
+  }
+
+  .product-detail__price-current {
+    font-size: 20px !important;
+  }
+
+  .product-detail__form {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .product-detail__cta {
+    width: 100%;
+  }
+
+  .product-detail__cta .btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+  }
+
+  .product-detail__meta {
+    grid-template-columns: 1fr !important;
+  }
+
+  .product-detail__description {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  /* Sticky RFQ bar on product detail */
+  .product-detail__sticky-rfq {
+    position: fixed;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: #fff;
+    border-top: 1px solid #eef1ed;
+    padding: 10px 16px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+  }
+
+  .product-detail__sticky-rfq .btn {
+    width: 100%;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE PRODUCT LISTING — Full-width, bottom filters
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .products-shell {
+    padding: 16px;
+    padding-top: 0;
+  }
+
+  .products-hero {
+    padding: 16px 0 8px;
+  }
+
+  .products-hero h1 {
+    font-size: 20px !important;
+  }
+
+  .products-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .products-search {
+    width: 100% !important;
+  }
+
+  .products-search input {
+    font-size: 16px !important;
+    padding: 10px 14px;
+  }
+
+  .products-grid {
+    gap: 12px 8px !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .products-grid .grid-product__image-wrap {
+    aspect-ratio: 1;
+  }
+
+  .products-grid .grid-product__title {
+    font-size: 12px !important;
+  }
+
+  .products-filter-btn {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border: 1.5px solid #d9e0d7;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #151a17;
+    cursor: pointer;
+    min-height: 44px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE SEARCH — Prominent, full-width
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .search-page {
+    padding: 16px !important;
+  }
+
+  .search-page__input input {
+    font-size: 16px !important;
+    padding: 12px 16px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE BLOG — Card layout
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .blog-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  .article-card__image-wrap {
+    aspect-ratio: 16/9;
+  }
+
+  .article-card__title {
+    font-size: 15px !important;
+  }
+
+  .article-card__excerpt {
+    font-size: 13px !important;
+    line-height: 1.5;
+  }
+
+  .blog-page__title {
+    font-size: 22px !important;
+  }
+
+  .article-template {
+    padding: 16px !important;
+  }
+
+  .article-template__title {
+    font-size: 22px !important;
+  }
+
+  .article-template__body {
+    font-size: 15px !important;
+    line-height: 1.7;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE ACCOUNT PAGES
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .account-page {
+    padding: 16px !important;
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+  }
+
+  .account-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .account-nav__link {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  .account-title {
+    font-size: 20px !important;
+  }
+
+  .account-form__row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE AUTH PAGES
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .auth-page {
+    padding: 32px 16px !important;
+  }
+
+  .auth-title {
+    font-size: 22px !important;
+  }
+
+  .auth-sub {
+    font-size: 13px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE FOOTER — Compact, single-column
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .site-footer {
+    margin-top: 32px;
+  }
+
+  .site-footer__grid {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+    padding: 32px 16px !important;
+  }
+
+  .footer-section__title {
+    font-size: 15px !important;
+    margin-bottom: 12px;
+  }
+
+  .footer-section__tagline {
+    font-size: 12px;
+    max-width: 100%;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE QUOTE CART
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .quote-cart-shell {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .quote-cart-hero {
+    padding: 20px 0;
+  }
+
+  .quote-cart-hero h1 {
+    font-size: 22px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE CUSTOMER DASHBOARD
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .account-section {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+  }
+
+  .account-section__title {
+    font-size: 18px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE CHAT WIDGET — Reposition for bottom nav
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homeu-chat-widget {
+    bottom: 72px !important;
+    right: 12px !important;
+  }
+
+  .homeu-chat-widget__button {
+    width: 50px !important;
+    height: 50px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE INSTALL PROMPT — Adjusted for bottom nav
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homeu-install-banner {
+    bottom: 60px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE SAFE AREAS — Notch & home indicator
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Respect notch area on top */
+  .site-header__mobile-nav {
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+    padding-right: calc(16px + env(safe-area-inset-right, 0px));
+  }
+
+  /* Respect home indicator at bottom */
+  .homeu-mobile-bottom-nav {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* Content shouldn't hide behind notch */
+  .slideshow {
+    margin-top: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE ANNOUNCEMENT BAR
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homeu-announcement-bar {
+    padding: 6px 12px;
+    font-size: 11px;
+    line-height: 1.4;
+    top: 52px;
+    position: fixed;
+    width: 100%;
+    z-index: 999;
+  }
+
+  .content-for-layout {
+    padding-top: calc(52px + 32px);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE MEGA MENU DRAWER — Bottom sheet
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .mobile-nav-wrapper {
+    position: fixed;
+    top: 52px;
+    left: 0;
+    right: 0;
+    bottom: 60px;
+    z-index: 999;
+    background: #fff;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-nav__link {
+    padding: 14px 20px;
+    font-size: 15px;
+  }
+
+  .mobile-nav__link--level-2 {
+    font-size: 14px;
+    padding-left: 36px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE IMAGE WITH TEXT — Stacked
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homepage-image-text__inner {
+    flex-direction: column !important;
+    min-height: auto !important;
+  }
+
+  .homepage-image-text__image-wrap {
+    width: 100% !important;
+    aspect-ratio: 16/9;
+    position: relative;
+  }
+
+  .homepage-image-text__content {
+    width: 100% !important;
+    padding: 24px 16px !important;
+  }
+
+  .homepage-image-text__title {
+    font-size: 20px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE IMAGE BAR — Single column
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homepage-image-bar {
+    flex-direction: column !important;
+    height: auto !important;
+    gap: 8px !important;
+  }
+
+  .homepage-image-bar__item {
+    width: 100% !important;
+    aspect-ratio: 16/9;
+    position: relative;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE CTA
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homepage-cta__inner h2 {
+    font-size: 24px !important;
+  }
+
+  .homepage-cta__inner p {
+    font-size: 14px !important;
+  }
+
+  .homepage-cta__actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .homepage-cta__actions .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE INSTAGRAM GRID
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homepage-instagram__grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 4px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE ANNOUNCEMENT ADJUSTMENT — No sticky overlap
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .homeu-announcement-bar + .content-for-layout {
+    padding-top: calc(52px + 28px);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE PRODUCT CARD PRICE IMPROVEMENTS
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .grid-product__link:active {
+    opacity: 0.85;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE 404 PAGE
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .error-page {
+    padding: 40px 16px !important;
+  }
+
+  .error-page__code {
+    font-size: 48px !important;
+  }
+
+  .error-page__title {
+    font-size: 20px !important;
+  }
+}

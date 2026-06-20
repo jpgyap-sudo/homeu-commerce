@@ -4,6 +4,9 @@ import { headers } from 'next/headers'
 import { ChatWidget } from '@/components/chat/ChatWidget'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import InstallPrompt from '@/components/InstallPrompt'
+import MobileBottomNav from '@/components/MobileBottomNav'
+import MobileDrawer from '@/components/MobileDrawer'
+import MobileHomepageEnhancer from '@/components/MobileHomepageEnhancer'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { getMainNav } from '@/lib/navigation'
@@ -17,7 +20,7 @@ export const metadata = {
   },
   description: siteConfig.tagline,
   metadataBase: new URL(`https://${siteConfig.domain}`),
-  icons: { icon: '/favicon.svg', shortcut: '/favicon.svg', apple: '/icons/icon-192x192.png' },
+  icons: { icon: siteConfig.favicon.shopifyUrl, shortcut: siteConfig.favicon.shopifyUrl, apple: '/icons/icon-192x192.png' },
   manifest: '/manifest.json',
   other: {
     'mobile-web-app-capable': 'yes',
@@ -79,6 +82,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         {/* Debut compiled theme CSS — same CSS classes as the live Shopify store */}
         <link rel="stylesheet" href="/debut-theme.css" />
+        {/* Mobile theme — fundamentally different mobile experience */}
+        <link rel="stylesheet" href="/mobile-theme.css" />
+        {/* Mobile responsive overrides */}
+        <link rel="stylesheet" href="/mobile-responsive.css" />
         {/* PWA: Theme color for address bar */}
         <meta name="theme-color" content="#1e7a47" />
         {/* PWA: iOS standalone mode */}
@@ -107,9 +114,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <ServiceWorkerRegister />
         <SiteHeader nav={mainNav} header={header} logoUrl={header.logoUrl || undefined} />
         <main id="MainContent" className="content-for-layout" role="main" tabIndex={-1}>
+          <MobileHomepageEnhancer />
           {children}
         </main>
         <SiteFooter />
+        <MobileBottomNav />
+        <MobileDrawer />
         <ChatWidget />
         <InstallPrompt />
       </body>

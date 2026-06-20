@@ -103,6 +103,15 @@ export default function RFQDetailPage() {
   const statusInfo = STATUS_DETAILS[rfq.status] || { label: rfq.status, color: '#999', description: '' }
   const totalItems = rfq.items?.reduce((sum, item) => sum + item.quantity, 0) || 0
 
+  // Dynamic import of RfqChatContainer
+  const [ChatComponent, setChatComponent] = useState<any>(null)
+
+  useEffect(() => {
+    import('@/components/rfq-chat/RfqChatContainer').then(mod => {
+      setChatComponent(() => mod.default)
+    }).catch(() => {})
+  }, [])
+
   return (
     <main style={{ maxWidth: 700, margin: '40px auto', padding: '0 24px' }}>
       {/* Breadcrumb */}
@@ -110,6 +119,24 @@ export default function RFQDetailPage() {
         <Link href="/customer/dashboard" style={{ color: '#666' }}>Dashboard</Link>
         <span style={{ color: '#999', margin: '0 8px' }}>/</span>
         <span style={{ color: '#222', fontWeight: 600 }}>RFQ #{rfq.id.slice(-6).toUpperCase()}</span>
+      </div>
+
+      {/* ── Chat Messages Section ── */}
+      <div style={{ marginBottom: 32 }}>
+        {ChatComponent ? (
+          <ChatComponent rfqId={rfq.id} isAdmin={false} />
+        ) : (
+          <div style={{
+            padding: 20,
+            textAlign: 'center',
+            color: '#999',
+            fontSize: 14,
+            border: '1px solid #eee',
+            borderRadius: 8,
+          }}>
+            Loading messages...
+          </div>
+        )}
       </div>
 
       {/* Status Header */}

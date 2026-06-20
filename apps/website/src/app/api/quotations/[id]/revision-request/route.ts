@@ -32,10 +32,34 @@ export async function POST(
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
     }
 
+    const quotation = result.rows[0]
+
+    // ── Fire RFQ chat event ────────────────────────────────
+    try {
+      const qRfqResult = await query('SELECT rfq_id FROM quotations WHERE id = $1', [id])
+      const rfqId = qRfqResult.rows[0]?.rfq_id
+      if (rfqId) {
+        const APP_URL = process.env.APP_URL || 'http://localhost:3000'
+        fetch(`${APP_URL}/api/system/rfq-chat/quotation-event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rfqRequestId: rfqId,
+            quotationId: Number(id),
+            eventType: 'revision_requested',
+            eventLabel: 'Revision requested',
+            message: message.trim().substring(0, 200),
+          }),
+        }).catch(() => {})
+      }
+    } catch {
+      // Non-blocking
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Revision request submitted. The HomeU team will review your request.',
-      quotation: result.rows[0],
+      quotation,
     })
   } catch (err: any) {
     console.error('[revision-request] Error:', err)

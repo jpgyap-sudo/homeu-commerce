@@ -80,7 +80,39 @@ export async function PATCH(
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
     }
-    return NextResponse.json(result.rows[0])
+
+    const updated = result.rows[0]
+
+    // ── Fire RFQ chat event for status changes ────────────
+    const statusEventMap: Record<string, string> = {
+      sent: 'quotation_sent',
+      accepted: 'quotation_accepted',
+      rejected: 'quotation_rejected',
+    }
+    if (body.status && statusEventMap[body.status]) {
+      try {
+        const qRfqResult = await query('SELECT rfq_id FROM quotations WHERE id = $1', [id])
+        const rfqId = qRfqResult.rows[0]?.rfq_id
+        if (rfqId) {
+          const APP_URL = process.env.APP_URL || 'http://localhost:3000'
+          fetch(`${APP_URL}/api/system/rfq-chat/quotation-event`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              rfqRequestId: rfqId,
+              quotationId: Number(id),
+              versionNumber: updated.current_version || 1,
+              eventType: statusEventMap[body.status],
+              eventLabel: statusEventMap[body.status] === 'quotation_sent' ? 'Quotation sent to you' : undefined,
+            }),
+          }).catch(() => {})
+        }
+      } catch {
+        // Non-blocking
+      }
+    }
+
+    return NextResponse.json(updated)
   } catch (error: any) {
     console.error('Quotation PATCH error:', error)
     return NextResponse.json(

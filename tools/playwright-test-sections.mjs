@@ -10,7 +10,7 @@
 
 import { chromium } from "playwright";
 
-var BASE = "http://localhost:3000";
+var BASE = process.env.BASE_URL || "http://localhost:3000";
 var EXPECTED_FOOTER_TYPES = ["footer_brand", "footer_quick_links", "footer_newsletter", "footer_social"];
 
 // Try common credentials

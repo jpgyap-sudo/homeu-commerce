@@ -204,6 +204,53 @@ export async function createVersion(
     [newVersion, quotationId]
   )
 
+  // ── Fire RFQ chat event ────────────────────────────────────
+  try {
+    // Determine event type based on revision_type
+    const eventTypeMap: Record<string, string> = {
+      initial: 'quotation_created',
+      admin_edit: 'quotation_updated',
+      customer_revision: 'revision_resolved',
+      reverted: 'quotation_updated',
+    }
+    const eventType = eventTypeMap[revisionType] || 'quotation_updated'
+    const eventLabelMap: Record<string, string> = {
+      initial: 'Quotation created',
+      admin_edit: 'Quotation updated',
+      customer_revision: 'Revision resolved',
+      reverted: 'Quotation reverted',
+    }
+    const eventLabel = eventLabelMap[revisionType] || 'Quotation updated'
+
+    // Fetch the rfq_id from the quotation
+    const qResult = await query('SELECT rfq_id FROM quotations WHERE id = $1', [quotationId])
+    const rfqId = qResult.rows[0]?.rfq_id
+
+    if (rfqId) {
+      // Fire and forget — don't block version creation if event fails
+      fetch(
+        `${process.env.APP_URL || 'http://localhost:3000'}/api/system/rfq-chat/quotation-event`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rfqRequestId: rfqId,
+            quotationId: Number(quotationId),
+            versionNumber: newVersion,
+            eventType,
+            eventLabel,
+            message: revisionMessage || undefined,
+          }),
+        }
+      ).catch((err: Error) => {
+        console.warn('[quotation-versions] Failed to fire RFQ chat event:', err.message)
+      })
+    }
+  } catch (err) {
+    // Non-blocking — don't fail version creation if event fails
+    console.warn('[quotation-versions] Failed to prepare RFQ chat event:', err)
+  }
+
   return newVersion
 }
 

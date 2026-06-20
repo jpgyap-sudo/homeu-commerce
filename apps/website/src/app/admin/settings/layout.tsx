@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 const SETTINGS_TABS = [
   { href: '/admin/settings/users',         label: 'Users & Roles',   icon: '👥' },
   { href: '/admin/settings/store',         label: 'Store Profile',   icon: '🏪' },
+  { href: '/admin/settings/email',         label: 'Email / SMTP',   icon: '📧' },
   { href: '/admin/settings/notifications', label: 'Notifications',   icon: '🔔' },
   { href: '/admin/settings/system',        label: 'System Health',   icon: '🖥️' },
 ]

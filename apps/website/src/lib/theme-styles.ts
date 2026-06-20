@@ -82,6 +82,11 @@ export function generateSectionStyles(
     if (cfg.height) styles.push(`${sel} .slideshow { height: ${cfg.height}vh !important; }`)
     if (cfg.minHeight) styles.push(`${sel} .slideshow { min-height: ${cfg.minHeight}px !important; }`)
     if (cfg.maxHeight) styles.push(`${sel} .slideshow { max-height: ${cfg.maxHeight}px !important; }`)
+    // Mobile override — inline theme styles beat external CSS, so this MUST be in the same <style> block
+    styles.push(`@media (max-width: 768px) { ${sel} .slideshow { height: 55vw !important; min-height: 260px !important; max-height: 400px !important; } }`)
+    styles.push(`@media (max-width: 480px) { ${sel} .slideshow__heading { font-size: 20px !important; } }`)
+    styles.push(`@media (max-width: 480px) { ${sel} .slideshow__subheading { font-size: 12px !important; } }`)
+    styles.push(`@media (max-width: 480px) { ${sel} .slideshow__btn { font-size: 11px !important; padding: 8px 18px !important; } }`)
     if (cfg.contentPosition) {
       const alignments: Record<string, string> = {
         top: 'flex-start', center: 'center', bottom: 'flex-end',
