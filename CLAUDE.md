@@ -4,6 +4,36 @@ Persistent, repo-level notes for any coding agent/extension (Claude Code,
 Codex, Kilo Code, Blackbox, SuperRoo VS Code, Roo Cline, etc.) working in
 this repository.
 
+## 🚧 Source of Truth & Deploy Gate — READ FIRST (ALL EXTENSIONS)
+
+We had repeated "localhost ≠ live site" drift and lost work because extensions
+edited the VPS directly or deployed without committing. To stop this, every
+extension MUST follow these rules:
+
+**Single source of truth per layer:**
+- **Code → git (`origin/master`).** Never edit files on the VPS directly — every
+  deploy runs `git reset --hard origin/master`, so un-committed VPS edits are
+  WIPED. The only durable path is commit → push → deploy.
+- **Content/data → the PRODUCTION database** (homepage_sections, site_settings,
+  theme, categories content). Author content via `admin.homeatelier.ph` (writes
+  prod). Do NOT author content only in your local DB — it will not reach the live
+  site (separate databases). Refresh your local copy with
+  `node tools/db-pull-prod.mjs` before working.
+- **Transactional data (customers, RFQs, quotations, leads) → production only.**
+  Never overwrite these from local.
+
+**Mandatory deploy gate (no exceptions):**
+```
+node tools/deploy-gate.mjs && node tools/deploy-fast.mjs
+```
+`deploy-fast.mjs` self-invokes the gate, which BLOCKS unless: working tree is
+clean (committed), local == `origin/master` (pushed), and the preflight sweep
+passes. Deploy = Docker on the VPS over Tailscale (`docker compose up -d --build
+website`). See [docs/deploy-strategy.md](docs/deploy-strategy.md).
+
+**Before deploying, always:** commit your work → `git push origin master` →
+run the gate. If you skipped committing, the next deploy erases your VPS changes.
+
 ## Naming & Architecture
 
 This project's CMS / backend is **DaVinciOS** — think of it as "my Shopify admin."

@@ -35,6 +35,18 @@ function remote(cmd, timeout = 600000) {
 
 function deploy() {
   const start = Date.now()
+
+  // 0. MANDATORY GATE — refuse to deploy uncommitted/unpushed work. The VPS
+  //    resets to origin/master, so only committed+pushed work survives anyway.
+  if (!process.argv.includes('--no-gate')) {
+    try {
+      execSync('node tools/deploy-gate.mjs', { stdio: 'inherit' })
+    } catch {
+      console.error('\n🛑 Deploy aborted by deploy-gate. Commit + push, then retry.')
+      process.exit(2)
+    }
+  }
+
   console.log('\n🟢 Docker deploy → origin/master')
 
   // 1. Make the VPS match origin/master exactly (discards any VPS-side drift —
