@@ -1,7 +1,6 @@
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { LoginForm } from './LoginForm'
-import { GoogleLoginButton } from './GoogleLoginButton'
 import siteConfig from '@/data/site-config.json'
 
 const BRAND_LOGO = siteConfig.logo?.shopifyUrl || ''
@@ -61,7 +60,6 @@ export default async function AdminLoginPage() {
             <h1 className="admin-login-title">Sign in</h1>
             <p className="admin-login-subtitle">Enter your credentials to access the console</p>
             <LoginForm />
-            <GoogleLoginButton />
           </div>
 
           <p className="admin-login-footer-text">
