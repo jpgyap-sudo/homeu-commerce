@@ -246,6 +246,20 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               <div className="luxe-sidebar-user-role">Administrator</div>
             </div>
           </div>
+          <a
+            href="/api/admin/logout"
+            className="luxe-sidebar-logout"
+            title="Log out"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontSize: 12, color: '#999', textDecoration: 'none',
+              padding: '4px 8px', borderRadius: 6, marginTop: 6,
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={undefined}
+          >
+            Log out
+          </a>
         </div>
       </aside>
 
