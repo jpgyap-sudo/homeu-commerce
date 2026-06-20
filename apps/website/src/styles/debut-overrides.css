@@ -1641,3 +1641,248 @@
 .site-nav__mega .site-nav__dropdown-link:hover {
   color: #1a6d3e;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE OPTIMIZATION
+   ═══════════════════════════════════════════════════════════════════
+   Comprehensive mobile-first fixes so the site doesn't "look big"
+   on phones. Targets all common mobile breakpoints.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Scale down logo on mobile ──────────────────────────────────── */
+@media (max-width: 480px) {
+  .site-header__logo-image {
+    max-width: 140px !important;
+    height: auto;
+  }
+  .site-header__logo-link {
+    padding: 8px 0;
+  }
+}
+
+/* ── Reduce hero padding on mobile ──────────────────────────────── */
+@media (max-width: 640px) {
+  .homepage-hero {
+    padding: 48px 20px !important;
+  }
+  .homepage-hero__heading {
+    font-size: clamp(28px, 8vw, 42px) !important;
+  }
+  .homepage-hero__sub {
+    font-size: 15px !important;
+    max-width: 100%;
+  }
+  .homepage-hero__actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  .homepage-hero .btn {
+    width: 100%;
+    max-width: 280px;
+    text-align: center;
+  }
+}
+
+/* ── Page width padding on mobile ───────────────────────────────── */
+@media (max-width: 480px) {
+  .page-width {
+    padding: 0 16px;
+  }
+}
+
+/* ── Product grid on very small screens ─────────────────────────── */
+@media (max-width: 400px) {
+  .homepage-featured-products .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px 10px !important;
+  }
+  .grid-product__title {
+    font-size: 14px !important;
+  }
+  .grid-product__image-wrap {
+    margin-bottom: 10px;
+  }
+  .grid-product__meta {
+    padding: 0;
+  }
+}
+
+/* ── Product detail page mobile ─────────────────────────────────── */
+@media (max-width: 480px) {
+  .product-detail__title {
+    font-size: 22px !important;
+  }
+  .product-detail__price-current {
+    font-size: 20px !important;
+  }
+  .product-detail__gallery {
+    gap: 8px;
+  }
+  .product-detail__thumbnails {
+    gap: 6px;
+  }
+  .product-detail__thumb {
+    width: 54px !important;
+    height: 54px !important;
+  }
+  .product-detail__form {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .product-detail__cta {
+    width: 100%;
+  }
+  .product-detail__qty {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Search page mobile ─────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .search-page {
+    padding: 32px 16px !important;
+  }
+  .search-page__input input {
+    font-size: 16px !important; /* prevents iOS zoom */
+  }
+  .search-page__filters {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* ── Blog / article mobile ──────────────────────────────────────── */
+@media (max-width: 480px) {
+  .blog-page {
+    padding: 24px 16px !important;
+  }
+  .blog-page__title {
+    font-size: 24px !important;
+  }
+  .article-card__title {
+    font-size: 16px !important;
+  }
+  .article-card__excerpt {
+    font-size: 13px !important;
+    line-height: 1.5;
+  }
+}
+
+/* ── Article detail mobile ──────────────────────────────────────── */
+@media (max-width: 480px) {
+  .article-template {
+    padding: 24px 16px !important;
+  }
+  .article-template__title {
+    font-size: 24px !important;
+  }
+  .article-template__body {
+    font-size: 15px !important;
+    line-height: 1.7;
+  }
+}
+
+/* ── Auth pages mobile ──────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .auth-page {
+    padding: 40px 16px !important;
+  }
+  .auth-title {
+    font-size: 24px !important;
+  }
+}
+
+/* ── Footer mobile ──────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .site-footer__grid {
+    padding: 40px 16px !important;
+  }
+  .footer-section__title {
+    font-size: 16px !important;
+    margin-bottom: 14px;
+  }
+  .footer-section__tagline {
+    font-size: 12.5px;
+    max-width: 100%;
+  }
+}
+
+/* ── Customer account mobile ────────────────────────────────────── */
+@media (max-width: 480px) {
+  .account-page {
+    padding: 24px 16px !important;
+  }
+  .account-title {
+    font-size: 22px !important;
+  }
+  .account-form__row {
+    grid-template-columns: 1fr !important;
+    gap: 0;
+  }
+}
+
+/* ── General mobile touch refinements ───────────────────────────── */
+@media (max-width: 768px) {
+  /* Ensure all interactive elements have proper touch targets */
+  .btn, button, .site-header__icon-btn, .site-nav__link--main {
+    min-height: 44px;
+  }
+  /* Prevent horizontal scroll */
+  body, html {
+    overflow-x: hidden;
+  }
+  /* Scale down section padding */
+  .index-section {
+    padding: 40px 0;
+  }
+  .section-header {
+    margin-bottom: 24px;
+  }
+  .section-header__title {
+    font-size: 22px !important;
+  }
+}
+
+/* ── Very small screens (old phones, 360px) ────────────────────── */
+@media (max-width: 374px) {
+  .site-header__mobile-nav {
+    padding: 8px 12px;
+  }
+  .mobile-nav__link {
+    font-size: 13px;
+    padding: 12px 16px;
+  }
+  .site-header__logo-image {
+    max-width: 110px !important;
+  }
+}
+
+/* ── Products listing page mobile ───────────────────────────────── */
+@media (max-width: 480px) {
+  .products-shell {
+    padding: 24px 16px !important;
+  }
+  .products-hero {
+    padding: 24px 0 !important;
+  }
+  .products-hero h1 {
+    font-size: 24px !important;
+  }
+  .products-toolbar {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .products-search {
+    width: 100% !important;
+  }
+  .products-search input {
+    font-size: 16px !important;
+  }
+  .products-grid {
+    gap: 16px 12px !important;
+  }
+  .products-grid .grid-product__title {
+    font-size: 13px !important;
+  }
+}
