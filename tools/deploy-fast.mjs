@@ -1,121 +1,64 @@
 /**
- * deploy-fast.mjs — THE GENIUS
- * =============================
- * Incremental deploy: <10s for small changes, 30s for full deploy.
+ * deploy-fast.mjs — Docker Compose deploy over Tailscale
+ * ======================================================
+ * REALITY CHECK (2026-06-20): the live HomeU site runs as the `website` service
+ * in docker-compose on the VPS. nginx :443 → 127.0.0.1:3000 → container. There
+ * is NO PM2 serving the site (an old `pm2 homeu-website` was redundant and has
+ * been removed). The previous PM2 + host `next build` approach was a no-op for
+ * the live container.
+ *
+ * SSH note: the public IP (104.248.225.250) has port 22 firewalled — the VPS is
+ * reachable for SSH only over Tailscale (100.64.175.88). The website itself
+ * (443) is public on 104.248.225.250.
  *
  * Usage:
- *   node tools/deploy-fast.mjs                    # Full incremental deploy
- *   node tools/deploy-fast.mjs file1.ts file2.css  # Hot fix: scp + restart
+ *   node tools/deploy-fast.mjs            # sync VPS to origin/master + rebuild container
  *
  * Requires:
- *   - PM2 installed on VPS (pm2 start apps/website/.next/standalone/server.js -i 2 --name homeu-website)
  *   - SSH key at ~/.ssh/id_superroo_vps
- *   - Git repo on VPS at /opt/homeu-commerce
+ *   - VPS repo at /opt/homeu-commerce with docker-compose.yml + .env
+ *   - COMMIT & PUSH to origin/master FIRST (the VPS resets to origin/master)
  */
 
 import { execSync } from 'child_process'
-import { existsSync } from 'fs'
-import { resolve } from 'path'
 
-const VPS = 'root@104.248.225.250'
-const KEY = process.env.USERPROFILE.replace(/\\/g, '/') + '/.ssh/id_superroo_vps'
-const SSH_OPTS = `-i "${KEY}" -o StrictHostKeyChecking=no -o ConnectTimeout=10`
-const REPO = process.cwd()
+// Tailscale IP is primary; override with HOMEU_VPS_SSH if the host changes.
+const VPS = process.env.HOMEU_VPS_SSH || 'root@100.64.175.88'
+const HOME = (process.env.USERPROFILE || process.env.HOME || '').replace(/\\/g, '/')
+const KEY = `${HOME}/.ssh/id_superroo_vps`
+const SSH = `ssh -i "${KEY}" -o StrictHostKeyChecking=no -o ConnectTimeout=15`
 const VPS_REPO = '/opt/homeu-commerce'
 
-// ── First run: ensure PM2 is set up for cluster mode ─────────────────────
-async function ensurePM2() {
-  console.log('  🔍 Checking PM2 status...')
-  try {
-    execSync(`ssh ${SSH_OPTS} ${VPS} "pm2 show homeu-website 2>/dev/null | head -3"`, { timeout: 10000 })
-    console.log('  ✅ PM2 already configured')
-  } catch {
-    console.log('  ⚠️  homeu-website not in PM2 — skipping check (manual setup recommended)')
-  }
+function remote(cmd, timeout = 600000) {
+  execSync(`${SSH} ${VPS} '${cmd}'`, { stdio: 'inherit', timeout })
 }
 
-// ── Hot fix: scp individual files + restart PM2 ──────────────────────────
-function hotFix(files) {
-  console.log(`\n🔥 Hot fix: ${files.length} file(s)`)
+function deploy() {
   const start = Date.now()
+  console.log('\n🟢 Docker deploy → origin/master')
 
-  for (const file of files) {
-    const localPath = resolve(REPO, file)
-    if (!existsSync(localPath)) {
-      console.warn(`  ⚠️  NOT FOUND: ${file}`)
-      continue
-    }
-    const remotePath = `${VPS}:${VPS_REPO}/${file}`
-    console.log(`  📤 ${file}`)
-    execSync(`scp ${SSH_OPTS} "${localPath}" "${remotePath}"`, { stdio: 'inherit', timeout: 15000 })
-  }
+  // 1. Make the VPS match origin/master exactly (discards any VPS-side drift —
+  //    the VPS holds no local commits; origin/master is the source of truth).
+  console.log('  📡 Sync VPS working tree to origin/master...')
+  remote(`cd ${VPS_REPO} && git fetch origin -q && git reset --hard origin/master && echo "VPS now at $(git rev-parse --short HEAD)"`, 60000)
 
-  // Only restart if files were actually sent
-  if (files.some(f => existsSync(resolve(REPO, f)))) {
-    console.log('  🔄 Restarting PM2...')
-    execSync(`ssh ${SSH_OPTS} ${VPS} "pm2 reload homeu-website --update-env 2>/dev/null || pm2 restart homeu-website"`, { timeout: 10000 })
-  }
+  // 2. Rebuild + recreate only the website container (postgres/ollama untouched).
+  console.log('  🐳 Rebuild + restart website container (this is the actual deploy)...')
+  remote(`cd ${VPS_REPO} && docker compose up -d --build website 2>&1 | tail -8`, 600000)
 
-  const elapsed = ((Date.now() - start) / 1000).toFixed(1)
-  console.log(`✅ Deployed ${files.length} file(s) in ${elapsed}s`)
-}
-
-// ── Full incremental deploy ──────────────────────────────────────────────
-function fullDeploy() {
-  console.log(`\n🟢 Full incremental deploy`)
-  const start = Date.now()
-
-  // Step 1: Git pull on VPS
-  console.log('  📡 Git pull...')
-  execSync(
-    `ssh ${SSH_OPTS} ${VPS} "cd ${VPS_REPO} && git pull 2>&1 | tail -3"`,
-    { stdio: 'inherit', timeout: 30000 }
-  )
-
-  // Step 2: Build (Turbopack = fast incremental)
-  console.log('  🏗️  Build...')
-  execSync(
-    `ssh ${SSH_OPTS} ${VPS} "cd ${VPS_REPO}/apps/website && npx next build 2>&1 | tail -5"`,
-    { stdio: 'inherit', timeout: 120000 }
-  )
-
-  // Step 3: PM2 reload
-  console.log('  🔄 PM2 reload...')
-  execSync(
-    `ssh ${SSH_OPTS} ${VPS} "pm2 reload homeu-website --update-env 2>/dev/null || pm2 restart homeu-website"`,
-    { timeout: 15000 }
-  )
-
-  // Step 4: Quick smoke test
+  // 3. Public smoke test (from this machine).
   console.log('  🔍 Smoke test...')
   try {
-    execSync(
-      `curl -s -o /dev/null -w "HTTP %{http_code}\n" --connect-timeout 5 https://admin.homeatelier.ph/admin/login`,
-      { stdio: 'inherit', timeout: 15000 }
-    )
+    execSync(`curl -s -o /dev/null -w "  admin/login: HTTP %{http_code}\\n" --max-time 20 https://admin.homeatelier.ph/admin/login`, { stdio: 'inherit' })
+    execSync(`curl -s -o /dev/null -w "  store:       HTTP %{http_code}\\n" --max-time 20 https://store.homeatelier.ph/`, { stdio: 'inherit' })
   } catch {
-    console.warn('  ⚠️  Smoke test failed — site may need a moment to start')
+    console.warn('  ⚠️  Smoke test failed — container may still be starting; retry in ~10s')
   }
 
-  const elapsed = ((Date.now() - start) / 1000).toFixed(1)
-  console.log(`✅ Full deploy completed in ${elapsed}s`)
+  console.log(`✅ Deploy completed in ${((Date.now() - start) / 1000).toFixed(0)}s`)
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────
-async function main() {
-  console.log('╔══════════════════════════════════════╗')
-  console.log('║      HomeU Fast Deploy v2           ║')
-  console.log('╚══════════════════════════════════════╝')
-
-  await ensurePM2()
-
-  const files = process.argv.slice(2).filter(f => !f.startsWith('-'))
-
-  if (files.length > 0) {
-    hotFix(files)
-  } else {
-    fullDeploy()
-  }
-}
-
-main().catch(err => { console.error('FATAL:', err); process.exit(1) })
+console.log('╔══════════════════════════════════════╗')
+console.log('║   HomeU Deploy — Docker Compose v3   ║')
+console.log('╚══════════════════════════════════════╝')
+deploy()

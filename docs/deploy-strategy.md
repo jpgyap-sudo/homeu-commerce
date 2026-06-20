@@ -1,4 +1,30 @@
-# HomeU Deployment Strategy v2 — THE GENIUS
+# HomeU Deployment Strategy
+
+> ## ⚠️ ACTUAL DEPLOYMENT (corrected 2026-06-20 — read this first)
+>
+> The live site does **NOT** run on PM2. It runs as the **`website` service in
+> `docker-compose.yml`** on the VPS. Request path: nginx `:443` →
+> `127.0.0.1:3000` → the `homeu-commerce-website-1` Docker container.
+>
+> - **SSH is Tailscale-only.** Public IP `104.248.225.250` has port 22 firewalled;
+>   SSH via Tailscale `root@100.64.175.88` (key `~/.ssh/id_superroo_vps`). The
+>   website (443) is public on `104.248.225.250`; DNS for `store.`/`admin.
+>   homeatelier.ph` → `104.248.225.250`.
+> - **Deploy = push to `origin/master`, then rebuild the container:**
+>   ```bash
+>   git push origin master            # locally
+>   node tools/deploy-fast.mjs        # VPS: git reset --hard origin/master + docker compose up -d --build website
+>   ```
+>   A `superroo-auto-deployer` PM2 process also auto-rebuilds the container after a push.
+> - The host-side `next build` + `pm2 reload homeu-website` flow described below
+>   is **obsolete** — it never touched the live container. The redundant PM2
+>   `homeu-website` process was removed.
+>
+> Everything below is the original aspirational design, kept for reference.
+
+---
+
+# HomeU Deployment Strategy v2 — THE GENIUS (superseded — see note above)
 
 ## Problem
 Current deploy: tar+scp entire `src/` → npm install → full `next build` → restart.
