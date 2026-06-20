@@ -2,12 +2,18 @@ import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 import { query } from './db'
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET
-)
-if (!process.env.JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET environment variable is required. Set a secure random value (min 32 chars).')
-  throw new Error('JWT_SECRET is not configured. Server cannot start safely.')
+/**
+ * Resolve the JWT signing secret lazily — at request time, NOT at module import.
+ * A module-level throw breaks `next build` (Next imports route modules to collect
+ * page data, and the build stage has no JWT_SECRET). At runtime the env is always
+ * set (docker-compose / .env), so signing & verifying work normally.
+ */
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET
+  if (!secret || secret.length < 1) {
+    throw new Error('JWT_SECRET is not configured. Set a secure random value (min 32 chars).')
+  }
+  return new TextEncoder().encode(secret)
 }
 const COOKIE_NAME = 'homeu_admin_session'
 const SESSION_DURATION = 60 * 60 * 24 // 24 hours
@@ -51,7 +57,7 @@ export async function createSession(user: SessionUser): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION}s`)
-    .sign(JWT_SECRET)
+    .sign(getJwtSecret())
 
   // Also set httpOnly cookie via next/headers
   const cookieStore = await cookies()
@@ -72,7 +78,7 @@ export async function getSession(): Promise<SessionUser | null> {
     const token = cookieStore.get(COOKIE_NAME)?.value
     if (!token) return null
 
-    const { payload } = await jwtVerify(token, JWT_SECRET)
+    const { payload } = await jwtVerify(token, getJwtSecret())
     return {
       id: Number(payload.sub),
       email: String(payload.email || ''),
