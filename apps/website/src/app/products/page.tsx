@@ -248,40 +248,56 @@ function ProductsContent() {
       {/* Product Grid */}
       {!loading && products.length > 0 && (
         <>
-          <div className="products-grid">
-            {products.map(product => (
-              <Link
-                key={product.id}
-                href={`/products/${product.slug}`}
-                className="product-card"
-              >
-                <div
-                  className="product-card-image"
-                  style={product.imageUrl ? { backgroundImage: `url(${product.imageUrl})` } : undefined}
-                >
-                  {!product.imageUrl && <span className="product-card-noimg">No image</span>}
+          {/* Debut theme collection grid — 1:1 with the live Shopify store */}
+          <div className="grid grid--uniform products-debut-grid">
+            {products.map(product => {
+              const onSale = product.originalPrice != null && product.price != null && product.originalPrice > product.price
+              const href = `/products/${product.slug}`
+              return (
+                <div key={product.id} className="grid__item small--one-half medium-up--one-quarter">
+                  <div className="grid-view-item product-card">
+                    <Link href={href} className="grid-view-item__link grid-view-item__image-container">
+                      {product.imageUrl ? (
+                        <img
+                          className="grid-view-item__image"
+                          src={product.imageUrl}
+                          alt={product.title}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="grid-view-item__image grid-view-item__image--placeholder">No image</div>
+                      )}
+                    </Link>
+                    <div className="grid-view-item__meta">
+                      <Link href={href} className="grid-view-item__link">
+                        <div className="grid-view-item__title product-card__title">{product.title}</div>
+                      </Link>
+                      {product.price != null && (
+                        <div className={`price${onSale ? ' price--on-sale' : ''}`}>
+                          <dl>
+                            <div className="price__regular">
+                              <dd>
+                                <span className="price-item price-item--regular">{formatPrice(product.price)}</span>
+                              </dd>
+                            </div>
+                            <div className="price__sale">
+                              <dd>
+                                <span className="price-item price-item--sale">{formatPrice(product.price)}</span>
+                              </dd>
+                              <dd>
+                                <s className="price-item price-item--regular">
+                                  {onSale ? formatPrice(product.originalPrice) : ''}
+                                </s>
+                              </dd>
+                            </div>
+                          </dl>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-
-                <div className="product-card-body">
-                  <h3>{product.title}</h3>
-                  {product.price != null && (() => {
-                    const onSale = product.originalPrice != null && product.originalPrice > product.price
-                    return (
-                      <p className="product-card-price">
-                        <span className={onSale ? 'product-card-price-sale' : undefined}>
-                          {formatPrice(product.price)}
-                        </span>
-                        {onSale && (
-                          <span className="product-card-price-original">
-                            {formatPrice(product.originalPrice)}
-                          </span>
-                        )}
-                      </p>
-                    )
-                  })()}
-                </div>
-              </Link>
-            ))}
+              )
+            })}
           </div>
 
           {totalPages > 1 && (

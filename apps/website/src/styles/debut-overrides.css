@@ -133,6 +133,35 @@
 }
 .site-nav__dropdown-link:hover { background: var(--debut-borders, #ebebeb); }
 
+/* ── Collection product grid (Debut grid-view-item cards, 1:1 with Shopify) ── */
+.products-debut-grid { margin-top: 8px; }
+.products-debut-grid .grid-view-item__image-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 280px;
+  background: #fff;
+  overflow: hidden;
+}
+.products-debut-grid .grid-view-item__image {
+  width: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.products-debut-grid .grid-view-item__image--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #999;
+  font-size: 13px;
+}
+@media (max-width: 749px) {
+  .products-debut-grid .grid-view-item__image-container { height: 200px; }
+}
+
 /* ── Mobile nav ──────────────────────────────────────────────────────────── */
 .site-header__mobile-nav {
   display: flex;
@@ -1668,6 +1697,31 @@
   .homepage-hero__heading {
     font-size: clamp(28px, 8vw, 42px) !important;
   }
+
+/* ── Slideshow: override inline height on mobile ───────────────── */
+@media (max-width: 768px) {
+  .slideshow {
+    height: 55vw !important;
+    min-height: 260px !important;
+    max-height: 400px !important;
+  }
+  .slideshow__slide img {
+    object-fit: cover !important;
+  }
+  .slideshow__overlay {
+    padding-bottom: 40px !important;
+  }
+  .slideshow__heading {
+    font-size: 22px !important;
+  }
+  .slideshow__subheading {
+    font-size: 13px !important;
+  }
+  .slideshow__btn {
+    font-size: 12px !important;
+    padding: 10px 24px !important;
+  }
+}
   .homepage-hero__sub {
     font-size: 15px !important;
     max-width: 100%;

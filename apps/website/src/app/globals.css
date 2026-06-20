@@ -1093,77 +1093,11 @@ textarea {
   background: var(--brand-strong);
 }
 
-/* ── Product grid & cards — minimal borderless style (matches homeu.ph) ── */
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 44px 28px;
-}
-
-.product-card {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  overflow: visible;
-  cursor: pointer;
-  text-decoration: none;
-  color: inherit;
-}
-
-.product-card:hover {
-  box-shadow: none;
-  transform: none;
-}
-
-.product-card-image {
-  height: 300px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #ffffff;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;   /* show the whole product on white, never crop */
-  color: var(--muted);
-  font-size: 14px;
-  transition: transform 0.35s ease;
-  will-change: transform;
-}
-.product-card:hover .product-card-image { transform: scale(1.04); }
-.product-card-noimg { color: var(--muted); font-size: 13px; }
-
-.product-card-body {
-  padding: 16px 2px 0;
-  text-align: left;
-}
-
-.product-card-body h3 {
-  margin: 0 0 8px;
-  font-family: var(--theme-heading-font, 'Cardo', Georgia, serif);
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 1.3;
-  color: var(--text);
-}
-
-.product-card-price {
-  margin: 0;
-  font-family: var(--theme-heading-font, 'Cardo', Georgia, serif);
-  font-size: 15px;
-  font-weight: 400;
-  color: var(--text);
-}
-
-/* On-sale price shown in the brand sale red (matches homeu.ph) */
-.product-card-price-sale { color: #ea0606; }
-
-.product-card-price-original {
-  color: var(--muted);
-  font-weight: 400;
-  text-decoration: line-through;
-  margin-left: 8px;
-  font-size: 13px;
-}
+/* Product collection grid & cards are rendered with the original Debut theme
+   markup (grid / grid--uniform / grid-view-item / price) so they render
+   identically to the live Shopify store — styled entirely by
+   public/debut-theme.css. A few small bridges live in styles/debut-overrides.css
+   (.products-debut-grid spacing). No custom product-card styles here. */
 
 .products-pagination {
   display: flex;
