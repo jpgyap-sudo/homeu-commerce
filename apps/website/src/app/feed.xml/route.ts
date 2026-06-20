@@ -46,9 +46,9 @@ export async function GET() {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>HomeU Journal</title>
+    <title>Home Atelier Journal</title>
     <link>${BASE}/blog</link>
-    <description>Design trends, material guides, and interior inspiration from HomeU</description>
+    <description>Design trends, material guides, and interior inspiration from Home Atelier</description>
     <language>en-ph</language>
     <atom:link href="${BASE}/feed.xml" rel="self" type="application/rss+xml"/>
 ${items}

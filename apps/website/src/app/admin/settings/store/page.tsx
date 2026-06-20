@@ -18,8 +18,8 @@ export default async function StoreSettingsPage() {
         background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12,
         padding: 28, display: 'flex', flexDirection: 'column', gap: 18,
       }}>
-        <Field label="Store Name" value="HomeU Commerce" />
-        <Field label="Display Name" value="HomeU" />
+        <Field label="Store Name" value="Home Atelier Commerce" />
+        <Field label="Display Name" value="Home Atelier" />
         <Field label="Contact Email" value="hello@homeu.ph" />
         <Field label="Phone" value="+63 2 8123 4567" />
         <Field label="Address" value="Manila, Philippines" />

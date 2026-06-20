@@ -27,8 +27,8 @@ export const metadata = {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'apple-mobile-web-app-title': 'HomeU',
-    'application-name': 'HomeU',
+    'apple-mobile-web-app-title': 'Home Atelier',
+    'application-name': 'Home Atelier',
     'theme-color': '#1e7a47',
     'msapplication-TileColor': '#1e7a47',
     'msapplication-TileImage': '/icons/icon-192x192.png',
@@ -92,7 +92,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         {/* RSS autodiscovery */}
-        <link rel="alternate" type="application/rss+xml" title="HomeU Journal" href="/feed.xml" />
+        <link rel="alternate" type="application/rss+xml" title="Home Atelier Journal" href="/feed.xml" />
         {/* Judge.me review widgets — add PUBLIC_TOKEN from judge.me dashboard → Settings → API */}
         <Script id="judge-me-config" strategy="beforeInteractive">
           {`window.jdgm = window.jdgm || {}; window.jdgm.SHOP_DOMAIN = 'homeu-ph.myshopify.com'; window.jdgm.PUBLIC_TOKEN = '';`}

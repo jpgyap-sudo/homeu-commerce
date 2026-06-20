@@ -26,6 +26,55 @@
   display: block;
 }
 
+/* Circular badge with a slowly moving colour ring — same treatment as the
+   chat widget bubble (.chat-bubble in chat.css), reusing its keyframes. */
+.site-header__logo-badge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #fff;
+  animation: chat-bubble-jump 2.6s ease-in-out infinite;
+}
+.site-header__logo-badge::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    #b88935, #173f2f, #2f6f4f, #d6a94a, #173f2f, #b88935);
+  animation: chat-ring-spin 3.2s linear infinite;
+  z-index: 0;
+}
+.site-header__logo-badge::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: #fff;
+  z-index: 0;
+}
+.site-header__logo-badge .site-header__logo-image {
+  position: relative;
+  z-index: 1;
+  width: 70%;
+  height: 70%;
+  max-width: none;
+  object-fit: contain;
+}
+.site-header__logo-badge--sm {
+  width: 56px;
+  height: 56px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-header__logo-badge { animation: none; }
+  .site-header__logo-badge::before { animation: none; }
+}
+
 /* Desktop logo row — logo centered, icons pinned to the right (homeu.ph) */
 .site-header__desktop-nav {
   display: flex !important;
