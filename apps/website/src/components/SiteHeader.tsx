@@ -68,15 +68,20 @@ export function SiteHeader({ nav, logoUrl, header }: { nav?: NavItem[]; logoUrl?
           {/* Logo */}
           <div className={`grid__item site-header__logo ${hs.layout === 'logo-left' ? 'text-left' : 'text-center'}`}>
             <Link href="/" className="site-header__logo-link">
-              <span className="site-header__logo-badge">
+              <span className="site-header__logo-anim">
                 <Image
                   src={logoSrc}
                   alt={siteConfig.name}
                   width={hs.layout === 'logo-left' ? Math.min(hs.logoMaxWidth || 200, 200) : siteConfig.logo.maxWidth}
                   height={60}
-                  className="site-header__logo-image"
+                  className="site-header__logo-image site-header__logo-image--ghost"
                   priority
                   unoptimized
+                />
+                <span
+                  className="site-header__logo-anim-color"
+                  style={{ WebkitMaskImage: `url(${logoSrc})`, maskImage: `url(${logoSrc})` }}
+                  aria-hidden="true"
                 />
               </span>
             </Link>
@@ -134,8 +139,13 @@ export function SiteHeader({ nav, logoUrl, header }: { nav?: NavItem[]; logoUrl?
           </div>
           <div className="grid__item text-center site-header__mobile-logo">
             <Link href="/">
-              <span className="site-header__logo-badge site-header__logo-badge--sm">
-                <Image src={logoSrc} alt={siteConfig.name} width={140} height={44} className="site-header__logo-image" unoptimized />
+              <span className="site-header__logo-anim">
+                <Image src={logoSrc} alt={siteConfig.name} width={140} height={44} className="site-header__logo-image site-header__logo-image--ghost" unoptimized />
+                <span
+                  className="site-header__logo-anim-color"
+                  style={{ WebkitMaskImage: `url(${logoSrc})`, maskImage: `url(${logoSrc})` }}
+                  aria-hidden="true"
+                />
               </span>
             </Link>
           </div>

@@ -26,53 +26,38 @@
   display: block;
 }
 
-/* Circular badge with a slowly moving colour ring — same treatment as the
-   chat widget bubble (.chat-bubble in chat.css), reusing its keyframes. */
-.site-header__logo-badge {
+/* Logo keeps its natural rectangular shape (icon + wordmark), no crop.
+   It jumps for attention (reusing the chat bubble's bounce keyframe), and a
+   moving colour gradient is masked through the logo's own silhouette — so the
+   colour animation runs through both the emblem and the lettering. */
+.site-header__logo-anim {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 84px;
-  height: 84px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: #fff;
+  display: inline-flex;
   animation: chat-bubble-jump 2.6s ease-in-out infinite;
 }
-.site-header__logo-badge::before {
-  content: '';
+.site-header__logo-image--ghost {
+  opacity: 0;
+}
+.site-header__logo-anim-color {
   position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg,
-    #b88935, #173f2f, #2f6f4f, #d6a94a, #173f2f, #b88935);
-  animation: chat-ring-spin 3.2s linear infinite;
-  z-index: 0;
+  inset: 0;
+  background: linear-gradient(270deg, #b88935, #173f2f, #2f6f4f, #d6a94a, #173f2f, #b88935);
+  background-size: 400% 400%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  mask-position: center;
+  animation: logo-gradient-move 6s linear infinite;
 }
-.site-header__logo-badge::after {
-  content: '';
-  position: absolute;
-  inset: 2px;
-  border-radius: 50%;
-  background: #fff;
-  z-index: 0;
-}
-.site-header__logo-badge .site-header__logo-image {
-  position: relative;
-  z-index: 1;
-  width: 70%;
-  height: 70%;
-  max-width: none;
-  object-fit: contain;
-}
-.site-header__logo-badge--sm {
-  width: 56px;
-  height: 56px;
+@keyframes logo-gradient-move {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .site-header__logo-badge { animation: none; }
-  .site-header__logo-badge::before { animation: none; }
+  .site-header__logo-anim { animation: none; }
+  .site-header__logo-anim-color { animation: none; }
 }
 
 /* Desktop logo row — logo centered, icons pinned to the right (homeu.ph) */

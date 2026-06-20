@@ -128,7 +128,10 @@ export default function LoginPage() {
         </>
       )}
 
-      <p style={{ marginTop: 24, textAlign: 'center', fontSize: 14, color: '#666' }}>
+      <p style={{ marginTop: 20, textAlign: 'center', fontSize: 14, color: '#666' }}>
+        <Link href="/customer/reset-password" style={{ color: '#222', fontWeight: 600, textDecoration: 'underline' }}>Forgot your password?</Link>
+      </p>
+      <p style={{ marginTop: 16, textAlign: 'center', fontSize: 14, color: '#666' }}>
         Don't have an account?{' '}
         <Link href="/register" style={{ color: '#222', fontWeight: 600, textDecoration: 'underline' }}>Register here</Link>
       </p>
