@@ -68,6 +68,10 @@
     "website-designer": {
       "description": "Design premium UI for HomeU: login pages, admin backend, customer frontend, design system, and UX improvements",
       "file": "agents/3-build/website-designer-agent.md"
+    },
+    "pwa": {
+      "description": "Progressive Web App + Mobile optimization: manifest, service worker, offline catalog, RFQ sync, install prompts, mobile UX",
+      "file": ".kilo/agent/pwa-agent.md"
     }
   },
   "skills": {
@@ -162,6 +166,10 @@
     "nightly-qa": {
       "description": "Autonomous QA worker running 2am-6am daily. Tests every admin page, API route, theme section, and workflow. Finds bugs, gaps, and researches feature recommendations. Uses Hermes Claw + OpenClaw + web-crawler.",
       "file": ".kilo/skill/nightly-qa/SKILL.md"
+    },
+    "pwa-mobile": {
+      "description": "PWA + Mobile optimization: manifest, service worker, offline catalog, RFQ sync, install prompts, mobile UX",
+      "file": ".kilo/skill/pwa-mobile/SKILL.md"
     }
   },
   "commands": {
@@ -236,6 +244,10 @@
     "nightly-qa-quick": {
       "description": "⚡ Quick nightly QA — theme sections + wiring only (15 min)",
       "prompt": "Load the nightly-qa skill. Run the quick QA check: node tools/nightly-qa/run-nightly-qa.mjs --quick. This audits all 22 theme sections and wiring/integration. Records bugs and gaps to the JSONL log files."
+    },
+    "build-pwa": {
+      "description": "📱 Build PWA support: generate icons, create manifest, service worker, register in layout, deploy to production",
+      "prompt": "Load the pwa-mobile skill. Invoke the pwa agent to build PWA support: 1) Generate icons from favicon via sharp, 2) Create manifest.json, 3) Create service worker with offline support, 4) Register in root layout with meta tags, 5) Create InstallPrompt component, 6) Create offline fallback page, 7) Deploy to production."
     }
   }
 }

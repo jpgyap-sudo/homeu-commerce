@@ -1,0 +1,60 @@
+{
+  "name": "HomeU — Modern Interior | Contemporary Furniture",
+  "short_name": "HomeU",
+  "description": "Explore modern elegance with latest furniture design trends. Source for trendy furniture, unique decor, and bespoke interior solutions.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1e7a47",
+  "orientation": "portrait-primary",
+  "lang": "en-PH",
+  "scope": "/",
+  "categories": ["shopping", "lifestyle", "home"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Browse Products",
+      "short_name": "Products",
+      "description": "Browse our full furniture catalog",
+      "url": "/products"
+    },
+    {
+      "name": "Request a Quote",
+      "short_name": "RFQ",
+      "description": "Build your RFQ cart and request a quotation",
+      "url": "/quote-cart"
+    },
+    {
+      "name": "Our Journal",
+      "short_name": "Blog",
+      "description": "Read the latest from HomeU Journal",
+      "url": "/blog"
+    }
+  ]
+}

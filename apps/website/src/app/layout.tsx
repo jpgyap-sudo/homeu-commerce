@@ -2,6 +2,8 @@ import './globals.css'
 import '../components/chat/chat.css'
 import { headers } from 'next/headers'
 import { ChatWidget } from '@/components/chat/ChatWidget'
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
+import InstallPrompt from '@/components/InstallPrompt'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { getMainNav } from '@/lib/navigation'
@@ -15,7 +17,18 @@ export const metadata = {
   },
   description: siteConfig.tagline,
   metadataBase: new URL(`https://${siteConfig.domain}`),
-  icons: { icon: '/favicon.svg', shortcut: '/favicon.svg' },
+  icons: { icon: '/favicon.svg', shortcut: '/favicon.svg', apple: '/icons/icon-192x192.png' },
+  manifest: '/manifest.json',
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'apple-mobile-web-app-title': 'HomeU',
+    'application-name': 'HomeU',
+    'theme-color': '#1e7a47',
+    'msapplication-TileColor': '#1e7a47',
+    'msapplication-TileImage': '/icons/icon-192x192.png',
+  },
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -25,9 +38,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   // Admin: minimal pass-through (admin pages have their own layout)
   // Matched by subdomain (production) OR proxy header (localhost dev)
+  // Note: deliberately NO service worker on admin (sensitive data, never cache)
   if (host.startsWith('admin.') || isAdmin) {
     return (
       <html lang="en" data-theme="light">
+        <head>
+          <meta name="theme-color" content="#1e7a47" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        </head>
         <body>{children}</body>
       </html>
     )
@@ -59,6 +79,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         {/* Debut compiled theme CSS — same CSS classes as the live Shopify store */}
         <link rel="stylesheet" href="/debut-theme.css" />
+        {/* PWA: Theme color for address bar */}
+        <meta name="theme-color" content="#1e7a47" />
+        {/* PWA: iOS standalone mode */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         {/* RSS autodiscovery */}
         <link rel="alternate" type="application/rss+xml" title="HomeU Journal" href="/feed.xml" />
         {/* Judge.me review widgets — add PUBLIC_TOKEN from judge.me dashboard → Settings → API */}
@@ -78,12 +104,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {customCss ? <style id="homeu-custom-css" dangerouslySetInnerHTML={{ __html: customCss }} /> : null}
       </head>
       <body>
+        <ServiceWorkerRegister />
         <SiteHeader nav={mainNav} header={header} logoUrl={header.logoUrl || undefined} />
         <main id="MainContent" className="content-for-layout" role="main" tabIndex={-1}>
           {children}
         </main>
         <SiteFooter />
         <ChatWidget />
+        <InstallPrompt />
       </body>
     </html>
   )
