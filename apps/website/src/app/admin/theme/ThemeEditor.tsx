@@ -44,6 +44,12 @@ interface Section {
   config: Record<string, any>
 }
 
+// The theme editor is served on the admin domain (admin.homeatelier.ph), which
+// 301-redirects "/" to "/admin/login" — so a relative "/" preview src/link
+// just loads the login page (and gets blocked in the iframe). Point at the
+// actual storefront domain instead.
+const STOREFRONT_BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || ''
+
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, marginBottom: 14, overflow: 'hidden' }
 const input: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1.5px solid #d9e0d7', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: '#fbfcfa', color: '#151a17', outline: 'none', boxSizing: 'border-box' }
 const lbl: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: '#3a4339', marginBottom: 5 }
@@ -1597,12 +1603,12 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
           </div>
           <div style={{ flex: 1 }} />
           <button onClick={refreshPreview} style={{ padding: '6px 14px', background: '#f0f7f2', color: '#1e7a47', border: '1px solid #cfe3d6', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>↻ Refresh</button>
-          <a href="/" target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 12, color: '#1a6d3e', textDecoration: 'none', fontWeight: 600 }}>Open ↗</a>
+          <a href={STOREFRONT_BASE_URL || '/'} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 12, color: '#1a6d3e', textDecoration: 'none', fontWeight: 600 }}>Open ↗</a>
         </div>
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', background: '#e3e8e0', overflow: 'auto' }}>
           <iframe
             key={previewKey}
-            src={`/?preview=${previewKey}`}
+            src={`${STOREFRONT_BASE_URL}/?preview=${previewKey}`}
             title="Storefront preview"
             style={{
               flex: '0 0 auto', border: 'none', background: '#fff', height: '100%',
