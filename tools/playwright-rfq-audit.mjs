@@ -188,9 +188,7 @@ async function auditProductPageQuickRFQ(page) {
   else warn('Product price not detected')
 
   // Check price has commas
-  const hasCommaPrice = pageText.includes('₱1,') || pageText.includes('₱2,') || pageText.includes('₱3,') ||
-    pageText.includes('₱4,') || pageText.includes('₱5,') || pageText.includes('₱6,') ||
-    pageText.includes('₱7,') || pageText.includes('₱8,') || pageText.includes('₱9,')
+  const hasCommaPrice = /₱\s?\d{1,3}(,\d{3})+/.test(pageText || '')
   if (hasCommaPrice) ok('Price formatting with commas detected')
   else warn('No comma-formatted price visible', 'Product may not have price set')
 
