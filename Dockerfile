@@ -2,11 +2,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy only the website package.json (no monorepo deps needed)
-COPY apps/website/package.json ./website/
+# Copy the standalone website package manifest and lockfile.
+COPY apps/website/package.json apps/website/package-lock.json ./website/
 
-# Install with --force to bypass platform-specific SWC package errors
-RUN cd website && npm install --force --no-audit --no-fund 2>&1 || true
+# Reproducible Linux install; optional dependencies select the Alpine/musl SWC binary.
+RUN cd website && npm ci --include=optional --no-audit --no-fund
 
 # Accept NEXT_PUBLIC_SITE_URL at build time
 ARG NEXT_PUBLIC_SITE_URL

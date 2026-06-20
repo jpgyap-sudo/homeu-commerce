@@ -1,6 +1,7 @@
 import './globals.css'
 import '../components/chat/chat.css'
 import { headers } from 'next/headers'
+import Script from 'next/script'
 import { ChatWidget } from '@/components/chat/ChatWidget'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import InstallPrompt from '@/components/InstallPrompt'
@@ -84,8 +85,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="stylesheet" href="/debut-theme.css" />
         {/* Mobile theme — fundamentally different mobile experience */}
         <link rel="stylesheet" href="/mobile-theme.css" />
-        {/* Mobile responsive overrides */}
-        <link rel="stylesheet" href="/mobile-responsive.css" />
         {/* PWA: Theme color for address bar */}
         <meta name="theme-color" content="#1e7a47" />
         {/* PWA: iOS standalone mode */}
@@ -95,13 +94,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* RSS autodiscovery */}
         <link rel="alternate" type="application/rss+xml" title="HomeU Journal" href="/feed.xml" />
         {/* Judge.me review widgets — add PUBLIC_TOKEN from judge.me dashboard → Settings → API */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `window.jdgm = window.jdgm || {}; window.jdgm.SHOP_DOMAIN = 'homeu-ph.myshopify.com'; window.jdgm.PUBLIC_TOKEN = '';`,
-          }}
-        />
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script src="https://cdn.judge.me/widget.js" async={true}></script>
+        <Script id="judge-me-config" strategy="beforeInteractive">
+          {`window.jdgm = window.jdgm || {}; window.jdgm.SHOP_DOMAIN = 'homeu-ph.myshopify.com'; window.jdgm.PUBLIC_TOKEN = '';`}
+        </Script>
+        <Script src="https://cdn.judge.me/widget.js" strategy="afterInteractive" />
         {/* Admin-editable header appearance (Theme → Header) */}
         {headerFontQuery ? <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${headerFontQuery}&display=swap`} /> : null}
         <style id="homeu-header-css" dangerouslySetInnerHTML={{ __html: headerCss }} />

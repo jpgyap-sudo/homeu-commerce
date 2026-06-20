@@ -151,31 +151,18 @@ async function auditQuoteCartPage(page) {
 
 async function auditProductPageQuickRFQ(page) {
   console.log(`\n🌐 Product Page — QuickRFQ`)
-  // Try a few product slugs
-  const slugs = ['sample-product', 'featured-sofa', 'test-product']
   let loaded = false
-  for (const slug of slugs) {
-    try {
-      await page.goto(`${BASE}/products/${slug}`, { waitUntil: 'domcontentloaded', timeout: 30000 })
-      loaded = true; break
-    } catch {}
-  }
-  if (!loaded) {
-    // Check the products page for any product links
-    try {
-      await page.goto(`${BASE}/products`, { waitUntil: 'domcontentloaded', timeout: 30000 })
-      const links = await page.$$('a[href^="/products/"]')
-      if (links.length > 0) {
-        const href = await links[0].getAttribute('href')
-        await page.goto(`${BASE}${href}`, { waitUntil: 'domcontentloaded', timeout: 30000 })
-        loaded = true
-      }
-    } catch {}
+  const listing = await getJSON(`${BASE}/api/products?limit=1`)
+  const slug = listing.docs?.[0]?.slug
+  if (slug) {
+    const response = await page.goto(`${BASE}/products/${slug}`, { waitUntil: 'domcontentloaded', timeout: 30000 })
+    loaded = Boolean(response?.ok())
   }
   if (!loaded) { warn('No product page loaded — QuickRFQ widget cannot be tested on live site'); return }
+  await page.waitForTimeout(1000)
 
   // Check for QuickRFQ widget elements
-  const hasAddBtn = await page.textContent('button').then(t => t?.includes('Add to RFQ')).catch(() => false)
+  const hasAddBtn = await page.locator('button', { hasText: 'Add to RFQ' }).count().then(n => n > 0).catch(() => false)
   if (hasAddBtn) ok('QuickRFQ "Add to RFQ" button found')
   else warn('"Add to RFQ" button NOT found', 'QuickRFQ may not be rendering')
 
@@ -194,16 +181,13 @@ async function auditProductPageQuickRFQ(page) {
     else warn('Notes toggle button NOT found')
   }
 
-  // Check for minimalist Inter price
-  const hasMinimalistPrice = await page.evaluate(() => {
-    const els = document.querySelectorAll('[style*="Inter"]')
-    return els.length > 0
-  })
-  if (hasMinimalistPrice) ok('Minimalist Inter font on prices detected')
-  else warn('Inter font NOT detected on price elements')
+  // Price typography should inherit the active storefront theme.
+  const pageText = await page.textContent('body').catch(() => '')
+  const hasThemePrice = /₱\s?\d[\d,]*/.test(pageText || '')
+  if (hasThemePrice) ok('Theme-aware product price detected')
+  else warn('Product price not detected')
 
   // Check price has commas
-  const pageText = await page.textContent('body').catch(() => '')
   const hasCommaPrice = pageText.includes('₱1,') || pageText.includes('₱2,') || pageText.includes('₱3,') ||
     pageText.includes('₱4,') || pageText.includes('₱5,') || pageText.includes('₱6,') ||
     pageText.includes('₱7,') || pageText.includes('₱8,') || pageText.includes('₱9,')
@@ -216,8 +200,8 @@ async function auditProductPageQuickRFQ(page) {
     if (addBtn) {
       await addBtn.click()
       await new Promise(r => setTimeout(r, 500))
-      const btnText = await page.textContent('button').catch(() => '')
-      if (btnText.includes('View in RFQ')) ok('QuickRFQ: "View in RFQ Cart" shown after add')
+      const viewButton = await page.locator('button, a', { hasText: 'View in RFQ' }).count()
+      if (viewButton > 0) ok('QuickRFQ: "View in RFQ Cart" shown after add')
       else warn('QuickRFQ: Button did not switch after add')
     }
   }

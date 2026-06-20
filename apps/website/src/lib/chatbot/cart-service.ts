@@ -111,7 +111,7 @@ export async function syncCartItems(leadId: string, items: CartItem[]): Promise<
   // Compute estimated total and update cart
   const estimatedTotal = items.reduce((sum, item) => sum + (item.referencePrice || 0) * item.quantity, 0)
   await query(
-    'UPDATE chatbot.rfq_carts SET estimated_total = $1, updated_at = now() WHERE id = $2',
+    'UPDATE chatbot.rfq_carts SET estimated_total = $1 WHERE id = $2',
     [estimatedTotal, cartId]
   )
 }
@@ -122,7 +122,7 @@ export async function syncCartItems(leadId: string, items: CartItem[]): Promise<
  */
 export async function getCart(leadId: string): Promise<CartData | null> {
   const carts = await query<QueryResultRow>(
-    `SELECT id, lead_id, status, delivery_location, project_type, notes, estimated_total, created_at, updated_at
+    `SELECT id, lead_id, status, delivery_location, project_type, notes, estimated_total, created_at
      FROM chatbot.rfq_carts
      WHERE lead_id = $1 AND status = 'draft'
      ORDER BY created_at DESC LIMIT 1`,
@@ -160,7 +160,7 @@ export async function getCart(leadId: string): Promise<CartData | null> {
       matchType: item.match_type,
     })),
     createdAt: cart.created_at,
-    updatedAt: cart.updated_at,
+    updatedAt: cart.created_at,
   }
 }
 
@@ -213,7 +213,7 @@ export async function addItemToCart(
       [cartId]
     )
     const estimatedTotal = allItems.reduce((sum, i) => sum + (Number(i.reference_price) || 0) * i.quantity, 0)
-    await query('UPDATE chatbot.rfq_carts SET estimated_total = $1, updated_at = now() WHERE id = $2', [
+    await query('UPDATE chatbot.rfq_carts SET estimated_total = $1 WHERE id = $2', [
       estimatedTotal,
       cartId,
     ])
@@ -260,7 +260,7 @@ export async function clearCart(leadId: string): Promise<boolean> {
   if (!cart) return false
 
   await query('DELETE FROM chatbot.rfq_items WHERE rfq_cart_id = $1', [cart.cartId])
-  await query('UPDATE chatbot.rfq_carts SET estimated_total = 0, updated_at = now() WHERE id = $1', [cart.cartId])
+  await query('UPDATE chatbot.rfq_carts SET estimated_total = 0 WHERE id = $1', [cart.cartId])
 
   return true
 }
@@ -273,7 +273,7 @@ export async function submitCart(leadId: string): Promise<boolean> {
   if (!cart) return false
 
   await query(
-    `UPDATE chatbot.rfq_carts SET status = 'submitted', submitted_at = now(), updated_at = now() WHERE id = $1`,
+    `UPDATE chatbot.rfq_carts SET status = 'submitted', submitted_at = now() WHERE id = $1`,
     [cart.cartId]
   )
 

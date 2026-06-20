@@ -610,7 +610,12 @@ export async function HomeSections({ sections, preview = false }: { sections: Ho
   return (
     <>
       {/* Global animation and gradient text CSS injected once */}
-      {!preview && <style id="homeu-anim-css">{ANIMATION_CSS}{GRADIENT_TEXT_CSS}</style>}
+      {!preview && (
+        <style
+          id="homeu-anim-css"
+          dangerouslySetInnerHTML={{ __html: `${ANIMATION_CSS}${GRADIENT_TEXT_CSS}` }}
+        />
+      )}
       {rendered.map((node, i) => {
         const sec = bodySections[i]
         const gap = defaultGap(sec.type)
@@ -628,7 +633,7 @@ export async function HomeSections({ sections, preview = false }: { sections: Ho
             }}
           >
             {/* Runtime CSS injection from section settings */}
-            <style>{generateSectionStyles(sec.id, cfg, sec.type)}</style>
+            <style dangerouslySetInnerHTML={{ __html: generateSectionStyles(sec.id, cfg, sec.type) }} />
             {node}
           </div>
         )

@@ -23,8 +23,8 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const BASE = process.env.BASE_URL || 'http://localhost:3000'
-const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@homeu.ph'
-const ADMIN_PASS = process.env.TEST_ADMIN_PASS || 'admin123'
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL
+const ADMIN_PASS = process.env.TEST_ADMIN_PASS
 
 let passed = 0, failed = 0
 const issues = []
@@ -85,6 +85,10 @@ async function testAdminChatAPI() {
 
 async function runBrowserTests() {
   console.log(`\n🌐 Browser-based Chat Tests`)
+  if (!ADMIN_EMAIL || !ADMIN_PASS) {
+    warn('Authenticated browser flow skipped', 'Set TEST_ADMIN_EMAIL and TEST_ADMIN_PASS to enable it')
+    return
+  }
   const browser = await chromium.launch({ headless: true })
   const context = await browser.newContext()
   const page = await context.newPage()
