@@ -13,17 +13,19 @@
 const TELEGRAM_API = 'https://api.telegram.org/bot'
 
 export interface TelegramAlert {
-  eventType: 'NEW_LEAD' | 'RFQ_SUBMITTED' | 'APPOINTMENT_REQUESTED' | 'ESCALATION' | 'HOT_LEAD'
-  leadId: string
+  eventType: 'NEW_LEAD' | 'RFQ_SUBMITTED' | 'APPOINTMENT_REQUESTED' | 'ESCALATION' | 'HOT_LEAD' | 'NEW_DESIGNER_APPLICATION'
+  leadId?: string
   conversationId?: string
   leadName: string
-  mobile: string
+  mobile?: string
   email?: string
   buyerType?: string
   projectLocation?: string
   score?: number
   scoreLabel?: string
-  summary: string
+  summary?: string
+  company?: string
+  details?: string
   rfqItems?: number
   rFQTotal?: string
   appointmentDate?: string
@@ -87,6 +89,7 @@ function formatAlertMessage(alert: TelegramAlert, adminUrl: string): string {
     APPOINTMENT_REQUESTED: '📅',
     ESCALATION: '🔴',
     HOT_LEAD: '🔥',
+    NEW_DESIGNER_APPLICATION: '🎨',
   }
   const icon = icons[alert.eventType] || '📌'
   const titles: Record<string, string> = {

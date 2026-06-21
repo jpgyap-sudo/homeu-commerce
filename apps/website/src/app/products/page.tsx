@@ -160,20 +160,43 @@ function ProductsContent() {
 
   return (
     <main className="collection-page">
-      {/* ── Collection hero banner (image + centered title) — like homeu.ph ── */}
-      {activeCategory?.imageUrl ? (
-        <section
-          className="collection-banner"
-          style={{ backgroundImage: `url(${activeCategory.imageUrl})` }}
-        >
-          <div className="collection-banner__overlay" />
-          <h1 className="collection-banner__title">{collectionTitle}</h1>
-        </section>
-      ) : (
-        <section className="collection-banner collection-banner--plain">
-          <h1 className="collection-banner__title">{collectionTitle}</h1>
-        </section>
-      )}
+      {/* ── Collection hero banner — collage of the collection's own product
+          photos when there are enough to build one (richer and avoids the
+          extreme crop a single tall image gets at this height), falling
+          back to the category's own image, then a plain banner. ── */}
+      {(() => {
+        const collageImages = [...new Set(products.map(p => p.imageUrl).filter(Boolean))].slice(0, 4) as string[]
+        if (collageImages.length >= 3) {
+          return (
+            <section className="collection-banner collection-banner--collage">
+              <div className="collection-banner__collage-grid">
+                {collageImages.map((url, i) => (
+                  <div key={i} className="collection-banner__collage-tile" style={{ backgroundImage: `url(${url})` }} />
+                ))}
+              </div>
+              <div className="collection-banner__overlay" />
+              <p className="collection-banner__eyebrow">Collection</p>
+              <h1 className="collection-banner__title">{collectionTitle}</h1>
+            </section>
+          )
+        }
+        if (activeCategory?.imageUrl) {
+          return (
+            <section
+              className="collection-banner"
+              style={{ backgroundImage: `url(${activeCategory.imageUrl})` }}
+            >
+              <div className="collection-banner__overlay" />
+              <h1 className="collection-banner__title">{collectionTitle}</h1>
+            </section>
+          )
+        }
+        return (
+          <section className="collection-banner collection-banner--plain">
+            <h1 className="collection-banner__title">{collectionTitle}</h1>
+          </section>
+        )
+      })()}
 
       <div className="collection-inner">
         {/* Collection description */}

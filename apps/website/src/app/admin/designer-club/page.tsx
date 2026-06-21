@@ -13,8 +13,10 @@ interface Application {
   contact_number: string | null
   company_socials: string | null
   status: 'new' | 'contacted' | 'approved' | 'declined'
+  customer_id: number | null
   notes: string | null
   created_at: string
+  updated_at: string
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -25,6 +27,8 @@ export default function AdminDesignerClubPage() {
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
+  const [selectedApp, setSelectedApp] = useState<Application | null>(null)
+  const [noteText, setNoteText] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -33,11 +37,8 @@ export default function AdminDesignerClubPage() {
       const res = await fetch(url, { credentials: 'include' })
       const data = await res.json()
       setApplications(data.applications || [])
-    } catch {
-      setApplications([])
-    } finally {
-      setLoading(false)
-    }
+    } catch { setApplications([]) }
+    finally { setLoading(false) }
   }, [statusFilter])
 
   useEffect(() => { load() }, [load])
@@ -52,10 +53,79 @@ export default function AdminDesignerClubPage() {
     load()
   }
 
+  async function saveNote() {
+    if (!selectedApp) return
+    await fetch(`/api/admin/designer-club?id=${selectedApp.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ notes: noteText }),
+    })
+    setSelectedApp({ ...selectedApp, notes: noteText })
+  }
+
+  async function exportCsv() {
+    const res = await fetch('/api/admin/designer-club?format=csv', { credentials: 'include' })
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `designer-club-applications-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const detailView = selectedApp ? (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 9999,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+    }} onClick={() => setSelectedApp(null)}>
+      <div style={{ background: '#fff', borderRadius: 16, maxWidth: 500, width: '100%', padding: 28, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h2 style={{ margin: 0, fontSize: 18 }}>{selectedApp.first_name} {selectedApp.last_name}</h2>
+          <button onClick={() => setSelectedApp(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#667168' }}>✕</button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
+          <div><strong>Status:</strong> <span style={{ color: STATUS_COLORS[selectedApp.status], fontWeight: 700, textTransform: 'uppercase' }}>{selectedApp.status}</span></div>
+          <select value={selectedApp.status} onChange={e => setStatus(selectedApp.id, e.target.value)} style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #d9e0d7', fontSize: 13 }}>
+            <option value="new">New</option>
+            <option value="contacted">Contacted</option>
+            <option value="approved">Approved</option>
+            <option value="declined">Declined</option>
+          </select>
+          <div><strong>Email:</strong> {selectedApp.email}</div>
+          <div><strong>Position:</strong> {selectedApp.position || '—'}</div>
+          <div><strong>Company:</strong> {selectedApp.company_name}</div>
+          <div><strong>Address:</strong> {selectedApp.company_address || '—'}</div>
+          <div><strong>Contact:</strong> {selectedApp.contact_number || '—'}</div>
+          <div><strong>Socials:</strong> {selectedApp.company_socials || '—'}</div>
+          {selectedApp.customer_id && <div><strong>Linked Customer ID:</strong> {selectedApp.customer_id}</div>}
+          <div style={{ fontSize: 11, color: '#9aa69c' }}>Applied: {new Date(selectedApp.created_at).toLocaleString('en-PH')}</div>
+        </div>
+
+        {/* Notes */}
+        <div style={{ marginTop: 20 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, display: 'block' }}>Internal Notes</label>
+          <textarea value={noteText} onChange={e => setNoteText(e.target.value)}
+            rows={3} style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #d9e0d7', borderRadius: 8, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+          <button onClick={saveNote} style={{ marginTop: 8, padding: '8px 16px', background: '#151a17', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Save Note</button>
+        </div>
+      </div>
+    </div>
+  ) : null
+
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 32px', fontFamily: 'Inter, sans-serif' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#151a17' }}>🎨 Designer Club</h1>
-      <p style={{ fontSize: 13, color: '#667168', margin: '0 0 20px' }}>Trade signup applications from the public Designer Club form.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#151a17' }}>🎨 Designer Club</h1>
+          <p style={{ fontSize: 13, color: '#667168', margin: '0 0 20px' }}>Trade signup applications from the public form.</p>
+        </div>
+        <button onClick={exportCsv} style={{ padding: '8px 16px', background: '#f0f7f2', color: '#1e7a47', border: '1px solid #cfe3d6', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          📥 Export CSV
+        </button>
+      </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {['', 'new', 'contacted', 'approved', 'declined'].map(s => (
@@ -64,7 +134,7 @@ export default function AdminDesignerClubPage() {
             background: statusFilter === s ? '#151a17' : '#fff', color: statusFilter === s ? '#fff' : '#667168',
             border: '1px solid #d9e0d7',
           }}>
-            {s || 'All'}
+            {s || 'All'} {s === 'new' && ` (${applications.filter(a => a.status === 'new').length})`}
           </button>
         ))}
       </div>
@@ -76,36 +146,27 @@ export default function AdminDesignerClubPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {applications.map(app => (
-            <div key={app.id} style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, padding: 18, display: 'flex', justifyContent: 'space-between', gap: 16 }}>
-              <div>
+            <div key={app.id} style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, padding: 18, display: 'flex', justifyContent: 'space-between', gap: 16, cursor: 'pointer' }}
+              onClick={() => { setSelectedApp(app); setNoteText(app.notes || '') }}>
+              <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <strong style={{ fontSize: 14 }}>{app.first_name} {app.last_name}</strong>
                   <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: STATUS_COLORS[app.status], padding: '2px 8px', borderRadius: 6 }}>
                     {app.status.toUpperCase()}
                   </span>
+                  {app.customer_id && <span style={{ fontSize: 9, color: '#2563eb' }}>🔗 Linked</span>}
                 </div>
                 <div style={{ fontSize: 13, color: '#667168', marginTop: 4 }}>{app.position} at {app.company_name}</div>
-                <div style={{ fontSize: 12, color: '#667168', marginTop: 4 }}>
-                  {app.email} · {app.contact_number}
-                </div>
-                {app.company_address && <div style={{ fontSize: 12, color: '#9aa69c', marginTop: 2 }}>{app.company_address}</div>}
-                {app.company_socials && <div style={{ fontSize: 12, color: '#9aa69c', marginTop: 2 }}>{app.company_socials}</div>}
+                <div style={{ fontSize: 12, color: '#667168', marginTop: 4 }}>{app.email} · {app.contact_number}</div>
+                {app.notes && <div style={{ fontSize: 11, color: '#9aa69c', marginTop: 4, fontStyle: 'italic' }}>Note: {app.notes}</div>}
                 <div style={{ fontSize: 11, color: '#9aa69c', marginTop: 6 }}>{new Date(app.created_at).toLocaleDateString()}</div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <select value={app.status} onChange={e => setStatus(app.id, e.target.value)} style={{
-                  padding: '6px 10px', fontSize: 12, borderRadius: 8, border: '1.5px solid #d9e0d7',
-                }}>
-                  <option value="new">New</option>
-                  <option value="contacted">Contacted</option>
-                  <option value="approved">Approved</option>
-                  <option value="declined">Declined</option>
-                </select>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {detailView}
     </div>
   )
 }

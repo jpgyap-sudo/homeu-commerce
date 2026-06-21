@@ -1,5 +1,6 @@
 /**
  * GET   /api/admin/designer-club — list applications (filter by status).
+ *       ?format=csv — export as CSV
  * PATCH /api/admin/designer-club?id=N — update status/notes.
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
+    const format = searchParams.get('format')
 
     const conditions: string[] = []
     const values: any[] = []
@@ -29,6 +31,22 @@ export async function GET(request: NextRequest) {
       `SELECT * FROM designer_club_applications ${where} ORDER BY created_at DESC`,
       values
     )
+
+    // CSV export
+    if (format === 'csv') {
+      const rows = result.rows
+      const header = 'ID,First Name,Last Name,Position,Email,Company Name,Company Address,Contact Number,Company Socials,Status,Customer ID,Notes,Created At,Updated At\n'
+      const csv = rows.map((r: any) =>
+        `${r.id},"${r.first_name}","${r.last_name}","${r.position || ''}","${r.email}","${r.company_name}","${r.company_address || ''}","${r.contact_number || ''}","${r.company_socials || ''}",${r.status},${r.customer_id || ''},"${(r.notes || '').replace(/"/g, '""')}","${r.created_at}","${r.updated_at}"`
+      ).join('\n')
+      return new NextResponse(header + csv, {
+        headers: {
+          'Content-Type': 'text/csv',
+          'Content-Disposition': `attachment; filename="designer-club-${new Date().toISOString().split('T')[0]}.csv"`,
+        },
+      })
+    }
+
     return NextResponse.json({ applications: result.rows })
   } catch (err: any) {
     console.error('[admin/designer-club] GET error:', err.message)
