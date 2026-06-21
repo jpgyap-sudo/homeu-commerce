@@ -123,18 +123,17 @@ export async function syncEmails(limit = 50): Promise<{ synced: number; total: n
           synced += await processMessage(msg, config) ? 1 : 0
         }
       } else {
-        // Backfill: fetch messages from last 6 months using SINCE search
+        // Backfill: search for messages from last 6 months, then fetch those
+        // matching UIDs. ImapFlow's fetch() has no `search` option — search
+        // and fetch are separate calls.
         const sinceDate = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
-        const sinceStr = sinceDate.toISOString().split('T')[0]
-        const messages = client.fetch('1:*', {
-          uid: true,
-          flags: true,
-          source: true,
-          search: ['SINCE', sinceStr],
-        })
-        for await (const msg of messages) {
-          if (synced >= maxSync) break
-          synced += await processMessage(msg, config) ? 1 : 0
+        const uids = await client.search({ since: sinceDate }, { uid: true })
+        if (uids && uids.length > 0) {
+          const messages = client.fetch(uids, { uid: true, flags: true, source: true }, { uid: true })
+          for await (const msg of messages) {
+            if (synced >= maxSync) break
+            synced += await processMessage(msg, config) ? 1 : 0
+          }
         }
       }
     } finally {

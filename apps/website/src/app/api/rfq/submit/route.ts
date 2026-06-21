@@ -54,6 +54,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error || 'Failed to submit RFQ' }, { status: 500 })
     }
 
+    // Auto-subscribe to newsletter
+    try {
+      const { query } = await import('@/lib/db')
+      const leadRes = await query(`SELECT email, name FROM chatbot.leads WHERE id = $1 LIMIT 1`, [leadId])
+      const leadEmail = leadRes.rows[0]?.email
+      if (leadEmail) {
+        await query(
+          `CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+            id SERIAL PRIMARY KEY, email TEXT NOT NULL UNIQUE,
+            source TEXT DEFAULT 'rfq', subscribed_at TIMESTAMPTZ DEFAULT NOW()
+          )`, []
+        )
+        await query(
+          `INSERT INTO newsletter_subscribers (email, source)
+           VALUES ($1, 'rfq') ON CONFLICT (email) DO NOTHING`,
+          [leadEmail.toLowerCase().trim()]
+        )
+      }
+    } catch { /* best-effort */ }
+
     return NextResponse.json({
       success: true,
       rfqCartId: result.rfqCartId,

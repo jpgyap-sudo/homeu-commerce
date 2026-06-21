@@ -200,6 +200,17 @@ export async function POST(request: NextRequest) {
       // Email is optional
     }
 
+    // Auto-subscribe to newsletter
+    try {
+      if (email) {
+        await query(
+          `INSERT INTO newsletter_subscribers (email, source)
+           VALUES ($1, 'rfq') ON CONFLICT (email) DO NOTHING`,
+          [email.toLowerCase().trim()]
+        )
+      }
+    } catch { /* best-effort */ }
+
     return NextResponse.json({
       success: true,
       rfq,
