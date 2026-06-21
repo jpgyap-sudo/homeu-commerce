@@ -40,8 +40,9 @@ export interface EmailConfig {
   smtpFrom: string
   salesEmail: string
   salesEmailPass: string
-  zohoImapHost: string
-  zohoImapPort: string
+  imapHost: string
+  imapPort: string
+  imapSecure: string
   notificationEmail: string
 }
 
@@ -152,8 +153,9 @@ const NAMESPACES: Record<string, NamespaceWithDefault<any>> = {
       smtpFrom: process.env.SMTP_FROM || '',
       salesEmail: process.env.SALES_EMAIL || 'sales@homeu.ph',
       salesEmailPass: process.env.SALES_EMAIL_PASS || '',
-      zohoImapHost: process.env.ZOHO_IMAP_HOST || 'imap.zoho.com',
-      zohoImapPort: process.env.ZOHO_IMAP_PORT || '993',
+      imapHost: process.env.ZOHO_IMAP_HOST || 'imap.zoho.com',
+      imapPort: process.env.ZOHO_IMAP_PORT || '993',
+      imapSecure: process.env.ZOHO_IMAP_SECURE ?? 'true',
       notificationEmail: process.env.NOTIFICATION_EMAIL || 'admin@homeu.ph',
     }),
     envMap: {
@@ -165,8 +167,8 @@ const NAMESPACES: Record<string, NamespaceWithDefault<any>> = {
       SMTP_FROM: 'smtpFrom',
       SALES_EMAIL: 'salesEmail',
       SALES_EMAIL_PASS: 'salesEmailPass',
-      ZOHO_IMAP_HOST: 'zohoImapHost',
-      ZOHO_IMAP_PORT: 'zohoImapPort',
+      ZOHO_IMAP_HOST: 'imapHost',
+      ZOHO_IMAP_PORT: 'imapPort',
       NOTIFICATION_EMAIL: 'notificationEmail',
     },
   },
@@ -372,6 +374,7 @@ const SENSITIVE_KEYS = new Set([
   'telegramBotToken',
   'doSpacesKey', 'doSpacesSecret',
   'googleClientId',
+  'salesEmailPass', 'smtpPassword',
 ])
 
 export function maskSensitiveFields(data: Record<string, any>): Record<string, any> {

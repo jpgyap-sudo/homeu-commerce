@@ -106,13 +106,13 @@ export default function EmailSettingsPage() {
   }
 
   return (
-    <div style={{ maxWidth: 600 }}>
+    <div style={{ maxWidth: 700 }}>
       <h2 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 600, color: '#151a17' }}>
-        📧 Email / SMTP Configuration
+        📧 Email Configuration
       </h2>
       <p style={{ margin: '0 0 24px', fontSize: 13, color: '#667168' }}>
-        Configure the SMTP server used for sending notification emails and OTP codes.
-        These settings are stored in the database and replace .env variables.
+        Configure both outgoing (SMTP) and incoming (IMAP) mail servers.
+        These settings replace .env variables at runtime.
       </p>
 
       {message && (
@@ -129,10 +129,17 @@ export default function EmailSettingsPage() {
         </div>
       )}
 
+      {/* Outgoing Mail (SMTP) */}
       <div style={{
         background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12,
-        padding: 28, display: 'flex', flexDirection: 'column', gap: 18,
+        padding: 28, display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 24,
       }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 20 }}>📤</span>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#151a17' }}>Outgoing Mail (SMTP)</h3>
+          <span style={{ fontSize: 11, color: '#667168' }}>Sends notifications, OTPs, and replies</span>
+        </div>
+
         <Field
           label="SMTP Host"
           value={config[KV_KEYS.SMTP_HOST] || ''}
@@ -188,12 +195,92 @@ export default function EmailSettingsPage() {
           placeholder='"Home Atelier" <sales@homeatelier.ph>'
           onChange={(v) => updateField(KV_KEYS.SMTP_FROM, v)}
         />
+      </div>
+
+      {/* Incoming Mail (IMAP) */}
+      <div style={{
+        background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12,
+        padding: 28, display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 24,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 20 }}>📥</span>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#151a17' }}>Incoming Mail (IMAP)</h3>
+          <span style={{ fontSize: 11, color: '#667168' }}>Receives and syncs emails to the central inbox</span>
+        </div>
+
         <Field
-          label="Sales Email (CC/BCC)"
+          label="IMAP Host"
+          value={config['imap_host'] || ''}
+          placeholder="imap.zoho.com"
+          onChange={(v) => updateField('imap_host', v)}
+        />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <Field
+            label="IMAP Port"
+            value={config['imap_port'] || '993'}
+            placeholder="993"
+            onChange={(v) => updateField('imap_port', v)}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{
+              fontSize: 12, fontWeight: 600, color: '#667168',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+            }}>
+              IMAP Secure (SSL/TLS)
+            </label>
+            <select
+              value={config['imap_secure'] ?? 'true'}
+              onChange={(e) => updateField('imap_secure', e.target.value)}
+              style={{
+                padding: '10px 14px', border: '1.5px solid #d9e0d7', borderRadius: 10,
+                fontSize: 14, fontFamily: 'inherit', outline: 'none',
+                background: '#f7f9f6', color: '#151a17',
+              }}
+            >
+              <option value="true">Yes (SSL/TLS, port 993)</option>
+              <option value="false">No (STARTTLS, port 143)</option>
+            </select>
+          </div>
+        </div>
+        <Field
+          label="IMAP Username (Sales Email)"
+          value={config['sales_email'] || config[KV_KEYS.SALES_EMAIL] || ''}
+          placeholder="sales@homeatelier.ph"
+          onChange={(v) => updateField('sales_email', v)}
+        />
+        <Field
+          label="IMAP Password"
+          value={config['sales_email_pass'] || ''}
+          placeholder="Enter IMAP password (or app password)"
+          onChange={(v) => updateField('sales_email_pass', v)}
+          type="password"
+          masked={true}
+        />
+        <div style={{ padding: '12px 16px', background: '#f0f4ff', borderRadius: 8, fontSize: 12, color: '#1e40af', border: '1px solid #b8d6ff' }}>
+          💡 For Zoho with MFA enabled, use an <strong>App Password</strong> generated from your Zoho account settings.
+          The email sync runs on-demand via the "Sync Now" button in the Email Inbox app.
+        </div>
+      </div>
+
+      {/* Sales Email (CC) */}
+      <div style={{
+        background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12,
+        padding: 28, display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 24,
+      }}>
+        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#151a17' }}>📋 Notification Recipients</h3>
+        <Field
+          label="Sales Notification Email"
           value={config[KV_KEYS.SALES_EMAIL] || ''}
           placeholder="sales@homeu.ph"
           onChange={(v) => updateField(KV_KEYS.SALES_EMAIL, v)}
         />
+        <Field
+          label="Admin Notification Email"
+          value={config['notification_email'] || ''}
+          placeholder="admin@homeu.ph"
+          onChange={(v) => updateField('notification_email', v)}
+        />
+      </div>
 
         <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
           <button
@@ -221,12 +308,6 @@ export default function EmailSettingsPage() {
           </button>
         </div>
 
-        <div style={{ marginTop: 8, fontSize: 12, color: '#999', lineHeight: 1.5 }}>
-          <strong>⚠️ Security:</strong> The SMTP password is stored encrypted and masked in the UI.
-          Only admin users can view/edit these settings.
-          These values override the environment variables (SMTP_HOST, SMTP_PORT, etc.) at runtime.
-        </div>
-      </div>
     </div>
   )
 }

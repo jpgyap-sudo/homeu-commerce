@@ -32,8 +32,32 @@ export interface SyncedEmail {
 
 let mailConfig: EmailConfig | null = null
 
-export function getMailConfig(): EmailConfig | null {
+export async function getMailConfig(): Promise<EmailConfig | null> {
   if (mailConfig) return mailConfig
+
+  // Try DB config first (set via admin Email Settings page)
+  try {
+    const { loadNamespace } = await import('@/lib/app-config')
+    const emailConfig = await loadNamespace('email')
+    const imapHost = (emailConfig as any)?.imap_host
+    const imapPort = (emailConfig as any)?.imap_port
+    const imapSecure = (emailConfig as any)?.imap_secure
+    const user = (emailConfig as any)?.sales_email || (emailConfig as any)?.smtp_user
+    const pass = (emailConfig as any)?.sales_email_pass || (emailConfig as any)?.smtp_pass
+
+    if (imapHost && user && pass) {
+      mailConfig = {
+        host: imapHost,
+        port: parseInt(imapPort || '993'),
+        secure: imapSecure !== 'false',
+        user,
+        pass,
+      }
+      return mailConfig
+    }
+  } catch { /* DB config not available, fall through to env */ }
+
+  // Fallback: env vars
   const host = process.env.ZOHO_IMAP_HOST || 'imap.zoho.com'
   const port = parseInt(process.env.ZOHO_IMAP_PORT || '993')
   const secure = process.env.ZOHO_IMAP_SECURE !== 'false'
