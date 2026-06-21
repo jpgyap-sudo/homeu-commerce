@@ -54,20 +54,24 @@ export async function POST(request: NextRequest) {
           [result.rows[0].id, token, expires]
         )
 
-        const resetLink = `${process.env.PUBLIC_SERVER_URL || 'https://homeu.ph'}/customer/reset-password?token=${token}`
+        // Load SMTP config from DB with env fallback
+        const { loadSmtpConfig } = await import('@/lib/smtp-config')
+        const smtp = await loadSmtpConfig()
+        const serverUrl = process.env.DAVINCIOS_PUBLIC_SERVER_URL || process.env.APP_URL || 'https://homeu.ph'
+        const resetLink = `${serverUrl}/customer/reset-password?token=${token}`
         const customerName = result.rows[0].name || 'Valued Customer'
 
         // Send reset email
         try {
           const nodemailer = await import('nodemailer')
           const transporter = nodemailer.default.createTransport({
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+            host: smtp.host,
+            port: smtp.port,
+            secure: smtp.secure,
+            auth: { user: smtp.user, pass: smtp.pass },
           })
           await transporter.sendMail({
-            from: process.env.SMTP_FROM || 'noreply@homeu.ph',
+            from: smtp.from || 'noreply@homeu.ph',
             to: customerEmail,
             subject: 'Reset Your HomeU Password',
             text: `Hi ${customerName},\n\nWe received a request to reset your HomeU account password.\n\nClick the link below to set a new password (expires in 1 hour):\n${resetLink}\n\nIf you didn't request this, you can safely ignore this email.\n\n— HomeU Team`,
