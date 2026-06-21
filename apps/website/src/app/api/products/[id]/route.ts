@@ -96,10 +96,17 @@ export async function PATCH(
     for (const [key, value] of Object.entries(body)) {
       if (allowedFields.has(key)) {
         idx++
-        setClauses.push(`"${key}" = $${idx}`)
-        // pg serializes JS arrays as Postgres array literals, not JSON — stringify
-        // explicitly for the jsonb `tags` column so it binds as valid JSON text.
-        values.push(key === 'tags' && Array.isArray(value) ? JSON.stringify(value) : value ?? null)
+        if (key === 'description') {
+          // jsonb column, but the rich text editor sends a plain HTML string —
+          // stringify so Postgres gets valid JSON to cast on assignment.
+          setClauses.push(`"description" = $${idx}::jsonb`)
+          values.push(value != null ? JSON.stringify(value) : null)
+        } else {
+          setClauses.push(`"${key}" = $${idx}`)
+          // pg serializes JS arrays as Postgres array literals, not JSON — stringify
+          // explicitly for the jsonb `tags` column so it binds as valid JSON text.
+          values.push(key === 'tags' && Array.isArray(value) ? JSON.stringify(value) : value ?? null)
+        }
       }
     }
 

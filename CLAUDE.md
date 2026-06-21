@@ -4,6 +4,62 @@ Persistent, repo-level notes for any coding agent/extension (Claude Code,
 Codex, Kilo Code, Blackbox, SuperRoo VS Code, Roo Cline, etc.) working in
 this repository.
 
+## 🖱️ No-Code Admin Principle — READ FIRST (ALL EXTENSIONS)
+
+DaVinciOS exists so the site owner (non-technical) can run the business
+without an engineer in the loop. Every recurring complaint this project has
+had — "I have to paste a link," "this field doesn't save," "I can't add
+images to a product" — traces back to the same root cause: a feature was
+wired in code but never given a real, working admin control. Treat this as
+a hard requirement, not a nice-to-have:
+
+1. **Every field referenced in code must have a working admin UI.** If an
+   API route reads/writes a column, there must be a control on a
+   `/admin/*` page that sets it, and that control must actually persist
+   (verify the full loop: render → save → reload → still there). The
+   `inventory_tracked`/`sales_channel`/`parent_id`/redirects column-rename
+   bugs (2026-06-21) were all "UI exists, DB column doesn't" or "DB column
+   exists, UI never built" — run `node tools/audit-admin-wiring.mjs`
+   (schema-vs-code cross-reference) before/after any admin feature work to
+   catch this class of bug early.
+2. **Image fields are never a raw "paste a URL" text input.** Use
+   `<ImagePickerField>` ([components/admin/ImagePickerField.tsx](apps/website/src/components/admin/ImagePickerField.tsx))
+   for any single image, or `<ProductImagesManager>`-style components for
+   multi-image fields. Both wrap the shared `<MediaPicker>`
+   ([components/admin/MediaPicker.tsx](apps/website/src/components/admin/MediaPicker.tsx)),
+   which gives the user three ways in — Browse the existing DO Spaces
+   media library, Upload a new file (straight to Spaces), or Paste a URL
+   as a last resort. New media sources (e.g. a new content type with
+   images) should be registered into the `media` table with a `source`
+   value, and added to `MediaPicker`'s `BROWSE_SOURCES` list, so they show
+   up in Browse — don't let a new image type bypass the library.
+3. **Rich content fields use `<RichTextEditor>`, never a raw HTML
+   `<textarea>`.** ([components/admin/RichTextEditor.tsx](apps/website/src/components/admin/RichTextEditor.tsx),
+   TipTap-based, with an Image toolbar button wired to the same
+   MediaPicker.) Nobody editing a blog post, page, or product description
+   should ever need to hand-write or read HTML tags. It outputs plain
+   HTML strings — the same format already expected by `renderLexical()`
+   and the jsonb `description`/`content`/`body` columns — so no schema
+   change is needed to adopt it.
+4. **New DB columns need a real migration before code references them.**
+   `tools/migrate/migrations/NNN_description.sql`, applied to **both**
+   local and production (they drift — verify counts/columns on both, don't
+   assume one mirrors the other). Code that reads/writes a column that
+   doesn't exist fails silently on read (always null) and loudly on write
+   (500, "column does not exist") — exactly the bug pattern from (1).
+5. **jsonb columns storing plain strings need an explicit cast.** `pg`
+   does not auto-serialize a JS string for a jsonb column — `UPDATE t SET
+   col = $1` with a raw HTML string param will throw "invalid input syntax
+   for type json". Always `JSON.stringify(value)` plus `$N::jsonb` in the
+   SQL (see `pages.content`, `products.description`, `products.tags` for
+   the pattern). Plain JS arrays sent to a jsonb column have the same
+   problem — `pg` serializes them as a Postgres array literal, not JSON.
+6. **No feature ships "config-file only."** If a setting only exists in a
+   `.json` file under `src/data/` or hardcoded in a component, and the
+   owner would plausibly want to change it without a deploy, give it an
+   admin control backed by `site_settings` or the relevant table — config
+   files are a fallback/seed, never the only way to change something live.
+
 ## 🚧 Source of Truth & Deploy Gate — READ FIRST (ALL EXTENSIONS)
 
 We had repeated "localhost ≠ live site" drift and lost work because extensions

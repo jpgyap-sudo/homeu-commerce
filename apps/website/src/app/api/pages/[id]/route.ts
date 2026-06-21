@@ -62,8 +62,15 @@ export async function PATCH(
     for (const [key, value] of Object.entries(body)) {
       if (allowedFields.has(key)) {
         idx++
-        setClauses.push(`"${key}" = $${idx}`)
-        values.push(value ?? null)
+        // pages.content is jsonb but the editor sends a plain HTML string —
+        // stringify so Postgres gets valid JSON to cast on assignment.
+        if (key === 'content') {
+          setClauses.push(`"content" = $${idx}::jsonb`)
+          values.push(value != null ? JSON.stringify(value) : null)
+        } else {
+          setClauses.push(`"${key}" = $${idx}`)
+          values.push(value ?? null)
+        }
       }
     }
 

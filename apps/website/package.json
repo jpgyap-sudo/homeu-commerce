@@ -8,9 +8,15 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tiptap/extension-image": "^3.27.1",
+    "@tiptap/extension-link": "^3.27.1",
+    "@tiptap/pm": "^3.27.1",
+    "@tiptap/react": "^3.27.1",
+    "@tiptap/starter-kit": "^3.27.1",
     "bcryptjs": "^3.0.3",
     "imapflow": "^1.4.2",
     "jose": "^5.10.0",
+    "jspdf": "^4.2.1",
     "mailparser": "^3.9.11",
     "next": "16.2.9",
     "nodemailer": "^9.0.1",
@@ -18,8 +24,7 @@
     "pg": "^8.20.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "sharp": "0.35.1",
-    "jspdf": "^4.2.1"
+    "sharp": "0.35.1"
   },
   "devDependencies": {
     "@types/mailparser": "^3.4.6",

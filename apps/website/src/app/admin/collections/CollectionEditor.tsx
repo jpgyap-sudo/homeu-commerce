@@ -6,6 +6,7 @@ import {
   RULE_COLUMNS, RELATIONS_BY_KIND,
   type CollectionRule, type RuleColumn,
 } from '@/lib/collection-rules'
+import { ImagePickerField } from '@/components/admin/ImagePickerField'
 
 interface ProductLite {
   id: number
@@ -352,11 +353,7 @@ export default function CollectionEditor({ initial }: { initial: CollectionData 
 
           <div style={card}>
             <h3 style={sectionTitle}>Image</h3>
-            {data.imageUrl
-              ? <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: 8, background: '#eef1ed', backgroundImage: `url(${data.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', marginBottom: 10 }} />
-              : <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: 8, background: '#f3f5f1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9aa69c', fontSize: 13, marginBottom: 10 }}>No image</div>}
-            <label style={label}>Image URL</label>
-            <input style={input} value={data.imageUrl} onChange={e => update('imageUrl', e.target.value)} placeholder="https://…cdn.digitaloceanspaces.com/…" />
+            <ImagePickerField value={data.imageUrl || ''} onChange={v => update('imageUrl', v)} aspectRatio="4 / 3" />
           </div>
 
           <div style={card}>

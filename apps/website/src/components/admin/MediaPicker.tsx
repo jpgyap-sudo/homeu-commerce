@@ -39,8 +39,12 @@ const dropzone: React.CSSProperties = {
   transition: 'background 150ms',
 }
 
+/** Shared image picker — used everywhere in admin that needs to attach an
+ *  image: theme editor, categories, collections, blog articles, products.
+ *  Three ways in: browse the existing DO Spaces media library, upload a new
+ *  file straight to it, or paste a URL. */
 export function MediaPicker({ open, currentUrl, onSelect, onClose }: MediaPickerProps) {
-  const [tab, setTab] = useState<'url' | 'upload' | 'browse'>('url')
+  const [tab, setTab] = useState<'url' | 'upload' | 'browse'>('browse')
   const [url, setUrl] = useState(currentUrl || '')
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
@@ -64,7 +68,7 @@ export function MediaPicker({ open, currentUrl, onSelect, onClose }: MediaPicker
   useEffect(() => {
     if (open) {
       setUrl(currentUrl || '')
-      setTab('url')
+      setTab('browse')
     }
   }, [open, currentUrl])
 
@@ -117,9 +121,9 @@ export function MediaPicker({ open, currentUrl, onSelect, onClose }: MediaPicker
 
         {/* Tabs */}
         <div style={tabRow}>
-          <button style={tabBtn(tab === 'url')} onClick={() => setTab('url')}>Paste URL</button>
-          <button style={tabBtn(tab === 'upload')} onClick={() => setTab('upload')}>Upload</button>
           <button style={tabBtn(tab === 'browse')} onClick={() => setTab('browse')}>Browse</button>
+          <button style={tabBtn(tab === 'upload')} onClick={() => setTab('upload')}>Upload</button>
+          <button style={tabBtn(tab === 'url')} onClick={() => setTab('url')}>Paste URL</button>
         </div>
 
         {/* Tab content */}

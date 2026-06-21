@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { RichTextEditor } from '@/components/admin/RichTextEditor'
+import { ImagePickerField } from '@/components/admin/ImagePickerField'
 
 interface BlogOpt { id: number; title: string; handle: string }
 export interface ArticleData {
@@ -91,8 +93,8 @@ export default function ArticleEditor({ initial, blogs }: { initial: ArticleData
             <label style={label}>Title</label>
             <input style={input} value={d.title} onChange={e => up('title', e.target.value)} />
             <div style={{ height: 16 }} />
-            <label style={label}>Body (HTML)</label>
-            <textarea style={{ ...input, minHeight: 360, resize: 'vertical', fontFamily: 'JetBrains Mono, monospace', fontSize: 13 }} value={d.body} onChange={e => up('body', e.target.value)} placeholder="<p>Write your article…</p>" />
+            <label style={label}>Body</label>
+            <RichTextEditor value={d.body} onChange={v => up('body', v)} />
           </div>
         </div>
 
@@ -115,9 +117,7 @@ export default function ArticleEditor({ initial, blogs }: { initial: ArticleData
           </div>
 
           <div style={card}>
-            <label style={label}>Featured image</label>
-            {d.imageUrl && <div style={{ width: '100%', aspectRatio: '16/9', borderRadius: 8, background: '#eef1ed', backgroundImage: `url(${d.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', marginBottom: 10 }} />}
-            <input style={input} value={d.imageUrl} onChange={e => up('imageUrl', e.target.value)} placeholder="Image URL" />
+            <ImagePickerField label="Featured image" value={d.imageUrl} onChange={v => up('imageUrl', v)} aspectRatio="16 / 9" />
             <div style={{ height: 10 }} />
             <input style={input} value={d.imageAlt} onChange={e => up('imageAlt', e.target.value)} placeholder="Alt text" />
           </div>

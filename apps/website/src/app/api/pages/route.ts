@@ -101,12 +101,12 @@ export async function POST(request: NextRequest) {
 
     const result = await query(
       `INSERT INTO pages (title, slug, content, status, seo_title, seo_description, updated_at, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+       VALUES ($1, $2, $3::jsonb, $4, $5, $6, NOW(), NOW())
        RETURNING *`,
       [
         body.title.trim(),
         finalSlug,
-        body.content || null,
+        body.content != null ? JSON.stringify(body.content) : null,
         body.status || 'draft',
         body.seo_title?.trim() || null,
         body.seo_description?.trim() || null,

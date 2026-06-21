@@ -10,6 +10,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ImagePickerField } from '@/components/admin/ImagePickerField'
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -278,15 +279,7 @@ export default function EditCategoryPage() {
                 ))}
               </select>
             </Field>
-            <Field label="Image URL">
-              <input
-                type="url"
-                value={imageUrl}
-                onChange={e => setImageUrl(e.target.value)}
-                style={inputStyle}
-                placeholder="https://example.com/image.jpg"
-              />
-            </Field>
+            <ImagePickerField label="Collection Image" value={imageUrl} onChange={setImageUrl} aspectRatio="16 / 9" />
           </div>
         </Section>
 

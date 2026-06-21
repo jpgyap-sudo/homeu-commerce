@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import type { GridType } from '@/lib/grid-engine'
+import { ImagePickerField } from '@/components/admin/ImagePickerField'
 
 interface Post {
   id: number; image_url: string; caption: string; permalink: string; alt_text: string
@@ -211,8 +212,8 @@ export default function InstagramAdminPage() {
           <h3 style={{ margin:'0 0 var(--space-4)',fontSize:16,fontWeight:600,color:'var(--luxe-navy-900)' }}>Add New Post</h3>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'var(--space-4)',marginBottom:'var(--space-4)' }}>
             <div>
-              <label style={{ fontSize:11,fontWeight:600,color:'var(--luxe-slate-400)',textTransform:'uppercase',marginBottom:4,display:'block' }}>Image URL</label>
-              <input className="luxe-input" placeholder="https://..." value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
+              <label style={{ fontSize:11,fontWeight:600,color:'var(--luxe-slate-400)',textTransform:'uppercase',marginBottom:4,display:'block' }}>Image</label>
+              <ImagePickerField value={imageUrl} onChange={setImageUrl} aspectRatio="1 / 1" />
             </div>
             <div>
               <label style={{ fontSize:11,fontWeight:600,color:'var(--luxe-slate-400)',textTransform:'uppercase',marginBottom:4,display:'block' }}>Instagram Permalink</label>

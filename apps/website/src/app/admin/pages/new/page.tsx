@@ -11,6 +11,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { RichTextEditor } from '@/components/admin/RichTextEditor'
 
 // ── Options ──────────────────────────────────────────────────────────
 
@@ -179,13 +180,7 @@ export default function NewPagePage() {
 
         {/* ── Section: Content ── */}
         <Section title="Content">
-          <textarea
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            rows={12}
-            style={{ ...inputStyle, width: '100%', resize: 'vertical', fontFamily: 'monospace', fontSize: 13 }}
-            placeholder="Page content (HTML or plain text)..."
-          />
+          <RichTextEditor value={content} onChange={setContent} />
         </Section>
 
         {/* ── Section: SEO ── */}

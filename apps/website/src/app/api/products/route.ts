@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
          description, dimensions, materials, tags,
          category_id, seo_title, seo_description, updated_at, created_at
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW(), NOW())
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15, $16, $17, $18, $19, $20, NOW(), NOW())
        RETURNING *`,
       [
         body.title.trim(),
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
         body.inventory_tracked === true,
         body.inventory_quantity != null ? parseInt(body.inventory_quantity) : 0,
         body.sales_channel?.trim() || 'online-store',
-        body.description || null,
+        body.description != null ? JSON.stringify(body.description) : null,
         body.dimensions?.trim() || null,
         body.materials?.trim() || null,
         Array.isArray(body.tags) ? JSON.stringify(body.tags) : null,

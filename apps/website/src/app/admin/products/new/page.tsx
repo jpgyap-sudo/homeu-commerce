@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { RichTextEditor } from '@/components/admin/RichTextEditor'
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -43,26 +44,6 @@ function generateSlug(title: string): string {
     .replace(/[\s_]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
-}
-
-/** Convert plain text to a minimal Lexical JSON structure. */
-function textToLexicalJson(text: string): any {
-  if (!text.trim()) return null
-  return {
-    root: {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [
-            { type: 'text', text, detail: 0, format: 0, mode: 'normal', style: '', version: 1 },
-          ],
-          direction: 'ltr', format: '', indent: 0, version: 1,
-        },
-      ],
-      direction: 'ltr', format: '', indent: 0, version: 1,
-    },
-  }
 }
 
 // ── Component ────────────────────────────────────────────────────────
@@ -148,7 +129,7 @@ export default function NewProductPage() {
         inventory_tracked: inventoryTracked,
         inventory_quantity: parseInt(inventoryQuantity) || 0,
         sales_channel: salesChannel,
-        description: textToLexicalJson(description),
+        description: description.trim() || null,
         dimensions: dimensions.trim() || null,
         materials: materials.trim() || null,
         category_id: categoryId ? parseInt(categoryId) : null,
@@ -316,13 +297,7 @@ export default function NewProductPage() {
 
         {/* ── Section: Description ── */}
         <Section title="Description">
-          <textarea
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            rows={6}
-            style={{ ...inputStyle, width: '100%', resize: 'vertical', fontFamily: 'inherit' }}
-            placeholder="Product description..."
-          />
+          <RichTextEditor value={description} onChange={setDescription} minHeight={180} />
         </Section>
 
         {/* ── Section: Details ── */}

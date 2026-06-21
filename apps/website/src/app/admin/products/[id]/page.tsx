@@ -10,6 +10,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { RichTextEditor } from '@/components/admin/RichTextEditor'
+import { ProductImagesManager } from '@/components/admin/ProductImagesManager'
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -80,23 +82,6 @@ function jsonDescriptionToString(desc: any): string {
     // fall through
   }
   return ''
-}
-
-function stringToJsonDescription(text: string): any {
-  if (!text.trim()) return null
-  return {
-    root: {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [{ type: 'text', text, detail: 0, format: 0, mode: 'normal', style: '', version: 1 }],
-          direction: 'ltr', format: '', indent: 0, version: 1,
-        },
-      ],
-      direction: 'ltr', format: '', indent: 0, version: 1,
-    },
-  }
 }
 
 function generateSlug(title: string): string {
@@ -225,7 +210,7 @@ export default function EditProductPage() {
         inventory_tracked: inventoryTracked,
         inventory_quantity: parseInt(inventoryQuantity) || 0,
         sales_channel: salesChannel,
-        description: stringToJsonDescription(description),
+        description: description.trim() || null,
         dimensions: dimensions.trim() || null,
         materials: materials.trim() || null,
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
@@ -429,15 +414,14 @@ export default function EditProductPage() {
           )}
         </Section>
 
+        {/* ── Section: Images ── */}
+        <Section title="Images">
+          <ProductImagesManager productId={parseInt(params?.id as string, 10)} />
+        </Section>
+
         {/* ── Section: Description ── */}
         <Section title="Description">
-          <textarea
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            rows={6}
-            style={{ ...inputStyle, width: '100%', resize: 'vertical', fontFamily: 'inherit' }}
-            placeholder="Product description..."
-          />
+          <RichTextEditor value={description} onChange={setDescription} minHeight={180} />
         </Section>
 
         {/* ── Section: Details ── */}
