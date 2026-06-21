@@ -77,8 +77,9 @@ export function MediaPicker({ open, currentUrl, onSelect, onClose }: MediaPicker
 
   const BROWSE_SOURCES = [
     { key: '', label: 'All' }, { key: 'product', label: 'Products' },
-    { key: 'article', label: 'Blog' }, { key: 'theme', label: 'Theme' },
-    { key: 'brand', label: 'Brand' }, { key: 'upload', label: 'Uploads' },
+    { key: 'category', label: 'Collections' }, { key: 'article', label: 'Blog' },
+    { key: 'theme', label: 'Theme' }, { key: 'brand', label: 'Brand' },
+    { key: 'upload', label: 'Uploads' },
   ]
 
   if (!open) return null

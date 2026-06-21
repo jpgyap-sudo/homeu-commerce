@@ -252,6 +252,18 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
   const [mediaCurrentUrl, setMediaCurrentUrl] = useState('')
   const mediaResolveRef = useRef<((url: string | null) => void) | null>(null)
 
+  /** Open the shared media picker (Browse library / Upload / Paste URL) for
+   *  any single image field — settings rail fields, repeater items, header
+   *  logo, etc. — not just the live-preview click-to-edit flow. */
+  function openMediaPicker(currentUrl: string, onPicked: (url: string) => void) {
+    setMediaCurrentUrl(currentUrl)
+    setMediaOpen(true)
+    mediaResolveRef.current = (chosenUrl: string | null) => {
+      if (!chosenUrl) return
+      onPicked(chosenUrl.trim())
+    }
+  }
+
   // ── Product picker state ──────────────────────────────────────────
   const [productPickerOpen, setProductPickerOpen] = useState(false)
   const [productPickerSectionId, setProductPickerSectionId] = useState<number | null>(null)
@@ -862,6 +874,43 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
     setDirty(true)
   }
 
+  /** Thumbnail + "Browse media" button — replaces hand-typed image URLs
+   *  everywhere with the same library/upload/paste-URL picker. */
+  function ImageField({ label, value, onChange, compact }: { label?: string; value: string; onChange: (v: string) => void; compact?: boolean }) {
+    return (
+      <div>
+        {label && <label style={lbl}>{label}</label>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: compact ? 36 : 52, height: compact ? 36 : 52, flexShrink: 0, borderRadius: 7,
+            background: '#f4f6f2', border: '1px solid #e4e9e2', overflow: 'hidden',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {value
+              ? <img src={value} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <span style={{ fontSize: 16, color: '#c3cdc1' }}>🖼</span>}
+          </div>
+          <button
+            type="button"
+            onClick={() => openMediaPicker(value, (url) => onChange(url))}
+            style={{
+              flex: 1, padding: '8px 12px', border: '1.5px dashed #9cc4a9', borderRadius: 8,
+              background: '#f0f7f2', color: '#1e7a47', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+              textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+            {value ? 'Change image…' : 'Browse media…'}
+          </button>
+          {value && (
+            <button type="button" onClick={() => onChange('')} title="Remove image"
+              style={{ border: 'none', background: 'transparent', color: '#b0392f', cursor: 'pointer', fontSize: 16, padding: '0 4px', flexShrink: 0 }}>
+              ×
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   function PaletteField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
     return (
       <div>
@@ -885,9 +934,11 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
             <div key={idx} style={{ border: '1px solid #eef1ed', borderRadius: 8, padding: 12, marginBottom: 8, position: 'relative', background: '#fafbf9' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {(f.itemFields || []).map(itf => (
-                  <div key={itf.key} style={{ gridColumn: itf.type === 'url' ? '1 / -1' : 'auto' }}>
+                  <div key={itf.key} style={{ gridColumn: (itf.type === 'url' || itf.type === 'image_picker') ? '1 / -1' : 'auto' }}>
                     <label style={{ ...lbl, fontSize: 11 }}>{itf.label}</label>
-                    <input style={input} value={item[itf.key] || ''} onChange={e => updateListItem(sec.id, f.key, idx, itf.key, e.target.value)} />
+                    {itf.type === 'image_picker'
+                      ? <ImageField compact value={item[itf.key] || ''} onChange={v => updateListItem(sec.id, f.key, idx, itf.key, v)} />
+                      : <input style={input} value={item[itf.key] || ''} onChange={e => updateListItem(sec.id, f.key, idx, itf.key, e.target.value)} />}
                   </div>
                 ))}
               </div>
@@ -992,6 +1043,17 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
           })} style={{ width: '100%', marginTop: 8, padding: '8px 12px', border: '1.5px dashed #9cc4a9', borderRadius: 8, background: '#f0f7f2', color: '#1e7a47', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
             Choose or replace collections
           </button>
+          {f.help && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa69c' }}>{f.help}</p>}
+        </div>
+      )
+    }
+
+    // ── Image picker field ─────────────────────────────────────────────
+    if (f.type === 'image_picker') {
+      const val = sec.config[f.key] ?? ''
+      return (
+        <div key={f.key} style={{ marginBottom: 14 }}>
+          <ImageField label={f.label} value={val} onChange={v => setConfig(sec.id, f.key, v)} />
           {f.help && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa69c' }}>{f.help}</p>}
         </div>
       )
@@ -1195,11 +1257,7 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
           {headerOpen && (
             <div style={{ padding: '0 16px 16px', borderTop: '1px solid #eef1ed' }}>
               <div style={{ marginTop: 12 }}>
-                <label style={lbl}>Logo image URL</label>
-                {header.logoUrl
-                  ? <div style={{ background: '#f4f6f2', borderRadius: 8, padding: 12, marginBottom: 8, textAlign: 'center' }}><img src={header.logoUrl} alt="logo" style={{ maxWidth: header.logoMaxWidth, maxHeight: 80 }} /></div>
-                  : null}
-                <input style={input} value={header.logoUrl} onChange={e => setHeader(h => ({ ...h, logoUrl: e.target.value }))} placeholder="https://…/logo.png (blank = default)" />
+                <ImageField label="Logo" value={header.logoUrl} onChange={v => setHeader(h => ({ ...h, logoUrl: v }))} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
                 <div>

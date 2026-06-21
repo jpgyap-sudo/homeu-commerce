@@ -11,7 +11,7 @@
  * then this file can be removed.
  */
 
-export type FieldType = 'text' | 'textarea' | 'url' | 'number' | 'color' | 'list' | 'product_picker' | 'collection_picker'
+export type FieldType = 'text' | 'textarea' | 'url' | 'number' | 'color' | 'list' | 'product_picker' | 'collection_picker' | 'image_picker'
 
 export interface FieldDef {
   key: string
@@ -49,14 +49,14 @@ function toFieldDefs(settings: SettingDefinition[]): FieldDef[] {
       if (s.type === 'textarea') base.type = 'textarea'
       else if (s.type === 'color') base.type = 'color'
       else if (s.type === 'number' || s.type === 'range') base.type = 'number'
-      else if (s.type === 'image_picker') base.type = 'url'
+      else if (s.type === 'image_picker') base.type = 'image_picker'
       else if (s.type === 'repeater') {
         base.type = 'list'
         if (s.itemSettings) {
           base.itemFields = s.itemSettings.map(is => ({
             key: is.key,
             label: is.label,
-            type: is.type === 'image_picker' ? 'url'
+            type: is.type === 'image_picker' ? 'image_picker'
                 : is.type === 'textarea' ? 'textarea'
                 : is.type === 'color' ? 'text'
                 : 'text',
