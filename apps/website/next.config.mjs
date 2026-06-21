@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // imapflow/mailparser (used by lib/mail-client.ts for the email inbox IMAP
+  // sync) were silently missing from the standalone build's node_modules —
+  // Next's automatic dependency tracer doesn't always catch packages with
+  // dynamic requires. This forces them (and their actual deps) to be traced
+  // and copied in, instead of webpack-bundling them.
+  serverExternalPackages: ['imapflow', 'mailparser'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**' },
