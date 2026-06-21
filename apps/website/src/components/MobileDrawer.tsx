@@ -13,7 +13,7 @@ interface NavItem {
 const QUICK_ACTIONS = [
   { icon: '📞', label: 'Call Designer', href: 'tel:+63281234567', external: true },
   { icon: '💬', label: 'Chat with Us', href: '#chat', onClick: true },
-  { icon: '📍', label: 'Visit Showroom', href: '/pages/contact' },
+  { icon: '📍', label: 'Visit Showroom', href: '/pages/contact-us' },
   { icon: '⭐', label: 'Best Sellers', href: '/products?sort=best-selling' },
 ]
 

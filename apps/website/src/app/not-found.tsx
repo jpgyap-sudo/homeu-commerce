@@ -19,7 +19,7 @@ export default function NotFound() {
             <li><Link href="/products">All Products</Link></li>
             <li><Link href="/blog">Journal / Blog</Link></li>
             <li><Link href="/quote-cart">Request a Quote</Link></li>
-            <li><Link href="/pages/contact">Contact Us</Link></li>
+            <li><Link href="/pages/contact-us">Contact Us</Link></li>
           </ul>
         </div>
       </div>
