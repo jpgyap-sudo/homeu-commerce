@@ -79,9 +79,20 @@ export default function EmailInboxPage() {
 
   const doSync = async () => {
     setSyncing(true)
-    const r = await fetch('/api/admin/email/sync', { method: 'POST' })
-    if (r.ok) { const d = await r.json(); toast(`Synced ${d.synced} emails${d.linked ? ` · ${d.linked} linked to customers` : ''}`); fetchEmails() }
-    else toast('Sync failed')
+    try {
+      const r = await fetch('/api/admin/email/sync', { method: 'POST' })
+      const d = await r.json()
+      if (r.ok && d.synced > 0) {
+        toast(`✅ Synced ${d.synced} emails${d.linked ? ` · ${d.linked} linked` : ''}`)
+        fetchEmails()
+      } else if (r.ok && d.synced === 0 && !d.error) {
+        toast('ℹ️ No new emails found')
+      } else {
+        toast(`❌ ${d.error || 'Sync failed — check IMAP settings'}`)
+      }
+    } catch (err: any) {
+      toast(`❌ Network error: ${err.message}`)
+    }
     setSyncing(false)
   }
 

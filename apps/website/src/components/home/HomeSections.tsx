@@ -114,6 +114,33 @@ function peso(n: number | null): string {
   return formatPrice(n)
 }
 
+interface FeaturedReview {
+  id: string
+  reviewer_name: string | null
+  rating: number
+  title: string | null
+  body: string | null
+  verified_purchase: boolean
+  product_title: string
+  product_slug: string
+}
+
+async function fetchFeaturedReviews(limit: number): Promise<FeaturedReview[]> {
+  try {
+    const res = await query(
+      `SELECT r.id, r.reviewer_name, r.rating, r.title, r.body, r.verified_purchase,
+              p.title as product_title, p.slug as product_slug
+       FROM reviews r
+       JOIN products p ON p.id = r.product_id
+       WHERE r.status = 'approved' AND r.rating >= 4 AND r.body IS NOT NULL AND length(r.body) > 0
+       ORDER BY r.rating DESC, r.review_date DESC
+       LIMIT $1`,
+      [limit]
+    )
+    return res.rows
+  } catch { return [] }
+}
+
 // ── Individual section renderers ─────────────────────────────────────────
 async function renderSection(section: HomepageSection) {
   // Merge DB config with full defaults so every setting key always exists
@@ -294,17 +321,37 @@ async function renderSection(section: HomepageSection) {
       )
     }
 
-    case 'reviews':
+    case 'reviews': {
+      const featuredReviews = await fetchFeaturedReviews(6)
       return (
         <section className="index-section homepage-reviews">
           <div className="page-width">
             <div className="section-header text-center">
               <h2 className="section-header__title h2" data-edit="heading">{cfg.heading || 'What Our Customers Say'}</h2>
             </div>
-            <div className="jdgm-widget jdgm-carousel-widget" data-number-of-columns="3" data-auto-scroll="true" data-scroll-interval="2000" data-scroll-animation-duration="400" />
+            {featuredReviews.length === 0 ? null : (
+              <div className="homepage-reviews__grid">
+                {featuredReviews.map(r => (
+                  <div key={r.id} className="homepage-reviews__card">
+                    <div className="homepage-reviews__stars" aria-label={`${r.rating} out of 5 stars`}>
+                      {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
+                    </div>
+                    {r.title && <h3 className="homepage-reviews__title">{r.title}</h3>}
+                    <p className="homepage-reviews__body">&ldquo;{r.body}&rdquo;</p>
+                    <div className="homepage-reviews__meta">
+                      <strong>{r.reviewer_name || 'Anonymous'}</strong>
+                      {r.verified_purchase && <span className="homepage-reviews__verified">Verified Buyer</span>}
+                      <span> · </span>
+                      <Link href={`/products/${r.product_slug}`}>{r.product_title}</Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       )
+    }
 
     case 'instagram': {
       const handle = cfg.handle || 'homeatelierph'

@@ -133,7 +133,15 @@ export default function CustomerDashboardPage() {
         padding: 20,
         marginBottom: 32,
       }}>
-        <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>My Profile</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ margin: 0, fontSize: 18 }}>My Profile</h2>
+          <Link href="/customer/account" style={{
+            fontSize: 13, fontWeight: 600, color: '#1a6d3e', textDecoration: 'none',
+            border: '1.5px solid #1a6d3e', borderRadius: 8, padding: '6px 14px',
+          }}>
+            Edit Profile
+          </Link>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 14 }}>
           <div><strong>Name:</strong> {customer.name}</div>
           <div><strong>Email:</strong> {customer.email}</div>

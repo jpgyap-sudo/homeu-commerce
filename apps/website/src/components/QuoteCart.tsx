@@ -479,10 +479,36 @@ export function QuoteCartExperience() {
   const [successId, setSuccessId] = useState('')
 
   useEffect(() => {
-    setItems(getQuoteCart())
+    const loaded = getQuoteCart()
+    setItems(loaded)
     const leadId = getQuoteCartLeadId()
     if (leadId) {
       fetchServerCart().then(() => setItems(getQuoteCart()))
+    }
+
+    // Backfill price for items added before price was captured correctly
+    // (e.g. via an older chat-recommendation path) — never trust a stale
+    // cached `undefined` price when the live product has one.
+    const missingPrice = loaded.filter((i) => i.price == null)
+    if (missingPrice.length > 0) {
+      Promise.all(
+        missingPrice.map((i) =>
+          fetch(`/api/products/${i.productId}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((p) => (p?.price != null ? { productId: i.productId, price: p.price } : null))
+            .catch(() => null)
+        )
+      ).then((results) => {
+        const fixes = results.filter(Boolean) as { productId: string; price: number }[]
+        if (fixes.length === 0) return
+        const current = getQuoteCart()
+        const patched = current.map((item) => {
+          const fix = fixes.find((f) => f.productId === item.productId)
+          return fix ? { ...item, price: fix.price } : item
+        })
+        saveQuoteCart(patched)
+        setItems(patched)
+      })
     }
     async function hydrateCustomer() {
       try {
@@ -674,24 +700,24 @@ export function QuoteCartExperience() {
                     {item.sku && <p className="quote-cart-line-sku">SKU: {item.sku}</p>}
                     {item.price != null ? (
                       <span className="quote-cart-line-unit-price">
-                        {formatPrice(item.price)} each
+                        {formatPrice(item.price)} each <em className="quote-cart-estimate-tag">est.</em>
                       </span>
                     ) : (
                       <span className="quote-cart-line-unit-price">Price by quotation</span>
                     )}
 
                     {/* Per-item notes (THE GENIUS) */}
-                    <div style={{ marginTop: 8 }}>
+                    <div className="quote-cart-notes-field">
+                      <label htmlFor={`notes-${item.productId}`} className="quote-cart-notes-label">
+                        ✎ Notes &amp; questions for this item
+                      </label>
                       <textarea
+                        id={`notes-${item.productId}`}
                         value={item.notes || ''}
                         onChange={(e) => updateItemNotes(item.productId, e.target.value)}
-                        placeholder={`Questions about ${item.title}? E.g. color, finish, size, timeline…`}
-                        rows={1}
-                        style={{
-                          width: '100%', padding: '7px 10px', border: '1px solid #e3e8e0', borderRadius: 6,
-                          fontSize: 12, fontFamily: 'inherit', resize: 'vertical', minHeight: 32,
-                          background: '#fafbf9', color: '#3a4339', outline: 'none', boxSizing: 'border-box',
-                        }}
+                        placeholder={`E.g. preferred color, finish, size, or delivery timeline for ${item.title}…`}
+                        rows={2}
+                        className="quote-cart-notes-textarea"
                       />
                     </div>
                   </div>
