@@ -7,8 +7,10 @@ interface Product {
   title: string
   slug: string
   price: number | null
-  image_url: string | null
-  category_title: string | null
+  imageUrl: string | null
+  image_url?: string | null
+  category?: { title?: string; id?: number } | null
+  category_title?: string | null
 }
 
 interface Props {
@@ -20,23 +22,32 @@ export default function InlineProductBrowser({ onAdd }: Props) {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [category, setCategory] = useState('')
   const [categories, setCategories] = useState<{ id: number; title: string }[]>([])
   const [added, setAdded] = useState<Set<string>>(new Set())
 
+  // Debounce search input — 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
   useEffect(() => {
     if (!open) return
     setLoading(true)
+    const params = new URLSearchParams({ limit: '12' })
+    if (category) params.set('category', category)
+    if (debouncedSearch) params.set('search', debouncedSearch)
     Promise.all([
-      fetch('/api/categories?limit=50').then(r => r.ok ? r.json() : { categories: [] }),
-      fetch(`/api/products?limit=12${category ? `&category=${category}` : ''}${search ? `&search=${search}` : ''}`)
-        .then(r => r.ok ? r.json() : { products: [] }),
+      fetch('/api/categories?limit=50').then(r => r.ok ? r.json() : { docs: [] }),
+      fetch(`/api/products?${params}`).then(r => r.ok ? r.json() : { docs: [] }),
     ]).then(([catData, prodData]) => {
-      setCategories(catData.categories || [])
-      setProducts(prodData.products || [])
+      setCategories(catData.docs || catData.categories || [])
+      setProducts(prodData.docs || prodData.products || [])
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [open, category, search])
+  }, [open, category, debouncedSearch])
 
   const handleAdd = (p: Product) => {
     onAdd({
@@ -44,7 +55,7 @@ export default function InlineProductBrowser({ onAdd }: Props) {
       title: p.title,
       slug: p.slug,
       price: p.price,
-      imageUrl: p.image_url,
+      imageUrl: p.imageUrl || p.image_url || null,
     })
     setAdded(prev => new Set(prev).add(p.slug))
     setTimeout(() => setAdded(prev => { const next = new Set(prev); next.delete(p.slug); return next }), 2000)
@@ -103,15 +114,15 @@ export default function InlineProductBrowser({ onAdd }: Props) {
             ) : products.map(p => (
               <div key={p.id} style={{ border: '1px solid #e3e8e0', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ height: 120, background: '#f4f6f2', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  {p.image_url ? (
-                    <img src={p.image_url} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                  {(p.imageUrl || p.image_url) ? (
+                    <img src={p.imageUrl || p.image_url!} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                   ) : (
                     <span style={{ fontSize: 28 }}>🛋️</span>
                   )}
                 </div>
                 <div style={{ padding: '10px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: '#151a17', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
-                  <div style={{ fontSize: 11, color: '#667168' }}>{p.category_title || ''}</div>
+                  <div style={{ fontSize: 11, color: '#667168' }}>{p.category?.title || p.category_title || ''}</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#1a6d3e' }}>
                     {p.price ? `₱${p.price.toLocaleString()}` : 'Price varies'}
                   </div>

@@ -55,6 +55,8 @@ export default function AdminReviewsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [replyDraft, setReplyDraft] = useState<Record<string, string>>({})
   const [draftingId, setDraftingId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -71,7 +73,7 @@ export default function AdminReviewsPage() {
     }
   }, [tab])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load(); setSelectedIds(new Set()) }, [load])
 
   async function setStatus(id: string, status: string) {
     await fetch(`/api/admin/reviews/${id}`, {
@@ -81,6 +83,38 @@ export default function AdminReviewsPage() {
       body: JSON.stringify({ status }),
     })
     load()
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds(prev => prev.size === reviews.length ? new Set() : new Set(reviews.map(r => r.id)))
+  }
+
+  async function bulkSetStatus(status: string) {
+    if (selectedIds.size === 0) return
+    setBulkBusy(true)
+    try {
+      await Promise.all([...selectedIds].map(id =>
+        fetch(`/api/admin/reviews/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status }),
+        })
+      ))
+      setSelectedIds(new Set())
+      load()
+    } finally {
+      setBulkBusy(false)
+    }
   }
 
   async function draftReply(id: string) {
@@ -146,10 +180,43 @@ export default function AdminReviewsPage() {
       ) : reviews.length === 0 ? (
         <div style={{ padding: 40, textAlign: 'center', color: '#9aa69c' }}>No reviews in this view.</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: 12, padding: '8px 4px',
+          }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#151a17', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={selectedIds.size > 0 && selectedIds.size === reviews.length}
+                onChange={toggleSelectAll}
+                style={{ width: 16, height: 16, cursor: 'pointer' }}
+              />
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all'}
+            </label>
+
+            {selectedIds.size > 0 && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => bulkSetStatus('approved')} disabled={bulkBusy} style={btnStyle('#1a6d3e', '#fff')}>
+                  {bulkBusy ? 'Working...' : `Approve ${selectedIds.size}`}
+                </button>
+                <button onClick={() => bulkSetStatus('rejected')} disabled={bulkBusy} style={btnStyle('#fff', '#991b1b', '#fecaca')}>
+                  Decline {selectedIds.size}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {reviews.map(r => (
-            <div key={r.id} style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, padding: 18 }}>
+            <div key={r.id} style={{ background: '#fff', border: selectedIds.has(r.id) ? '1.5px solid #1a6d3e' : '1px solid #d9e0d7', borderRadius: 12, padding: 18 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(r.id)}
+                  onChange={() => toggleSelect(r.id)}
+                  style={{ width: 16, height: 16, marginTop: 3, cursor: 'pointer', flexShrink: 0 }}
+                />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <StarRow rating={r.rating} />
@@ -214,7 +281,8 @@ export default function AdminReviewsPage() {
               )}
             </div>
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       {showCreate && <CreateReviewModal onClose={() => setShowCreate(false)} onCreated={load} />}
