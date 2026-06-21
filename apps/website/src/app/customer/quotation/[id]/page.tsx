@@ -100,8 +100,140 @@ export default function CustomerQuotationPage() {
     )
   }
 
+  const [actionLoading, setActionLoading] = useState(false)
+  const [actionMsg, setActionMsg] = useState('')
+  const [showRevise, setShowRevise] = useState(false)
+  const [reviseText, setReviseText] = useState('')
+  const [reviseItems, setReviseItems] = useState<Set<string>>(new Set())
+
+  async function handleApprove() {
+    setActionLoading(true); setActionMsg('')
+    try {
+      const res = await fetch(`/api/quotations/${quotation.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'accepted' }),
+      })
+      if (!res.ok) throw new Error('Failed to approve')
+      const data = await res.json()
+      setQuotation(data)
+      setActionMsg('✅ Quotation approved! We\'ll start preparing your order.')
+    } catch (err: any) { setActionMsg('❌ ' + err.message) }
+    finally { setActionLoading(false) }
+  }
+
+  async function handleRevise() {
+    if (!reviseText.trim()) return
+    setActionLoading(true); setActionMsg('')
+    try {
+      const res = await fetch(`/api/quotations/${quotation.id}/revision-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: reviseText.trim(),
+          items: [...reviseItems],
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to send revision request')
+      setActionMsg('✅ Revision request sent! The team will review and update your quotation.')
+      setShowRevise(false)
+      setQuotation(prev => prev ? { ...prev, pending_revision: true, revision_request: reviseText.trim() } : prev)
+    } catch (err: any) { setActionMsg('❌ ' + err.message) }
+    finally { setActionLoading(false) }
+  }
+
+  const canAct = quotation.status === 'sent' || quotation.status === 'revised'
+
   return (
     <main style={{ maxWidth: 800, margin: '40px auto', padding: '0 24px' }}>
+      {/* ── Approval / Revision Action Bar ── */}
+      {canAct && (
+        <div style={{
+          background: '#fff', borderRadius: 16, padding: 24, marginBottom: 24,
+          border: '1px solid #e3e8e0', boxShadow: '0 4px 24px rgba(0,0,0,0.04)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: showRevise ? 16 : 0 }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 12, background: '#e8f2ec',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+            }}>📋</div>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ margin: '0 0 2px', fontSize: 15, fontWeight: 700, color: '#151a17' }}>
+                {quotation.pending_revision ? 'Revised Quotation Ready for Review' : 'Review Your Quotation'}
+              </h3>
+              <p style={{ margin: 0, fontSize: 13, color: '#667168' }}>
+                {quotation.pending_revision
+                  ? 'The team has updated your quotation based on your feedback. Please review and confirm.'
+                  : `Please review the items and pricing. If everything looks good, approve below.`}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button onClick={handleApprove} disabled={actionLoading} style={{
+              flex: 1, padding: '14px 24px', background: '#1a6d3e', color: '#fff',
+              border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              opacity: actionLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+              ✅ {actionLoading ? 'Processing…' : 'Approve & Confirm'}
+            </button>
+            <button onClick={() => setShowRevise(!showRevise)} disabled={actionLoading} style={{
+              padding: '14px 24px', background: '#fff', color: '#d97706',
+              border: '1.5px solid #fde68a', borderRadius: 10, fontSize: 14, fontWeight: 600,
+              cursor: 'pointer', whiteSpace: 'nowrap',
+            }}>
+              ✏️ Request Changes
+            </button>
+          </div>
+
+          {/* Revision form */}
+          {showRevise && (
+            <div style={{ marginTop: 16, padding: 16, background: '#fffbeb', borderRadius: 10, border: '1px solid #fde68a' }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: '#92400e', margin: '0 0 8px' }}>
+                What would you like to change?
+              </p>
+
+              {/* Item-level checkboxes */}
+              {quotation.items && quotation.items.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <p style={{ fontSize: 11, color: '#92400e', margin: '0 0 6px', fontWeight: 500 }}>Select items to revise:</p>
+                  {quotation.items.map(item => (
+                    <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer', fontSize: 12 }}>
+                      <input type="checkbox" checked={reviseItems.has(item.id)} onChange={e => {
+                        const next = new Set(reviseItems)
+                        e.target.checked ? next.add(item.id) : next.delete(item.id)
+                        setReviseItems(next)
+                      }} style={{ accentColor: '#d97706' }} />
+                      Item #{item.itemNumber} — {item.description.substring(0, 40)}…
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              <textarea value={reviseText} onChange={e => setReviseText(e.target.value)} rows={3}
+                placeholder="E.g. Can you adjust the pricing on Item #2? I'd prefer a different finish on Item #1..."
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #fde68a', borderRadius: 8, fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }} />
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button onClick={handleRevise} disabled={actionLoading || !reviseText.trim()} style={{
+                  padding: '10px 20px', background: '#d97706', color: '#fff', border: 'none',
+                  borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}>
+                  {actionLoading ? 'Sending…' : 'Send Revision Request'}
+                </button>
+                <button onClick={() => setShowRevise(false)} style={{ padding: '10px 20px', background: '#fff', border: '1px solid #d9e0d7', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {actionMsg && (
+            <div style={{ marginTop: 12, padding: '10px 14px', background: actionMsg.includes('✅') ? '#ecfdf5' : '#fef2f2', borderRadius: 8, fontSize: 13, color: actionMsg.includes('✅') ? '#065f46' : '#991b1b' }}>
+              {actionMsg}
+            </div>
+          )}
+        </div>
+      )}
       {/* Breadcrumb */}
       <div style={{ marginBottom: 24, fontSize: 14 }}>
         <Link href="/customer/dashboard" style={{ color: '#666' }}>Dashboard</Link>
