@@ -8,6 +8,8 @@ import InstallPrompt from '@/components/InstallPrompt'
 import MobileBottomNav from '@/components/MobileBottomNav'
 import MobileDrawer from '@/components/MobileDrawer'
 import MobileHomepageEnhancer from '@/components/MobileHomepageEnhancer'
+import PageViewTracker from '@/components/PageViewTracker'
+import LiveVisitorTracker from '@/components/LiveVisitorTracker'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { getMainNav } from '@/lib/navigation'
@@ -107,6 +109,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {customCss ? <style id="homeu-custom-css" dangerouslySetInnerHTML={{ __html: customCss }} /> : null}
       </head>
       <body>
+        <PageViewTracker />
+        <LiveVisitorTracker />
         <ServiceWorkerRegister />
         <SiteHeader nav={mainNav} header={header} logoUrl={header.logoUrl || undefined} />
         <main id="MainContent" className="content-for-layout" role="main" tabIndex={-1}>

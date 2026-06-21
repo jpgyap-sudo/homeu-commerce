@@ -21,7 +21,7 @@ async function loadLeads() {
       statuses: statuses.rows.map((r: any) => ({ s: r.status, c: Number(r.c) })),
       daily: daily.rows.map((r: any) => ({ d: String(r.d || '').slice(0, 10), c: Number(r.c) })),
     }
-  } catch { return { sources: [], scores: [], trend: [], buyerTypes: [], statuses: [], daily: [] } }
+  } catch (error) { return { sources: [], scores: [], trend: [], buyerTypes: [], statuses: [], daily: [], error: error instanceof Error ? error.message : 'Lead analytics query failed' } }
 }
 
 const getLeads = unstable_cache(loadLeads, ['analytics-leads'], { revalidate: 120, tags: ['admin-analytics'] })
@@ -37,6 +37,7 @@ export default async function LeadsPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1320 }}>
+      {'error' in d && d.error && <div role="alert" style={{ marginBottom: 16, padding: 12, background: '#fef2f2', color: '#991b1b', borderRadius: 8 }}>Lead analytics could not be loaded: {d.error}</div>}
       <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>👤 Leads & CRM Analytics</h1>
       <p style={{ color: '#667168', fontSize: 13, marginBottom: 24 }}>Lead sources, scoring, buyer types, and status breakdown</p>
 

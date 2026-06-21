@@ -139,7 +139,7 @@ export function classifyIntentRuleBased(text: string, context?: string): Classif
 
 export async function classifyIntentAI(text: string, context?: string): Promise<ClassifiedIntent> {
   try {
-    const ai = getAIProvider()
+    const ai = await getAIProvider()
     const result = await ai.classifyIntent(text, context)
 
     const extracted: ExtractedEntities = {}

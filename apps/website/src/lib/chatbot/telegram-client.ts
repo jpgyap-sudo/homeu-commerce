@@ -35,8 +35,11 @@ export interface TelegramAlert {
 // ── Send Telegram Alert ───────────────────────────────────────
 
 export async function sendTelegramAlert(alert: TelegramAlert): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN
-  const chatId = process.env.TELEGRAM_GROUP_CHAT_ID
+  // loadNamespace already resolves DB value > env var > default
+  const { loadNamespace } = await import('@/lib/app-config')
+  const messaging = await loadNamespace<{ telegramBotToken: string; telegramChatId: string }>('messaging')
+  const botToken = messaging.telegramBotToken
+  const chatId = messaging.telegramChatId
 
   if (!botToken || !chatId) {
     console.warn('[chatbot] Telegram credentials not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_GROUP_CHAT_ID.')

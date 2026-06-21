@@ -6,11 +6,11 @@ import { unstable_cache } from 'next/cache'
 async function loadTraffic() {
   try {
     const [daily, monthly, hourly, referrers, topPages] = await Promise.all([
-      query(`SELECT DATE(created_at) as d, COUNT(*) as c, COUNT(DISTINCT COALESCE(visitor_id,'anon')) as u FROM page_views WHERE created_at >= NOW() - INTERVAL '14 days' GROUP BY d ORDER BY d`),
-      query(`SELECT TO_CHAR(created_at,'Mon YYYY') as m, COUNT(*) as c, COUNT(DISTINCT COALESCE(visitor_id,'anon')) as u FROM page_views WHERE created_at >= NOW() - INTERVAL '6 months' GROUP BY m ORDER BY MIN(created_at)`),
-      query(`SELECT EXTRACT(HOUR FROM created_at)::int as h, COUNT(*) as c FROM page_views WHERE created_at >= NOW() - INTERVAL '30 days' GROUP BY h ORDER BY h`),
-      query(`SELECT COALESCE(NULLIF(SPLIT_PART(referrer,'/',3),''),'Direct') as s, COUNT(*) as c FROM page_views WHERE created_at >= NOW() - INTERVAL '30 days' AND referrer IS NOT NULL AND referrer != '' GROUP BY s ORDER BY c DESC LIMIT 10`),
-      query(`SELECT path, COUNT(*) as c, COUNT(DISTINCT COALESCE(visitor_id,'anon')) as u FROM page_views WHERE created_at >= NOW() - INTERVAL '30 days' GROUP BY path ORDER BY c DESC LIMIT 20`),
+      query(`SELECT DATE(created_at) as d, COUNT(*) as c, COUNT(DISTINCT visitor_id) as u FROM page_views WHERE is_admin = FALSE AND created_at >= NOW() - INTERVAL '14 days' GROUP BY d ORDER BY d`),
+      query(`SELECT TO_CHAR(created_at,'Mon YYYY') as m, COUNT(*) as c, COUNT(DISTINCT visitor_id) as u FROM page_views WHERE is_admin = FALSE AND created_at >= NOW() - INTERVAL '6 months' GROUP BY m ORDER BY MIN(created_at)`),
+      query(`SELECT EXTRACT(HOUR FROM created_at)::int as h, COUNT(*) as c FROM page_views WHERE is_admin = FALSE AND created_at >= NOW() - INTERVAL '30 days' GROUP BY h ORDER BY h`),
+      query(`SELECT COALESCE(NULLIF(SPLIT_PART(referrer,'/',3),''),'Direct') as s, COUNT(*) as c FROM page_views WHERE is_admin = FALSE AND created_at >= NOW() - INTERVAL '30 days' GROUP BY s ORDER BY c DESC LIMIT 10`),
+      query(`SELECT path, COUNT(*) as c, COUNT(DISTINCT visitor_id) as u FROM page_views WHERE is_admin = FALSE AND created_at >= NOW() - INTERVAL '30 days' GROUP BY path ORDER BY c DESC LIMIT 20`),
     ])
     return {
       daily: daily.rows.map((r: any) => ({ d: String(r.d || '').slice(0, 10), c: Number(r.c), u: Number(r.u) })),
@@ -19,7 +19,7 @@ async function loadTraffic() {
       referrers: referrers.rows.map((r: any) => ({ s: r.s, c: Number(r.c) })),
       topPages: topPages.rows.map((r: any) => ({ path: r.path, c: Number(r.c), u: Number(r.u) })),
     }
-  } catch { return { daily: [], monthly: [], hourly: [], referrers: [], topPages: [] } }
+  } catch (error) { return { daily: [], monthly: [], hourly: [], referrers: [], topPages: [], error: error instanceof Error ? error.message : 'Traffic query failed' } }
 }
 
 const getTraffic = unstable_cache(loadTraffic, ['analytics-traffic'], { revalidate: 120, tags: ['admin-analytics'] })
@@ -35,6 +35,7 @@ export default async function TrafficPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1320 }}>
+      {'error' in d && d.error && <div role="alert" style={{ marginBottom: 16, padding: 12, background: '#fef2f2', color: '#991b1b', borderRadius: 8 }}>Traffic analytics could not be loaded: {d.error}</div>}
       <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>👁️ Traffic Analytics</h1>
       <p style={{ color: '#667168', fontSize: 13, marginBottom: 24 }}>Page views, visitors, sources, and time-of-day patterns</p>
 

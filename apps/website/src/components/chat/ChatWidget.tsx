@@ -55,10 +55,35 @@ interface LeadData {
   companyName?: string
 }
 
-const VIBER_NUMBER = process.env.NEXT_PUBLIC_SALES_VIBER_NUMBER || ''
-const VIBER_NAME = process.env.NEXT_PUBLIC_SALES_VIBER_NAME || 'HomeU Sales Team'
+interface WidgetConfig {
+  viberNumber: string
+  viberName: string
+  enableChat: boolean
+  greetingDelay: number
+  productPageDelay: number
+}
+
+const DEFAULT_WIDGET_CONFIG: WidgetConfig = {
+  viberNumber: '',
+  viberName: 'HomeU Sales Team',
+  enableChat: true,
+  greetingDelay: 4000,
+  productPageDelay: 7000,
+}
 
 export function ChatWidget() {
+  // Admin-configurable (Settings → Notifications). Fetched at mount since
+  // this is a client component and can't read DB/server env at render time.
+  const [widgetConfig, setWidgetConfig] = useState<WidgetConfig>(DEFAULT_WIDGET_CONFIG)
+  const [widgetConfigLoaded, setWidgetConfigLoaded] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/chat/widget-config')
+      .then(r => r.json())
+      .then(d => setWidgetConfig({ ...DEFAULT_WIDGET_CONFIG, ...d }))
+      .catch(() => {})
+      .finally(() => setWidgetConfigLoaded(true))
+  }, [])
   // ── State ─────────────────────────────────────────────────
   const [state, setState] = useState<ChatState>('idle')
   const [isOpen, setIsOpen] = useState(false)
@@ -129,8 +154,8 @@ export function ChatWidget() {
     }
   }, [])
 
-  const greetingDelay = parseInt(process.env.NEXT_PUBLIC_CHAT_GREETING_DELAY || '4000', 10)
-  const productPageDelay = parseInt(process.env.NEXT_PUBLIC_CHAT_PRODUCT_PAGE_DELAY || '7000', 10)
+  const greetingDelay = widgetConfig.greetingDelay
+  const productPageDelay = widgetConfig.productPageDelay
 
   // ── Check if user is logged in ──────────────────────────────
   useEffect(() => {
@@ -557,6 +582,9 @@ export function ChatWidget() {
   // ── Render ───────────────────────────────────────────────
   const showBubble = true // Always show bubble
 
+  // Admin can disable the widget entirely (Settings → Notifications)
+  if (widgetConfigLoaded && !widgetConfig.enableChat) return null
+
   return (
     <>
       {/* Floating Bubble — draggable, logo icon, attention bounce + moving color ring */}
@@ -695,8 +723,8 @@ export function ChatWidget() {
           {state === 'viber_handoff' && (
             <div style={{ padding: 16, flexShrink: 0 }}>
               <ViberHandoff
-                viberNumber={VIBER_NUMBER}
-                viberName={VIBER_NAME}
+                viberNumber={widgetConfig.viberNumber}
+                viberName={widgetConfig.viberName}
                 onSendRFQ={handleSendRFQToSales}
                 onClose={handleViberClose}
               />

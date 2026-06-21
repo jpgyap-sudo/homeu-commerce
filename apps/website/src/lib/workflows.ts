@@ -56,19 +56,23 @@ export interface WorkflowSummary {
 
 type QueryResult = { rows: any[] }
 
-async function countTable(table: string): Promise<number> {
+function tableRef(table: string, schema?: string): string {
+  return schema ? `"${schema}"."${table}"` : `"${table}"`
+}
+
+async function countTable(table: string, schema?: string): Promise<number> {
   try {
-    const r = await query(`SELECT COUNT(*) as count FROM "${table}"`)
+    const r = await query(`SELECT COUNT(*) as count FROM ${tableRef(table, schema)}`)
     return Number(r.rows[0]?.count || 0)
   } catch {
     return 0
   }
 }
 
-async function statusDistribution(table: string, statusCol = 'status'): Promise<Record<string, number>> {
+async function statusDistribution(table: string, statusCol: string, schema?: string): Promise<Record<string, number>> {
   try {
     const r = await query(
-      `SELECT ${statusCol}, COUNT(*) as count FROM "${table}" GROUP BY ${statusCol} ORDER BY ${statusCol}`
+      `SELECT "${statusCol}", COUNT(*) as count FROM ${tableRef(table, schema)} GROUP BY "${statusCol}" ORDER BY "${statusCol}"`
     )
     const dist: Record<string, number> = {}
     for (const row of r.rows) {
@@ -80,27 +84,12 @@ async function statusDistribution(table: string, statusCol = 'status'): Promise<
   }
 }
 
-async function lastUpdated(table: string, col = 'updated_at'): Promise<string | null> {
+async function lastUpdated(table: string, col = 'updated_at', schema?: string): Promise<string | null> {
   try {
-    const r = await query(`SELECT ${col} FROM "${table}" ORDER BY ${col} DESC LIMIT 1`)
+    const r = await query(`SELECT "${col}" FROM ${tableRef(table, schema)} ORDER BY "${col}" DESC LIMIT 1`)
     return r.rows[0]?.[col] ? String(r.rows[0][col]) : null
   } catch {
     return null
-  }
-}
-
-async function chatbotStatusDistribution(schema: string, table: string): Promise<Record<string, number>> {
-  try {
-    const r = await query(
-      `SELECT status, COUNT(*) as count FROM "${schema}"."${table}" GROUP BY status ORDER BY status`
-    )
-    const dist: Record<string, number> = {}
-    for (const row of r.rows) {
-      dist[row.status] = Number(row.count)
-    }
-    return dist
-  } catch {
-    return {}
   }
 }
 
@@ -108,9 +97,9 @@ async function chatbotStatusDistribution(schema: string, table: string): Promise
 
 interface FeatureQuery {
   table: string
-  statusCol?: string
+  statusCol?: string | null
   schema?: string
-  tab?: string
+  updatedCol?: string
 }
 
 const FEATURE_QUERIES: Record<string, FeatureQuery> = {
@@ -120,10 +109,12 @@ const FEATURE_QUERIES: Record<string, FeatureQuery> = {
   rfq:          { table: 'rfq_requests' },
   quotations:   { table: 'quotations' },
   leads:        { table: 'leads', schema: 'chatbot' },
-  appointments: { table: 'appointments', schema: 'chatbot' },
+  appointments: { table: 'appointments', schema: 'chatbot', updatedCol: 'created_at' },
   media:        { table: 'media' },
   pages:        { table: 'pages' },
   redirects:    { table: 'redirects' },
+  analytics:    { table: 'page_views', statusCol: null, updatedCol: 'created_at' },
+  chatbot:      { table: 'conversations', schema: 'chatbot', updatedCol: 'last_message_at' },
 }
 
 // ── Main aggregation ───────────────────────────────────────────────────────────
@@ -199,25 +190,10 @@ export async function loadWorkflowSummary(): Promise<WorkflowSummary> {
         return { slug, totalCount: 0, statusDist: {} as Record<string, number>, lastUpd: null as string | null }
       }
 
-      // For chatbot-schema features: count and status dist both come from
-      // the same GROUP BY query; for standard tables: count + status dist are separate.
-      if (fq.schema) {
-        const [dist, last] = await Promise.all([
-          chatbotStatusDistribution(fq.schema, fq.table),
-          lastUpdated(fq.table),
-        ])
-        return {
-          slug,
-          totalCount: Object.values(dist).reduce((a, b) => a + b, 0),
-          statusDist: dist,
-          lastUpd: last,
-        }
-      }
-
       const [count, dist, last] = await Promise.all([
-        countTable(fq.table),
-        statusDistribution(fq.table, fq.statusCol || 'status'),
-        lastUpdated(fq.table),
+        countTable(fq.table, fq.schema),
+        fq.statusCol === null ? Promise.resolve({}) : statusDistribution(fq.table, fq.statusCol || 'status', fq.schema),
+        lastUpdated(fq.table, fq.updatedCol || 'updated_at', fq.schema),
       ])
       return { slug, totalCount: count, statusDist: dist, lastUpd: last }
     })
@@ -268,25 +244,6 @@ export async function loadWorkflowSummary(): Promise<WorkflowSummary> {
     const data = dataBySlug.get(slug) || { totalCount: 0, statusDist: {} as Record<string, number>, lastUpd: null as string | null }
     let tasks = allTasksBySlug.get(slug) || []
 
-    // Auto-generate a task if feature has data but no tasks defined
-    if (tasks.length === 0 && data.totalCount > 0) {
-      tasks = [{
-        id: -1, // negative to avoid collision with real IDs
-        title: `Review ${def.title.toLowerCase()} data`,
-        description: `${data.totalCount} ${def.title.toLowerCase()} record(s) exist. Verify data quality and completeness.`,
-        status: 'pending',
-        priority: 'medium',
-        assignee: null,
-        dueDate: null,
-        metadata: { count: data.totalCount },
-        sortOrder: 0,
-        isAutomated: true,
-        completedAt: null,
-        createdAt: '',
-        updatedAt: '',
-      }]
-    }
-
     features.push({
       slug,
       title: def.title,
@@ -330,13 +287,14 @@ export async function updateTaskStatus(
   performer: string
 ): Promise<boolean> {
   try {
-    await query(
+    const updated = await query(
       `UPDATE workflow_tasks
        SET status = $1, updated_at = NOW(),
-           completed_at = CASE WHEN $1 = 'completed' THEN NOW() ELSE completed_at END
+           completed_at = CASE WHEN $1 = 'completed' THEN NOW() ELSE NULL END
        WHERE id = $2`,
       [status, taskId]
     )
+    if (updated.rowCount === 0) return false
     // Log the audit entry
     await query(
       `INSERT INTO workflow_audit_log (feature_slug, task_id, action, new_status, performed_by)

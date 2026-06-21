@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
+    const leadId = searchParams.get('leadId') || ''
     const limit = Math.min(Number(searchParams.get('limit')) || 50, 200)
     const offset = Math.max(Number(searchParams.get('offset')) || 0, 0)
 
@@ -42,11 +43,15 @@ export async function GET(request: NextRequest) {
       params.push(status)
     }
 
-    // Count
-    const countResult = await query(
-      sql.replace(/SELECT a\.\*.*?FROM/, 'SELECT COUNT(*) as count FROM'),
-      params
-    )
+    if (leadId) {
+      paramIdx++
+      sql += ` AND a.lead_id = $${paramIdx}`
+      params.push(leadId)
+    }
+
+    const fromIndex = sql.indexOf('FROM chatbot.appointments')
+    const countSql = `SELECT COUNT(*) as count ${sql.slice(fromIndex)}`
+    const countResult = await query(countSql, params)
     const total = Number(countResult.rows[0]?.count || 0)
 
     // Fetch page

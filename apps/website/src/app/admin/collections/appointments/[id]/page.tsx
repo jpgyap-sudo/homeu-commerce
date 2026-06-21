@@ -42,6 +42,7 @@ export default function AppointmentDetailPage() {
   const [appt, setAppt] = useState<AppointmentDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!apptId) return
@@ -52,17 +53,33 @@ export default function AppointmentDetailPage() {
     setLoading(true)
     setError('')
     try {
-      // Fetch all appointments and find the one with matching ID
-      const res = await fetch(`/api/appointments?limit=100`)
-      if (!res.ok) throw new Error('Failed to load appointments')
-      const data = await res.json()
-      const found = (data.docs || []).find((a: any) => a.id === apptId)
-      if (!found) throw new Error('Appointment not found')
-      setAppt(found)
+      const res = await fetch(`/api/appointments/${apptId}`)
+      if (!res.ok) throw new Error('Failed to load appointment')
+      setAppt(await res.json())
     } catch (err: any) {
       setError(err.message || 'Failed to load appointment')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function updateStatus(status: string) {
+    if (!appt) return
+    setSaving(true)
+    setError('')
+    try {
+      const response = await fetch(`/api/appointments/${apptId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to update appointment')
+      setAppt((current) => current ? { ...current, ...data } : data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update appointment')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -79,7 +96,7 @@ export default function AppointmentDetailPage() {
     )
   }
 
-  if (error || !appt) {
+  if (!appt) {
     return (
       <div style={{ padding: 32, maxWidth: 800, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', padding: 48, background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12 }}>
@@ -105,6 +122,8 @@ export default function AppointmentDetailPage() {
         <span style={{ color: '#151a17', fontWeight: 500 }}>{appt.lead_name || 'Appointment'}</span>
       </div>
 
+      {error && <div role="alert" style={{ padding: 12, marginBottom: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b' }}>{error}</div>}
+
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 24px' }}>
         Showroom Visit — {appt.lead_name || 'Unknown Lead'}
       </h1>
@@ -113,13 +132,15 @@ export default function AppointmentDetailPage() {
       <div style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, padding: 24, marginBottom: 24 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
           <Field label="Status">
-            <span style={{
-              display: 'inline-block', padding: '4px 12px', borderRadius: 12,
-              fontSize: 13, fontWeight: 500, color: '#fff',
-              background: statusStyle.color,
-            }}>
-              {statusStyle.label}
-            </span>
+            <select
+              value={appt.status}
+              disabled={saving}
+              onChange={(event) => updateStatus(event.target.value)}
+              style={{ padding: '7px 10px', border: `1px solid ${statusStyle.color}`, borderRadius: 8, background: '#fff' }}
+            >
+              {Object.entries(STATUS_STYLES).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}
+            </select>
+            {saving && <span style={{ marginLeft: 8, color: '#667168', fontSize: 12 }}>Saving…</span>}
           </Field>
           <Field label="Created" value={formatDate(appt.created_at)} />
           <Field label="Preferred Date" value={appt.preferred_date || '—'} />

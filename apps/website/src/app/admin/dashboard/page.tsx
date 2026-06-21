@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
 import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
+import AdminDashboardClient from '@/components/admin/AdminDashboardClient'
 
 // ── Types ────────────────────────────────────────────────────────────
 interface DashboardCounts {
@@ -216,34 +217,12 @@ export default async function AdminDashboardPage() {
         </Link>
       </div>
 
-      {/* Lazy DNA card — client-side fetch, doesn't block page load */}
-      <LazyDNACard />
+      {/* Client-side rendered dashboard widgets */}
+      <AdminDashboardClient />
     </>
   )
 }
 
-// ── Lazy DNA Card (client-component, streams after page load) ────────
-
-function LazyDNACard() {
-  return (
-    <div id="dna-card-container" style={{ marginTop: 'var(--space-8)' }}>
-      <div className="luxe-card">
-        <div className="luxe-card-header">
-          <h2 className="luxe-card-title">
-            <span style={{ marginRight: 'var(--space-2)' }}>🧬</span>
-            Product DNA Score
-          </h2>
-          <span className="luxe-badge neutral">Loading...</span>
-        </div>
-        <div className="luxe-card-body" style={{ display: 'flex', gap: 'var(--space-4)', padding: 'var(--space-8)' }}>
-          {[1,2,3,4,5].map(i => (
-            <div key={i} style={{ flex: 1, height: 60, background: 'var(--luxe-warm-100)', borderRadius: 6 }} />
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── Reusable Components ──────────────────────────────────────────────
 

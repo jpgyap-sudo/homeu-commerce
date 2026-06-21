@@ -23,13 +23,15 @@ import {
 import { createSignal } from '@/lib/chatbot/lead-scorer'
 import { insertMessage } from '@/lib/chatbot/db'
 import { sendTelegramAlert } from '@/lib/chatbot/telegram-client'
-
-const VIBER_NUMBER = process.env.SALES_VIBER_NUMBER || ''
+import { loadNamespace } from '@/lib/app-config'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { conversationId, leadId, message, currentPage } = body
+
+    const messaging = await loadNamespace<{ viberNumber: string }>('messaging')
+    const VIBER_NUMBER = messaging.viberNumber || ''
 
     if (!message?.trim()) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
@@ -194,7 +196,7 @@ export async function POST(request: NextRequest) {
 
       case 'FAQ': {
         try {
-          const ai = getAIProvider()
+          const ai = await getAIProvider()
           reply = await ai.generateText(
             `Answer this question about HomeU.PH furniture store: "${message}". Be concise and helpful. Mention that prices are for reference only.`,
             SYSTEM_PROMPT,
@@ -211,7 +213,7 @@ export async function POST(request: NextRequest) {
       default: {
         // UNKNOWN — use AI to generate a reply
         try {
-          const ai = getAIProvider()
+          const ai = await getAIProvider()
           reply = await ai.generateText(
             `Visitor says: "${message}"\n\nCurrent page: ${currentPage || 'homepage'}\n\nRespond helpfully as a furniture/home chatbot. If unsure, offer Viber handoff. Be warm and professional.`,
             SYSTEM_PROMPT,

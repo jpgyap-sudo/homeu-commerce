@@ -14,9 +14,9 @@ export async function GET(request: NextRequest) {
     const [counts, pages] = await Promise.all([
       query(`
         SELECT
-          COUNT(*) FILTER (WHERE last_seen >= NOW() - INTERVAL '5 minutes') as active,
-          COUNT(*) FILTER (WHERE last_seen >= NOW() - INTERVAL '1 minute') as now,
-          COUNT(*) FILTER (WHERE last_seen >= NOW() - INTERVAL '15 minutes') as recent,
+          COUNT(*) FILTER (WHERE is_admin = FALSE AND last_seen >= NOW() - INTERVAL '5 minutes') as active,
+          COUNT(*) FILTER (WHERE is_admin = FALSE AND last_seen >= NOW() - INTERVAL '1 minute') as now,
+          COUNT(*) FILTER (WHERE is_admin = FALSE AND last_seen >= NOW() - INTERVAL '15 minutes') as recent,
           COUNT(*) FILTER (WHERE is_admin = TRUE AND last_seen >= NOW() - INTERVAL '5 minutes') as admins
         FROM visitor_sessions
       `),
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
         ? query(`
             SELECT current_path as path, COUNT(*) as count
             FROM visitor_sessions
-            WHERE last_seen >= NOW() - INTERVAL '5 minutes'
+            WHERE is_admin = FALSE AND last_seen >= NOW() - INTERVAL '5 minutes'
             GROUP BY current_path
             ORDER BY count DESC
             LIMIT 15

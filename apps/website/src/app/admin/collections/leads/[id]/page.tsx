@@ -60,6 +60,7 @@ export default function LeadDetailPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!leadId) return
@@ -70,15 +71,13 @@ export default function LeadDetailPage() {
     setLoading(true)
     setError('')
     try {
-      const leadRes = await fetch(`/api/leads?search=${encodeURIComponent(leadId)}&limit=1`)
+      const leadRes = await fetch(`/api/leads/${leadId}`)
       if (!leadRes.ok) throw new Error('Failed to load lead')
       const leadData = await leadRes.json()
-      const found = (leadData.docs || []).find((l: any) => l.id === leadId)
-      if (!found) throw new Error('Lead not found')
-      setLead(found)
+      setLead(leadData)
 
       // Fetch related appointments
-      const apptRes = await fetch(`/api/appointments?search=${encodeURIComponent(leadId)}&limit=20`)
+      const apptRes = await fetch(`/api/appointments?leadId=${encodeURIComponent(leadId)}&limit=20`)
       if (apptRes.ok) {
         const apptData = await apptRes.json()
         setAppointments((apptData.docs || []).filter((a: any) => a.lead_id === leadId))
@@ -87,6 +86,26 @@ export default function LeadDetailPage() {
       setError(err.message || 'Failed to load lead')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function updateStatus(status: string) {
+    if (!lead) return
+    setSaving(true)
+    setError('')
+    try {
+      const response = await fetch(`/api/leads/${leadId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to update lead')
+      setLead(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update lead')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -103,7 +122,7 @@ export default function LeadDetailPage() {
     )
   }
 
-  if (error || !lead) {
+  if (!lead) {
     return (
       <div style={{ padding: 32, maxWidth: 800, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', padding: 48, background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12 }}>
@@ -127,6 +146,8 @@ export default function LeadDetailPage() {
         <span style={{ color: '#151a17', fontWeight: 500 }}>{lead.name}</span>
       </div>
 
+      {error && <div role="alert" style={{ padding: 12, marginBottom: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b' }}>{error}</div>}
+
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 24px' }}>{lead.name}</h1>
 
       {/* Lead Info Card */}
@@ -143,13 +164,15 @@ export default function LeadDetailPage() {
           <Field label="Updated" value={formatDate(lead.updated_at)} />
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#667168', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Status</div>
-            <span style={{
-              display: 'inline-block', padding: '4px 12px', borderRadius: 12,
-              fontSize: 13, fontWeight: 500, color: '#fff',
-              background: STATUS_COLORS[lead.status] || '#667168',
-            }}>
-              {STATUS_LABELS[lead.status] || lead.status}
-            </span>
+            <select
+              value={lead.status}
+              disabled={saving}
+              onChange={(event) => updateStatus(event.target.value)}
+              style={{ padding: '7px 10px', border: `1px solid ${STATUS_COLORS[lead.status] || '#667168'}`, borderRadius: 8, background: '#fff' }}
+            >
+              {Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+            {saving && <span style={{ marginLeft: 8, color: '#667168', fontSize: 12 }}>Saving…</span>}
           </div>
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#667168', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Score</div>

@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     let extractedAttributes: Record<string, unknown> = {}
 
     try {
-      const ai = getAIProvider()
+      const ai = await getAIProvider()
       const analysisPrompt = `Describe this furniture or lighting item in detail. Extract: category, style, material, color, shape, and usage. Format as JSON.`
       const analysis = await ai.analyzeImage(imageUrl, analysisPrompt, AbortSignal.timeout(15000))
 

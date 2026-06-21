@@ -11,6 +11,7 @@ import LiveVisitors from '@/components/LiveVisitors'
 // ═══════════════════════════════════════════════════════════════
 
 interface AnalyticsData {
+  error?: string
   // ── Traffic ──
   trafficDaily: { date: string; views: number; visitors: number }[]
   trafficMonthly: { month: string; views: number; visitors: number }[]
@@ -91,45 +92,45 @@ async function loadAnalytics(): Promise<AnalyticsData> {
       // Daily traffic (last 14 days)
       query(`
         SELECT DATE(created_at) as date, COUNT(*) as views, COUNT(DISTINCT COALESCE(visitor_id, 'anon')) as visitors
-        FROM page_views WHERE created_at >= NOW() - INTERVAL '14 days'
+        FROM page_views WHERE is_admin = FALSE AND created_at >= NOW() - INTERVAL '14 days'
         GROUP BY DATE(created_at) ORDER BY date ASC
       `),
       // Monthly traffic (last 6 months)
       query(`
         SELECT TO_CHAR(created_at, 'YYYY-MM') as month, COUNT(*) as views, COUNT(DISTINCT COALESCE(visitor_id, 'anon')) as visitors
-        FROM page_views WHERE created_at >= NOW() - INTERVAL '6 months'
+        FROM page_views WHERE is_admin = FALSE AND created_at >= NOW() - INTERVAL '6 months'
         GROUP BY month ORDER BY month ASC
       `),
       // Hourly traffic distribution
       query(`
         SELECT EXTRACT(HOUR FROM created_at)::int as hour, COUNT(*) as views
-        FROM page_views WHERE created_at >= NOW() - INTERVAL '30 days'
+        FROM page_views WHERE is_admin = FALSE AND created_at >= NOW() - INTERVAL '30 days'
         GROUP BY hour ORDER BY hour
       `),
       // Day of week
       query(`
         SELECT TO_CHAR(created_at, 'Day') as day, COUNT(*) as views
-        FROM page_views WHERE created_at >= NOW() - INTERVAL '30 days'
+        FROM page_views WHERE is_admin = FALSE AND created_at >= NOW() - INTERVAL '30 days'
         GROUP BY day ORDER BY MIN(created_at)
       `),
       // Top referrers
       query(`
         SELECT COALESCE(NULLIF(SPLIT_PART(referrer, '/', 3), ''), 'Direct') as source, COUNT(*) as count
-        FROM page_views WHERE created_at >= NOW() - INTERVAL '30 days' AND referrer IS NOT NULL AND referrer != ''
+        FROM page_views WHERE is_admin = FALSE AND created_at >= NOW() - INTERVAL '30 days'
         GROUP BY COALESCE(NULLIF(SPLIT_PART(referrer, '/', 3), ''), 'Direct') ORDER BY count DESC LIMIT 8
       `),
       // Today stats
       query(`
         SELECT
-          (SELECT COUNT(*) FROM page_views WHERE DATE(created_at) = CURRENT_DATE) as today_views,
+          (SELECT COUNT(*) FROM page_views WHERE is_admin = FALSE AND DATE(created_at) = CURRENT_DATE) as today_views,
           (SELECT COUNT(*) FROM chatbot.leads WHERE DATE(created_at) = CURRENT_DATE) as today_leads,
           (SELECT COUNT(*) FROM chatbot.rfq_carts WHERE status != 'draft' AND DATE(created_at) = CURRENT_DATE) as today_rfqs
       `),
       // Month comparison
       query(`
         SELECT
-          (SELECT COUNT(*) FROM page_views WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)) as this_month,
-          (SELECT COUNT(*) FROM page_views WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')) as last_month
+          (SELECT COUNT(*) FROM page_views WHERE is_admin = FALSE AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)) as this_month,
+          (SELECT COUNT(*) FROM page_views WHERE is_admin = FALSE AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')) as last_month
       `),
 
       // Lead volume by day (14 days)
@@ -174,7 +175,7 @@ async function loadAnalytics(): Promise<AnalyticsData> {
       query(`
         SELECT 'Leads' as stage, COUNT(*) as count FROM chatbot.leads
         UNION ALL SELECT 'RFQ Submitted', COUNT(*) FROM chatbot.rfq_carts WHERE status != 'draft'
-        UNION ALL SELECT 'Quotations', COUNT(*) FROM rfq_requests
+        UNION ALL SELECT 'Quotations', COUNT(*) FROM quotations
         UNION ALL SELECT 'Appointments', COUNT(*) FROM chatbot.appointments
       `),
       // Appointments
@@ -185,7 +186,7 @@ async function loadAnalytics(): Promise<AnalyticsData> {
       // Most viewed product pages
       query(`
         SELECT SPLIT_PART(path, '/', 3) as productId, COUNT(*) as views
-        FROM page_views WHERE path LIKE '/products/%' AND created_at >= NOW() - INTERVAL '30 days'
+        FROM page_views WHERE is_admin = FALSE AND path LIKE '/products/%' AND created_at >= NOW() - INTERVAL '30 days'
         GROUP BY productId ORDER BY views DESC LIMIT 8
       `),
 
@@ -228,11 +229,11 @@ async function loadAnalytics(): Promise<AnalyticsData> {
       summary: {
         totalLeads,
         totalRFQs,
-        totalQuotations: Number((await query(`SELECT COUNT(*) as c FROM rfq_requests`)).rows[0]?.c || 0),
+        totalQuotations: Number((await query(`SELECT COUNT(*) as c FROM quotations`)).rows[0]?.c || 0),
         totalAppointments: Number((await query(`SELECT COUNT(*) as c FROM chatbot.appointments`)).rows[0]?.c || 0),
         totalMessages: Number((await query(`SELECT COUNT(*) as c FROM chatbot.messages`)).rows[0]?.c || 0),
-        totalPageViews: Number((await query(`SELECT COUNT(*) as c FROM page_views`)).rows[0]?.c || 0),
-        totalUniqueVisitors: Number((await query(`SELECT COUNT(DISTINCT COALESCE(visitor_id, 'anon')) as c FROM page_views`)).rows[0]?.c || 0),
+        totalPageViews: Number((await query(`SELECT COUNT(*) as c FROM page_views WHERE is_admin = FALSE`)).rows[0]?.c || 0),
+        totalUniqueVisitors: Number((await query(`SELECT COUNT(DISTINCT visitor_id) as c FROM page_views WHERE is_admin = FALSE AND visitor_id IS NOT NULL`)).rows[0]?.c || 0),
         todayViews: Number(todayStats.today_views || 0),
         todayLeads: Number(todayStats.today_leads || 0),
         todayRFQs: Number(todayStats.today_rfqs || 0),
@@ -244,7 +245,7 @@ async function loadAnalytics(): Promise<AnalyticsData> {
     }
   } catch (err) {
     console.error('[analytics] Error:', err)
-    return emptyAnalytics()
+    return emptyAnalytics(err instanceof Error ? err.message : 'Analytics query failed')
   }
 }
 
@@ -253,8 +254,9 @@ function fmtDate(d: string | null): string {
   try { return new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) } catch { return d }
 }
 
-function emptyAnalytics(): AnalyticsData {
+function emptyAnalytics(error?: string): AnalyticsData {
   return {
+    error,
     trafficDaily: [], trafficMonthly: [], trafficByHour: [], trafficByDayOfWeek: [], topReferrers: [],
     leadVolume: [], leadSources: [], leadScores: [],
     conversionFunnel: [], rfqPipeline: [], conversionTrend: [],
@@ -353,6 +355,7 @@ export default async function AdminAnalyticsPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1320, margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
+      {d.error && <div role="alert" style={{ marginBottom: 16, padding: 12, border: '1px solid #fecaca', borderRadius: 8, background: '#fef2f2', color: '#991b1b' }}>Analytics could not be loaded: {d.error}</div>}
       {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
         <div>

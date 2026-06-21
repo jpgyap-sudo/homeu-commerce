@@ -31,6 +31,15 @@ export async function POST(request: NextRequest) {
     if (!visitorCount || visitorCount < 1) {
       return NextResponse.json({ error: 'At least 1 visitor is required' }, { status: 400 })
     }
+    if (visitorCount > 20) {
+      return NextResponse.json({ error: 'Visitor count cannot exceed 20' }, { status: 400 })
+    }
+    const requestedDate = new Date(`${preferredDate}T00:00:00`)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (Number.isNaN(requestedDate.getTime()) || requestedDate < today) {
+      return NextResponse.json({ error: 'Preferred date must be today or later' }, { status: 400 })
+    }
 
     const result = await requestAppointment({
       leadId,

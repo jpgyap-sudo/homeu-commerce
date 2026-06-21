@@ -6,7 +6,7 @@ import { unstable_cache } from 'next/cache'
 async function loadPipeline() {
   try {
     const [funnel, rfqStatus, weekly, locations, quotations] = await Promise.all([
-      query(`SELECT 'Leads' as s, COUNT(*) as c FROM chatbot.leads UNION ALL SELECT 'RFQ Submitted', COUNT(*) FROM chatbot.rfq_carts WHERE status != 'draft' UNION ALL SELECT 'Quotations', COUNT(*) FROM rfq_requests UNION ALL SELECT 'Appointments', COUNT(*) FROM chatbot.appointments UNION ALL SELECT 'Won', COUNT(*) FROM chatbot.rfq_carts WHERE status='closed'`),
+      query(`SELECT 'Leads' as s, COUNT(*) as c FROM chatbot.leads UNION ALL SELECT 'RFQ Submitted', COUNT(*) FROM chatbot.rfq_carts WHERE status != 'draft' UNION ALL SELECT 'Quotations', COUNT(*) FROM quotations UNION ALL SELECT 'Appointments', COUNT(*) FROM chatbot.appointments UNION ALL SELECT 'Won', COUNT(*) FROM quotations WHERE status='accepted'`),
       query(`SELECT status, COUNT(*) as c FROM chatbot.rfq_carts GROUP BY status ORDER BY c DESC`),
       query(`SELECT TO_CHAR(DATE_TRUNC('week',l.created_at),'Mon DD') as w, COUNT(DISTINCT l.id) as leads, COUNT(DISTINCT r.id) as rfqs FROM chatbot.leads l LEFT JOIN chatbot.rfq_carts r ON r.lead_id=l.id AND r.status!='draft' WHERE l.created_at >= NOW() - INTERVAL '8 weeks' GROUP BY DATE_TRUNC('week',l.created_at) ORDER BY DATE_TRUNC('week',l.created_at)`),
       query(`SELECT COALESCE(NULLIF(delivery_location,''),'Not specified') as loc, COUNT(*) as c FROM chatbot.rfq_carts WHERE delivery_location IS NOT NULL GROUP BY delivery_location ORDER BY c DESC LIMIT 8`),
@@ -19,7 +19,7 @@ async function loadPipeline() {
       locations: locations.rows.map((r: any) => ({ loc: r.loc, c: Number(r.c) })),
       quotations: quotations.rows.map((r: any) => ({ s: r.status, c: Number(r.c) })),
     }
-  } catch { return { funnel: [], rfqStatus: [], weekly: [], locations: [], quotations: [] } }
+  } catch (error) { return { funnel: [], rfqStatus: [], weekly: [], locations: [], quotations: [], error: error instanceof Error ? error.message : 'Pipeline query failed' } }
 }
 
 const getPipeline = unstable_cache(loadPipeline, ['analytics-pipeline'], { revalidate: 120, tags: ['admin-analytics'] })
@@ -32,6 +32,7 @@ export default async function PipelinePage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1320 }}>
+      {'error' in d && d.error && <div role="alert" style={{ marginBottom: 16, padding: 12, background: '#fef2f2', color: '#991b1b', borderRadius: 8 }}>Pipeline analytics could not be loaded: {d.error}</div>}
       <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>💰 Sales Pipeline</h1>
       <p style={{ color: '#667168', fontSize: 13, marginBottom: 24 }}>RFQ lifecycle, conversion rates, and delivery locations</p>
 

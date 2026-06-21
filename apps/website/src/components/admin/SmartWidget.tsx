@@ -125,12 +125,17 @@ export default function SmartWidget({ feature, variant = 'compact', onTaskUpdate
   const [tasks, setTasks] = useState(feature.tasks)
   const [collapsed, setCollapsed] = useState(variant === 'compact')
   const [updating, setUpdating] = useState<number | null>(null)
+  const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [error, setError] = useState('')
 
   const activeTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress')
   const blockedCount = tasks.filter(t => t.status === 'blocked').length
+  const completionPercent = tasks.length > 0 ? Math.round((tasks.filter(task => task.status === 'completed').length / tasks.length) * 100) : 0
 
   async function handleStatusChange(taskId: number, newStatus: string) {
     setUpdating(taskId)
+    setError('')
     try {
       const res = await fetch('/api/admin/workflows/tasks', {
         method: 'PATCH',
@@ -140,9 +145,35 @@ export default function SmartWidget({ feature, variant = 'compact', onTaskUpdate
       if (res.ok) {
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t))
         onTaskUpdate?.(taskId, newStatus)
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error || 'Task update failed')
       }
     } finally {
       setUpdating(null)
+    }
+  }
+
+  async function handleCreateTask(event: React.FormEvent) {
+    event.preventDefault()
+    const title = newTaskTitle.trim()
+    if (!title) return
+    setCreating(true)
+    setError('')
+    try {
+      const response = await fetch('/api/admin/workflows/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featureSlug: feature.slug, title, priority: 'medium' }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Task creation failed')
+      setTasks(previous => [...previous, data])
+      setNewTaskTitle('')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Task creation failed')
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -204,19 +235,19 @@ export default function SmartWidget({ feature, variant = 'compact', onTaskUpdate
               Records
             </div>
           </div>
-          {feature.tasks.length > 0 && (
+          {tasks.length > 0 && (
             <div style={{
               width: 40, height: 40, borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 700, color: feature.completionPercent === 100 ? '#1a6d3e' : '#1a1917',
-              background: `conic-gradient(#1a6d3e ${feature.completionPercent}%, #e3e0d9 ${feature.completionPercent}%)`,
+              fontSize: 12, fontWeight: 700, color: completionPercent === 100 ? '#1a6d3e' : '#1a1917',
+              background: `conic-gradient(#1a6d3e ${completionPercent}%, #e3e0d9 ${completionPercent}%)`,
               position: 'relative',
             }}>
               <div style={{
                 width: 32, height: 32, borderRadius: '50%',
                 background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                {feature.completionPercent}%
+                {completionPercent}%
               </div>
             </div>
           )}
@@ -325,10 +356,23 @@ export default function SmartWidget({ feature, variant = 'compact', onTaskUpdate
               ))}
             </div>
           ) : (
-            <div style={{ padding: '24px 18px', textAlign: 'center', fontSize: 13, color: '#a09c96' }}>
-              No workflow tasks defined. <a href={`/admin/workflows?feature=${feature.slug}`} style={{ color: '#1a6d3e' }}>Create one</a>
+            <div style={{ padding: '18px', textAlign: 'center', fontSize: 13, color: '#a09c96' }}>
+              No workflow tasks defined yet.
             </div>
           )}
+          <form onSubmit={handleCreateTask} style={{ display: 'flex', gap: 8, padding: '12px 18px', borderTop: '1px solid #e3e0d9' }}>
+            <input
+              value={newTaskTitle}
+              onChange={event => setNewTaskTitle(event.target.value)}
+              placeholder={`Add a ${feature.title.toLowerCase()} task`}
+              maxLength={200}
+              style={{ flex: 1, padding: '8px 10px', border: '1px solid #d9e0d7', borderRadius: 6 }}
+            />
+            <button type="submit" disabled={creating || !newTaskTitle.trim()} style={{ padding: '8px 12px', border: 0, borderRadius: 6, background: '#1a6d3e', color: '#fff', cursor: 'pointer' }}>
+              {creating ? 'Adding…' : 'Add task'}
+            </button>
+          </form>
+          {error && <div role="alert" style={{ color: '#b42318', fontSize: 12, padding: '0 18px 12px' }}>{error}</div>}
         </div>
       )}
     </div>

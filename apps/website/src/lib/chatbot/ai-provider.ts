@@ -33,8 +33,8 @@ class GeminiProvider implements AIProvider {
   name = 'gemini'
   private apiKey: string
 
-  constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY || ''
+  constructor(apiKey?: string) {
+    this.apiKey = apiKey || process.env.GEMINI_API_KEY || ''
     if (!this.apiKey) console.warn('[chatbot] GEMINI_API_KEY not set')
   }
 
@@ -113,8 +113,8 @@ class OpenAIProvider implements AIProvider {
   name = 'openai'
   private apiKey: string
 
-  constructor() {
-    this.apiKey = process.env.OPENAI_API_KEY || ''
+  constructor(apiKey?: string) {
+    this.apiKey = apiKey || process.env.OPENAI_API_KEY || ''
     if (!this.apiKey) console.warn('[chatbot] OPENAI_API_KEY not set')
   }
 
@@ -170,9 +170,9 @@ class OllamaProvider implements AIProvider {
   private baseUrl: string
   private modelName: string
 
-  constructor() {
-    this.baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
-    this.modelName = process.env.OLLAMA_MODEL || 'qwen3:4b'
+  constructor(baseUrl?: string, modelName?: string) {
+    this.baseUrl = baseUrl || process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
+    this.modelName = modelName || process.env.OLLAMA_MODEL || 'qwen3:4b'
   }
 
   private async fetch(body: unknown, signal?: AbortSignal) {
@@ -221,22 +221,37 @@ class OllamaProvider implements AIProvider {
 }
 
 // ── Factory ───────────────────────────────────────────────────
+//
+// Config priority: admin-configured DB value (app_config_ai) > env var > default.
+// See lib/app-config.ts. Cache is invalidated by resetAIProvider(), which the
+// /api/admin/config PUT route calls after saving the 'ai' namespace so a
+// settings change takes effect on the next chatbot request without a restart.
 
 let cachedProvider: AIProvider | null = null
 
-export function getAIProvider(): AIProvider {
+export async function getAIProvider(): Promise<AIProvider> {
   if (cachedProvider) return cachedProvider
-  const providerName = (process.env.AI_PROVIDER || 'gemini').toLowerCase()
+
+  const { loadNamespace } = await import('@/lib/app-config')
+  const config = await loadNamespace<{
+    provider: string
+    geminiApiKey: string
+    openaiApiKey: string
+    ollamaBaseUrl: string
+    ollamaModel: string
+  }>('ai')
+
+  const providerName = (config.provider || 'gemini').toLowerCase()
   switch (providerName) {
     case 'openai':
-      cachedProvider = new OpenAIProvider()
+      cachedProvider = new OpenAIProvider(config.openaiApiKey)
       break
     case 'ollama':
-      cachedProvider = new OllamaProvider()
+      cachedProvider = new OllamaProvider(config.ollamaBaseUrl, config.ollamaModel)
       break
     case 'gemini':
     default:
-      cachedProvider = new GeminiProvider()
+      cachedProvider = new GeminiProvider(config.geminiApiKey)
       break
   }
   return cachedProvider

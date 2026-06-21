@@ -7,7 +7,7 @@ async function loadProducts() {
   try {
     const [topRFQ, topViews, categories, messages] = await Promise.all([
       query(`SELECT product_title as t, COUNT(*) as c FROM chatbot.rfq_items GROUP BY t ORDER BY c DESC LIMIT 12`),
-      query(`SELECT SPLIT_PART(path,'/',3) as id, COUNT(*) as c FROM page_views WHERE path LIKE '/products/%' AND created_at >= NOW() - INTERVAL '30 days' GROUP BY id ORDER BY c DESC LIMIT 12`),
+      query(`SELECT SPLIT_PART(path,'/',3) as id, COUNT(*) as c FROM page_views WHERE is_admin = FALSE AND path LIKE '/products/%' AND created_at >= NOW() - INTERVAL '30 days' GROUP BY id ORDER BY c DESC LIMIT 12`),
       query(`SELECT c.title as t, COUNT(ri.id) as cnt FROM categories c LEFT JOIN products p ON p.category_id = c.id LEFT JOIN chatbot.rfq_items ri ON ri.product_title = p.title GROUP BY c.title ORDER BY cnt DESC LIMIT 8`),
       query(`SELECT DATE(created_at) as d, COUNT(*) as c FROM chatbot.messages WHERE created_at >= NOW() - INTERVAL '14 days' GROUP BY d ORDER BY d`),
     ])
@@ -17,7 +17,7 @@ async function loadProducts() {
       categories: categories.rows.map((r: any) => ({ t: r.t || 'Uncategorized', c: Number(r.cnt) })),
       messages: messages.rows.map((r: any) => ({ d: String(r.d || '').slice(0, 10), c: Number(r.c) })),
     }
-  } catch { return { topRFQ: [], topViews: [], categories: [], messages: [] } }
+  } catch (error) { return { topRFQ: [], topViews: [], categories: [], messages: [], error: error instanceof Error ? error.message : 'Product analytics query failed' } }
 }
 
 const getProducts = unstable_cache(loadProducts, ['analytics-products'], { revalidate: 120, tags: ['admin-analytics'] })
@@ -29,6 +29,7 @@ export default async function ProductsPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1320 }}>
+      {'error' in d && d.error && <div role="alert" style={{ marginBottom: 16, padding: 12, background: '#fef2f2', color: '#991b1b', borderRadius: 8 }}>Product analytics could not be loaded: {d.error}</div>}
       <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>🛋️ Product Analytics</h1>
       <p style={{ color: '#667168', fontSize: 13, marginBottom: 24 }}>Which products get viewed, requested, and which categories perform best</p>
 

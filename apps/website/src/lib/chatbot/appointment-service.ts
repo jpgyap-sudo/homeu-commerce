@@ -6,6 +6,7 @@
  */
 
 import { sendTelegramAlert } from './telegram-client'
+import { query } from '../db'
 
 export interface AppointmentInput {
   leadId: string
@@ -27,30 +28,41 @@ export interface AppointmentResult {
 
 export async function requestAppointment(input: AppointmentInput): Promise<AppointmentResult> {
   try {
-    // In MVP, we store the appointment request and send Telegram alert.
-    // Phase 2 will persist to chatbot.appointments table and sync with calendar.
+    const inserted = await query(
+      `INSERT INTO chatbot.appointments
+         (lead_id, conversation_id, preferred_date, preferred_time, visitor_count, categories_of_interest, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id`,
+      [
+        input.leadId,
+        input.conversationId || null,
+        input.preferredDate,
+        input.preferredTime,
+        input.visitorCount,
+        input.categoriesOfInterest || [],
+        input.notes || null,
+      ]
+    )
+    const appointmentId = String(inserted.rows[0].id)
 
-    // Simulate storing — in production, this would INSERT into chatbot.appointments
-    const appointmentId = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-
-    console.log(`[chatbot] Appointment requested:`, {
-      leadId: input.leadId,
-      date: input.preferredDate,
-      time: input.preferredTime,
-      visitors: input.visitorCount,
-      categories: input.categoriesOfInterest,
-    })
+    const leadResult = await query(
+      `SELECT name, mobile FROM chatbot.leads WHERE id = $1 LIMIT 1`,
+      [input.leadId]
+    )
+    const lead = leadResult.rows[0] || {}
 
     // Send Telegram alert
     await sendTelegramAlert({
       eventType: 'APPOINTMENT_REQUESTED',
       leadId: input.leadId,
       conversationId: input.conversationId,
-      leadName: input.leadId,
-      mobile: '',
+      leadName: lead.name || 'Unknown lead',
+      mobile: lead.mobile || '',
       summary: `Showroom visit: ${input.visitorCount} visitor(s) on ${input.preferredDate} at ${input.preferredTime}` +
         (input.categoriesOfInterest?.length ? ` | Interested in: ${input.categoriesOfInterest.join(', ')}` : ''),
       appointmentDate: `${input.preferredDate} ${input.preferredTime}`,
+    }).catch((error) => {
+      console.error('[chatbot] Appointment persisted but Telegram alert failed:', error)
     })
 
     return { success: true, appointmentId }
