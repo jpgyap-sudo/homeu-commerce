@@ -78,10 +78,14 @@ async function main() {
 
       const firstName = d['First Name'] || d['first_name'] || ''
       const lastName = d['Last Name'] || d['last_name'] || ''
-      const company = d['Company'] || d['company'] || null
-      const phone = d['Phone'] || d['phone'] || null
-      const addressParts = [d['Address1'], d['Address2'], d['City'], d['Province'], d['Zip']]
-        .filter(Boolean).join(', ')
+      const company = d['Default Address Company'] || d['Company'] || d['company'] || null
+      // Shopify prefixes phone numbers with a literal ' to force text formatting in spreadsheets
+      const rawPhone = d['Phone'] || d['Default Address Phone'] || d['phone'] || null
+      const phone = rawPhone ? rawPhone.replace(/^'/, '') : null
+      const addressParts = [
+        d['Default Address Address1'], d['Default Address Address2'],
+        d['Default Address City'], d['Default Address Province Code'], d['Default Address Zip'],
+      ].filter(Boolean).join(', ')
 
       await pool.query(
         `INSERT INTO designer_club_applications
