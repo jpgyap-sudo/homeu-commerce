@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatPrice } from '@/lib/format-utils'
-import { getProductBadges } from '@/lib/product-badges'
+import { getProductBadges, isOnSale } from '@/lib/product-badges'
 
 interface Product {
   id: string
@@ -256,7 +256,7 @@ function ProductsContent() {
           {/* Collection grid — Debut grid-view-item cards in a 4-up grid (homeu.ph) */}
           <div className="products-debut-grid">
             {products.map(product => {
-              const onSale = product.originalPrice != null && product.price != null && product.originalPrice > product.price
+              const onSale = isOnSale(product.price, product.originalPrice)
               const badges = getProductBadges(product)
               const href = `/products/${product.slug}`
               return (

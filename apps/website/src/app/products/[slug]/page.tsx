@@ -7,7 +7,7 @@ import Image from 'next/image'
 import { renderLexical } from '@/lib/renderLexical'
 import { formatPrice } from '@/lib/format-utils'
 import { QuickRFQ } from '@/components/QuoteCart'
-import { getProductBadges } from '@/lib/product-badges'
+import { getProductBadges, isOnSale } from '@/lib/product-badges'
 
 interface ProductImage {
   id?: string
@@ -251,11 +251,11 @@ export default function ProductDetailPage() {
 
           {/* Price */}
           {product.showPrice !== false && product.price != null && (
-            <div className={`product-detail__price${product.originalPrice && product.originalPrice > product.price ? ' is-sale' : ''}`}>
+            <div className={`product-detail__price${isOnSale(product.price, product.originalPrice) ? ' is-sale' : ''}`}>
               <span className="product-detail__price-current">
                 {formatPrice(product.price)}
               </span>
-              {product.originalPrice && product.originalPrice > product.price && (
+              {isOnSale(product.price, product.originalPrice) && (
                 <span className="product-detail__price-compare">
                   {formatPrice(product.originalPrice)}
                 </span>
