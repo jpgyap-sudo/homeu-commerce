@@ -35,29 +35,46 @@ let mailConfig: EmailConfig | null = null
 export async function getMailConfig(): Promise<EmailConfig | null> {
   if (mailConfig) return mailConfig
 
-  // Try DB config first (set via admin Email Settings page)
+  // Priority 1: New unified config (app_config_email, camelCase keys)
   try {
     const { loadNamespace } = await import('@/lib/app-config')
-    const emailConfig = await loadNamespace('email')
-    const imapHost = (emailConfig as any)?.imapHost
-    const imapPort = (emailConfig as any)?.imapPort
-    const imapSecure = (emailConfig as any)?.imapSecure
-    const user = (emailConfig as any)?.salesEmail || (emailConfig as any)?.smtpUser
-    const pass = (emailConfig as any)?.salesEmailPass || (emailConfig as any)?.smtpPass
-
+    const ec = await loadNamespace('email') as any
+    const imapHost = ec?.imapHost || ec?.imap_host
+    const user = ec?.salesEmail || ec?.sales_email || ec?.smtpUser || ec?.smtp_user
+    const pass = ec?.salesEmailPass || ec?.sales_email_pass || ec?.smtpPass || ec?.smtp_pass
     if (imapHost && user && pass) {
       mailConfig = {
         host: imapHost,
-        port: parseInt(imapPort || '993'),
-        secure: imapSecure !== 'false',
-        user,
-        pass,
+        port: parseInt(ec?.imapPort || ec?.imap_port || '993'),
+        secure: (ec?.imapSecure ?? ec?.imap_secure ?? 'true') !== 'false',
+        user, pass,
       }
       return mailConfig
     }
-  } catch { /* DB config not available, fall through to env */ }
+  } catch { /* fall through */ }
 
-  // Fallback: env vars
+  // Priority 2: Legacy smtp_config (set via old Email Settings page, snake_case keys)
+  try {
+    const { query } = await import('@/lib/db')
+    const result = await query(`SELECT data FROM "DaVinciOS_kv" WHERE key = 'smtp_config' LIMIT 1`)
+    if (result.rows.length > 0) {
+      const d = result.rows[0].data || {}
+      const imapHost = d.imap_host || d.smtp_host
+      const user = d.sales_email || d.smtp_user
+      const pass = d.sales_email_pass || d.smtp_pass
+      if (imapHost && user && pass) {
+        mailConfig = {
+          host: imapHost,
+          port: parseInt(d.imap_port || d.smtp_port || '993'),
+          secure: (d.imap_secure ?? 'true') !== 'false',
+          user, pass,
+        }
+        return mailConfig
+      }
+    }
+  } catch { /* fall through */ }
+
+  // Priority 3: Env vars (legacy fallback)
   const host = process.env.ZOHO_IMAP_HOST || 'imap.zoho.com'
   const port = parseInt(process.env.ZOHO_IMAP_PORT || '993')
   const secure = process.env.ZOHO_IMAP_SECURE !== 'false'

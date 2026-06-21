@@ -13,6 +13,7 @@ interface Product {
   description?: string
   price?: number
   originalPrice?: number
+  showPrice?: boolean
   imageUrl?: string
   category?: { id: string; title: string; slug: string }
   materials?: string
@@ -284,7 +285,7 @@ function ProductsContent() {
                     <Link href={href} className="grid-view-item__link">
                       <div className="grid-view-item__title product-card__title">{product.title}</div>
                     </Link>
-                    {product.price != null && (
+                    {product.showPrice !== false && product.price != null && (
                       <div className={`price${onSale ? ' price--on-sale' : ''}`}>
                         <dl>
                           <div className="price__regular">

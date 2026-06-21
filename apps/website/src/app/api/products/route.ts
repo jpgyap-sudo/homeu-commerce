@@ -209,6 +209,7 @@ function formatProduct(row: any) {
     description: row.description,
     price: row.sale_price || row.price,
     originalPrice: row.price,
+    showPrice: row.show_price !== false,
     category: row.category,
     images: row.images || [],
     imageUrl: row.images?.[0]?.url || null,

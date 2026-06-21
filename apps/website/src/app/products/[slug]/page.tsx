@@ -8,6 +8,7 @@ import { renderLexical } from '@/lib/renderLexical'
 import { formatPrice } from '@/lib/format-utils'
 import { QuickRFQ } from '@/components/QuoteCart'
 import { getProductBadges, isOnSale } from '@/lib/product-badges'
+import ReviewsSection from '@/components/ReviewsSection'
 
 interface ProductImage {
   id?: string
@@ -310,6 +311,15 @@ export default function ProductDetailPage() {
             />
           )}
         </div>
+      </div>
+
+      <div className="page-width">
+        <ReviewsSection
+          productId={product.id}
+          productSlug={product.slug}
+          productTitle={product.title}
+          productImage={product.imageUrl}
+        />
       </div>
 
       {/* Related Products — same Debut cards as the collection grid */}
