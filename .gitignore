@@ -48,6 +48,10 @@ Thumbs.db
 .vscode/settings.json
 .kilo/
 
+# Codex local config — contains real credentials (DO Spaces keys etc.), never commit
+.codex/
+.agents/
+
 # ─── Memory (except important docs) ───
 memory/
 !memory/migration-decisions.md
