@@ -24,20 +24,20 @@ interface SlideshowProps {
 
 const DEFAULT_SLIDES: Slide[] = [
   {
-    image: 'https://cdn.shopify.com/s/files/1/0559/7377/3476/files/b77cb11ff1.webp?v=1697613842',
+    image: 'https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/cdn-mirror/e32e2818f312726fc3f70db598f646101adfb6c47e4ac6b6c707f76067d3f808.webp',
     buttonLabel: 'Shop Sofa',
     buttonLink: '/products?category=sofa',
   },
   {
-    image: 'https://cdn.shopify.com/s/files/1/0559/7377/3476/files/A9ter5o3_1r4uc0l_hko.jpg?v=1678600427',
+    image: 'https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/cdn-mirror/0f1d7a550f6dd8787bcaeb3125accee1fd0e65bf436c5f6657e684581b432fca.jpg',
     buttonLabel: 'Shop Seating',
     buttonLink: '/products?category=seating',
   },
   {
-    image: 'https://cdn.shopify.com/s/files/1/0559/7377/3476/files/A9t5ka0y_1r4uc0v_hko.jpg?v=1678600709',
+    image: 'https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/cdn-mirror/4faa06ec064fd6c05b5bf3bb7ed47f90c1a6fe8ba54089bb6f6c3d4085d68cdd.jpg',
   },
   {
-    image: 'https://cdn.shopify.com/s/files/1/0559/7377/3476/files/r1_480x480_a439cb88-4c92-45af-b585-1ff8c6a5cdc5.webp?v=1678600624',
+    image: 'https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/cdn-mirror/fc61c37b91a2f74a7533ba6e04f4cc7fc47e5ee90e6e38927e9e4ab52e018415.webp',
     buttonLabel: 'Shop Tables',
     buttonLink: '/products?category=table',
   },

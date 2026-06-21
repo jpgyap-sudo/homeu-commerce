@@ -280,6 +280,15 @@ async function emitSqlCmd() {
   const prods = await pool.query(`SELECT id, description::text AS d FROM products WHERE description::text LIKE '%digitaloceanspaces%'`)
   for (const r of prods.rows) out.push(`UPDATE products SET description = ${TAG}${r.d}${TAG}::jsonb WHERE id = ${r.id};`)
 
+  const cats = await pool.query(`SELECT id, image_url FROM categories WHERE image_url LIKE '%digitaloceanspaces%'`)
+  for (const r of cats.rows) out.push(`UPDATE categories SET image_url = ${TAG}${r.image_url}${TAG} WHERE id = ${r.id};`)
+
+  const catds = await pool.query(`SELECT id, description FROM categories WHERE description LIKE '%digitaloceanspaces%'`)
+  for (const r of catds.rows) out.push(`UPDATE categories SET description = ${TAG}${r.description}${TAG} WHERE id = ${r.id};`)
+
+  const pgs = await pool.query(`SELECT id, content::text AS c FROM pages WHERE content::text LIKE '%digitaloceanspaces%'`)
+  for (const r of pgs.rows) out.push(`UPDATE pages SET content = ${TAG}${r.c}${TAG}::jsonb WHERE id = ${r.id};`)
+
   out.push('COMMIT;')
   await pool.end()
   const fp = path.join(OUTPUT_DIR, 'homeu-asset-rewrite.sql')
