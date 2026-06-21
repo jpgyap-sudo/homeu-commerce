@@ -8,6 +8,11 @@
 *.pem
 *.key
 
+# ─── One-off data import dumps (contain real customer PII — never commit) ───
+/*-import.sql
+designer-club-import.sql
+reviews-import.sql
+
 # ─── Node / Dependencies ───
 node_modules/
 tools/**/node_modules/
