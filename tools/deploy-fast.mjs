@@ -29,8 +29,15 @@ const KEY = `${HOME}/.ssh/id_superroo_vps`
 const SSH = `ssh -i "${KEY}" -o StrictHostKeyChecking=no -o ConnectTimeout=15`
 const VPS_REPO = '/opt/homeu-commerce'
 
+// Node's execSync uses cmd.exe on Windows, which has no concept of single-
+// quote shell-quoting — a naive `'${cmd}'` wrapper gets mangled by cmd.exe's
+// own tokenizing (this silently broke $(...) substitution and made the git
+// sync step unreliable). Base64-encoding the remote command sidesteps shell
+// quoting entirely: the encoded string has no special characters for either
+// the local Windows shell or the remote bash to misinterpret.
 function remote(cmd, timeout = 600000) {
-  execSync(`${SSH} ${VPS} '${cmd}'`, { stdio: 'inherit', timeout })
+  const encoded = Buffer.from(cmd, 'utf8').toString('base64')
+  execSync(`${SSH} ${VPS} "echo ${encoded} | base64 -d | bash"`, { stdio: 'inherit', timeout })
 }
 
 function deploy() {
