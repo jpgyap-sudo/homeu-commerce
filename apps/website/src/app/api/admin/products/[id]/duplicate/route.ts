@@ -41,8 +41,8 @@ export async function POST(
     const insertResult = await query(
       `INSERT INTO products (title, slug, description, short_description, price, sale_price,
          category_id, sku, status, dimensions, materials, tags, colors,
-         seo_title, seo_description, meta, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())
+         seo_title, seo_description, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
        RETURNING id`,
       [
         (orig.title || 'Untitled') + ' (Copy)',
@@ -56,11 +56,10 @@ export async function POST(
         'draft',
         orig.dimensions,
         orig.materials,
-        orig.tags || [],
+        JSON.stringify(orig.tags || []),
         orig.colors || [],
         orig.seo_title,
         orig.seo_description,
-        orig.meta || {},
       ]
     )
     const newId = insertResult.rows[0].id
