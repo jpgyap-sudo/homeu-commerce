@@ -2188,3 +2188,248 @@
     font-size: 13px !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Blog / Article Grid — Shopify Debut theme equivalents
+   Used by /pages/design-trends and /blog/*
+   ══════════════════════════════════════════════════════════════ */
+
+/* Grid system */
+.grid {
+  display: block;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.grid:after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+.grid__item {
+  float: left;
+  padding-left: 30px;
+  width: 100%;
+}
+
+.grid--uniform .grid__item {
+  padding-left: 30px;
+}
+
+.medium-up--one-third {
+  width: 33.33333%;
+}
+
+@media (max-width: 768px) {
+  .medium-up--one-third {
+    width: 50%;
+  }
+}
+
+@media (max-width: 480px) {
+  .medium-up--one-third,
+  .grid__item {
+    width: 100%;
+    padding-left: 0;
+  }
+}
+
+/* Blog grid */
+.grid--blog {
+  margin: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+}
+
+.grid--blog > .grid__item {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .grid--blog {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid--blog {
+    gap: 30px;
+  }
+}
+
+/* Article card */
+.article__link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.article__grid-image-wrapper {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.article__grid-image-container {
+  position: relative;
+  width: 100%;
+  background: #f5f5f5;
+  overflow: hidden;
+}
+
+.article__grid-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.article__link:hover .article__grid-image {
+  transform: scale(1.03);
+}
+
+.article__title {
+  font-family: var(--debut-font-heading, 'Crimson Text', Georgia, serif);
+  font-weight: 400;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.article__title.h3,
+.article__title--has-image {
+  font-size: 20px;
+  color: #1f2420;
+  margin: 0 0 8px;
+}
+
+.article__grid-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.article__grid-meta--has-image {
+  padding: 0;
+}
+
+.article__date {
+  font-size: 12px;
+  color: #67706a;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.article__grid-excerpt {
+  font-size: 14px;
+  color: #4a524a;
+  line-height: 1.6;
+}
+
+/* Blog buttons */
+.article__meta-buttons {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  gap: 12px;
+}
+
+.list--inline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.btn--tertiary {
+  background: transparent;
+  color: #1f2420;
+  border: 1px solid #d9e0d7;
+  padding: 8px 18px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  display: inline-block;
+  border-radius: 2px;
+  font-weight: 600;
+  transition: border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.btn--tertiary:hover {
+  border-color: #1f2420;
+}
+
+.btn--small {
+  padding: 7px 14px;
+  font-size: 11px;
+}
+
+.blog-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #67706a;
+  font-size: 15px;
+}
+
+/* Section header for blog pages */
+.section-header {
+  margin-bottom: 40px;
+}
+
+.section-header.text-center {
+  text-align: center;
+}
+
+/* RTE (rich text excerpt) */
+.rte {
+  font-size: 14px;
+  color: #4a524a;
+  line-height: 1.6;
+}
+
+/* Blog back link */
+.blog-back {
+  display: inline-block;
+  margin-top: 40px;
+  font-size: 13px;
+  color: #67706a;
+  text-decoration: none;
+}
+.blog-back:hover {
+  color: #1f2420;
+}
+
+/* Article detail page — classes used by /blog/[handle]/[slug] */
+.medium-up--five-sixths {
+  width: 83.33333%;
+}
+.medium-up--push-one-twelfth {
+  margin-left: 8.33333%;
+}
+@media (max-width: 768px) {
+  .medium-up--five-sixths,
+  .medium-up--push-one-twelfth {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+.article__author {
+  display: block;
+  font-size: 13px;
+  color: #67706a;
+  margin-top: 8px;
+}
+.article__footer-nav {
+  clear: both;
+  padding: 40px 0;
+}
