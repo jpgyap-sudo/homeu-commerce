@@ -295,6 +295,9 @@ export default function EmailInboxPage() {
                   ) : selected.body_text || '(No content)'}
                 </div>
 
+                {/* Attachments */}
+                <AttachmentsList emailId={selected.id} />
+
                 {/* Reply box */}
                 <div style={{ padding: 'var(--space-3) var(--space-5)', borderTop: '1px solid var(--luxe-warm-100)' }}>
                   <textarea className="luxe-input" rows={3} placeholder="Type your reply..."
@@ -348,4 +351,67 @@ export default function EmailInboxPage() {
       )}
     </div>
   )
+}
+
+// ── Attachments List Component ─────────────────────────────────────
+
+function AttachmentsList({ emailId }: { emailId: number }) {
+  const [atts, setAtts] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!emailId) return
+    setLoading(true)
+    fetch(`/api/admin/email/attachments?emailId=${emailId}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setAtts(d.attachments || []))
+      .catch(() => setAtts([]))
+      .finally(() => setLoading(false))
+  }, [emailId])
+
+  if (loading) return null
+  if (atts.length === 0) return null
+
+  return (
+    <div style={{ padding: 'var(--space-3) var(--space-5)', borderTop: '1px solid var(--luxe-warm-100)' }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--luxe-slate-500)', marginBottom: 'var(--space-2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        📎 Attachments ({atts.length})
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+        {atts.map((att: any) => (
+          <a key={att.id} href={`/api/admin/email/attachments?id=${att.id}&download=1`} target="_blank" rel="noopener"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: '6px 10px',
+              borderRadius: 6, textDecoration: 'none', fontSize: 12, color: 'var(--luxe-sapphire)',
+              background: 'var(--luxe-sapphire-bg, #eff6ff)', transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#dbeafe'}
+            onMouseLeave={e => e.currentTarget.style.background = '#eff6ff'}
+          >
+            <span>{getFileIcon(att.content_type)}</span>
+            <span style={{ flex: 1, fontWeight: 500 }}>{att.filename}</span>
+            {att.size_bytes > 0 && (
+              <span style={{ fontSize: 10, color: 'var(--luxe-slate-400)', fontFamily: 'var(--font-mono)' }}>
+                {att.size_bytes > 1024 * 1024
+                  ? (att.size_bytes / 1024 / 1024).toFixed(1) + ' MB'
+                  : (att.size_bytes / 1024).toFixed(0) + ' KB'}
+              </span>
+            )}
+            {att.cdn_url && <span style={{ fontSize: 10, color: '#059669' }}>☁️</span>}
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function getFileIcon(mime: string): string {
+  if (!mime) return '📎'
+  if (mime.startsWith('image/')) return '🖼️'
+  if (mime === 'application/pdf') return '📄'
+  if (mime.includes('word') || mime.includes('document')) return '📝'
+  if (mime.includes('spreadsheet') || mime.includes('excel') || mime.includes('sheet')) return '📊'
+  if (mime.includes('presentation') || mime.includes('powerpoint')) return '📽️'
+  if (mime.includes('zip') || mime.includes('rar') || mime.includes('tar')) return '📦'
+  return '📎'
 }

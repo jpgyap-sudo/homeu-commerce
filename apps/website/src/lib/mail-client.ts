@@ -3,6 +3,11 @@
  *
  * Connects to imap.zoho.com:993, syncs emails to local DB,
  * and provides search, categorize, and reply functionality.
+ *
+ * Sync modes:
+ *   syncEmails(50)  → fetches latest 50 emails
+ *   syncEmails(-1)  → backfill: fetches ALL emails from last 6 months
+ *   syncEmails(200) → fetches latest 200
  */
 
 import { ImapFlow } from 'imapflow'
@@ -55,7 +60,6 @@ export async function getMailConfig(): Promise<EmailConfig | null> {
 
   // Priority 2: Legacy smtp_config (set via old Email Settings page, snake_case keys)
   try {
-    const { query } = await import('@/lib/db')
     const result = await query(`SELECT data FROM "DaVinciOS_kv" WHERE key = 'smtp_config' LIMIT 1`)
     if (result.rows.length > 0) {
       const d = result.rows[0].data || {}
@@ -86,12 +90,15 @@ export async function getMailConfig(): Promise<EmailConfig | null> {
 }
 
 /**
- * Sync latest N emails from Zoho IMAP into the emails table.
- * Skips already-imported message IDs.
+ * Sync emails from IMAP into the emails table.
+ *
+ * @param limit - number of emails to sync.
+ *   > 0 = fetch latest N emails (default 50)
+ *   <= 0 = backfill all emails from last 6 months
  */
 export async function syncEmails(limit = 50): Promise<{ synced: number; total: number; error?: string }> {
   const config = await getMailConfig()
-  if (!config) return { synced: 0, total: 0, error: 'Email not configured. Set SALES_EMAIL and SALES_EMAIL_PASS in .env' }
+  if (!config) return { synced: 0, total: 0, error: 'Email not configured. Set IMAP credentials in admin Settings.' }
 
   const client = new ImapFlow({
     host: config.host,
@@ -105,56 +112,115 @@ export async function syncEmails(limit = 50): Promise<{ synced: number; total: n
     await client.connect()
     const lock = await client.getMailboxLock('INBOX')
     let synced = 0
+    const maxSync = limit > 0 ? limit : 500
 
     try {
-      // Fetch latest messages
-      const messages = client.fetch(`${1}:${limit}`, { uid: true, flags: true, source: true })
-      for await (const msg of messages) {
-        const source = msg.source?.toString() || ''
-        if (!source) continue
-
-        const parsed = await simpleParser(source)
-        const messageId = (parsed as any).messageId || (parsed as any).message_id || msg.uid.toString()
-
-        // Skip if already imported
-        const exists = await query('SELECT id FROM emails WHERE message_id = $1', [messageId])
-        if (exists.rows.length > 0) continue
-
-        const fromAddr = (parsed as any)?.from?.value?.[0] || {}
-        const toAddr = (parsed as any)?.to?.value?.[0] || {}
-        const ccAddr = (parsed as any)?.cc?.text || null
-        const inReplyTo = (parsed as any)?.inReplyTo?.messageId || null
-
-        await query(
-          `INSERT INTO emails (message_id, in_reply_to, subject, sender_name, sender_email,
-           recipient_email, cc, body_text, body_html, is_read, folder, received_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-           ON CONFLICT (message_id) DO NOTHING`,
-          [
-            messageId,
-            inReplyTo,
-            (parsed as any).subject || '(No Subject)',
-            fromAddr.name || null,
-            fromAddr.address || null,
-            toAddr.address || config.user,
-            ccAddr,
-            (parsed as any).text || null,
-            (parsed as any).html || null,
-            (msg.flags as Set<string>)?.has?.('\\Seen') ? true : false,
-            'INBOX',
-            (parsed as any).date || new Date(),
-          ]
-        )
-        synced++
+      // Determine fetch range
+      if (limit > 0) {
+        // Fetch latest N emails by sequence number
+        const messages = client.fetch(`${1}:${limit}`, { uid: true, flags: true, source: true })
+        for await (const msg of messages) {
+          synced += await processMessage(msg, config) ? 1 : 0
+        }
+      } else {
+        // Backfill: fetch messages from last 6 months using SINCE search
+        const sinceDate = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
+        const sinceStr = sinceDate.toISOString().split('T')[0]
+        const messages = client.fetch('1:*', {
+          uid: true,
+          flags: true,
+          source: true,
+          search: ['SINCE', sinceStr],
+        })
+        for await (const msg of messages) {
+          if (synced >= maxSync) break
+          synced += await processMessage(msg, config) ? 1 : 0
+        }
       }
     } finally {
       lock.release()
       await client.logout()
     }
 
-    return { synced, total: synced === limit ? limit : synced }
+    return { synced, total: synced }
   } catch (err: any) {
     return { synced: 0, total: 0, error: err.message }
+  }
+}
+
+/** Get standard content-type icons */
+function getFileIcon(mime: string): string {
+  if (mime.startsWith('image/')) return '🖼️'
+  if (mime === 'application/pdf') return '📄'
+  if (mime.includes('word') || mime.includes('document')) return '📝'
+  if (mime.includes('spreadsheet') || mime.includes('excel') || mime.includes('sheet')) return '📊'
+  if (mime.includes('presentation') || mime.includes('powerpoint')) return '📽️'
+  if (mime.includes('zip') || mime.includes('rar') || mime.includes('tar')) return '📦'
+  return '📎'
+}
+
+/** Process a single IMAP message: parse, check duplicate, insert into DB + upload attachments. */
+async function processMessage(msg: any, config: EmailConfig): Promise<boolean> {
+  const source = msg.source?.toString() || ''
+  if (!source) return false
+
+  try {
+    const parsed = await simpleParser(source)
+    const messageId = (parsed as any).messageId || (parsed as any).message_id || msg.uid.toString()
+
+    // Skip if already imported
+    const exists = await query('SELECT id FROM emails WHERE message_id = $1', [messageId])
+    if (exists.rows.length > 0) return false
+
+    const fromAddr = (parsed as any)?.from?.value?.[0] || {}
+    const toAddr = (parsed as any)?.to?.value?.[0] || {}
+    const ccAddr = (parsed as any)?.cc?.text || null
+    const inReplyTo = (parsed as any)?.inReplyTo?.messageId || null
+
+    // Insert email first to get the ID
+    const insertResult = await query(
+      `INSERT INTO emails (message_id, in_reply_to, subject, sender_name, sender_email,
+       recipient_email, cc, body_text, body_html, is_read, folder, received_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       ON CONFLICT (message_id) DO NOTHING
+       RETURNING id`,
+      [
+        messageId, inReplyTo,
+        (parsed as any).subject || '(No Subject)',
+        fromAddr.name || null, fromAddr.address || null,
+        toAddr.address || config.user, ccAddr,
+        (parsed as any).text || null, (parsed as any).html || null,
+        (msg.flags as Set<string>)?.has?.('\\Seen') ? true : false,
+        'INBOX', (parsed as any).date || new Date(),
+      ]
+    )
+
+    const emailId = insertResult.rows[0]?.id
+    if (!emailId) return false // already existed or insert failed
+
+    // ── Store attachment metadata only (no upload during sync) ────
+    // Actual upload to DO Spaces happens on-demand when admin clicks to view.
+    const attachments = (parsed as any).attachments || []
+    for (const att of attachments) {
+      const filename = att.filename || `attachment-${Date.now()}`
+      const contentType = att.contentType || 'application/octet-stream'
+      const isInline = !!(att.related || att.cid)
+      // Store buffer as base64 in DB temporarily, or just store metadata
+      // Strategy: store metadata + content reference, lazy upload on view
+      const bufferB64 = att.content ? att.content.toString('base64') : null
+
+      await query(
+        `INSERT INTO email_attachments
+         (email_id, filename, content_type, size_bytes, data_base64, is_inline, cid)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT DO NOTHING`,
+        [emailId, filename, contentType, att.size || att.content?.length || 0, bufferB64, isInline, att.cid || null]
+      )
+    }
+
+    return true
+  } catch {
+    return false
   }
 }
 
