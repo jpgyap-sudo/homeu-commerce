@@ -40,6 +40,26 @@ const SORT_OPTIONS = [
 
 const PAGE_SIZE = 24
 
+// Stone Options + Finish Materials are swatch/sample collections — homeu.ph
+// shows these with a plain text heading, never an image banner.
+const SWATCH_CATEGORY_SLUGS = new Set([
+  'veratti-sinteredstone', 'sintered-stone', 'natural-stone',
+  'fabric-swatches-linen', 'fabric-swatches-velvet', 'swatches-tech-cloth',
+  'fabric-swatches-leather', 'fabric-swatches-leatherette',
+])
+
+/** Picks `count` images spread evenly across the list instead of the first
+ * few in a row, so the collection-header collage shows real variety. */
+function pickSpreadImages(images: string[], count: number): string[] {
+  if (images.length <= count) return images
+  const step = images.length / count
+  const picked: string[] = []
+  for (let i = 0; i < count; i++) {
+    picked.push(images[Math.floor(i * step)])
+  }
+  return picked
+}
+
 function ProductsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -163,9 +183,17 @@ function ProductsContent() {
       {/* ── Collection hero banner — collage of the collection's own product
           photos when there are enough to build one (richer and avoids the
           extreme crop a single tall image gets at this height), falling
-          back to the category's own image, then a plain banner. ── */}
+          back to the category's own image, then a plain banner. Stone
+          Options / Finish Materials swatch collections never get an image
+          banner — homeu.ph shows those as a plain text heading only. ── */}
       {(() => {
-        const collageImages = [...new Set(products.map(p => p.imageUrl).filter(Boolean))].slice(0, 4) as string[]
+        // Sample spread across the loaded products (not just the first 4 in
+        // a row) so the collage shows real variety instead of looking like
+        // one slice repeated — e.g. a sofa, a lamp, a table, a chair rather
+        // than four sofas that happened to load first.
+        const collageImages = SWATCH_CATEGORY_SLUGS.has(selectedCategory)
+          ? []
+          : pickSpreadImages([...new Set(products.map(p => p.imageUrl).filter(Boolean))] as string[], 4)
         if (collageImages.length >= 3) {
           return (
             <section className="collection-banner collection-banner--collage">
