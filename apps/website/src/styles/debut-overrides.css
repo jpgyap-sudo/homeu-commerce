@@ -175,17 +175,20 @@
 .collection-page { color: var(--debut-text, #3a3a3a); }
 
 /* Hero banner: collection image(s) with the title centered over it.
-   Height reduced from the old 320px — that made a single product close-up
-   look like an oversized, awkwardly-cropped zoom. A collage of the
-   collection's own product photos fills the same footprint with more
-   visual variety and no extra image to upload per category. */
+   Contained within the same width as the rest of the page (not full-bleed
+   edge-to-edge) with equal left/right margins, rounded corners, and no
+   visible seams between collage tiles — a single cohesive image, not four
+   photos awkwardly stitched together with gap lines. */
 .collection-banner {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 220px;
+  width: min(1280px, calc(100% - 48px));
+  margin: 24px auto 0;
+  min-height: 200px;
+  border-radius: 16px;
   background-color: #cfcac4;
   background-size: cover;
   background-position: center;
@@ -194,18 +197,17 @@
   overflow: hidden;
 }
 .collection-banner--plain {
-  min-height: 160px;
+  min-height: 140px;
   background: #f4f2ee;
 }
 .collection-banner--collage {
-  min-height: 240px;
+  min-height: 260px;
 }
 .collection-banner__collage-grid {
   position: absolute;
   inset: 0;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 2px;
 }
 .collection-banner__collage-tile {
   background-size: cover;
@@ -216,7 +218,7 @@
 .collection-banner__overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(20, 18, 16, 0.15) 0%, rgba(20, 18, 16, 0.5) 100%);
+  background: linear-gradient(180deg, rgba(20, 18, 16, 0.1) 0%, rgba(20, 18, 16, 0.55) 100%);
 }
 .collection-banner__eyebrow {
   position: relative;
@@ -235,13 +237,15 @@
   padding: 0 24px;
   font-family: var(--debut-font-heading, 'Cormorant Garamond', 'Cardo', Georgia, serif);
   font-weight: 500;
-  font-size: clamp(28px, 3.6vw, 46px);
+  font-size: clamp(26px, 3.4vw, 44px);
   letter-spacing: 0.01em;
   color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
 }
-.collection-banner--plain .collection-banner__title { color: var(--debut-text, #2a2a2a); }
+.collection-banner--plain .collection-banner__title { color: var(--debut-text, #2a2a2a); text-shadow: none; }
 
 @media (max-width: 640px) {
+  .collection-banner { width: calc(100% - 24px); margin-top: 16px; border-radius: 12px; }
   .collection-banner__collage-grid { grid-template-columns: repeat(2, 1fr); }
 }
 

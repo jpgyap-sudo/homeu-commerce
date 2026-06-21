@@ -769,7 +769,9 @@ export function QuoteCartExperience() {
                 </div>
               </div>
               <p className="order-summary-disclaimer">
-                Final pricing, delivery fees, and availability confirmed in formal quotation.
+                Prices shown are estimates and subject to change — final pricing may vary due to price
+                increases or customization. Customization availability depends on the item, material, and
+                quantity. Delivery fees and final pricing are confirmed in your formal quotation.
               </p>
             </div>
 
