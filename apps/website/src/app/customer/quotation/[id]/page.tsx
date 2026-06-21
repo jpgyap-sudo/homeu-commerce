@@ -107,6 +107,7 @@ export default function CustomerQuotationPage() {
   const [reviseItems, setReviseItems] = useState<Set<string>>(new Set())
 
   async function handleApprove() {
+    if (!quotation) return
     setActionLoading(true); setActionMsg('')
     try {
       const res = await fetch(`/api/quotations/${quotation.id}`, {
@@ -123,6 +124,7 @@ export default function CustomerQuotationPage() {
   }
 
   async function handleRevise() {
+    if (!quotation) return
     if (!reviseText.trim()) return
     setActionLoading(true); setActionMsg('')
     try {
