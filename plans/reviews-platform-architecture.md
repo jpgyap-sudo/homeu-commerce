@@ -2,6 +2,14 @@
 
 > Replaces Judge.me. Source data: `homeu-ph-all-published-reviews-in-judgeme-format-2026-06-21.csv` (167 reviews, 138 products, 2021-07 to 2026-02).
 
+## Revisions from owner feedback (2026-06-22)
+
+- **No automated auto-approve/auto-reject.** Drop the fraud-score gating from the workflow below. Every review — storefront-submitted, chat-submitted, or CSV-imported — lands in `status='pending'` and a human approves or declines it in `/admin/reviews`. Fraud signals (disposable-email domain, IP velocity, duplicate text) are still computed and shown as advisory badges in the queue, but they never auto-decide anything.
+- **Reviewer email is never shown publicly.** It's stored for the admin's own reference (and for sending things like a thank-you or incentive code) but never rendered on the storefront, in JSON-LD, or in any public API response.
+- **Admin can hand-create a review**, mirroring Judge.me's `source: admin` behavior seen in 29 of the 167 imported rows — admin types in name, email (free text, no verification), rating, body, product, date; inserted with `source='admin'`, auto-published immediately (the admin is the trust boundary, not the fraud screen).
+- **Instagram UGC ties in via the existing `instagram_posts` table** (already has `products jsonb`, `hotspots`, `is_visible`/`is_pinned`, `collection_ids` — a full shoppable-grid feature already built at `/admin/apps/instagram`). No new schema needed; the storefront reviews section will pull in linked Instagram posts for a product alongside written reviews when that phase is built.
+- **Build order: backend/admin completely first.** Schema, import script, moderation queue, manual-create form, settings page — all before any storefront display or JSON-LD work.
+
 ## Data audit findings (must read before importing)
 
 The Judge.me export has integrity problems that gate how migration must work:
@@ -132,11 +140,15 @@ Order/RFQ marked delivered
   → review_requests row enqueued (delay from settings, default 7 days)
   → AI drafts personalized message → sent via customer's preferred channel
   → customer taps stars / writes review (chat-inline or web form), pre-filled & locked to that order
-  → fraud screen runs automatically (disposable email, IP velocity, duplicate text)
-  → score above threshold → auto-approved; below threshold → moderation queue
-  → admin approves/rejects/replies (AI-drafted reply available)
-  → on approval: products.avg_rating/review_count refreshed, JSON-LD regenerated
-  → review visible on product page + contributes to AI summary digest
+  → fraud screen runs automatically (disposable email, IP velocity, duplicate text) — advisory only
+  → review lands in /admin/reviews as status='pending', fraud badges shown but nothing auto-decided
+  → admin approves or declines (AI-drafted reply available either way)
+  → on approval: products.avg_rating/review_count refreshed, JSON-LD regenerated, reviewer email stays admin-only
+  → review visible on product page (name only, no email) + contributes to AI summary digest
+
+Admin manual-create (parallel path, mirrors Judge.me's "admin" source):
+  → /admin/reviews/new — admin types name, email, rating, body, product, date
+  → inserted as source='admin', status='approved' immediately (admin is the trust boundary)
 ```
 
 ## Migration workflow (one-time, gated)

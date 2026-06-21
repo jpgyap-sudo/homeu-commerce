@@ -39,11 +39,11 @@ export async function getMailConfig(): Promise<EmailConfig | null> {
   try {
     const { loadNamespace } = await import('@/lib/app-config')
     const emailConfig = await loadNamespace('email')
-    const imapHost = (emailConfig as any)?.imap_host
-    const imapPort = (emailConfig as any)?.imap_port
-    const imapSecure = (emailConfig as any)?.imap_secure
-    const user = (emailConfig as any)?.sales_email || (emailConfig as any)?.smtp_user
-    const pass = (emailConfig as any)?.sales_email_pass || (emailConfig as any)?.smtp_pass
+    const imapHost = (emailConfig as any)?.imapHost
+    const imapPort = (emailConfig as any)?.imapPort
+    const imapSecure = (emailConfig as any)?.imapSecure
+    const user = (emailConfig as any)?.salesEmail || (emailConfig as any)?.smtpUser
+    const pass = (emailConfig as any)?.salesEmailPass || (emailConfig as any)?.smtpPass
 
     if (imapHost && user && pass) {
       mailConfig = {
@@ -73,7 +73,7 @@ export async function getMailConfig(): Promise<EmailConfig | null> {
  * Skips already-imported message IDs.
  */
 export async function syncEmails(limit = 50): Promise<{ synced: number; total: number; error?: string }> {
-  const config = getMailConfig()
+  const config = await getMailConfig()
   if (!config) return { synced: 0, total: 0, error: 'Email not configured. Set SALES_EMAIL and SALES_EMAIL_PASS in .env' }
 
   const client = new ImapFlow({
