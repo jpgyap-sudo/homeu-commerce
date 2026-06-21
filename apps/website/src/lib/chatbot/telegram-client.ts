@@ -98,20 +98,24 @@ function formatAlertMessage(alert: TelegramAlert, adminUrl: string): string {
     APPOINTMENT_REQUESTED: 'Showroom Appointment Requested',
     ESCALATION: 'Conversation Escalated to Human',
     HOT_LEAD: '🔥 Hot Lead Alert',
+    NEW_DESIGNER_APPLICATION: 'New Designer Club Application',
   }
   lines.push(`${icon} <b>${titles[alert.eventType] || 'Alert'}</b>`)
   lines.push('')
 
   // Lead info
   lines.push(`<b>Name:</b> ${escapeHtml(alert.leadName)}`)
-  lines.push(`<b>Mobile:</b> ${escapeHtml(alert.mobile)}`)
+  if (alert.mobile) lines.push(`<b>Mobile:</b> ${escapeHtml(alert.mobile)}`)
   if (alert.email) lines.push(`<b>Email:</b> ${escapeHtml(alert.email)}`)
   if (alert.buyerType) lines.push(`<b>Type:</b> ${escapeHtml(alert.buyerType)}`)
+  if (alert.company) lines.push(`<b>Company:</b> ${escapeHtml(alert.company)}`)
   if (alert.scoreLabel) lines.push(`<b>Score:</b> ${alert.score} (${escapeHtml(alert.scoreLabel)})`)
   if (alert.projectLocation) lines.push(`<b>Location:</b> ${escapeHtml(alert.projectLocation)}`)
 
-  lines.push('')
-  lines.push(`<b>Summary:</b> ${escapeHtml(alert.summary)}`)
+  if (alert.summary || alert.details) {
+    lines.push('')
+    lines.push(`<b>Summary:</b> ${escapeHtml(alert.summary || alert.details || '')}`)
+  }
 
   if (alert.rfqItems !== undefined) lines.push(`<b>RFQ Items:</b> ${alert.rfqItems}`)
   if (alert.rFQTotal) lines.push(`<b>Estimated Total:</b> ₱${alert.rFQTotal}`)
@@ -130,7 +134,8 @@ function formatAlertMessage(alert: TelegramAlert, adminUrl: string): string {
 
 // ── Helper ────────────────────────────────────────────────────
 
-function escapeHtml(text: string): string {
+function escapeHtml(text: string | undefined): string {
+  if (!text) return ''
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

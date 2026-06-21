@@ -60,11 +60,11 @@ export async function POST(request: NextRequest) {
     try {
       const { sendTelegramAlert } = await import('@/lib/chatbot/telegram-client')
       await sendTelegramAlert({
-        type: 'NEW_DESIGNER_APPLICATION' as any,
+        eventType: 'NEW_DESIGNER_APPLICATION',
         leadName: `${firstName.trim()} ${lastName.trim()}`,
         company: companyName.trim(),
         email: email.trim(),
-        phone: contactNumber?.trim() || undefined,
+        mobile: contactNumber?.trim() || undefined,
         details: `${position?.trim() || 'Designer'} — ${companyName.trim()} ${companyAddress ? `\n📍 ${companyAddress}` : ''} ${companySocials ? `\n🔗 ${companySocials}` : ''}`,
         adminUrl: `${process.env.DAVINCIOS_PUBLIC_SERVER_URL || 'https://admin.homeu.ph'}/admin/designer-club?id=${appId}`,
       })
