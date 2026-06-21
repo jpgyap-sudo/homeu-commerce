@@ -1,11 +1,22 @@
 /**
- * Mirror the *remaining* cdn.shopify.com assets referenced inside the DATABASE
+ * Mirror the *remaining* Shopify-hosted assets referenced inside the DATABASE
  * (not the export JSON) into DigitalOcean Spaces, then rewrite the DB columns
  * + site-config.json to the Spaces CDN URLs.
  *
+ * Two Shopify CDN URL shapes exist in this dataset — both proxy the exact
+ * same asset storage, just via different hostnames:
+ *   - https://cdn.shopify.com/...                (the generic CDN host)
+ *   - https://homeu.ph/cdn/shop/... (or www.)     (Shopify's "serve through
+ *     the merchant's own domain" proxy — easy to miss with a cdn.shopify.com-
+ *     only regex, which is exactly how categories.image_url + articles.body
+ *     were missed in the first migration pass.)
+ *
  * Sources scanned:
  *   - articles.image_url            (plain column)
+ *   - articles.body                 (inline <img src> inside HTML)
  *   - products.description          (inline <img src> inside HTML/JSONB)
+ *   - categories.image_url          (plain column)
+ *   - categories.description        (inline <img src>, if any)
  *   - homepage_sections.config      (image URLs inside JSONB)
  *   - apps/website/src/data/site-config.json  (logo.shopifyUrl)
  *
@@ -30,7 +41,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const OUTPUT_DIR = path.join(__dirname, 'output')
 const MANIFEST_PATH = path.join(OUTPUT_DIR, 'cdn-migration-manifest.json')
 const SITE_CONFIG_PATH = path.join(__dirname, '..', '..', 'apps', 'website', 'src', 'data', 'site-config.json')
-const SHOPIFY_CDN_REGEX = /https:\/\/cdn\.shopify\.com\/[^\s"'<>\\)]+/g
+const SHOPIFY_CDN_REGEX = /https:\/\/(cdn\.shopify\.com|(?:www\.)?homeu\.ph\/cdn\/shop)\/[^\s"'<>\\)]+/g
 
 function loadEnv() {
   for (const file of [
@@ -55,21 +66,33 @@ function newPool() {
 }
 
 // ── Collect all distinct Shopify URLs referenced in the DB + site-config ──
+const SHOPIFY_LIKE = `(image_url LIKE '%cdn.shopify%' OR image_url LIKE '%/cdn/shop/%')`
+const SHOPIFY_LIKE_TEXT = (col) => `(${col} LIKE '%cdn.shopify%' OR ${col} LIKE '%/cdn/shop/%')`
+
 async function collectUrls(pool) {
   const urls = new Set()
   const add = (text) => { for (const u of (text || '').match(SHOPIFY_CDN_REGEX) || []) urls.add(u) }
 
-  const a = await pool.query(`SELECT image_url FROM articles WHERE image_url LIKE '%cdn.shopify%'`)
+  const a = await pool.query(`SELECT image_url FROM articles WHERE ${SHOPIFY_LIKE}`)
   a.rows.forEach(r => add(r.image_url))
 
-  const p = await pool.query(`SELECT description::text AS d FROM products WHERE description::text LIKE '%cdn.shopify%'`)
+  const ab = await pool.query(`SELECT body FROM articles WHERE ${SHOPIFY_LIKE_TEXT('body')}`)
+  ab.rows.forEach(r => add(r.body))
+
+  const p = await pool.query(`SELECT description::text AS d FROM products WHERE ${SHOPIFY_LIKE_TEXT('description::text')}`)
   p.rows.forEach(r => add(r.d))
 
-  const h = await pool.query(`SELECT config::text AS c FROM homepage_sections WHERE config::text LIKE '%cdn.shopify%'`)
-  h.rows.forEach(r => add(r.c))
+  const cat = await pool.query(`SELECT image_url FROM categories WHERE ${SHOPIFY_LIKE}`)
+  cat.rows.forEach(r => add(r.image_url))
 
-  const ab = await pool.query(`SELECT body FROM articles WHERE body LIKE '%cdn.shopify%'`)
-  ab.rows.forEach(r => add(r.body))
+  const catd = await pool.query(`SELECT description FROM categories WHERE ${SHOPIFY_LIKE_TEXT('description')}`)
+  catd.rows.forEach(r => add(r.description))
+
+  const pg2 = await pool.query(`SELECT content::text AS c FROM pages WHERE ${SHOPIFY_LIKE_TEXT('content::text')}`)
+  pg2.rows.forEach(r => add(r.c))
+
+  const h = await pool.query(`SELECT config::text AS c FROM homepage_sections WHERE ${SHOPIFY_LIKE_TEXT('config::text')}`)
+  h.rows.forEach(r => add(r.c))
 
   if (fs.existsSync(SITE_CONFIG_PATH)) add(fs.readFileSync(SITE_CONFIG_PATH, 'utf8'))
 
@@ -153,8 +176,31 @@ async function rewriteCmd(execute) {
   const map = mapFor(manifest)
   const pool = newPool()
 
-  // 1. articles.image_url
-  const arts = await pool.query(`SELECT id, image_url FROM articles WHERE image_url LIKE '%cdn.shopify%'`)
+  // Generic helper: rewrite every matched URL inside a text column for all
+  // rows matching the LIKE filter; returns { rowsChanged, urlsChanged }.
+  async function rewriteTextColumn(table, col, idCol = 'id', isJsonb = false) {
+    const rows = await pool.query(`SELECT ${idCol} AS id, ${col}::text AS v FROM ${table} WHERE ${SHOPIFY_LIKE_TEXT(`${col}::text`)}`)
+    let rowsChanged = 0, urlsChanged = 0
+    for (const r of rows.rows) {
+      let text = r.v
+      let changed = false
+      for (const u of new Set(text.match(SHOPIFY_CDN_REGEX) || [])) {
+        const to = map.get(u)
+        if (to) { text = text.split(u).join(to); changed = true; urlsChanged++ }
+      }
+      if (changed) {
+        rowsChanged++
+        if (execute) {
+          const cast = isJsonb ? '::jsonb' : ''
+          await pool.query(`UPDATE ${table} SET ${col} = $1${cast}, updated_at = NOW() WHERE ${idCol} = $2`, [text, r.id])
+        }
+      }
+    }
+    return { rowsChanged, urlsChanged }
+  }
+
+  // 1. articles.image_url (plain column, not HTML — direct replace)
+  const arts = await pool.query(`SELECT id, image_url FROM articles WHERE ${SHOPIFY_LIKE}`)
   let aCount = 0
   for (const r of arts.rows) {
     const to = map.get(r.image_url)
@@ -164,48 +210,29 @@ async function rewriteCmd(execute) {
   }
 
   // 1b. articles.body (inline <img> inside the article HTML)
-  const abs = await pool.query(`SELECT id, body FROM articles WHERE body LIKE '%cdn.shopify%'`)
-  let abCount = 0, abUrls = 0
-  for (const r of abs.rows) {
-    let text = r.body
-    let changed = false
-    for (const u of new Set(text.match(SHOPIFY_CDN_REGEX) || [])) {
-      const to = map.get(u)
-      if (to) { text = text.split(u).join(to); changed = true; abUrls++ }
-    }
-    if (changed) {
-      abCount++
-      if (execute) await pool.query(`UPDATE articles SET body = $1, updated_at = NOW() WHERE id = $2`, [text, r.id])
-    }
+  const { rowsChanged: abCount, urlsChanged: abUrls } = await rewriteTextColumn('articles', 'body')
+
+  // 2. products.description (replace every shopify url inside the HTML/JSONB)
+  const { rowsChanged: pCount, urlsChanged: pUrls } = await rewriteTextColumn('products', 'description', 'id', true)
+
+  // 3. categories.image_url (plain column, not HTML — direct replace)
+  const cats = await pool.query(`SELECT id, image_url FROM categories WHERE ${SHOPIFY_LIKE}`)
+  let catCount = 0
+  for (const r of cats.rows) {
+    const to = map.get(r.image_url)
+    if (!to) continue
+    if (execute) await pool.query(`UPDATE categories SET image_url = $1, updated_at = NOW() WHERE id = $2`, [to, r.id])
+    catCount++
   }
 
-  // 2. products.description (replace every shopify url inside the HTML)
-  const prods = await pool.query(`SELECT id, description::text AS d FROM products WHERE description::text LIKE '%cdn.shopify%'`)
-  let pCount = 0, pUrls = 0
-  for (const r of prods.rows) {
-    let text = r.d
-    let changed = false
-    for (const u of new Set(text.match(SHOPIFY_CDN_REGEX) || [])) {
-      const to = map.get(u)
-      if (to) { text = text.split(u).join(to); changed = true; pUrls++ }
-    }
-    if (changed) {
-      pCount++
-      if (execute) await pool.query(`UPDATE products SET description = $1::jsonb, updated_at = NOW() WHERE id = $2`, [text, r.id])
-    }
-  }
+  // 3b. categories.description (inline <img>, if any)
+  const { rowsChanged: catdCount, urlsChanged: catdUrls } = await rewriteTextColumn('categories', 'description')
 
-  // 3. homepage_sections.config
-  const secs = await pool.query(`SELECT id, config::text AS c FROM homepage_sections WHERE config::text LIKE '%cdn.shopify%'`)
-  let sCount = 0
-  for (const r of secs.rows) {
-    let text = r.c, changed = false
-    for (const u of new Set(text.match(SHOPIFY_CDN_REGEX) || [])) {
-      const to = map.get(u)
-      if (to) { text = text.split(u).join(to); changed = true }
-    }
-    if (changed) { sCount++; if (execute) await pool.query(`UPDATE homepage_sections SET config = $1::jsonb, updated_at = NOW() WHERE id = $2`, [text, r.id]) }
-  }
+  // 4. pages.content (inline <img> inside the page HTML/JSONB)
+  const { rowsChanged: pgCount, urlsChanged: pgUrls } = await rewriteTextColumn('pages', 'content', 'id', true)
+
+  // 5. homepage_sections.config
+  const { rowsChanged: sCount } = await rewriteTextColumn('homepage_sections', 'config', 'id', true)
   await pool.end()
 
   // 4. site-config.json logo
@@ -223,6 +250,9 @@ async function rewriteCmd(execute) {
   console.log(`  articles.image_url:        ${aCount} rows`)
   console.log(`  articles.body:             ${abCount} rows (${abUrls} urls)`)
   console.log(`  products.description:      ${pCount} rows (${pUrls} urls)`)
+  console.log(`  categories.image_url:      ${catCount} rows`)
+  console.log(`  categories.description:    ${catdCount} rows (${catdUrls} urls)`)
+  console.log(`  pages.content:             ${pgCount} rows (${pgUrls} urls)`)
   console.log(`  homepage_sections.config:  ${sCount} rows`)
   console.log(`  site-config.json logo:     ${logoChanged ? 'yes' : 'no'}`)
 }
@@ -289,9 +319,13 @@ async function mirrorOneCmd(url) {
 async function verifyCmd() {
   const pool = newPool()
   const q = async (label, sql) => { const r = await pool.query(sql); return `${label}: ${r.rows[0].n}` }
-  console.log(await q('articles.image_url', `SELECT COUNT(*) n FROM articles WHERE image_url LIKE '%cdn.shopify%'`))
-  console.log(await q('products.description', `SELECT COUNT(*) n FROM products WHERE description::text LIKE '%cdn.shopify%'`))
-  console.log(await q('homepage_sections.config', `SELECT COUNT(*) n FROM homepage_sections WHERE config::text LIKE '%cdn.shopify%'`))
+  console.log(await q('articles.image_url', `SELECT COUNT(*) n FROM articles WHERE ${SHOPIFY_LIKE}`))
+  console.log(await q('articles.body', `SELECT COUNT(*) n FROM articles WHERE ${SHOPIFY_LIKE_TEXT('body')}`))
+  console.log(await q('products.description', `SELECT COUNT(*) n FROM products WHERE ${SHOPIFY_LIKE_TEXT('description::text')}`))
+  console.log(await q('categories.image_url', `SELECT COUNT(*) n FROM categories WHERE ${SHOPIFY_LIKE}`))
+  console.log(await q('categories.description', `SELECT COUNT(*) n FROM categories WHERE ${SHOPIFY_LIKE_TEXT('description')}`))
+  console.log(await q('pages.content', `SELECT COUNT(*) n FROM pages WHERE ${SHOPIFY_LIKE_TEXT('content::text')}`))
+  console.log(await q('homepage_sections.config', `SELECT COUNT(*) n FROM homepage_sections WHERE ${SHOPIFY_LIKE_TEXT('config::text')}`))
   const sc = fs.existsSync(SITE_CONFIG_PATH) ? (fs.readFileSync(SITE_CONFIG_PATH, 'utf8').match(SHOPIFY_CDN_REGEX) || []).length : 0
   console.log(`site-config.json: ${sc}`)
   await pool.end()
