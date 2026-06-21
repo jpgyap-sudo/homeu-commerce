@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { formatPrice, formatQuantity } from '@/lib/format-utils'
+import InlineProductBrowser from '@/components/InlineProductBrowser'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -669,6 +670,21 @@ export function QuoteCartExperience() {
             {items.length > 0 && (
               <button type="button" className="text-button" onClick={() => syncItems([])}>Clear All</button>
             )}
+          </div>
+
+          {/* Inline product browser — search & add products without leaving cart */}
+          <div style={{ padding: '0 0 16px' }}>
+            <InlineProductBrowser onAdd={(product) => {
+              addToQuoteCart({
+                productId: product.productId,
+                title: product.title,
+                slug: product.slug,
+                price: product.price || undefined,
+                imageUrl: product.imageUrl || undefined,
+                quantity: 1,
+              })
+              setItems(getQuoteCart())
+            }} />
           </div>
 
           {items.length === 0 ? (

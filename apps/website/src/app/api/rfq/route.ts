@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     // Create RFQ request with ALL fields
     const rfqResult = await query(
       `INSERT INTO rfq_requests (customer_id, customer_name, email, phone, delivery_location, project_type, notes, address, message, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', NOW(), NOW()) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'new', NOW(), NOW()) RETURNING *`,
       [
         customerId,
         customerName || '',
