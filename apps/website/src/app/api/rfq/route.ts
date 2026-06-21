@@ -157,7 +157,27 @@ export async function POST(request: NextRequest) {
     const rfq = rfqResult.rows[0]
 
     // Add items if provided — use snapshot fields
-    if (items && Array.isArray(items)) {
+    // Auto-create rfq_request_items table if it doesn't exist (safety for
+    // deployments where migrations haven't been applied)
+    if (items && Array.isArray(items) && items.length > 0) {
+      try {
+        await query(`SELECT 1 FROM rfq_request_items LIMIT 0`, [])
+      } catch {
+        await query(
+          `CREATE TABLE IF NOT EXISTS rfq_request_items (
+            id SERIAL PRIMARY KEY,
+            rfq_request_id INTEGER NOT NULL REFERENCES rfq_requests(id) ON DELETE CASCADE,
+            product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+            product_title_snapshot TEXT DEFAULT '',
+            sku_snapshot TEXT DEFAULT '',
+            unit_price_snapshot NUMERIC DEFAULT 0,
+            quantity NUMERIC DEFAULT 1 NOT NULL,
+            notes TEXT DEFAULT '',
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+          )`, []
+        )
+      }
       for (const item of items as RFQItemInput[]) {
         const productTitleSnapshot = item.productTitleSnapshot || item.title || ''
         const skuSnapshot = item.skuSnapshot || item.sku || ''
