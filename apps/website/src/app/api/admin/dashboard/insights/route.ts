@@ -106,7 +106,7 @@ export async function GET(_request: NextRequest) {
     // ══════════════════════════════════════════════════════════════════
     // NEW: RFQ Aging
     // ══════════════════════════════════════════════════════════════════
-    let rfqAging = { fresh: 0, attention: 0, warning: 0, critical: 0 }
+    let rfqAging: Record<string, number> = { fresh: 0, attention: 0, warning: 0, critical: 0 }
     let rfqAgingValue = { fresh: 0, attention: 0, warning: 0, critical: 0 }
     try {
       const agingResult = await query(`

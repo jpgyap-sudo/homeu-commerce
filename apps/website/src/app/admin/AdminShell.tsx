@@ -26,6 +26,7 @@ const SECTIONS: SidebarSection[] = [
       { href: '/admin/products', icon: '◆', label: 'Products' },
       { href: '/admin/categories', icon: '◇', label: 'Categories' },
       { href: '/admin/collections', icon: '◉', label: 'Collections' },
+      { href: '/admin/reviews', icon: '⭐', label: 'Reviews' },
     ],
   },
   {
@@ -41,6 +42,7 @@ const SECTIONS: SidebarSection[] = [
       { href: '/admin/quotations', icon: '◎', label: 'Quotations' },
       { href: '/admin/rfq', icon: '◐', label: 'RFQ Requests' },
       { href: '/admin/customers', icon: '◑', label: 'Customers' },
+      { href: '/admin/designer-club', icon: '🎨', label: 'Designer Club' },
     ],
   },
   {
