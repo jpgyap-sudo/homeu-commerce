@@ -208,7 +208,7 @@ function ProductsContent() {
             </section>
           )
         }
-        if (activeCategory?.imageUrl) {
+        if (activeCategory?.imageUrl && !SWATCH_CATEGORY_SLUGS.has(selectedCategory)) {
           return (
             <section
               className="collection-banner"
