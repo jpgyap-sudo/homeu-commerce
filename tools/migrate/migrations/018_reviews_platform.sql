@@ -52,7 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_review_photos_review_id ON review_photos(review_i
 CREATE TABLE IF NOT EXISTS review_replies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   review_id UUID NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
-  admin_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  admin_user_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
   body TEXT NOT NULL,
   ai_drafted BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL

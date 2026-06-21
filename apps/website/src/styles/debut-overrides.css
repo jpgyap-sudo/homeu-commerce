@@ -2236,30 +2236,20 @@
   }
 }
 
-/* Blog grid */
+/* Blog grid — relies on the existing float + percentage-width + padding-left
+   system shared with .medium-up--one-third (box-sizing: border-box keeps the
+   padding inside each item's width, so 3 items at 33.333% tile exactly to
+   100% with no extra gutter needed). Do NOT add flex `gap` here — it stacks
+   on top of that padding-based gutter and overflows the row, which drops
+   the layout to 2 columns instead of 3. */
 .grid--blog {
   margin: 0;
   list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 30px;
 }
 
 .grid--blog > .grid__item {
   display: flex;
   flex-direction: column;
-}
-
-@media (max-width: 768px) {
-  .grid--blog {
-    gap: 20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .grid--blog {
-    gap: 30px;
-  }
 }
 
 /* Article card */

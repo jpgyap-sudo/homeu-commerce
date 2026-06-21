@@ -72,8 +72,8 @@ export async function computeDNAScores(): Promise<{ summary: DNASummary; product
 function scoreProduct(r: any): DNAProduct {
   const id = r.id; const title = r.title; const slug = r.slug
   const imageCount = r.image_count || 0
-  const hasDimensions = !!(r.dimensions)
-  const hasMaterials = !!(r.materials)
+  // Note: dimensions and materials are MTO (Made-to-Order) custom fields
+  // selected during RFQ — not standalone product attributes. Not scored.
   const hasDescription = !!(r.description)
   const hasPrice = !!(r.price)
   const hasCategory = !!(r.category_id)
@@ -83,29 +83,26 @@ function scoreProduct(r: any): DNAProduct {
   const rfqs = Number(r.rfq_count) || 0
   const quotes = Number(r.quote_count) || 0
 
-  // Visual (25)
+  // Visual (30) — increased from 25 since we removed dimensions/materials
   let visualScore = 0
-  if (imageCount >= 3) visualScore = 25
-  else if (imageCount === 2) visualScore = 18
-  else if (imageCount === 1) visualScore = 10
+  if (imageCount >= 3) visualScore = 30
+  else if (imageCount === 2) visualScore = 22
+  else if (imageCount === 1) visualScore = 12
   const visualDetail = imageCount === 0 ? 'No photos' : imageCount >= 3 ? `${imageCount} photos` : `${imageCount} photo — add more`
 
-  // Descriptive (25)
+  // Descriptive (15) — reduced from 25 (removed dimensions + materials scoring)
   let descScore = 0
-  if (hasDimensions) descScore += 9
-  if (hasMaterials) descScore += 8
-  if (hasDescription) descScore += 8
-  const descMissing = ['dimensions', 'materials', 'description'].filter(x => !{ dimensions: hasDimensions, materials: hasMaterials, description: hasDescription }[x])
-  const descDetail = descScore === 25 ? 'Complete' : `Missing: ${descMissing.join(', ') || 'all fields'}`
+  if (hasDescription) descScore += 15
+  const descDetail = hasDescription ? 'Has description' : 'Missing description'
 
-  // Commercial (20)
+  // Commercial (25) — increased from 20 (takes weight from descriptive)
   let comScore = 0
-  if (hasPrice) comScore += 12
-  if (hasCategory) comScore += 8
+  if (hasPrice) comScore += 15
+  if (hasCategory) comScore += 10
   const comMissing: string[] = []
   if (!hasPrice) comMissing.push('price')
   if (!hasCategory) comMissing.push('category')
-  const comDetail = comScore === 20 ? 'Price + category set' : `Missing: ${comMissing.join(', ')}`
+  const comDetail = comScore === 25 ? 'Price + category set' : `Missing: ${comMissing.join(', ')}`
 
   // SEO (15)
   let seoScore = 0
@@ -133,8 +130,6 @@ function scoreProduct(r: any): DNAProduct {
 
   const fixes: string[] = []
   if (imageCount < 2) fixes.push(`${3 - imageCount} more photo${imageCount !== 1 ? 's' : ''}`)
-  if (!hasDimensions) fixes.push('Add dimensions')
-  if (!hasMaterials) fixes.push('Add materials')
   if (!hasDescription) fixes.push('Add description')
   if (!hasPrice) fixes.push('Set price')
   if (!hasCategory) fixes.push('Add category')
@@ -143,9 +138,9 @@ function scoreProduct(r: any): DNAProduct {
 
   return {
     id, title, slug, score, grade,
-    visuals: { score: visualScore, max: 25, detail: visualDetail },
-    descriptive: { score: descScore, max: 25, detail: descDetail },
-    commercial: { score: comScore, max: 20, detail: comDetail },
+    visuals: { score: visualScore, max: 30, detail: visualDetail },
+    descriptive: { score: descScore, max: 15, detail: descDetail },
+    commercial: { score: comScore, max: 25, detail: comDetail },
     seo: { score: seoScore, max: 15, detail: seoDetail },
     performance: { score: perfScore, max: 15, detail: perfDetail },
     fixes,
