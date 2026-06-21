@@ -9,6 +9,7 @@ const TABS = [
   { href: '/admin/analytics/leads', label: 'Leads & CRM', icon: '👤' },
   { href: '/admin/analytics/pipeline', label: 'Sales Pipeline', icon: '💰' },
   { href: '/admin/analytics/products', label: 'Products', icon: '🛋️' },
+  { href: '/admin/analytics/speed', label: 'Speed', icon: '⚡' },
   { href: '/admin/analytics/reports', label: 'Reports', icon: '📋' },
 ]
 

@@ -84,6 +84,7 @@ export interface CdnConfig {
   doSpacesKey: string
   doSpacesSecret: string
   doSpacesBucket: string
+  doSpacesRegion: string
   doSpacesEndpoint: string
   doSpacesCdnEndpoint: string
 }
@@ -240,6 +241,7 @@ const NAMESPACES: Record<string, NamespaceWithDefault<any>> = {
       doSpacesKey: process.env.DO_SPACES_KEY || '',
       doSpacesSecret: process.env.DO_SPACES_SECRET || '',
       doSpacesBucket: process.env.DO_SPACES_BUCKET || 'homeatelierspaces',
+      doSpacesRegion: process.env.DO_SPACES_REGION || 'sgp1',
       doSpacesEndpoint: process.env.DO_SPACES_ORIGIN_ENDPOINT?.replace('https://', '') || 'sgp1.digitaloceanspaces.com',
       doSpacesCdnEndpoint: process.env.DO_SPACES_CDN_ENDPOINT || 'https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com',
     }),
@@ -247,6 +249,7 @@ const NAMESPACES: Record<string, NamespaceWithDefault<any>> = {
       DO_SPACES_KEY: 'doSpacesKey',
       DO_SPACES_SECRET: 'doSpacesSecret',
       DO_SPACES_BUCKET: 'doSpacesBucket',
+      DO_SPACES_REGION: 'doSpacesRegion',
       DO_SPACES_ORIGIN_ENDPOINT: 'doSpacesEndpoint',
       DO_SPACES_CDN_ENDPOINT: 'doSpacesCdnEndpoint',
     },

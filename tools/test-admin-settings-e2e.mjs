@@ -60,6 +60,16 @@ check('AI settings page exists and saves to the ai namespace', aiPage.includes("
 
 const cdnPage = source('apps/website/src/app/admin/settings/cdn/page.tsx')
 check('CDN settings page exists', existsSync(resolve(root, 'apps/website/src/app/admin/settings/cdn/page.tsx')))
+check('CDN settings page exposes the Region field do-spaces.ts depends on', cdnPage.includes('doSpacesRegion'))
+
+// ── Media upload actually persists to DO Spaces, not the container's disk ──
+const doSpacesLib = source('apps/website/src/lib/do-spaces.ts')
+check('do-spaces.ts reads credentials from the admin-configured cdn namespace', doSpacesLib.includes("loadNamespace") && doSpacesLib.includes("'cdn'"))
+
+const uploadRoute = source('apps/website/src/app/api/admin/media/upload/route.ts')
+check('media upload route no longer writes to local container disk', !uploadRoute.includes('fs/promises') && !uploadRoute.includes("'/uploads/"))
+check('media upload route uploads to DO Spaces', uploadRoute.includes('uploadBufferToSpaces'))
+check('media upload route dedupes by sha256 and registers the media row', uploadRoute.includes('WHERE sha256') && uploadRoute.includes('INSERT INTO media'))
 
 const settingsNav = source('apps/website/src/app/admin/settings/SettingsNav.tsx')
 check('Settings nav uses usePathname for active-tab state (not hardcoded false)', settingsNav.includes('usePathname'))

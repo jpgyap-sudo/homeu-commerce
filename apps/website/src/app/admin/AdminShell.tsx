@@ -38,7 +38,7 @@ const SECTIONS: SidebarSection[] = [
   {
     id: 'sales', label: 'Sales', icon: '⎔',
     links: [
-      { href: '/admin/quotations', icon: '◎', label: 'Quotations', badge: '83' },
+      { href: '/admin/quotations', icon: '◎', label: 'Quotations' },
       { href: '/admin/rfq', icon: '◐', label: 'RFQ Requests' },
       { href: '/admin/customers', icon: '◑', label: 'Customers' },
     ],

@@ -10,6 +10,7 @@ import MobileDrawer from '@/components/MobileDrawer'
 import MobileHomepageEnhancer from '@/components/MobileHomepageEnhancer'
 import PageViewTracker from '@/components/PageViewTracker'
 import LiveVisitorTracker from '@/components/LiveVisitorTracker'
+import WebVitalsTracker from '@/components/WebVitalsTracker'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { getMainNav } from '@/lib/navigation'
@@ -121,6 +122,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <MobileBottomNav />
         <MobileDrawer />
         <ChatWidget />
+        <WebVitalsTracker />
         <InstallPrompt />
       </body>
     </html>

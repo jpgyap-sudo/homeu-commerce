@@ -9,9 +9,9 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { createHash, randomBytes } from 'crypto'
+import { query } from '@/lib/db'
+import { uploadBufferToSpaces } from '@/lib/do-spaces'
+import { createHash } from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,16 +24,27 @@ export async function POST(request: NextRequest) {
 
     const bytes = Buffer.from(await file.arrayBuffer())
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-    const hash = createHash('sha256').update(bytes).update(randomBytes(4)).digest('hex').slice(0, 16)
-    const filename = `${hash}.${ext}`
+    const sha256 = createHash('sha256').update(bytes).digest('hex')
 
-    const uploadDir = join(process.cwd(), 'public', 'uploads')
-    await mkdir(uploadDir, { recursive: true })
-    await writeFile(join(uploadDir, filename), bytes)
+    // Dedupe: identical bytes reuse the existing Spaces object + media row.
+    const existing = await query(`SELECT * FROM media WHERE sha256 = $1 LIMIT 1`, [sha256])
+    if (existing.rows.length > 0) {
+      return NextResponse.json({ url: existing.rows[0].url, deduped: true, media: existing.rows[0] }, { status: 200 })
+    }
 
-    return NextResponse.json({ url: `/uploads/${filename}` }, { status: 201 })
-  } catch (err) {
+    const key = `uploads/${sha256}.${ext}`
+    const url = await uploadBufferToSpaces(bytes, key, file.type || 'application/octet-stream')
+
+    const inserted = await query(
+      `INSERT INTO media (url, filename, mime_type, filesize, sha256, source, kind, usage, used_count, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, 'upload', 'image', '[]'::jsonb, 0, NOW(), NOW())
+       RETURNING *`,
+      [url, file.name, file.type || null, bytes.length, sha256]
+    )
+
+    return NextResponse.json({ url, deduped: false, media: inserted.rows[0] }, { status: 201 })
+  } catch (err: any) {
     console.error('[api/admin/media/upload] POST error:', err)
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+    return NextResponse.json({ error: err.message || 'Upload failed' }, { status: 500 })
   }
 }

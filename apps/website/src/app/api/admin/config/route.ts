@@ -84,6 +84,10 @@ export async function PUT(request: NextRequest) {
       const { resetAIProvider } = await import('@/lib/chatbot/ai-provider')
       resetAIProvider()
     }
+    if (namespace === 'cdn') {
+      const { resetSpacesClient } = await import('@/lib/do-spaces')
+      resetSpacesClient()
+    }
 
     return NextResponse.json({
       success: true,
