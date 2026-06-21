@@ -1550,3 +1550,77 @@ textarea {
     align-self: center;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Homepage Reviews ("What Our Customers Say") — native reviews,
+   replaces the old empty Judge.me carousel placeholder.
+   ══════════════════════════════════════════════════════════════ */
+
+.homepage-reviews__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.homepage-reviews__card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+}
+
+.homepage-reviews__stars {
+  color: #d9a04b;
+  font-size: 16px;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+.homepage-reviews__title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.homepage-reviews__body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0 0 16px;
+  flex: 1;
+}
+
+.homepage-reviews__meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.homepage-reviews__meta a {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.homepage-reviews__verified {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #1a6d3e;
+  background: #ecfdf5;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+@media (max-width: 900px) {
+  .homepage-reviews__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .homepage-reviews__grid {
+    grid-template-columns: 1fr;
+  }
+}
