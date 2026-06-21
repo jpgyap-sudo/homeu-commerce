@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         // Load SMTP config from DB with env fallback
         const { loadSmtpConfig } = await import('@/lib/smtp-config')
         const smtp = await loadSmtpConfig()
-        const serverUrl = process.env.DAVINCIOS_PUBLIC_SERVER_URL || process.env.APP_URL || 'https://homeu.ph'
+        const serverUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || 'https://store.homeu.ph'
         const resetLink = `${serverUrl}/customer/reset-password?token=${token}`
         const customerName = result.rows[0].name || 'Valued Customer'
 
