@@ -592,10 +592,11 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
     setSectionsWithHistory(s => s.map(x => x.id === id ? { ...x, config: { ...x.config, [key]: value } } : x))
     setDirty(true)
   }
+async function patchSection(id: number, body: any) {
+  const res = await fetch(`/api/theme/sections/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  if (!res.ok) throw new Error(`Save failed (${res.status}): ${(await res.json().catch(() => ({}))).error || res.statusText}`)
+}
 
-  async function patchSection(id: number, body: any) {
-    await fetch(`/api/theme/sections/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-  }
 
   async function saveSection(sec: Section) {
     setSavingId(sec.id)
@@ -615,6 +616,8 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
       }
       await patchSection(sec.id, { config })
       flash('Saved'); refreshPreview()
+    } catch (err: any) {
+      flash('Error: ' + (err.message || 'Failed to save'))
     } finally { setSavingId(null) }
   }
 
@@ -665,17 +668,20 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
       // Save header if dirty (tracked by its own save, but included for completeness)
       promises.push(
         fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'header_settings', value: header }) })
-          .then(() => {})
+          .then(r => { if (!r.ok) throw new Error(`Header save failed (${r.status})`) })
       )
 
       await Promise.all(promises)
 
       // Persist section order (config/enabled saved above; order saved here)
-      await fetch('/api/theme/sections', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: sections.map(s => s.id) }) })
+      const orderRes = await fetch('/api/theme/sections', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: sections.map(s => s.id) }) })
+      if (!orderRes.ok) throw new Error(`Order save failed (${orderRes.status})`)
       setDirty(false)
       setCssDirty(false)
       setPaletteDirty(false)
       flash('All changes saved'); refreshPreview()
+    } catch (err: any) {
+      flash('Error: ' + (err.message || 'Failed to save all'))
     } finally { setIsSavingAll(false) }
   }
 
@@ -821,7 +827,7 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
     flash('Theme exported')
   }
 
-  function importTheme() {
+  async function importTheme() {
     const input = document.createElement('input')
     input.type = 'file'; input.accept = '.json'
     input.onchange = async (e: any) => {
@@ -831,16 +837,33 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
         const text = await file.text()
         const data = JSON.parse(text)
         if (!data.sections || !Array.isArray(data.sections)) { flash('Invalid theme file'); return }
-        // Fetch current sections fresh from API before deleting
-        const fresh = await fetch('/api/theme/sections').then(r => r.json())
-        const currentSections: Section[] = fresh.sections || []
-        for (const sec of currentSections) { await fetch(`/api/theme/sections/${sec.id}`, { method: 'DELETE' }) }
+
+        // Validate all section types before touching anything
+        for (const s of data.sections) {
+          if (!SECTION_TYPES.includes(s.type)) {
+            flash(`Invalid section type "${s.type}" — import cancelled`)
+            return
+          }
+        }
+
+        // Create new sections first (non-destructive)
         const newSections: Section[] = []
         for (const s of data.sections) {
-          const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: s.type, config: s.config, enabled: s.enabled }) })
+          const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: s.type, config: s.config || {}, enabled: s.enabled !== false }) })
+          if (!res.ok) throw new Error(`Failed to create section "${s.type}" (${res.status})`)
           const { id } = await res.json()
           newSections.push({ ...s, id, position: (newSections.length + 1) * 10 })
         }
+
+        // Only after all new sections are created, delete old ones
+        const fresh = await fetch('/api/theme/sections').then(r => r.json())
+        const currentSections: Section[] = fresh.sections || []
+        for (const sec of currentSections) {
+          if (!newSections.some(ns => ns.id === sec.id)) {
+            await fetch(`/api/theme/sections/${sec.id}`, { method: 'DELETE' })
+          }
+        }
+
         setSections(newSections)
         if (data.css) { setCss(data.css); setCssDirty(true) }
         if (data.palette) { setPalette(data.palette); setPaletteDirty(true) }
