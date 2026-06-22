@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { renderLexical } from '@/lib/renderLexical'
 import { formatPrice } from '@/lib/format-utils'
 import { QuickRFQ } from '@/components/QuoteCart'
+import BundleOffer from '@/components/BundleOffer'
 import { getProductBadges, isOnSale } from '@/lib/product-badges'
 import ReviewsSection from '@/components/ReviewsSection'
 
@@ -358,6 +359,10 @@ export default function ProductDetailPage() {
             />
           )}
         </div>
+      </div>
+
+      <div className="page-width">
+        <BundleOffer productSlug={product.slug} />
       </div>
 
       <div className="page-width">

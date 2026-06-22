@@ -26,7 +26,6 @@ const SECTIONS: SidebarSection[] = [
       { href: '/admin/products', icon: '◆', label: 'Products' },
       { href: '/admin/categories', icon: '◇', label: 'Categories' },
       { href: '/admin/collections', icon: '◉', label: 'Collections' },
-      { href: '/admin/reviews', icon: '⭐', label: 'Reviews' },
     ],
   },
   {
@@ -54,6 +53,7 @@ const SECTIONS: SidebarSection[] = [
       { href: '/admin/pages', icon: '◈', label: 'Pages' },
       { href: '/admin/media', icon: '◉', label: 'Media' },
       { href: '/admin/redirects', icon: '◐', label: 'Redirects' },
+      { href: '/admin/reviews', icon: '⭐', label: 'Reviews' },
     ],
   },
   {

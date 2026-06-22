@@ -53,6 +53,19 @@ interface ProductVariant {
   isDefault?: boolean
 }
 
+interface ProductBundle {
+  id: number
+  bundled_product_id: number
+  bundled_title: string
+  bundled_slug: string
+  bundled_image_url: string | null
+  bundled_variant_id: number | null
+  bundled_quantity: number
+  discount_type: 'percent' | 'fixed'
+  discount_value: string | number
+  active: boolean
+}
+
 // ── Status / Sales Channel options ───────────────────────────────────
 
 const STATUS_OPTIONS = [
@@ -141,6 +154,7 @@ export default function EditProductPage() {
   const [seoDescription, setSeoDescription] = useState('')
   const [originalProduct, setOriginalProduct] = useState<ProductData | null>(null)
   const [variants, setVariants] = useState<ProductVariant[]>([])
+  const [bundles, setBundles] = useState<ProductBundle[]>([])
 
   // ── Load data ─────────────────────────────────────────────────
   useEffect(() => {
@@ -164,6 +178,13 @@ export default function EditProductPage() {
         setOriginalProduct(product)
         populateForm(product)
         setVariants(product.variants || [])
+
+        // Load bundle offers ("buy these together")
+        const bundlesRes = await fetch(`/api/admin/products/${id}/bundles`, { credentials: 'include' })
+        if (bundlesRes.ok) {
+          const bundlesData = await bundlesRes.json()
+          setBundles(bundlesData.bundles || [])
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load product')
       } finally {
@@ -422,6 +443,19 @@ export default function EditProductPage() {
             productId={parseInt(params?.id as string, 10)}
             variants={variants}
             onChange={setVariants}
+          />
+        </Section>
+
+        {/* ── Section: Frequently Bought Together ── */}
+        <Section title="Frequently Bought Together">
+          <p style={{ fontSize: 13, color: '#667168', margin: '-4px 0 14px' }}>
+            Show a "Buy these products together and get a discount!" offer on this product's
+            page. Pick a partner product, how many of it to include, and the discount to apply.
+          </p>
+          <BundlesEditor
+            productId={parseInt(params?.id as string, 10)}
+            bundles={bundles}
+            onChange={setBundles}
           />
         </Section>
 
@@ -740,4 +774,219 @@ function VariantsEditor({ productId, variants, onChange }: {
 const selectStyle: React.CSSProperties = {
   ...inputStyle,
   cursor: 'pointer',
+}
+
+/** CRUD editor for a product's "Frequently Bought Together" bundle offers —
+ * each row saves itself immediately via the admin bundles API. */
+function BundlesEditor({ productId, bundles, onChange }: {
+  productId: number
+  bundles: ProductBundle[]
+  onChange: (bundles: ProductBundle[]) => void
+}) {
+  const [busyId, setBusyId] = useState<number | 'new' | null>(null)
+  const [rowError, setRowError] = useState('')
+
+  // Partner product search
+  const [search, setSearch] = useState('')
+  const [results, setResults] = useState<{ id: number; title: string; slug: string; imageUrl: string | null }[]>([])
+  const [searching, setSearching] = useState(false)
+  const [selected, setSelected] = useState<{ id: number; title: string } | null>(null)
+  const [quantity, setQuantity] = useState('1')
+  const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent')
+  const [discountValue, setDiscountValue] = useState('5')
+
+  useEffect(() => {
+    if (!search.trim() || selected) { setResults([]); return }
+    setSearching(true)
+    const t = setTimeout(() => {
+      fetch(`/api/admin/products/picker?q=${encodeURIComponent(search.trim())}&limit=8`, { credentials: 'include' })
+        .then(r => r.ok ? r.json() : { products: [] })
+        .then(d => setResults((d.products || []).filter((p: any) => p.id !== productId)))
+        .catch(() => setResults([]))
+        .finally(() => setSearching(false))
+    }, 300)
+    return () => clearTimeout(t)
+  }, [search, selected, productId])
+
+  async function addBundle() {
+    if (!selected) { setRowError('Search and pick a partner product first'); return }
+    setRowError('')
+    setBusyId('new')
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/bundles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          bundledProductId: selected.id,
+          bundledQuantity: parseInt(quantity, 10) || 1,
+          discountType,
+          discountValue: discountValue || 0,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to add bundle')
+      const fresh = await fetch(`/api/admin/products/${productId}/bundles`, { credentials: 'include' })
+      if (fresh.ok) onChange((await fresh.json()).bundles || [])
+      setSelected(null); setSearch(''); setQuantity('1'); setDiscountValue('5')
+    } catch (err: any) {
+      setRowError(err.message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function updateBundle(id: number, patch: Record<string, any>) {
+    setBusyId(id)
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/bundles/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(patch),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to update bundle') }
+      onChange(bundles.map(b => b.id === id ? { ...b, ...toBundlePatch(patch) } : b))
+    } catch (err: any) {
+      setRowError(err.message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  function toBundlePatch(patch: Record<string, any>): Partial<ProductBundle> {
+    const out: Partial<ProductBundle> = {}
+    if (patch.bundledQuantity !== undefined) out.bundled_quantity = patch.bundledQuantity
+    if (patch.discountType !== undefined) out.discount_type = patch.discountType
+    if (patch.discountValue !== undefined) out.discount_value = patch.discountValue
+    if (patch.active !== undefined) out.active = patch.active
+    return out
+  }
+
+  async function deleteBundle(id: number) {
+    if (!confirm('Remove this bundle offer? This cannot be undone.')) return
+    setBusyId(id)
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/bundles/${id}`, { method: 'DELETE', credentials: 'include' })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to delete bundle') }
+      onChange(bundles.filter(b => b.id !== id))
+    } catch (err: any) {
+      setRowError(err.message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  return (
+    <div>
+      {bundles.length > 0 && (
+        <div style={{ overflowX: 'auto', marginBottom: 14 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ textAlign: 'left', color: '#667168' }}>
+                <th style={{ padding: '4px 8px' }}>Partner Product</th>
+                <th style={{ padding: '4px 8px' }}>Qty</th>
+                <th style={{ padding: '4px 8px' }}>Discount</th>
+                <th style={{ padding: '4px 8px' }}>Active</th>
+                <th style={{ padding: '4px 8px' }} />
+              </tr>
+            </thead>
+            <tbody>
+              {bundles.map(b => (
+                <tr key={b.id} style={{ borderTop: '1px solid #eef1ed' }}>
+                  <td style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {b.bundled_image_url ? (
+                      <img src={b.bundled_image_url} alt="" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4 }} />
+                    ) : null}
+                    {b.bundled_title}
+                  </td>
+                  <td style={{ padding: '4px 8px' }}>
+                    <input type="number" min={1} defaultValue={b.bundled_quantity} style={{ ...cellInputStyle, maxWidth: 70 }}
+                      onBlur={e => parseInt(e.target.value, 10) !== b.bundled_quantity && updateBundle(b.id, { bundledQuantity: parseInt(e.target.value, 10) || 1 })} />
+                  </td>
+                  <td style={{ padding: '4px 8px', display: 'flex', gap: 6 }}>
+                    <select defaultValue={b.discount_type} style={{ ...selectStyle, maxWidth: 90, padding: '8px 8px' }}
+                      onChange={e => updateBundle(b.id, { discountType: e.target.value })}>
+                      <option value="percent">%</option>
+                      <option value="fixed">₱ off</option>
+                    </select>
+                    <input type="number" min={0} step={0.01} defaultValue={b.discount_value} style={{ ...cellInputStyle, maxWidth: 80 }}
+                      onBlur={e => parseFloat(e.target.value) !== Number(b.discount_value) && updateBundle(b.id, { discountValue: parseFloat(e.target.value) || 0 })} />
+                  </td>
+                  <td style={{ padding: '4px 8px' }}>
+                    <input type="checkbox" defaultChecked={b.active} style={{ width: 16, height: 16, cursor: 'pointer' }}
+                      onChange={e => updateBundle(b.id, { active: e.target.checked })} />
+                  </td>
+                  <td style={{ padding: '4px 8px' }}>
+                    <button type="button" onClick={() => deleteBundle(b.id)} disabled={busyId === b.id}
+                      style={{ background: 'none', border: 'none', color: '#b42318', cursor: 'pointer', fontSize: 16 }}
+                      title="Remove this bundle offer">✕</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+        <Field label="Partner Product">
+          {selected ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ ...cellInputStyle, display: 'flex', alignItems: 'center' }}>{selected.title}</span>
+              <button type="button" onClick={() => { setSelected(null); setSearch('') }}
+                style={{ background: 'none', border: 'none', color: '#667168', cursor: 'pointer' }}>✕</button>
+            </div>
+          ) : (
+            <div style={{ position: 'relative' }}>
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search products..." style={cellInputStyle} />
+              {search.trim() && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+                  background: '#fff', border: '1px solid #d9e0d7', borderRadius: 8,
+                  maxHeight: 220, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                }}>
+                  {searching && <div style={{ padding: 8, fontSize: 12, color: '#888' }}>Searching…</div>}
+                  {!searching && results.length === 0 && <div style={{ padding: 8, fontSize: 12, color: '#888' }}>No matches</div>}
+                  {results.map(p => (
+                    <button key={p.id} type="button"
+                      onClick={() => { setSelected({ id: p.id, title: p.title }); setResults([]) }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
+                        padding: '8px 10px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13,
+                      }}>
+                      {p.imageUrl ? <img src={p.imageUrl} alt="" style={{ width: 24, height: 24, objectFit: 'cover', borderRadius: 4 }} /> : null}
+                      {p.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </Field>
+        <Field label="Qty">
+          <input type="number" min={1} value={quantity} onChange={e => setQuantity(e.target.value)} style={cellInputStyle} />
+        </Field>
+        <Field label="Discount Type">
+          <select value={discountType} onChange={e => setDiscountType(e.target.value as 'percent' | 'fixed')} style={{ ...selectStyle, padding: '8px 8px' }}>
+            <option value="percent">% off</option>
+            <option value="fixed">₱ off</option>
+          </select>
+        </Field>
+        <Field label={discountType === 'percent' ? 'Discount %' : 'Discount ₱'}>
+          <input type="number" min={0} step={0.01} value={discountValue} onChange={e => setDiscountValue(e.target.value)} style={cellInputStyle} />
+        </Field>
+        <button type="button" onClick={addBundle} disabled={busyId === 'new'}
+          style={{
+            padding: '8px 16px', background: '#1a6d3e', color: '#fff', border: 'none',
+            borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: busyId === 'new' ? 'not-allowed' : 'pointer',
+            height: 38,
+          }}>
+          {busyId === 'new' ? 'Adding…' : '+ Add Bundle'}
+        </button>
+      </div>
+      {rowError && <p style={{ color: '#b42318', fontSize: 12, marginTop: 8 }}>{rowError}</p>}
+    </div>
+  )
 }
