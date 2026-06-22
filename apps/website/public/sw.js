@@ -1,27 +1,23 @@
 /**
  * HomeU Commerce — Service Worker
  *
- * Cache-first for static assets (Next.js chunks, fonts, icons).
- * Network-first for API and dynamic pages.
+ * Cache-first only for durable media assets.
+ * Network-only for Next.js runtime files, APIs, and authenticated pages.
  * Background sync for offline RFQ submission.
  * Push notifications for quotation alerts.
  *
- * Version: 1.0.1
+ * Version: 1.1.0
  *
- * 2026-06-22: bumped cache versions (v1 -> v2). _next/static/ chunks are
- * cache-first with no expiry, so repeated deploys in a single day leave
- * old chunk responses sitting in the cache indefinitely; if a client's
- * cached HTML shell or chunk reference goes stale against a new build,
- * Chrome surfaces a generic "This page couldn't load" error. Bumping the
- * version forces every client's `activate` handler to drop the old caches
- * (see the `keep` filter below) and start clean.
+ * v3 purges the old unbounded Next.js/API caches. Fingerprinted Next.js
+ * assets are left to the browser HTTP cache, while authenticated and API
+ * traffic is never placed in Cache Storage.
  */
 
 const CACHE = {
-  STATIC: 'homeu-static-v2',
-  FONTS: 'homeu-fonts-v2',
-  IMAGES: 'homeu-images-v2',
-  SHELL: 'homeu-shell-v2',
+  STATIC: 'homeu-static-v3',
+  FONTS: 'homeu-fonts-v3',
+  IMAGES: 'homeu-images-v3',
+  SHELL: 'homeu-shell-v3',
 }
 
 const STATIC_URLS = [
@@ -61,22 +57,22 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
-  // Skip non-GET, non-HTTP(S), and admin API requests
+  // Let the browser handle non-GET and non-HTTP(S) traffic.
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) return
-  if (url.pathname.startsWith('/api/admin/')) {
-    // Network-only for admin (never cache sensitive data)
-    return
-  }
 
-  // Skip service worker and manifest (always fresh from network)
-  if (url.pathname === '/sw.js' || url.pathname === '/manifest.json') {
-    event.respondWith(networkFirst(request))
-    return
-  }
-
-  // Cache-first: fingerprinted Next.js static assets
-  if (url.pathname.startsWith('/_next/static/')) {
-    event.respondWith(cacheFirst(request, CACHE.STATIC))
+  // Never put runtime code, API responses, or authenticated/account pages in
+  // Cache Storage. This prevents stale chunk failures and cross-session data.
+  if (
+    url.pathname.startsWith('/_next/static/') ||
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/customer/') ||
+    url.pathname.startsWith('/admin') ||
+    url.pathname === '/login' ||
+    url.pathname === '/register' ||
+    url.pathname.startsWith('/reset-password') ||
+    url.pathname === '/sw.js' ||
+    url.pathname === '/manifest.json'
+  ) {
     return
   }
 
@@ -92,59 +88,38 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Network-first: API calls (non-admin)
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirst(request))
-    return
-  }
-
-  // Stale-while-revalidate: navigation and product pages
+  // Public navigation gets a network response; only the pre-cached homepage
+  // is used as an offline fallback. Dynamic responses are never cached here.
   if (request.mode === 'navigate') {
-    event.respondWith(networkFirst(request))
+    event.respondWith(navigationNetworkFirst(request))
     return
   }
-
-  // Network-first fallback for everything else
-  event.respondWith(networkFirst(request))
 })
 
 // ── Caching strategies ────────────────────────────────────────────
 
 async function cacheFirst(request, cacheName) {
-  const cached = await caches.match(request)
+  const cache = await caches.open(cacheName)
+  const cached = await cache.match(request)
   if (cached) return cached
 
   try {
     const response = await fetch(request)
     if (response.ok) {
-      const cache = await caches.open(cacheName)
       cache.put(request, response.clone())
     }
     return response
-  } catch (err) {
-    // Offline and not cached — return offline fallback
-    return caches.match('/')
+  } catch {
+    return new Response('Offline', { status: 503 })
   }
 }
 
-async function networkFirst(request) {
+async function navigationNetworkFirst(request) {
   try {
-    const response = await fetch(request)
-    if (response.ok && response.type === 'basic') {
-      const cache = await caches.open(CACHE.SHELL)
-      cache.put(request, response.clone())
-    }
-    return response
-  } catch (err) {
-    const cached = await caches.match(request)
-    if (cached) return cached
-
-    // For navigation requests, serve the cached shell
-    if (request.mode === 'navigate') {
-      const shell = await caches.match('/')
-      if (shell) return shell
-    }
-
+    return await fetch(request)
+  } catch {
+    const shell = await caches.open(CACHE.SHELL).then((cache) => cache.match('/'))
+    if (shell) return shell
     return new Response('Offline', { status: 503 })
   }
 }

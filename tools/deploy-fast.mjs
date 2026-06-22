@@ -61,11 +61,16 @@ function deploy() {
   console.log('  📡 Sync VPS working tree to origin/master...')
   remote(`cd ${VPS_REPO} && git fetch origin -q && git reset --hard origin/master && echo "VPS now at $(git rev-parse --short HEAD)"`, 60000)
 
-  // 2. Rebuild + recreate only the website container (postgres/ollama untouched).
+  // 2. Keep the tracked nginx config as the production source of truth. Test
+  //    before reload and restore the previous config if validation fails.
+  console.log('  Sync + validate nginx config...')
+  remote(`if ! cmp -s ${VPS_REPO}/homeu.conf /etc/nginx/conf.d/homeu.conf; then cp /etc/nginx/conf.d/homeu.conf /tmp/homeu.conf.pre-deploy && install -m 0644 ${VPS_REPO}/homeu.conf /etc/nginx/conf.d/homeu.conf && if nginx -t; then systemctl reload nginx; else cp /tmp/homeu.conf.pre-deploy /etc/nginx/conf.d/homeu.conf; nginx -t; exit 1; fi; else echo "nginx config unchanged"; fi`, 60000)
+
+  // 3. Rebuild + recreate only the website container (postgres/ollama untouched).
   console.log('  🐳 Rebuild + restart website container (this is the actual deploy)...')
   remote(`cd ${VPS_REPO} && docker compose up -d --build website 2>&1 | tail -8`, 600000)
 
-  // 3. Public smoke test (from this machine).
+  // 4. Public smoke test (from this machine).
   console.log('  🔍 Smoke test...')
   try {
     execSync(`curl -s -o /dev/null -w "  admin/login: HTTP %{http_code}\\n" --max-time 20 https://admin.homeatelier.ph/admin/login`, { stdio: 'inherit' })

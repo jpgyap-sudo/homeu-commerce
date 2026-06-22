@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { resolveRfqAccess } from '@/lib/rfq-access'
 
 /**
  * Recursively convert snake_case object keys to camelCase.
@@ -40,19 +41,25 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = request.nextUrl
-    const customerId = searchParams.get('customerId')
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100)
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const access = resolveRfqAccess(session, searchParams.get('customerId'))
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status })
+    }
+
+    const requestedLimit = parseInt(searchParams.get('limit') || '20', 10)
+    const requestedOffset = parseInt(searchParams.get('offset') || '0', 10)
+    const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(requestedLimit, 100)) : 20
+    const offset = Number.isFinite(requestedOffset) ? Math.max(0, requestedOffset) : 0
     const search = searchParams.get('search') || ''
 
     const conditions: string[] = []
     const values: any[] = []
     let idx = 0
 
-    if (customerId) {
+    if (access.customerId !== null) {
       idx++
       conditions.push(`r.customer_id = $${idx}`)
-      values.push(parseInt(customerId))
+      values.push(access.customerId)
     }
 
     if (search) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { resolveRfqAccess } from '@/lib/rfq-access'
 
 /**
  * Recursively convert snake_case object keys to camelCase.
@@ -35,6 +36,11 @@ export async function GET(
   }
 
   try {
+    const access = resolveRfqAccess(session, null)
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status })
+    }
+
     const { id } = await params
     const rfqId = parseInt(id)
     if (isNaN(rfqId)) {
@@ -57,8 +63,9 @@ export async function GET(
         '[]'::jsonb
       ) as items
       FROM rfq_requests r
-      WHERE r.id = $1`,
-      [rfqId]
+      WHERE r.id = $1
+        AND ($2::integer IS NULL OR r.customer_id = $2)`,
+      [rfqId, access.customerId]
     )
 
     if (result.rows.length === 0) {

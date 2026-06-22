@@ -42,9 +42,13 @@ export default function CustomerDashboardPage() {
       try {
         // Get current logged-in customer
         const meRes = await fetch('/api/customers/me', { credentials: 'include' })
-        if (!meRes.ok) {
+        if (meRes.status === 401) {
           router.push('/login')
           return
+        }
+        if (!meRes.ok) {
+          const meError = await meRes.json().catch(() => null)
+          throw new Error(meError?.error || 'Failed to load your account profile')
         }
         const meData = await meRes.json()
         const user = meData?.user || meData
@@ -58,14 +62,18 @@ export default function CustomerDashboardPage() {
 
         // Fetch this customer's RFQs via the new rfq-requests endpoint
         try {
-          const rfqRes = await fetch(`/api/rfq-requests?customerId=${user.id}&limit=50`, {
+          const rfqRes = await fetch('/api/rfq-requests?limit=50', {
             credentials: 'include',
           })
-          if (rfqRes.ok) {
-            const rfqData = await rfqRes.json()
-            setRfqs(rfqData.rfqs || [])
+          if (!rfqRes.ok) {
+            const rfqError = await rfqRes.json().catch(() => null)
+            throw new Error(rfqError?.error || 'Failed to load quotation requests')
           }
-        } catch {} // RFQ fetch failure is non-critical
+          const rfqData = await rfqRes.json()
+          setRfqs(rfqData.rfqs || [])
+        } catch (rfqError: any) {
+          setError(rfqError.message || 'Failed to load quotation requests')
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load dashboard')
       } finally {
@@ -91,7 +99,18 @@ export default function CustomerDashboardPage() {
   }
 
   if (!customer) {
-    return null // Will redirect to login
+    return (
+      <main style={{ maxWidth: 800, margin: '40px auto', padding: '0 24px', textAlign: 'center' }}>
+        <h1>We couldn&apos;t load your account</h1>
+        <p style={{ color: '#666' }}>{error || 'Please reload to try again.'}</p>
+        <button
+          onClick={() => window.location.reload()}
+          style={{ padding: '10px 18px', border: 0, borderRadius: 6, background: '#222', color: '#fff', cursor: 'pointer' }}
+        >
+          Reload
+        </button>
+      </main>
+    )
   }
 
   return (
@@ -183,7 +202,7 @@ export default function CustomerDashboardPage() {
           </div>
         )}
 
-        {rfqs.length === 0 ? (
+        {rfqs.length === 0 ? (error ? null : (
           <div style={{
             background: '#f9f9f9',
             border: '1px solid #eee',
@@ -195,7 +214,7 @@ export default function CustomerDashboardPage() {
             <p style={{ fontSize: 16, marginBottom: 8 }}>No quotation requests yet.</p>
             <p style={{ fontSize: 14 }}>Browse our products and submit your first RFQ.</p>
           </div>
-        ) : (
+        )) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {rfqs.map(rfq => (
               <Link

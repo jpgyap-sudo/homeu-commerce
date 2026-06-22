@@ -31,6 +31,13 @@ const nextConfig = {
         ],
       },
       {
+        // Service workers must revalidate on every registration/update check.
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
+        ],
+      },
+      {
         source: '/sitemap.xml',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=3600' }],
       },

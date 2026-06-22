@@ -7,9 +7,9 @@ import Link from 'next/link'
 interface RFQ {
   id: string
   status: string
-  estimated_total: number | null
-  created_at: string
-  items?: Array<{ product_title_snapshot?: string; quantity: number }>
+  estimatedTotal: number | null
+  createdAt: string
+  items?: Array<{ productTitleSnapshot?: string; quantity: number }>
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -25,24 +25,29 @@ export default function CustomerOrdersPage() {
   const router = useRouter()
   const [rfqs, setRfqs] = useState<RFQ[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     fetch('/api/customers/me', { credentials: 'include' })
-      .then(r => {
-        if (!r.ok) { router.push('/login'); return null }
+      .then(async r => {
+        if (r.status === 401) { router.push('/login'); return null }
+        if (!r.ok) {
+          const data = await r.json().catch(() => null)
+          throw new Error(data?.error || 'Failed to load your account profile')
+        }
         return r.json()
       })
       .then(async user => {
         if (!user) return
-        const res = await fetch(
-          `/api/rfq-requests?where[customer][equals]=${user.id}&sort=-createdAt&limit=50`,
-          { credentials: 'include' }
-        )
-        if (res.ok) {
-          const data = await res.json()
-          setRfqs(data.docs || [])
+        const res = await fetch('/api/rfq-requests?limit=50', { credentials: 'include' })
+        if (!res.ok) {
+          const data = await res.json().catch(() => null)
+          throw new Error(data?.error || 'Failed to load order history')
         }
+        const data = await res.json()
+        setRfqs(data.rfqs || [])
       })
+      .catch(err => setError(err.message || 'Failed to load order history'))
       .finally(() => setLoading(false))
   }, [router])
 
@@ -61,9 +66,11 @@ export default function CustomerOrdersPage() {
           All your RFQ requests and quotations. For status updates, contact our team.
         </p>
 
+        {error && <p className="account-error" role="alert">{error}</p>}
+
         {loading ? (
           <p className="account-loading">Loading…</p>
-        ) : rfqs.length === 0 ? (
+        ) : error ? null : rfqs.length === 0 ? (
           <div className="account-empty">
             <p>No requests yet.</p>
             <Link href="/products" className="btn btn--primary" style={{ marginTop: 16 }}>Browse Products</Link>
@@ -78,7 +85,7 @@ export default function CustomerOrdersPage() {
                     <div>
                       <p className="order-card__id">Request #{rfq.id.slice(-6).toUpperCase()}</p>
                       <p className="order-card__date">
-                        {new Date(rfq.created_at).toLocaleDateString('en-PH', {
+                        {new Date(rfq.createdAt).toLocaleDateString('en-PH', {
                           year: 'numeric', month: 'long', day: 'numeric',
                         })}
                       </p>
@@ -92,7 +99,7 @@ export default function CustomerOrdersPage() {
                     <ul className="order-card__items">
                       {rfq.items.slice(0, 3).map((item, i) => (
                         <li key={i} className="order-card__item">
-                          <span>{item.product_title_snapshot || 'Item'}</span>
+                          <span>{item.productTitleSnapshot || 'Item'}</span>
                           <span className="order-card__item-qty">×{item.quantity}</span>
                         </li>
                       ))}
@@ -105,9 +112,9 @@ export default function CustomerOrdersPage() {
                   )}
 
                   <div className="order-card__footer">
-                    {rfq.estimated_total != null && (
+                    {rfq.estimatedTotal != null && (
                       <span className="order-card__total">
-                        Est. ₱{rfq.estimated_total.toLocaleString('en-PH', { minimumFractionDigits: 0 })}
+                        Est. ₱{rfq.estimatedTotal.toLocaleString('en-PH', { minimumFractionDigits: 0 })}
                       </span>
                     )}
                     <Link href={`/customer/rfq/${rfq.id}`} className="order-card__link">

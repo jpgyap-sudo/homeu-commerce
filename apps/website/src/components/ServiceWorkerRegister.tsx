@@ -27,9 +27,13 @@ export default function ServiceWorkerRegister() {
       })
 
       navigator.serviceWorker
-        .register('/sw.js', { scope: '/' })
-        .then((reg) => {
+        .register('/sw.js', { scope: '/', updateViaCache: 'none' })
+        .then(async (reg) => {
           console.log('[PWA] SW registered:', reg.scope)
+
+          // Check on every page load. The worker script itself is served with
+          // no-store, so fixes are not delayed by an immutable HTTP cache.
+          await reg.update()
 
           reg.addEventListener('updatefound', () => {
             const installing = reg.installing
@@ -47,9 +51,14 @@ export default function ServiceWorkerRegister() {
         })
 
       // Re-register on reconnect
-      window.addEventListener('online', () => {
-        navigator.serviceWorker.register('/sw.js')
-      })
+      const updateOnReconnect = () => {
+        navigator.serviceWorker.getRegistration('/').then((reg) => reg?.update())
+      }
+      window.addEventListener('online', updateOnReconnect)
+
+      return () => {
+        window.removeEventListener('online', updateOnReconnect)
+      }
     }
   }, [])
 
