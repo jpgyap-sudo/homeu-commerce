@@ -22,6 +22,9 @@ export type SectionType =
   | 'video_hero'
   | 'lookbook'
   | 'category_carousel'
+  | 'product_details'
+  | 'collection_header'
+  | 'product_grid'
   // Footer sections (global, rendered on every page)
   | 'footer_brand'
   | 'footer_quick_links'
@@ -56,6 +59,9 @@ export const SECTION_META: Record<SectionType, { label: string; icon: string; de
   video_hero:        { label: 'Video hero',            icon: '🎬', description: 'Full-screen video banner with overlay' },
   lookbook:          { label: 'Lookbook',              icon: '👗', description: 'Shoppable collage image grid' },
   category_carousel: { label: 'Category carousel',     icon: '🔄', description: 'Horizontal scrolling collection tiles' },
+  product_details:   { label: 'Product details',       icon: '📦', description: 'Main product details, gallery, and specs' },
+  collection_header: { label: 'Collection header',     icon: '🏷️', description: 'Collection banner/title and description' },
+  product_grid:      { label: 'Product grid',          icon: '📱', description: 'Grid of collection products with filters' },
   // Footer sections
   footer_brand:        { label: 'Footer · Brand',       icon: '🏪', description: 'Store name, tagline and address' },
   footer_quick_links:  { label: 'Footer · Quick Links', icon: '🔗', description: 'Navigation link list' },

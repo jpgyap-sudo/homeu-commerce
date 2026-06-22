@@ -17,6 +17,7 @@ const FOOTER_TYPES = ['footer_brand', 'footer_quick_links', 'footer_newsletter',
  * render only in the footer, never in the page body.
  */
 export async function getPreviewDraft(): Promise<{
+  template?: string
   sections?: any[]
   header?: any
   css?: string
@@ -31,11 +32,10 @@ export async function getPreviewDraft(): Promise<{
 }
 
 /**
- * Fetch homepage BODY sections in display order (enabled only by default).
- * Footer-type sections live in the same table but are excluded here so they
- * render only in the footer, never in the page body.
+ * Fetch sections for a specific page template (e.g. 'index', 'product', 'collection')
+ * in display order (enabled only by default).
  */
-export async function getHomepageSections(includeDisabled = false): Promise<HomepageSection[]> {
+export async function getTemplateSections(template: string, includeDisabled = false): Promise<HomepageSection[]> {
   let isPreview = false
   try {
     const { headers } = require('next/headers')
@@ -44,7 +44,7 @@ export async function getHomepageSections(includeDisabled = false): Promise<Home
 
   if (isPreview) {
     const draft = await getPreviewDraft()
-    if (draft && Array.isArray(draft.sections)) {
+    if (draft && draft.template === template && Array.isArray(draft.sections)) {
       return draft.sections
         .filter((s: any) => !FOOTER_TYPES.includes(s.type))
         .filter((s: any) => includeDisabled || s.enabled)
@@ -55,9 +55,9 @@ export async function getHomepageSections(includeDisabled = false): Promise<Home
     const res = await query(
       `SELECT id, type, position, enabled, config
        FROM homepage_sections
-       WHERE type <> ALL($1::text[]) ${includeDisabled ? '' : 'AND enabled = true'}
+       WHERE template = $1 AND type <> ALL($2::text[]) ${includeDisabled ? '' : 'AND enabled = true'}
        ORDER BY position ASC, id ASC`,
-      [FOOTER_TYPES]
+      [template, FOOTER_TYPES]
     )
     return res.rows.map((r: any) => ({
       id: r.id,
@@ -71,6 +71,13 @@ export async function getHomepageSections(includeDisabled = false): Promise<Home
   }
 }
 
+/**
+ * Fetch homepage BODY sections in display order (enabled only by default).
+ */
+export async function getHomepageSections(includeDisabled = false): Promise<HomepageSection[]> {
+  return getTemplateSections('index', includeDisabled)
+}
+
 /** Fetch footer sections from homepage_sections (filtered by footer types). */
 export async function getFooterSections(): Promise<HomepageSection[]> {
   let isPreview = false
@@ -81,7 +88,7 @@ export async function getFooterSections(): Promise<HomepageSection[]> {
 
   if (isPreview) {
     const draft = await getPreviewDraft()
-    if (draft && Array.isArray(draft.sections)) {
+    if (draft && draft.template === 'index' && Array.isArray(draft.sections)) {
       return draft.sections
         .filter((s: any) => FOOTER_TYPES.includes(s.type))
         .filter((s: any) => s.enabled)
@@ -92,7 +99,7 @@ export async function getFooterSections(): Promise<HomepageSection[]> {
     const res = await query(
       `SELECT id, type, position, enabled, config
        FROM homepage_sections
-       WHERE type = ANY($1::text[]) AND enabled = true
+       WHERE template = 'index' AND type = ANY($1::text[]) AND enabled = true
        ORDER BY position ASC, id ASC`,
       [FOOTER_TYPES]
     )

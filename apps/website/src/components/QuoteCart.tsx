@@ -238,6 +238,8 @@ interface QuickRFQProps {
   }
   /** Optional note preset — e.g., "I need this in walnut finish" */
   presetNote?: string
+  /** Optional custom button text */
+  buttonText?: string
 }
 
 /**
@@ -249,7 +251,7 @@ interface QuickRFQProps {
  * 3. Auto-rotates to "View in RFQ" when item is already in cart
  * 4. Shows inline quantity selector for bulk inquiries
  */
-export function QuickRFQ({ product, presetNote }: QuickRFQProps) {
+export function QuickRFQ({ product, presetNote, buttonText }: QuickRFQProps) {
   const [inCart, setInCart] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
   const [quantity, setQuantity] = useState(1)
@@ -326,7 +328,7 @@ export function QuickRFQ({ product, presetNote }: QuickRFQProps) {
               <circle cx="8.5" cy="17" r="1" fill="currentColor" stroke="none" />
               <circle cx="15.5" cy="17" r="1" fill="currentColor" stroke="none" />
             </svg>
-            Add to RFQ
+            {buttonText || 'Add to RFQ'}
           </span>
           {priceEl}
         </button>

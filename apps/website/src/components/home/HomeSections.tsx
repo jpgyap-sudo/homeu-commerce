@@ -18,6 +18,9 @@ import { formatPrice } from '@/lib/format-utils'
 import { compileRules } from '@/lib/collection-rules'
 import { generateSectionStyles, ANIMATION_CSS, GRADIENT_TEXT_CSS } from '@/lib/theme-styles'
 import SectionAnimation from '@/components/home/SectionAnimation'
+import ProductDetailClient from '@/components/ProductDetailClient'
+import CollectionHeaderClient from '@/components/CollectionHeaderClient'
+import ProductGridClient from '@/components/ProductGridClient'
 
 // ── Data fetchers ────────────────────────────────────────────────────────
 interface CollectionTile { id: number; title: string; slug: string; image_url: string | null }
@@ -144,6 +147,45 @@ async function fetchProductsByIds(ids: number[]): Promise<ProductCard[]> {
   } catch { return [] }
 }
 
+async function fetchRelatedProducts(categoryId: any, excludeId: any, limit: number): Promise<ProductCard[]> {
+  let products: ProductCard[] = []
+  if (categoryId) {
+    try {
+      const res = await query(
+        `SELECT DISTINCT ON (p.id) p.id, p.title, p.slug, p.price, p.sale_price,
+                (SELECT url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1) AS image_url,
+                cat.title AS category_title,${REVIEW_STATS_SELECT}
+         FROM products p
+         LEFT JOIN categories cat ON cat.id = p.category_id
+         WHERE p.category_id = $1 AND p.id <> $2 AND p.status = 'active'
+         ORDER BY p.id ASC
+         LIMIT $3`,
+        [categoryId, excludeId, limit]
+      )
+      products = res.rows
+    } catch {}
+  }
+  if (products.length < limit) {
+    try {
+      const remainingLimit = limit - products.length
+      const excludeIds = [excludeId, ...products.map(p => p.id)].filter(Boolean)
+      const res = await query(
+        `SELECT DISTINCT ON (p.id) p.id, p.title, p.slug, p.price, p.sale_price,
+                (SELECT url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1) AS image_url,
+                cat.title AS category_title,${REVIEW_STATS_SELECT}
+         FROM products p
+         LEFT JOIN categories cat ON cat.id = p.category_id
+         WHERE p.id <> ALL($1::int[]) AND p.status = 'active'
+         ORDER BY p.id ASC
+         LIMIT $2`,
+        [excludeIds, remainingLimit]
+      )
+      products = [...products, ...res.rows]
+    } catch {}
+  }
+  return products
+}
+
 function peso(n: number | null): string {
   return formatPrice(n)
 }
@@ -189,11 +231,39 @@ async function fetchReviewStats(): Promise<{ avg: number; count: number }> {
 }
 
 // ── Individual section renderers ─────────────────────────────────────────
-async function renderSection(section: HomepageSection) {
+async function renderSection(section: HomepageSection, context?: any) {
   // Merge DB config with full defaults so every setting key always exists
   const cfg = mergeWithDefaults(section.type, section.config)
 
   switch (section.type) {
+    case 'product_details': {
+      if (!context?.product) return null
+      return (
+        <ProductDetailClient
+          product={context.product}
+          config={cfg}
+        />
+      )
+    }
+
+    case 'collection_header': {
+      if (!context?.category) return null
+      return (
+        <CollectionHeaderClient
+          category={context.category}
+          config={cfg}
+        />
+      )
+    }
+
+    case 'product_grid': {
+      return (
+        <ProductGridClient
+          config={cfg}
+        />
+      )
+    }
+
     case 'slideshow': {
       const slides = (cfg.slides || []).map((s: any) => ({
         image: s.image, heading: s.heading, subheading: s.subheading,
@@ -306,7 +376,10 @@ async function renderSection(section: HomepageSection) {
       let products: ProductCard[] = []
       let viewAllHref = '/products'
 
-      if (cfg.source === 'curated' && Array.isArray(cfg.curatedIds) && cfg.curatedIds.length > 0) {
+      if (context?.product && (!cfg.source || cfg.source === 'auto')) {
+        products = await fetchRelatedProducts(context.product.category_id || context.product.categoryId, context.product.id, limit)
+        viewAllHref = '/products'
+      } else if (cfg.source === 'curated' && Array.isArray(cfg.curatedIds) && cfg.curatedIds.length > 0) {
         products = await fetchProductsByIds(cfg.curatedIds.slice(0, limit))
         viewAllHref = '/products'
       } else {
@@ -697,10 +770,24 @@ function defaultGap(type: string): number {
   return DEFAULT_SECTION_GAP[type] ?? 60
 }
 
-export async function HomeSections({ sections, preview = false }: { sections: HomepageSection[]; preview?: boolean }) {
+export async function HomeSections({
+  sections,
+  preview = false,
+  context
+}: {
+  sections: HomepageSection[];
+  preview?: boolean;
+  context?: {
+    product?: any;
+    category?: any;
+    products?: any[];
+    total?: number;
+    page?: number;
+  };
+}) {
   // Only render homepage body sections — footer sections are rendered by SiteFooter
   const bodySections = sections.filter(s => !FOOTER_SECTION_TYPES.has(s.type))
-  const rendered = await Promise.all(bodySections.map(s => renderSection(s)))
+  const rendered = await Promise.all(bodySections.map(s => renderSection(s, context)))
   return (
     <>
       {/* Global animation and gradient text CSS injected once */}

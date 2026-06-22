@@ -399,6 +399,37 @@ function RepeaterField({ setting, value, onChange }: {
   )
 }
 
+function CollectionPickerField({ setting, value, onChange, onOpenCollectionPicker }: {
+  setting: SettingDefinition; value: string[]; onChange: (v: string[]) => void
+  onOpenCollectionPicker?: (currentSlugs: string[]) => Promise<string[]>
+}) {
+  const slugs = Array.isArray(value) ? value : []
+  return (
+    <div>
+      <div style={{ border: '1px solid #eef1ed', borderRadius: 8, padding: 12, background: '#fafbf9' }}>
+        {slugs.length > 0 ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+            {slugs.map(slug => (
+              <span key={slug} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: '#e8f2ec', borderRadius: 999, fontSize: 12, fontWeight: 600, color: '#1a6d3e' }}>
+                {slug}
+                <button onClick={() => onChange(slugs.filter(x => x !== slug))} style={{ border: 'none', background: 'transparent', color: '#b0392f', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p style={{ fontSize: 12, color: '#9aa69c', margin: '0 0 8px' }}>No collections selected yet.</p>
+        )}
+        {onOpenCollectionPicker && (
+          <button onClick={async () => { const chosen = await onOpenCollectionPicker(slugs); if (chosen && chosen.length > 0) onChange(chosen) }} style={{ padding: '8px 16px', border: '1.5px dashed #9cc4a9', borderRadius: 8, background: '#f0f7f2', color: '#1e7a47', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%' }}>
+            📁 Pick collections
+          </button>
+        )}
+      </div>
+      {setting.hint && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa69c' }}>{setting.hint}</p>}
+    </div>
+  )
+}
+
 // ── DynamicField — routes to the correct renderer ─────────────────────────
 
 function DynamicField({ setting, value, onChange, ...extra }: {
@@ -409,8 +440,11 @@ function DynamicField({ setting, value, onChange, ...extra }: {
 }) {
   // Check condition: if this field has a condition, hide it when condition not met
   // (The parent should filter; this is a safety check)
-  if (setting.type === 'text' || setting.type === 'collection_picker') {
+  if (setting.type === 'text') {
     return <TextField setting={setting} value={value ?? ''} onChange={onChange} />
+  }
+  if (setting.type === 'collection_picker') {
+    return <CollectionPickerField setting={setting} value={value} onChange={onChange} onOpenCollectionPicker={extra.onOpenCollectionPicker} />
   }
   if (setting.type === 'textarea') return <TextareaField setting={setting} value={value ?? ''} onChange={onChange} />
   if (setting.type === 'number') return <NumberField setting={setting} value={value ?? 0} onChange={onChange} />

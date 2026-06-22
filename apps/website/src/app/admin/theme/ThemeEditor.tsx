@@ -71,6 +71,27 @@ const HEADER_FONT_OPTIONS: { label: string; stack: string }[] = [
 
 export default function ThemeEditor({ initial, initialCss, initialHeader }: { initial: Section[]; initialCss: string; initialHeader: HeaderSettings }) {
   const [sections, setSections] = useState<Section[]>(initial)
+  const [currentTemplate, setCurrentTemplate] = useState<'index' | 'product' | 'collection'>('index')
+
+  // Load sections when template changes
+  useEffect(() => {
+    if (currentTemplate === 'index') {
+      setSections(initial)
+      setOpenedSectionConfig(null)
+      setOpenId(null)
+      return
+    }
+    fetch(`/api/theme/sections?template=${currentTemplate}`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data.sections)) {
+          setSections(data.sections)
+          setOpenedSectionConfig(null)
+          setOpenId(null)
+        }
+      })
+      .catch(() => {})
+  }, [currentTemplate])
   const [header, setHeader] = useState<HeaderSettings>(initialHeader)
   const [headerOpen, setHeaderOpen] = useState(false)
   const [headerSaving, setHeaderSaving] = useState(false)
@@ -321,7 +342,7 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
 
   // ── Section dirty close/switch warning ────────────────────────────
   const [openedSectionConfig, setOpenedSectionConfig] = useState<{ id: number; config: any } | null>(null)
-  const [pendingClose, setPendingClose] = useState<{ currentId: number; nextId: number | null } | null>(null)
+  const [pendingClose, setPendingClose] = useState<{ currentId: number; nextId: number | null; nextTemplate?: 'index' | 'product' | 'collection' } | null>(null)
 
   function isSectionDirty(secId: number): boolean {
     if (!openedSectionConfig || openedSectionConfig.id !== secId) return false
@@ -346,12 +367,16 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
 
   function discardAndClose() {
     if (pendingClose && openedSectionConfig) {
-      const { currentId, nextId } = pendingClose
+      const { currentId, nextId, nextTemplate } = pendingClose
       // Revert in state
       setSections(s => s.map(x => x.id === currentId ? { ...x, config: JSON.parse(JSON.stringify(openedSectionConfig.config)) } : x))
       
       // Now close/switch
-      if (nextId === -1) {
+      if (nextTemplate) {
+        setCurrentTemplate(nextTemplate)
+        setOpenId(null)
+        setOpenedSectionConfig(null)
+      } else if (nextId === -1) {
         setAllCollapsed(true)
         setOpenId(null)
         setOpenedSectionConfig(null)
@@ -370,13 +395,17 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
 
   async function saveAndClose() {
     if (pendingClose) {
-      const { currentId, nextId } = pendingClose
+      const { currentId, nextId, nextTemplate } = pendingClose
       const sec = sections.find(x => x.id === currentId)
       if (sec) {
         await saveSection(sec)
       }
       // Now close/switch
-      if (nextId === -1) {
+      if (nextTemplate) {
+        setCurrentTemplate(nextTemplate)
+        setOpenId(null)
+        setOpenedSectionConfig(null)
+      } else if (nextId === -1) {
         setAllCollapsed(true)
         setOpenId(null)
         setOpenedSectionConfig(null)
@@ -403,6 +432,7 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            template: currentTemplate,
             sections,
             header,
             css,
@@ -898,7 +928,7 @@ async function patchSection(id: number, body: any) {
     }
     setAdding(false)
     const preset = SECTION_PRESETS[type] || {}
-    const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, config: preset }) })
+    const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, config: preset, template: currentTemplate }) })
     const { id } = await res.json()
     const insertIdx: number | undefined = (window as any).__insertBeforeIndex
     delete (window as any).__insertBeforeIndex
@@ -929,7 +959,7 @@ async function patchSection(id: number, body: any) {
       if (!confirm('You have unsaved changes in the open section. Discard changes and duplicate?')) return
       setSections(s => s.map(x => x.id === openId ? { ...x, config: JSON.parse(JSON.stringify(openedSectionConfig?.config || {})) } : x))
     }
-    const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: sec.type, config: sec.config }) })
+    const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: sec.type, config: sec.config, template: currentTemplate }) })
     const { id } = await res.json()
     setSectionsWithHistory(s => {
       const idx = s.findIndex(x => x.id === sec.id)
@@ -1019,14 +1049,14 @@ async function patchSection(id: number, body: any) {
         // Create new sections first (non-destructive)
         const newSections: Section[] = []
         for (const s of data.sections) {
-          const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: s.type, config: s.config || {}, enabled: s.enabled !== false }) })
+          const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: s.type, config: s.config || {}, enabled: s.enabled !== false, template: currentTemplate }) })
           if (!res.ok) throw new Error(`Failed to create section "${s.type}" (${res.status})`)
           const { id } = await res.json()
           newSections.push({ ...s, id, position: (newSections.length + 1) * 10 })
         }
 
         // Only after all new sections are created, delete old ones
-        const fresh = await fetch('/api/theme/sections').then(r => r.json())
+        const fresh = await fetch(`/api/theme/sections?template=${currentTemplate}`).then(r => r.json())
         const currentSections: Section[] = fresh.sections || []
         for (const sec of currentSections) {
           if (!newSections.some(ns => ns.id === sec.id)) {
@@ -1209,8 +1239,42 @@ async function patchSection(id: number, body: any) {
         {/* ── Header bar with Save All ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
           <div>
-            <Link href="/admin/dashboard" style={{ color: '#667168', fontSize: 12, textDecoration: 'none', display: 'inline-block', marginBottom: 4 }}>← Dashboard</Link>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#151a17' }}>Theme · Homepage</h1>
+            <Link href="/admin/dashboard" style={{ color: '#667168', fontSize: 12, textDecoration: 'none', display: 'inline-block', marginBottom: 6 }}>← Dashboard</Link>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#667168', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Page Template</span>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <select
+                  value={currentTemplate}
+                  onChange={(e) => {
+                    const nextTemplate = e.target.value as 'index' | 'product' | 'collection'
+                    if (openId !== null && isSectionDirty(openId)) {
+                      setPendingClose({ currentId: openId, nextId: null, nextTemplate })
+                    } else {
+                      setCurrentTemplate(nextTemplate)
+                    }
+                  }}
+                  style={{
+                    padding: '6px 28px 6px 10px',
+                    border: '1.5px solid #d9e0d7',
+                    borderRadius: 7,
+                    background: '#fff',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: '#151a17',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    appearance: 'none',
+                    backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23667168' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 8px center',
+                  }}
+                >
+                  <option value="index">Homepage</option>
+                  <option value="product">Product Page</option>
+                  <option value="collection">Collection Page</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {/* Undo / Redo */}
@@ -1790,12 +1854,24 @@ async function patchSection(id: number, body: any) {
           </div>
           <div style={{ flex: 1 }} />
           <button onClick={refreshPreview} style={{ padding: '6px 14px', background: '#f0f7f2', color: '#1e7a47', border: '1px solid #cfe3d6', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>↻ Refresh</button>
-          <a href={STOREFRONT_BASE_URL || '/'} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 12, color: '#1a6d3e', textDecoration: 'none', fontWeight: 600 }}>Open ↗</a>
+          <a href={
+            currentTemplate === 'product'
+              ? `${STOREFRONT_BASE_URL || ''}/products/linea-sofa`
+              : currentTemplate === 'collection'
+              ? `${STOREFRONT_BASE_URL || ''}/products`
+              : `${STOREFRONT_BASE_URL || ''}/`
+          } target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 12, color: '#1a6d3e', textDecoration: 'none', fontWeight: 600 }}>Open ↗</a>
         </div>
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', background: '#e3e8e0', overflow: 'auto' }}>
           <iframe
             key={previewKey}
-            src={`${STOREFRONT_BASE_URL}/?preview=${previewKey}`}
+            src={
+              currentTemplate === 'product'
+                ? `${STOREFRONT_BASE_URL}/products/linea-sofa?preview=${previewKey}`
+                : currentTemplate === 'collection'
+                ? `${STOREFRONT_BASE_URL}/products?preview=${previewKey}`
+                : `${STOREFRONT_BASE_URL}/?preview=${previewKey}`
+            }
             title="Storefront preview"
             style={{
               flex: '0 0 auto', border: 'none', background: '#fff', height: '100%',

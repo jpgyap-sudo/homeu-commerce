@@ -13,11 +13,13 @@ import { getSession } from '@/lib/auth'
 import { SECTION_TYPES } from '@/lib/theme'
 import { mergeWithDefaults } from '@/lib/theme-builder-settings'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const template = searchParams.get('template') || 'index'
     const res = await query(
-      `SELECT id, type, position, enabled, config FROM homepage_sections ORDER BY position ASC, id ASC`,
-      []
+      `SELECT id, type, position, enabled, config FROM homepage_sections WHERE template = $1 ORDER BY position ASC, id ASC`,
+      [template]
     )
     // Return sections with merged defaults so the admin always sees all fields
     const sections = res.rows.map((r: any) => ({
@@ -35,18 +37,18 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const { type, config } = await request.json()
+    const { type, config, template = 'index' } = await request.json()
     if (!SECTION_TYPES.includes(type)) {
       return NextResponse.json({ error: 'Invalid section type' }, { status: 400 })
     }
     // Merge the incoming config with full defaults
     const fullConfig = mergeWithDefaults(type, config || {})
-    const posRes = await query(`SELECT COALESCE(MAX(position), 0) + 10 AS pos FROM homepage_sections`, [])
+    const posRes = await query(`SELECT COALESCE(MAX(position), 0) + 10 AS pos FROM homepage_sections WHERE template = $1`, [template])
     const pos = posRes.rows[0].pos
     const res = await query(
-      `INSERT INTO homepage_sections (type, position, enabled, config)
-       VALUES ($1, $2, true, $3::jsonb) RETURNING id`,
-      [type, pos, JSON.stringify(fullConfig)]
+      `INSERT INTO homepage_sections (type, position, enabled, config, template)
+       VALUES ($1, $2, true, $3::jsonb, $4) RETURNING id`,
+      [type, pos, JSON.stringify(fullConfig), template]
     )
     return NextResponse.json({ id: res.rows[0].id }, { status: 201 })
   } catch (err) {

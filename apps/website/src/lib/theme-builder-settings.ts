@@ -649,6 +649,34 @@ const FOOTER_SOCIAL_SETTINGS: SettingDefinition[] = [
   ...COMMON_CUSTOM_CLASS,
 ]
 
+const PRODUCT_DETAILS_SETTINGS: SettingDefinition[] = [
+  { key: 'showBreadcrumbs', label: 'Show Breadcrumbs', type: 'checkbox', default: true, group: 'Visibility' },
+  { key: 'showSku', label: 'Show SKU', type: 'checkbox', default: true, group: 'Visibility' },
+  { key: 'showMaterials', label: 'Show Materials', type: 'checkbox', default: true, group: 'Visibility' },
+  { key: 'showDimensions', label: 'Show Dimensions', type: 'checkbox', default: true, group: 'Visibility' },
+  { key: 'enableZoom', label: 'Enable Image Zoom', type: 'checkbox', default: true, group: 'Gallery' },
+  { key: 'buttonText', label: 'Request Quote Button Text', type: 'text', default: 'Request Quote', group: 'RFQ' },
+  ...COMMON_SPACING,
+  ...COMMON_CUSTOM_CLASS,
+]
+
+const COLLECTION_HEADER_SETTINGS: SettingDefinition[] = [
+  { key: 'showDescription', label: 'Show Description', type: 'checkbox', default: true, group: 'Content' },
+  { key: 'showBanner', label: 'Show Banner Image', type: 'checkbox', default: true, group: 'Banner' },
+  { key: 'bannerHeight', label: 'Banner Height', type: 'range', default: 300, min: 150, max: 600, step: 10, unit: 'px', group: 'Banner' },
+  ...COMMON_SPACING,
+  ...COMMON_CUSTOM_CLASS,
+]
+
+const PRODUCT_GRID_SETTINGS: SettingDefinition[] = [
+  { key: 'columns', label: 'Grid Columns', type: 'range', default: 4, min: 2, max: 5, step: 1, group: 'Layout' },
+  { key: 'pageSize', label: 'Products Per Page', type: 'number', default: 24, group: 'Layout' },
+  { key: 'showFilters', label: 'Show Sidebar Filters', type: 'checkbox', default: true, group: 'Sidebar' },
+  { key: 'showSort', label: 'Show Sorting Dropdown', type: 'checkbox', default: true, group: 'Layout' },
+  ...COMMON_SPACING,
+  ...COMMON_CUSTOM_CLASS,
+]
+
 // ── Schema Registry ────────────────────────────────────────────────────────
 
 const SECTION_SETTINGS_SCHEMA: Record<SectionType, SettingDefinition[]> = {
@@ -670,6 +698,9 @@ const SECTION_SETTINGS_SCHEMA: Record<SectionType, SettingDefinition[]> = {
   video_hero:         VIDEO_HERO_SETTINGS,
   lookbook:           LOOKBOOK_SETTINGS,
   category_carousel:  CATEGORY_CAROUSEL_SETTINGS,
+  product_details:    PRODUCT_DETAILS_SETTINGS,
+  collection_header:  COLLECTION_HEADER_SETTINGS,
+  product_grid:       PRODUCT_GRID_SETTINGS,
   footer_brand:       FOOTER_BRAND_SETTINGS,
   footer_quick_links: FOOTER_QUICK_LINKS_SETTINGS,
   footer_newsletter:  FOOTER_NEWSLETTER_SETTINGS,
