@@ -28,7 +28,7 @@ export async function GET(
               (SELECT json_agg(json_build_object('id', p.id, 'title', p.title, 'slug', p.slug))
                FROM products p WHERE p.category_id = c.id LIMIT 50) as products
        FROM categories c
-       WHERE c.id = $1 OR c.slug = $1
+       WHERE c.id::text = $1 OR c.slug = $1
        LIMIT 1`,
       [id]
     )
