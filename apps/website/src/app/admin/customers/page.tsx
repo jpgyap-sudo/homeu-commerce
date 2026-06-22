@@ -20,6 +20,7 @@ interface CustomerRow {
   company: string | null
   lead_status: string | null
   notes: string | null
+  tags: string[] | null
   created_at: string
   updated_at: string
 }

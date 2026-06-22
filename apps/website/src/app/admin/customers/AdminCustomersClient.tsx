@@ -14,6 +14,7 @@ interface CustomerRow {
   company: string | null
   lead_status: string | null
   notes: string | null
+  tags: string[] | null
   created_at: string
   updated_at: string
 }
@@ -623,6 +624,24 @@ export default function AdminCustomersClient({ customers, total, search, sort, c
                     </td>
                     <td style={{ padding: '12px 16px', color: '#667168', fontSize: 13 }}>{customer.email}</td>
                     <td style={{ padding: '12px 16px', fontSize: 13 }}>{customer.phone || '—'}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      {customer.tags && customer.tags.length > 0 ? (
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          {customer.tags.map(tag => (
+                            <span key={tag} style={{
+                              padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 600,
+                              background: tag === 'designer' ? '#e8f4fd' : tag === 'vip' ? '#fef3c7' : '#f3f4f6',
+                              color: tag === 'designer' ? '#1e40af' : tag === 'vip' ? '#92400e' : '#4b5563',
+                              textTransform: 'uppercase', letterSpacing: '0.04em',
+                            }}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 12, color: '#9aa69c' }}>—</span>
+                      )}
+                    </td>
                     <td style={{ padding: '12px 16px' }}>
                       <span className={`status-badge status-${customer.lead_status || 'new'}`}>
                         {leadStatusBadge(customer.lead_status)}
