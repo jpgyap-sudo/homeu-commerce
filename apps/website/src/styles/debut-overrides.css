@@ -213,12 +213,23 @@
   background-size: cover;
   background-position: center;
   background-color: #cfcac4;
-  filter: saturate(0.92);
+  /* Product photos come from many sources with wildly different studio
+     backgrounds (black, white, colored, lifestyle scenes). Desaturating
+     and tinting every tile the same way makes 4 unrelated backgrounds
+     read as one deliberately-graded image instead of a mismatched
+     grid — the actual fix would be re-rendering every product photo on
+     a consistent background (see product-image-studio), but that's a
+     separate, costly batch job; this is the free, instant version. */
+  filter: grayscale(0.55) sepia(0.12) contrast(1.05) brightness(0.97);
 }
 .collection-banner__overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(20, 18, 16, 0.1) 0%, rgba(20, 18, 16, 0.55) 100%);
+  background: linear-gradient(180deg, rgba(21, 26, 23, 0.35) 0%, rgba(21, 26, 23, 0.6) 100%);
+  mix-blend-mode: multiply;
+}
+.collection-banner--collage .collection-banner__overlay {
+  background: linear-gradient(180deg, rgba(21, 26, 23, 0.25) 0%, rgba(21, 26, 23, 0.55) 100%);
 }
 .collection-banner__eyebrow {
   position: relative;

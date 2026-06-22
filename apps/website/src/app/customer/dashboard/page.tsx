@@ -48,16 +48,24 @@ export default function CustomerDashboardPage() {
         }
         const meData = await meRes.json()
         const user = meData?.user || meData
+        if (!user || !user.id) {
+          // Session exists but no customer/lead found — log them out gracefully
+          setError('Your account profile could not be found. Please contact support.')
+          setLoading(false)
+          return
+        }
         setCustomer(user)
 
         // Fetch this customer's RFQs via the new rfq-requests endpoint
-        const rfqRes = await fetch(`/api/rfq-requests?customerId=${user.id}&limit=50`, {
-          credentials: 'include',
-        })
-        if (rfqRes.ok) {
-          const rfqData = await rfqRes.json()
-          setRfqs(rfqData.rfqs || [])
-        }
+        try {
+          const rfqRes = await fetch(`/api/rfq-requests?customerId=${user.id}&limit=50`, {
+            credentials: 'include',
+          })
+          if (rfqRes.ok) {
+            const rfqData = await rfqRes.json()
+            setRfqs(rfqData.rfqs || [])
+          }
+        } catch {} // RFQ fetch failure is non-critical
       } catch (err: any) {
         setError(err.message || 'Failed to load dashboard')
       } finally {

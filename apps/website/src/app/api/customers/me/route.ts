@@ -16,6 +16,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Ensure customers table exists (safety for missing migrations)
+    try { await query('SELECT 1 FROM customers LIMIT 0', []) } catch {
+      await query(`CREATE TABLE IF NOT EXISTS customers (
+        id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE NOT NULL,
+        phone TEXT, password_hash TEXT, role TEXT DEFAULT 'customer',
+        status TEXT DEFAULT 'active', created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )`, [])
+    }
+
     // Try to find customer by email
     const result = await query(
       `SELECT id, name, email, created_at, updated_at
