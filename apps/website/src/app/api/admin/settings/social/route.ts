@@ -24,6 +24,7 @@ export interface SocialConfig {
   // Instagram
   ig_business_account_id: string
   ig_access_token: string
+  ig_graph_api_version: string
 
   // Status
   fb_webhook_active: boolean
@@ -43,6 +44,7 @@ function getEmptyConfig(): SocialConfig {
     fb_webhook_verify_token: 'homeu-fb-webhook-verify-' + Date.now().toString(36),
     ig_business_account_id: '',
     ig_access_token: '',
+    ig_graph_api_version: process.env.META_GRAPH_API_VERSION || 'v23.0',
     fb_webhook_active: false,
     ig_webhook_active: false,
     fb_token_expires_at: '',

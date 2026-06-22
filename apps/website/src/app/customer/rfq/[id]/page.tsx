@@ -36,13 +36,15 @@ interface RFQDetail {
   customer?: string
 }
 
+// rfq_requests.status enum has exactly 5 values: new, contacted, quoted,
+// closed, lost — 'quotation_sent'/'closed_won'/'closed_lost' never existed
+// in the DB and could never match a real row.
 const STATUS_DETAILS: Record<string, { label: string; color: string; description: string }> = {
-  new:              { label: '🟡 New',            color: '#f0ad4e', description: 'Your request has been received and is pending review.' },
-  contacted:        { label: '🔵 Contacted',      color: '#5bc0de', description: 'Our team has reached out to discuss your requirements.' },
-  quoted:           { label: '🟣 Quoted',         color: '#9b59b6', description: 'A quotation is being prepared for you.' },
-  quotation_sent:   { label: '🟢 Quotation Sent', color: '#27ae60', description: 'Your quotation has been sent. Check your email or download below.' },
-  closed_won:       { label: '✅ Closed (Won)',   color: '#2ecc71', description: 'Your quotation has been accepted. Thank you!' },
-  closed_lost:       { label: '❌ Closed (Lost)',  color: '#e74c3c', description: 'This request has been closed.' },
+  new:       { label: '🟡 New',       color: '#f0ad4e', description: 'Your request has been received and is pending review.' },
+  contacted: { label: '🔵 Contacted', color: '#5bc0de', description: 'Our team has reached out to discuss your requirements.' },
+  quoted:    { label: '🟣 Quoted',    color: '#9b59b6', description: 'A quotation is being prepared for you — check below once it is ready.' },
+  closed:    { label: '✅ Closed',    color: '#2ecc71', description: 'This request has been completed. Thank you!' },
+  lost:      { label: '❌ Closed (Not Pursued)', color: '#e74c3c', description: 'This request has been closed.' },
 }
 
 export default function RFQDetailPage() {
@@ -70,6 +72,10 @@ export default function RFQDetailPage() {
 
         const data = await res.json()
         setRfq(data)
+        // Mark as seen so the dashboard's "new message" badge clears —
+        // chat has no per-customer read tracking in the DB, so this is a
+        // simple local timestamp the dashboard compares against last_message_at.
+        window.localStorage.setItem(`homeu_rfq_seen_${id}`, String(Date.now()))
       } catch (err: any) {
         setError(err.message || 'Failed to load RFQ')
       } finally {
@@ -236,7 +242,7 @@ export default function RFQDetailPage() {
         )}
 
         {/* Quotation Info (shown when quotation is sent) */}
-        {(rfq.status === 'quotation_sent' || rfq.status === 'closed_won') && (
+        {Boolean(rfq.quotationSentAt) && (
           <div style={{
             background: '#e8f5e9',
             border: '1px solid #a5d6a7',
@@ -265,7 +271,7 @@ export default function RFQDetailPage() {
         )}
 
         {/* Closed Info */}
-        {rfq.status === 'closed_lost' && (
+        {rfq.status === 'lost' && (
           <div style={{
             background: '#fbe9e7',
             border: '1px solid #ef9a9a',

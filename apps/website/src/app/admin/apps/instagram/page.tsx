@@ -19,11 +19,17 @@ interface Grid {
 }
 
 interface ProductResult { id: number; title: string; slug: string }
+interface CategoryOption { id: number; title: string }
 
-const CATEGORIES = [
-  { id: 1, name: 'Living Room' }, { id: 2, name: 'Dining Room' }, { id: 3, name: 'Bedroom' },
-  { id: 4, name: 'Office' }, { id: 5, name: 'Outdoor' },
-]
+interface SyncStatus {
+  configured: boolean
+  businessAccount: string | null
+  graphVersion: string
+  posts: number
+  pending: number
+  last_synced_at: string | null
+  error?: string
+}
 
 function toast(msg: string) {
   const el = document.getElementById('ig-toast')
@@ -35,6 +41,8 @@ export default function InstagramAdminPage() {
   const [grids, setGrids] = useState<Grid[]>([])
   const [activeTab, setActiveTab] = useState<'posts'|'grids'|'settings'>('posts')
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
 
   // Post form
   const [addingPost, setAddingPost] = useState(false)
@@ -47,6 +55,7 @@ export default function InstagramAdminPage() {
   const [productSearch, setProductSearch] = useState('')
   const [productResults, setProductResults] = useState<ProductResult[]>([])
   const [showProductSearch, setShowProductSearch] = useState(false)
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([])
 
   // Grid creation
   const [creatingGrid, setCreatingGrid] = useState(false)
@@ -69,7 +78,24 @@ export default function InstagramAdminPage() {
     if (r.ok) { const d = await r.json(); setGrids(d.grids || []) }
   }, [])
 
-  useEffect(() => { fetchPosts(); fetchGrids().finally(() => setLoading(false)) }, [fetchPosts, fetchGrids])
+  const fetchSyncStatus = useCallback(async () => {
+    const r = await fetch('/api/admin/instagram/sync')
+    const data = await r.json().catch(() => ({}))
+    if (r.ok) setSyncStatus(data)
+    else setSyncStatus({ configured: false, businessAccount: null, graphVersion: '', posts: 0, pending: 0, last_synced_at: null, error: data.error || 'Unable to load connection status' })
+  }, [])
+
+  const fetchCategories = useCallback(async () => {
+    const r = await fetch('/api/categories?limit=100')
+    if (r.ok) {
+      const data = await r.json()
+      setCategoryOptions((data.docs || []).map((category: any) => ({ id: category.id, title: category.title })))
+    }
+  }, [])
+
+  useEffect(() => {
+    Promise.all([fetchPosts(), fetchGrids(), fetchSyncStatus(), fetchCategories()]).finally(() => setLoading(false))
+  }, [fetchPosts, fetchGrids, fetchSyncStatus, fetchCategories])
 
   // Actions
   const addPost = async () => {
@@ -110,7 +136,7 @@ export default function InstagramAdminPage() {
     setProductSearch(q)
     if (q.length < 2) { setProductResults([]); return }
     const r = await fetch(`/api/products?search=${encodeURIComponent(q)}&limit=5`)
-    if (r.ok) { const d = await r.json(); setProductResults(d.products || d.rows || []) }
+    if (r.ok) { const d = await r.json(); setProductResults(d.docs || d.products || d.rows || []) }
   }
 
   const addTaggedProduct = (p: ProductResult) => {
@@ -161,6 +187,21 @@ export default function InstagramAdminPage() {
     if (!confirm('Delete this grid and all its cells?')) return
     const r = await fetch(`/api/admin/instagram/grids?id=${id}`, { method: 'DELETE' })
     if (r.ok) { fetchGrids(); toast('Grid deleted') }
+  }
+
+  const syncNow = async () => {
+    setSyncing(true)
+    try {
+      const r = await fetch('/api/admin/instagram/sync', { method: 'POST' })
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(data.error || 'Instagram sync failed')
+      await Promise.all([fetchPosts(), fetchSyncStatus()])
+      toast(`Synced: ${data.imported} new, ${data.updated} updated${data.skipped ? `, ${data.skipped} skipped` : ''}`)
+    } catch (err: any) {
+      toast(err.message || 'Instagram sync failed')
+    } finally {
+      setSyncing(false)
+    }
   }
 
   const previewLayout = () => {
@@ -257,6 +298,22 @@ export default function InstagramAdminPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+          <div style={{ marginBottom:'var(--space-4)' }}>
+            <label style={{ fontSize:11,fontWeight:600,color:'var(--luxe-slate-400)',textTransform:'uppercase',marginBottom:6,display:'block' }}>Tag Categories</label>
+            <div style={{ display:'flex',gap:'var(--space-2)',flexWrap:'wrap',maxHeight:140,overflow:'auto' }}>
+              {categoryOptions.map(category => {
+                const selectedCategory = taggedCollections.includes(category.id)
+                return (
+                  <button key={category.id} type="button"
+                    onClick={() => setTaggedCollections(prev => selectedCategory ? prev.filter(id => id !== category.id) : [...prev, category.id])}
+                    className="luxe-btn luxe-btn-ghost luxe-btn-sm"
+                    style={{ padding:'4px 9px',fontSize:10,borderColor:selectedCategory?'var(--luxe-gold-500)':undefined,color:selectedCategory?'var(--luxe-gold-500)':undefined }}>
+                    {selectedCategory ? '✓ ' : ''}{category.title}
+                  </button>
+                )
+              })}
             </div>
           </div>
           <div style={{ display:'flex',gap:'var(--space-3)',justifyContent:'flex-end' }}>
@@ -359,12 +416,26 @@ export default function InstagramAdminPage() {
             Connect your Instagram Business account to auto-sync posts every 1–6 hours.
             Posts will appear in the moderation queue for approval before publishing.
           </div>
-          <div className="luxe-input" style={{ marginBottom:'var(--space-4)',fontFamily:'var(--font-mono)',fontSize:12 }}>
-            Instagram App ID: not configured
+          <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:'var(--space-3)',marginBottom:'var(--space-4)' }}>
+            <div className="luxe-input" style={{ fontSize:12 }}>
+              <strong>Status:</strong> {syncStatus?.configured ? 'Connected' : 'Not configured'}
+            </div>
+            <div className="luxe-input" style={{ fontSize:12 }}>
+              <strong>Account:</strong> {syncStatus?.businessAccount || '—'}
+            </div>
+            <div className="luxe-input" style={{ fontSize:12 }}>
+              <strong>API:</strong> {syncStatus?.graphVersion || '—'}
+            </div>
+            <div className="luxe-input" style={{ fontSize:12 }}>
+              <strong>Last sync:</strong> {syncStatus?.last_synced_at ? new Date(syncStatus.last_synced_at).toLocaleString('en-PH') : 'Never'}
+            </div>
           </div>
+          {syncStatus?.error && <div style={{ color:'var(--luxe-merlot)',fontSize:12,marginBottom:'var(--space-3)' }}>{syncStatus.error}</div>}
           <div style={{ display:'flex',gap:'var(--space-3)' }}>
-            <button className="luxe-btn luxe-btn-gold luxe-btn-sm">🔗 Connect Instagram</button>
-            <button className="luxe-btn luxe-btn-ghost luxe-btn-sm">🔄 Sync Now</button>
+            <Link href="/admin/settings/social" className="luxe-btn luxe-btn-gold luxe-btn-sm">Configure Instagram</Link>
+            <button onClick={syncNow} disabled={syncing || !syncStatus?.configured} className="luxe-btn luxe-btn-ghost luxe-btn-sm">
+              {syncing ? 'Syncing…' : 'Sync Now'}
+            </button>
           </div>
         </div>
       )}

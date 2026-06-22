@@ -12,13 +12,15 @@ interface RFQ {
   items?: Array<{ productTitleSnapshot?: string; quantity: number }>
 }
 
+// rfq_requests.status enum has exactly 5 values: new, contacted, quoted,
+// closed, lost — 'quotation_sent'/'closed_won'/'closed_lost' never existed
+// in the DB and could never match a real row.
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  new:             { label: 'Received',        color: '#e8a020' },
-  contacted:       { label: 'In Review',       color: '#3b82f6' },
-  quoted:          { label: 'Quoted',          color: '#8b5cf6' },
-  quotation_sent:  { label: 'Quotation Sent',  color: '#10b981' },
-  closed_won:      { label: 'Completed',       color: '#059669' },
-  closed_lost:     { label: 'Cancelled',       color: '#6b7280' },
+  new:       { label: 'Received',  color: '#e8a020' },
+  contacted: { label: 'In Review', color: '#3b82f6' },
+  quoted:    { label: 'Quoted',    color: '#8b5cf6' },
+  closed:    { label: 'Completed', color: '#059669' },
+  lost:      { label: 'Cancelled', color: '#6b7280' },
 }
 
 export default function CustomerOrdersPage() {

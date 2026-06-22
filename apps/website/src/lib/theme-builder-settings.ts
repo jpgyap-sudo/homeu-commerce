@@ -654,6 +654,8 @@ const PRODUCT_DETAILS_SETTINGS: SettingDefinition[] = [
   { key: 'showSku', label: 'Show SKU', type: 'checkbox', default: true, group: 'Visibility' },
   { key: 'showMaterials', label: 'Show Materials', type: 'checkbox', default: true, group: 'Visibility' },
   { key: 'showDimensions', label: 'Show Dimensions', type: 'checkbox', default: true, group: 'Visibility' },
+  { key: 'galleryWidth', label: 'Gallery Width', type: 'range', default: 50, min: 30, max: 70, step: 5, unit: '%', group: 'Layout' },
+  { key: 'layoutGap', label: 'Layout Spacing', type: 'range', default: 40, min: 20, max: 80, step: 4, unit: 'px', group: 'Layout' },
   { key: 'enableZoom', label: 'Enable Image Zoom', type: 'checkbox', default: true, group: 'Gallery' },
   { key: 'buttonText', label: 'Request Quote Button Text', type: 'text', default: 'Request Quote', group: 'RFQ' },
   ...COMMON_SPACING,
@@ -664,6 +666,8 @@ const COLLECTION_HEADER_SETTINGS: SettingDefinition[] = [
   { key: 'showDescription', label: 'Show Description', type: 'checkbox', default: true, group: 'Content' },
   { key: 'showBanner', label: 'Show Banner Image', type: 'checkbox', default: true, group: 'Banner' },
   { key: 'bannerHeight', label: 'Banner Height', type: 'range', default: 300, min: 150, max: 600, step: 10, unit: 'px', group: 'Banner' },
+  { key: 'overlayOpacity', label: 'Banner Overlay Darkening', type: 'range', default: 30, min: 0, max: 90, step: 10, unit: '%', group: 'Banner' },
+  { key: 'textColor', label: 'Banner Text Color', type: 'color', default: '#ffffff', group: 'Banner' },
   ...COMMON_SPACING,
   ...COMMON_CUSTOM_CLASS,
 ]
@@ -671,8 +675,10 @@ const COLLECTION_HEADER_SETTINGS: SettingDefinition[] = [
 const PRODUCT_GRID_SETTINGS: SettingDefinition[] = [
   { key: 'columns', label: 'Grid Columns', type: 'range', default: 4, min: 2, max: 5, step: 1, group: 'Layout' },
   { key: 'pageSize', label: 'Products Per Page', type: 'number', default: 24, group: 'Layout' },
+  { key: 'gridGap', label: 'Grid Spacing', type: 'range', default: 36, min: 12, max: 72, step: 4, unit: 'px', group: 'Layout' },
   { key: 'showFilters', label: 'Show Sidebar Filters', type: 'checkbox', default: true, group: 'Sidebar' },
   { key: 'showSort', label: 'Show Sorting Dropdown', type: 'checkbox', default: true, group: 'Layout' },
+  { key: 'showRating', label: 'Show Reviews / Ratings', type: 'checkbox', default: true, group: 'Layout' },
   ...COMMON_SPACING,
   ...COMMON_CUSTOM_CLASS,
 ]

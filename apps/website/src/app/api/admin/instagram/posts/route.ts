@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth'
 
 export async function GET() {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session || session.role === 'customer') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const { rows } = await query('SELECT * FROM instagram_posts ORDER BY is_pinned DESC, sort_order, created_at DESC')
     return NextResponse.json({ posts: rows })
@@ -13,10 +13,13 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session || session.role === 'customer') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const body = await request.json()
     const { image_url, caption, link, alt_text, width, height, products, hotspots, tags, sort_order, source, permalink, collection_ids, status } = body
+    if (!image_url || typeof image_url !== 'string') {
+      return NextResponse.json({ error: 'image_url is required' }, { status: 400 })
+    }
     const { rows } = await query(
       `INSERT INTO instagram_posts (image_url, caption, link, alt_text, width, height, products, hotspots, tags, sort_order, source, permalink, collection_ids, status)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session || session.role === 'customer') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const body = await request.json()
     const { id, is_pinned, is_visible, status, sort_order, products, hotspots, caption, alt_text } = body
@@ -53,7 +56,7 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session || session.role === 'customer') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const url = new URL(request.url)
     const id = url.searchParams.get('id')

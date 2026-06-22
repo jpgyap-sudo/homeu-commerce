@@ -17,14 +17,18 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
-    const result = await query(
-      `SELECT c.*, COALESCE(m.url, c.image_url) as image_url
-       FROM categories c
-       LEFT JOIN media m ON c.image_id = m.id
-       ORDER BY c.title ASC
-       LIMIT $1 OFFSET $2`,
-      [limit, offset]
-    )
+    const [result, countResult] = await Promise.all([
+      query(
+        `SELECT c.*, COALESCE(m.url, c.image_url) as image_url,
+                (SELECT COUNT(*)::int FROM products p WHERE p.category_id = c.id) AS product_count
+         FROM categories c
+         LEFT JOIN media m ON c.image_id = m.id
+         ORDER BY c.title ASC
+         LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      ),
+      query('SELECT COUNT(*)::int AS total FROM categories'),
+    ])
 
     return NextResponse.json({
       docs: result.rows.map((cat: any) => ({
@@ -38,7 +42,7 @@ export async function GET(request: NextRequest) {
         createdAt: cat.created_at,
         updatedAt: cat.updated_at,
       })),
-      total: result.rows.length,
+      total: countResult.rows[0]?.total || 0,
       limit,
       offset,
     })

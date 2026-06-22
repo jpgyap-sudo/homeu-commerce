@@ -3,7 +3,7 @@
 > **Purpose:** Single source of truth for known gaps, missing features, and technical debt across the DaVinciOS system.
 > **Scope:** Covers the DaVinciOS CMS backend, chatbot concierge, API routes, admin panel, frontend components, collections, deployment pipeline, and agent definitions.
 > **Status:** Active — gaps are logged for tracking by all Kilo Code extensions and agents.
-> **Last Updated:** 2026-06-22T00:00+08:00
+> **Last Updated:** 2026-06-23T02:30+08:00
 
 ---
 
@@ -1453,6 +1453,43 @@ The existing Playwright audit reported 113 passes, one timeout, and five warning
 - Dead tables removed from schema
 - Seed scripts reference clean filenames
 - All agent/skill/design/AI files updated to HomeU naming
+
+---
+
+## Categories and Instagram Audit — 2026-06-23
+
+### GAP-HIGH-023: Categories Admin Masks Catalog Errors as an Empty Database
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/admin/categories/page.tsx`](apps/website/src/app/admin/categories/page.tsx), [`apps/website/src/app/api/categories/route.ts`](apps/website/src/app/api/categories/route.ts) |
+| **Type** | Data completeness / error handling |
+| **Status** | ✅ Resolved |
+| **Description** | Production contains 83 categories and 524 categorized products, but both list queries swallowed database exceptions and rendered “No categories.” The public API also returned page length as total and always reported zero product counts. |
+| **Impact** | A transient schema/query failure looked like lost catalog data, while category consumers received misleading counts. |
+| **ResolvedBy** | Codex on 2026-06-23 — forced dynamic rendering, surfaced catalog errors, logged query failures, and returned true category/product totals. |
+
+### GAP-HIGH-024: Instagram App Has No Production Schema or Working Sync
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`tools/migrate/migrations/034_instagram_feed_runtime.sql`](tools/migrate/migrations/034_instagram_feed_runtime.sql), [`apps/website/src/app/api/admin/instagram/sync/route.ts`](apps/website/src/app/api/admin/instagram/sync/route.ts), [`apps/website/src/app/admin/apps/instagram/page.tsx`](apps/website/src/app/admin/apps/instagram/page.tsx) |
+| **Type** | Missing schema / incomplete feature |
+| **Status** | ✅ Resolved |
+| **Description** | Production had no Instagram post/grid/cell tables. “Connect Instagram” and “Sync Now” had no handlers, product search parsed the wrong response key, category tagging had state but no UI, and the app never read saved social credentials. |
+| **Impact** | Every Instagram API route failed in production and the admin page could not import or publish a functional feed. |
+| **ResolvedBy** | Codex on 2026-06-23 — added the idempotent schema, Graph API sync/status route, working settings controls, dynamic product/category tagging, moderation queue, and published-feed filtering. |
+
+### WIRING-HIGH-001: Instagram Webhook Creates Unrenderable Rows Without Authenticating Meta
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/api/webhooks/instagram/route.ts`](apps/website/src/app/api/webhooks/instagram/route.ts), [`apps/website/src/lib/instagram-sync.ts`](apps/website/src/lib/instagram-sync.ts) |
+| **Type** | Webhook security / API-to-DB wiring |
+| **Status** | ✅ Resolved |
+| **Description** | The webhook used a hardcoded fallback token, accepted unsigned POSTs, and inserted only a media ID despite `image_url` being required. |
+| **Impact** | Spoofed requests could reach the ingestion path, while legitimate notifications failed or produced unusable posts. |
+| **ResolvedBy** | Codex on 2026-06-23 — loads admin-saved verification credentials, verifies `x-hub-signature-256`, fetches media details from Meta, and upserts moderation-ready posts. |
 
 ---
 

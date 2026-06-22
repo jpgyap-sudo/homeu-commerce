@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
       const { rows: cells } = await query(
         `SELECT gc.*, p.image_url, p.caption, p.alt_text, p.width, p.height, p.products, p.link
          FROM grid_cells gc
-         LEFT JOIN instagram_posts p ON gc.post_id = p.id
+         JOIN instagram_posts p ON gc.post_id = p.id
+           AND p.status = 'approved' AND p.is_visible = TRUE
          WHERE gc.grid_id = $1 ORDER BY gc.position`, [grid.id]
       )
 
@@ -42,7 +43,10 @@ export async function GET(request: NextRequest) {
 
     // No slug: return recent posts as a default grid
     const { rows: posts } = await query(
-      'SELECT id, image_url, caption, alt_text, width, height, products, link FROM instagram_posts ORDER BY sort_order, created_at DESC LIMIT $1',
+      `SELECT id, image_url, caption, alt_text, width, height, products, link
+       FROM instagram_posts
+       WHERE status = 'approved' AND is_visible = TRUE
+       ORDER BY is_pinned DESC, sort_order, created_at DESC LIMIT $1`,
       [limit]
     )
 

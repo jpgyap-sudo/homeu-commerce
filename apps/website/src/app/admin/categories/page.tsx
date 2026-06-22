@@ -12,6 +12,9 @@ import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // ── Types ────────────────────────────────────────────────────────────
 
 interface CategoryRow {
@@ -75,13 +78,16 @@ export default async function AdminCategoriesListPage({ searchParams }: ListPage
 
   // ── Fetch total count ──────────────────────────────────────────
   let total = 0
+  let loadError = ''
   try {
     const countRes = await query(
       `SELECT COUNT(*) as total FROM categories c ${whereSQL}`,
       values
     )
     total = parseInt(countRes.rows[0]?.total || '0', 10)
-  } catch {
+  } catch (err: any) {
+    console.error('[admin/categories] Failed to count categories:', err.message)
+    loadError = 'Categories could not be loaded from the catalog database. Please retry.'
     total = 0
   }
 
@@ -100,7 +106,9 @@ export default async function AdminCategoriesListPage({ searchParams }: ListPage
       [...values, limit, offset]
     )
     categories = catRes.rows as CategoryRow[]
-  } catch {
+  } catch (err: any) {
+    console.error('[admin/categories] Failed to load categories:', err.message)
+    loadError = 'Categories could not be loaded from the catalog database. Please retry.'
     categories = []
   }
 
@@ -195,8 +203,17 @@ export default async function AdminCategoriesListPage({ searchParams }: ListPage
         )}
       </form>
 
+      {loadError && (
+        <div style={{
+          marginBottom: 20, padding: '14px 16px', borderRadius: 10,
+          border: '1px solid #fecaca', background: '#fef2f2', color: '#991b1b', fontSize: 13,
+        }}>
+          <strong>Catalog connection error.</strong> {loadError}
+        </div>
+      )}
+
       {/* Categories Table */}
-      {categories.length === 0 ? (
+      {loadError ? null : categories.length === 0 ? (
         <div style={{
           background: '#fff',
           border: '1px solid #d9e0d7',

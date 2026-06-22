@@ -22,8 +22,8 @@ interface Product {
   avgRating?: number
 }
 
-function ProductStars({ rating, count }: { rating: number; count: number }) {
-  if (!count) return null
+function ProductStars({ rating, count, showRating }: { rating: number; count: number; showRating?: boolean }) {
+  if (showRating === false || !count) return null
   return (
     <div className="product-card__rating">
       <span className="product-card__stars" aria-label={`${rating} out of 5 stars`}>
@@ -62,8 +62,12 @@ const SWATCH_CATEGORY_SLUGS = new Set([
 function ProductsContentInner({ config = {} }: { config?: any }) {
   const columns = config.columns || 4
   const pageSize = config.pageSize || 24
+  const gridGap = config.gridGap !== undefined ? config.gridGap : 36
   const showFilters = config.showFilters !== false
   const showSort = config.showSort !== false
+  const showRating = config.showRating !== false
+  const spacingTop = config.spacingTop !== undefined ? config.spacingTop : 60
+  const spacingBottom = config.spacingBottom !== undefined ? config.spacingBottom : 60
 
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -210,7 +214,25 @@ function ProductsContentInner({ config = {} }: { config?: any }) {
   }, [])
 
   return (
-    <div className="collection-inner" style={{ paddingTop: 0 }}>
+    <div className="collection-inner" style={{ paddingTop: spacingTop, paddingBottom: spacingBottom }}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media (min-width: 990px) {
+          .products-debut-grid, .products-loading {
+            grid-template-columns: repeat(${columns}, minmax(0, 1fr)) !important;
+            gap: ${gridGap}px !important;
+          }
+        }
+        @media (max-width: 989px) {
+          .products-debut-grid, .products-loading {
+            gap: ${Math.round(gridGap * 30 / 36)}px ${Math.round(gridGap * 24 / 36)}px !important;
+          }
+        }
+        @media (max-width: 749px) {
+          .products-debut-grid, .products-loading {
+            gap: ${Math.round(gridGap * 28 / 36)}px ${Math.round(gridGap * 18 / 36)}px !important;
+          }
+        }
+      ` }} />
       {/* Search with autocomplete */}
       <form onSubmit={handleSearch} className="products-search" style={{ position: 'relative', marginBottom: 16 }}>
         <input
@@ -349,7 +371,7 @@ function ProductsContentInner({ config = {} }: { config?: any }) {
                     <Link href={href} className="grid-view-item__link">
                       <div className="grid-view-item__title product-card__title">{product.title}</div>
                     </Link>
-                    <ProductStars rating={product.avgRating || 0} count={product.reviewCount || 0} />
+                     <ProductStars rating={product.avgRating || 0} count={product.reviewCount || 0} showRating={showRating} />
                     {product.showPrice !== false && product.price != null && (
                       <div className={`price${onSale ? ' price--on-sale' : ''}`}>
                         <dl>

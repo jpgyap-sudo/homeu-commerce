@@ -54,8 +54,12 @@ export default function ProductDetailClient({ product, config = {} }: { product:
   const showSku = config.showSku !== false
   const showMaterials = config.showMaterials !== false
   const showDimensions = config.showDimensions !== false
+  const galleryWidth = config.galleryWidth || 50
+  const layoutGap = config.layoutGap || 40
   const enableZoom = config.enableZoom !== false
   const buttonText = config.buttonText || 'Request Quote'
+  const spacingTop = config.spacingTop !== undefined ? config.spacingTop : 60
+  const spacingBottom = config.spacingBottom !== undefined ? config.spacingBottom : 60
 
   const [selectedImage, setSelectedImage] = useState(0)
   const [zoomed, setZoomed] = useState(false)
@@ -89,6 +93,19 @@ export default function ProductDetailClient({ product, config = {} }: { product:
 
   return (
     <>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media (min-width: 769px) {
+          .product-detail {
+            grid-template-columns: ${galleryWidth}% 1fr !important;
+            gap: ${layoutGap}px !important;
+          }
+        }
+        .product-detail {
+          padding-top: ${spacingTop}px !important;
+          padding-bottom: ${spacingBottom}px !important;
+        }
+      ` }} />
+
       {/* Breadcrumb */}
       {showBreadcrumbs && (
         <nav className="breadcrumb page-width" aria-label="Breadcrumb">
@@ -194,6 +211,12 @@ export default function ProductDetailClient({ product, config = {} }: { product:
           )}
 
           <h1 className="product-detail__title">{product.title}</h1>
+
+          {showSku && (selectedVariant?.sku || product.sku) && (
+            <div className="product-detail__sku" style={{ fontSize: 13, color: '#888', marginTop: 4, marginBottom: 8 }}>
+              SKU: {selectedVariant?.sku || product.sku}
+            </div>
+          )}
 
           {(badges.isNew || badges.isSale || badges.is3D) && (
             <div className="product-detail__badges">

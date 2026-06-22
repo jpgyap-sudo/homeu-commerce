@@ -93,6 +93,7 @@ export default function SocialSettingsPage() {
   const IG_FIELDS = [
     { key: 'ig_business_account_id', label: 'Instagram Business Account ID', placeholder: '178414...', secret: false },
     { key: 'ig_access_token', label: 'Instagram Access Token', placeholder: 'IGQVJ...', secret: true },
+    { key: 'ig_graph_api_version', label: 'Meta Graph API Version', placeholder: 'v23.0', secret: false },
   ]
 
   function WebhookCard({ title, url, statusField, label }: { title: string; url: string; statusField: string; label: string }) {

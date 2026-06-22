@@ -5,7 +5,7 @@ import { computeGrid, GRID_TEMPLATES, type GridType } from '@/lib/grid-engine'
 
 export async function GET() {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session || session.role === 'customer') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const { rows: grids } = await query('SELECT * FROM instagram_grids ORDER BY updated_at DESC')
     return NextResponse.json({ grids, templates: Object.entries(GRID_TEMPLATES).map(([k,v]) => ({ id: k, ...v })) })
@@ -14,7 +14,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session || session.role === 'customer') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const body = await request.json()
     const { title, slug, grid_type, columns, rows, gap, config, post_ids, display_on } = body
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session || session.role === 'customer') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const body = await request.json()
     const { id, published, status, title, grid_type, columns, rows, gap, display_on } = body
@@ -73,7 +73,7 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session || session.role === 'customer') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const url = new URL(request.url)
     const id = url.searchParams.get('id')
