@@ -26,6 +26,17 @@ export default function NewCustomerPage() {
   const [phone, setPhone] = useState('')
   const [company, setCompany] = useState('')
   const [notes, setNotes] = useState('')
+  const [tagsInput, setTagsInput] = useState('')
+
+  // Quick tag toggles
+  const QUICK_TAGS = ['designer', 'vip', 'wholesale', 'architect', 'contractor']
+  function toggleQuickTag(tag: string) {
+    const current = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(Boolean) : []
+    const idx = current.indexOf(tag)
+    if (idx >= 0) current.splice(idx, 1)
+    else current.push(tag)
+    setTagsInput(current.join(', '))
+  }
 
   // ── Save ───────────────────────────────────────────────────────
   async function handleSave(e: React.FormEvent) {
@@ -42,12 +53,14 @@ export default function NewCustomerPage() {
         throw new Error('Email address is required.')
       }
 
+      const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(Boolean) : []
       const body = {
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim() || null,
         company: company.trim() || null,
         notes: notes.trim() || null,
+        tags: tags.length > 0 ? tags : null,
       }
 
       const res = await fetch('/api/customers', {
@@ -146,6 +159,37 @@ export default function NewCustomerPage() {
                 onChange={e => setCompany(e.target.value)}
                 style={inputStyle}
                 placeholder="Company name (optional)"
+              />
+            </Field>
+          </div>
+        </Section>
+
+        {/* ── Section: Tags ── */}
+        <Section title="Tags">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+              {QUICK_TAGS.map(tag => {
+                const active = (tagsInput || '').split(',').map(t => t.trim()).includes(tag)
+                return (
+                  <button key={tag} type="button" onClick={() => toggleQuickTag(tag)} style={{
+                    padding: '6px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    border: active ? '2px solid #1a6d3e' : '1.5px solid #d9e0d7',
+                    background: active ? '#e8f2ec' : '#fff',
+                    color: active ? '#1a6d3e' : '#667168',
+                    transition: 'all 0.1s',
+                  }}>
+                    {active ? '✓ ' : ''}{tag}
+                  </button>
+                )
+              })}
+            </div>
+            <Field label="Custom Tags (comma-separated)">
+              <input
+                type="text"
+                value={tagsInput}
+                onChange={e => setTagsInput(e.target.value)}
+                placeholder="e.g. designer, vip, contractor"
+                style={inputStyle}
               />
             </Field>
           </div>
