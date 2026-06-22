@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { SECTION_META, SECTION_TYPES, type SectionType } from '@/lib/theme-types'
-import { SECTION_SCHEMAS, type FieldDef } from './theme-schemas'
+import { getSectionSettings } from '@/lib/theme-builder-settings'
+import DynamicSettingsForm from '@/components/admin/DynamicSettingsForm'
 import { MediaPicker } from '@/components/admin/MediaPicker'
 import { ProductPicker } from '@/components/admin/ProductPicker'
 import { CollectionPicker } from '@/components/admin/CollectionPicker'
@@ -924,159 +925,6 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
     )
   }
 
-  function renderField(sec: Section, f: FieldDef) {
-    if (f.type === 'list') {
-      const items: any[] = sec.config[f.key] || []
-      return (
-        <div key={f.key} style={{ marginBottom: 16 }}>
-          <label style={lbl}>{f.label}</label>
-          {items.map((item, idx) => (
-            <div key={idx} style={{ border: '1px solid #eef1ed', borderRadius: 8, padding: 12, marginBottom: 8, position: 'relative', background: '#fafbf9' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {(f.itemFields || []).map(itf => (
-                  <div key={itf.key} style={{ gridColumn: (itf.type === 'url' || itf.type === 'image_picker') ? '1 / -1' : 'auto' }}>
-                    <label style={{ ...lbl, fontSize: 11 }}>{itf.label}</label>
-                    {itf.type === 'image_picker'
-                      ? <ImageField compact value={item[itf.key] || ''} onChange={v => updateListItem(sec.id, f.key, idx, itf.key, v)} />
-                      : <input style={input} value={item[itf.key] || ''} onChange={e => updateListItem(sec.id, f.key, idx, itf.key, e.target.value)} />}
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => removeListItem(sec.id, f.key, idx)} style={{ position: 'absolute', top: 8, right: 8, border: 'none', background: 'transparent', color: '#b0392f', cursor: 'pointer', fontSize: 13 }}>Remove</button>
-            </div>
-          ))}
-          <button onClick={() => addListItem(sec.id, f.key)} style={{ padding: '7px 14px', background: '#f0f7f2', border: '1.5px dashed #9cc4a9', color: '#1e7a47', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>+ Add item</button>
-        </div>
-      )
-    }
-
-    // ── Product picker field ──────────────────────────────────────────
-    if (f.type === 'product_picker') {
-      const curatedIds: number[] = sec.config.curatedIds || []
-      return (
-        <div key={f.key} style={{ marginBottom: 16 }}>
-          <label style={lbl}>{f.label}</label>
-          <div style={{ border: '1px solid #eef1ed', borderRadius: 8, padding: 12, background: '#fafbf9' }}>
-            {curatedIds.length > 0 ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                {curatedIds.map(id => (
-                  <span key={id} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    padding: '4px 10px', background: '#e8f2ec', borderRadius: 999,
-                    fontSize: 12, fontWeight: 600, color: '#1a6d3e',
-                  }}>
-                    #{id}
-                    <button onClick={() => {
-                      const next = curatedIds.filter(x => x !== id)
-                      setConfig(sec.id, 'curatedIds', next)
-                    }} style={{ border: 'none', background: 'transparent', color: '#b0392f', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p style={{ fontSize: 12, color: '#9aa69c', margin: '0 0 8px' }}>No products selected yet.</p>
-            )}
-            <button onClick={() => {
-              setProductPickerSectionId(sec.id)
-              setProductPickerOpen(true)
-              productPickerResolveRef.current = (chosenIds: number[]) => {
-                if (chosenIds && chosenIds.length > 0) {
-                  setConfig(sec.id, 'curatedIds', chosenIds)
-                  setConfig(sec.id, 'source', 'curated')
-                }
-              }
-            }} style={{
-              padding: '8px 16px', border: '1.5px dashed #9cc4a9', borderRadius: 8,
-              background: '#f0f7f2', color: '#1e7a47', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              width: '100%',
-            }}>
-              🏷️ Pick products
-            </button>
-          </div>
-          {f.help && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa69c' }}>{f.help}</p>}
-        </div>
-      )
-    }
-
-    if (f.type === 'collection_picker') {
-      const curatedSlugs: string[] = Array.isArray(sec.config.curatedSlugs) && sec.config.curatedSlugs.length > 0
-        ? sec.config.curatedSlugs.slice(0, 15)
-        : [...HOMEU_CURATED_COLLECTION_SLUGS]
-      const replaceAt = (index: number, slug: string) => {
-        const next = [...curatedSlugs]
-        const duplicateIndex = next.indexOf(slug)
-        if (duplicateIndex >= 0 && duplicateIndex !== index) {
-          next[duplicateIndex] = next[index]
-        }
-        next[index] = slug
-        setConfig(sec.id, 'curatedSlugs', next)
-        setConfig(sec.id, 'source', 'curated')
-      }
-      const move = (index: number, direction: -1 | 1) => {
-        const target = index + direction
-        if (target < 0 || target >= curatedSlugs.length) return
-        const next = [...curatedSlugs]
-        ;[next[index], next[target]] = [next[target], next[index]]
-        setConfig(sec.id, 'curatedSlugs', next)
-      }
-      return (
-        <div key={f.key} style={{ marginBottom: 16 }}>
-          <label style={lbl}>{f.label}</label>
-          <div style={{ display: 'grid', gap: 6 }}>
-            {curatedSlugs.map((slug, index) => (
-              <div key={`${slug}-${index}`} style={{ display: 'grid', gridTemplateColumns: '26px minmax(0, 1fr) auto', alignItems: 'center', gap: 7, padding: '7px 8px', border: '1px solid #e4e9e2', borderRadius: 8, background: '#fafbf9' }}>
-                <span style={{ color: '#8a948b', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>{index + 1}</span>
-                <span style={{ minWidth: 0, overflow: 'hidden', color: '#273128', fontSize: 12, fontWeight: 600, textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slug}</span>
-                <span style={{ display: 'flex', gap: 3 }}>
-                  <button type="button" onClick={() => move(index, -1)} disabled={index === 0} title="Move up" style={{ border: 0, background: 'transparent', cursor: index === 0 ? 'default' : 'pointer', opacity: index === 0 ? .25 : 1 }}>↑</button>
-                  <button type="button" onClick={() => move(index, 1)} disabled={index === curatedSlugs.length - 1} title="Move down" style={{ border: 0, background: 'transparent', cursor: index === curatedSlugs.length - 1 ? 'default' : 'pointer', opacity: index === curatedSlugs.length - 1 ? .25 : 1 }}>↓</button>
-                  <button type="button" onClick={() => openCollectionPicker([slug], false, chosen => { if (chosen[0]) replaceAt(index, chosen[0]) })} style={{ padding: '3px 7px', border: '1px solid #b9cdbf', borderRadius: 5, background: '#f0f7f2', color: '#1a6d3e', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Replace</button>
-                </span>
-              </div>
-            ))}
-          </div>
-          <button type="button" onClick={() => openCollectionPicker(curatedSlugs, true, chosen => {
-            if (chosen.length > 0) {
-              setConfig(sec.id, 'curatedSlugs', chosen.slice(0, 15))
-              setConfig(sec.id, 'source', 'curated')
-            }
-          })} style={{ width: '100%', marginTop: 8, padding: '8px 12px', border: '1.5px dashed #9cc4a9', borderRadius: 8, background: '#f0f7f2', color: '#1e7a47', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            Choose or replace collections
-          </button>
-          {f.help && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa69c' }}>{f.help}</p>}
-        </div>
-      )
-    }
-
-    // ── Image picker field ─────────────────────────────────────────────
-    if (f.type === 'image_picker') {
-      const val = sec.config[f.key] ?? ''
-      return (
-        <div key={f.key} style={{ marginBottom: 14 }}>
-          <ImageField label={f.label} value={val} onChange={v => setConfig(sec.id, f.key, v)} />
-          {f.help && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa69c' }}>{f.help}</p>}
-        </div>
-      )
-    }
-
-    const val = sec.config[f.key] ?? ''
-    return (
-      <div key={f.key} style={{ marginBottom: 14 }}>
-        <label style={lbl}>{f.label}</label>
-        {f.type === 'textarea'
-          ? <textarea style={{ ...input, minHeight: 80, resize: 'vertical' }} value={val} onChange={e => setConfig(sec.id, f.key, e.target.value)} placeholder={f.placeholder} />
-          : f.type === 'color'
-          ? <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type="color" value={val || '#000000'} onChange={e => setConfig(sec.id, f.key, e.target.value)}
-                style={{ width: 40, height: 40, padding: 2, border: '1.5px solid #d9e0d7', borderRadius: 8, cursor: 'pointer', background: 'none' }} />
-              <input style={{ ...input, flex: 1 }} type="text" value={val} onChange={e => setConfig(sec.id, f.key, e.target.value)} placeholder={f.placeholder || '#hex'} />
-            </div>
-          : <input style={input} type={f.type === 'number' ? 'number' : 'text'} value={val} onChange={e => setConfig(sec.id, f.key, f.type === 'number' ? (parseInt(e.target.value, 10) || 0) : e.target.value)} placeholder={f.placeholder} />}
-        {f.help && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa69c' }}>{f.help}</p>}
-      </div>
-    )
-  }
-
   // Scale the rail's contents to fit its width (380px = 100%, floor 62%)
   const railScale = Math.min(1, Math.max(0.62, railWidth / 380))
 
@@ -1478,7 +1326,7 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
               {sections.filter(s => FOOTER_SECTION_TYPES.has(s.type)).map(sec => {
                 const meta = SECTION_META[sec.type]
                 const open = openId === sec.id
-                const schema = SECTION_SCHEMAS[sec.type] || []
+                const schema = getSectionSettings(sec.type as SectionType) || []
                 const isOpen = allCollapsed ? false : open
                 return (
                   <div key={sec.id} style={{ marginTop: 10, border: '1px solid #eef1ed', borderRadius: 8, overflow: 'hidden' }}>
@@ -1491,7 +1339,24 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
                     </div>
                     {isOpen && (
                       <div style={{ padding: '12px 14px', borderTop: '1px solid #eef1ed' }}>
-                        {schema.map(f => renderField(sec, f))}
+                        <DynamicSettingsForm
+                          settings={schema}
+                          config={sec.config}
+                          onChange={(key, value) => setConfig(sec.id, key, value)}
+                          onOpenMediaPicker={(url) => new Promise(resolve => {
+                            setMediaCurrentUrl(url)
+                            mediaResolveRef.current = resolve
+                            setMediaOpen(true)
+                          })}
+                          onOpenProductPicker={(ids) => new Promise(resolve => {
+                            setProductPickerSectionId(sec.id)
+                            productPickerResolveRef.current = (chosenIds: number[]) => resolve(chosenIds)
+                            setProductPickerOpen(true)
+                          })}
+                          onOpenCollectionPicker={(slugs) => new Promise(resolve => {
+                            openCollectionPicker(slugs, true, (chosen: string[]) => resolve(chosen))
+                          })}
+                        />
                         <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
                           <button onClick={() => saveSection(sec)} disabled={savingId === sec.id} style={{ padding: '8px 20px', background: 'linear-gradient(180deg, #1e7a47, #0f4f2b)', color: '#fff', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{savingId === sec.id ? 'Saving…' : 'Save'}</button>
                         </div>
@@ -1528,7 +1393,7 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
             const bodySections = sections.filter(s => !FOOTER_SECTION_TYPES.has(s.type))
             const meta = SECTION_META[sec.type]
             const open = openId === sec.id
-            const schema = SECTION_SCHEMAS[sec.type] || []
+            const schema = getSectionSettings(sec.type as SectionType) || []
             const inCode = codeMode.has(sec.id)
             // When allCollapsed is active, override open to false
             const isOpen = allCollapsed ? false : open
@@ -1570,7 +1435,24 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
                     ) : (
                       schema.length === 0
                         ? <p style={{ color: '#9aa69c', fontSize: 13 }}>This section has no editable fields. Use “Edit as code”.</p>
-                        : schema.map(f => renderField(sec, f))
+                        : <DynamicSettingsForm
+                            settings={schema}
+                            config={sec.config}
+                            onChange={(key, value) => setConfig(sec.id, key, value)}
+                            onOpenMediaPicker={(url) => new Promise(resolve => {
+                              setMediaCurrentUrl(url)
+                              mediaResolveRef.current = resolve
+                              setMediaOpen(true)
+                            })}
+                            onOpenProductPicker={(ids) => new Promise(resolve => {
+                              setProductPickerSectionId(sec.id)
+                              productPickerResolveRef.current = (chosenIds: number[]) => resolve(chosenIds)
+                              setProductPickerOpen(true)
+                            })}
+                            onOpenCollectionPicker={(slugs) => new Promise(resolve => {
+                              openCollectionPicker(slugs, true, (chosen: string[]) => resolve(chosen))
+                            })}
+                          />
                     )}
 
                     {/* Universal spacing control — separates sections so they never run together */}

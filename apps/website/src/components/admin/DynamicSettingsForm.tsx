@@ -357,6 +357,8 @@ function RepeaterField({ setting, value, onChange }: {
 function DynamicField({ setting, value, onChange, ...extra }: {
   setting: SettingDefinition; value: any; onChange: (v: any) => void
   onOpenMediaPicker?: (currentUrl: string) => Promise<string | null>
+  onOpenProductPicker?: (currentIds: number[]) => Promise<number[]>
+  onOpenCollectionPicker?: (currentSlugs: string[]) => Promise<string[]>
 }) {
   // Check condition: if this field has a condition, hide it when condition not met
   // (The parent should filter; this is a safety check)
@@ -375,7 +377,33 @@ function DynamicField({ setting, value, onChange, ...extra }: {
   if (setting.type === 'link') return <LinkField setting={setting} value={value ?? ''} onChange={onChange} />
   if (setting.type === 'repeater') return <RepeaterField setting={setting} value={value ?? []} onChange={onChange} />
   if (setting.type === 'icon_picker') return <TextField setting={setting} value={value ?? ''} onChange={onChange} />
-  if (setting.type === 'product_picker') return <TextField setting={setting} value={value ?? ''} onChange={onChange} />
+  if (setting.type === 'product_picker') {
+    const ids: number[] = Array.isArray(value) ? value : []
+    return (
+      <div>
+        <div style={{ border: '1px solid #eef1ed', borderRadius: 8, padding: 12, background: '#fafbf9' }}>
+          {ids.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+              {ids.map(id => (
+                <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: '#e8f2ec', borderRadius: 999, fontSize: 12, fontWeight: 600, color: '#1a6d3e' }}>
+                  #{id}
+                  <button onClick={() => onChange(ids.filter(x => x !== id))} style={{ border: 'none', background: 'transparent', color: '#b0392f', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p style={{ fontSize: 12, color: '#9aa69c', margin: '0 0 8px' }}>No products selected yet.</p>
+          )}
+          {extra.onOpenProductPicker && (
+            <button onClick={async () => { const chosen = await extra.onOpenProductPicker!(ids); if (chosen && chosen.length > 0) onChange(chosen) }} style={{ padding: '8px 16px', border: '1.5px dashed #9cc4a9', borderRadius: 8, background: '#f0f7f2', color: '#1e7a47', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%' }}>
+              🏷️ Pick products
+            </button>
+          )}
+        </div>
+        {setting.hint && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa69c' }}>{setting.hint}</p>}
+      </div>
+    )
+  }
 
   // Fallback
   return <TextField setting={setting} value={String(value ?? '')} onChange={onChange} />
@@ -384,7 +412,7 @@ function DynamicField({ setting, value, onChange, ...extra }: {
 // ── Main Export ───────────────────────────────────────────────────────────
 
 export default function DynamicSettingsForm({
-  settings, config, onChange, onOpenMediaPicker,
+  settings, config, onChange, onOpenMediaPicker, onOpenProductPicker, onOpenCollectionPicker,
 }: DynamicSettingsFormProps) {
   // Group settings by their `group` property
   const grouped: Record<string, SettingDefinition[]> = {}
@@ -419,6 +447,8 @@ export default function DynamicSettingsForm({
           value={val}
           onChange={(v) => onChange(s.key, v)}
           onOpenMediaPicker={onOpenMediaPicker}
+          onOpenProductPicker={onOpenProductPicker}
+          onOpenCollectionPicker={onOpenCollectionPicker}
         />
       </div>
     )
