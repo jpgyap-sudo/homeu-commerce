@@ -1,0 +1,108 @@
+37:  if (cfg.bgColor && cfg.bgColor !== '#ffffff') {
+38:    styles.push(`${sel} { background-color: ${cfg.bgColor}; }`)
+40:  if (cfg.textColor) {
+41:    styles.push(`${sel} { color: ${cfg.textColor}; }`)
+45:  if (cfg.hideMobile) {
+48:  if (cfg.hideDesktop) {
+53:  const spacingTop = cfg.spacingTop != null ? Number(cfg.spacingTop) : null
+54:  const spacingBottom = cfg.spacingBottom != null ? Number(cfg.spacingBottom) : null
+59:  if (cfg.sectionMaxWidth && cfg.sectionMaxWidth !== 1200) {
+60:    styles.push(`${sel} .page-width { max-width: ${cfg.sectionMaxWidth}px; }`)
+64:  if (cfg.headingFontSize) {
+65:    styles.push(`${sel} .section-header__title { font-size: ${cfg.headingFontSize}px !important; }`)
+67:  if (cfg.headingAlign && cfg.headingAlign !== 'center') {
+68:    styles.push(`${sel} .section-header { text-align: ${cfg.headingAlign} !important; }`)
+70:  if (cfg.titleSize) {
+72:    styles.push(`${sel} [data-edit="title"] { font-size: ${cfg.titleSize}px !important; }`)
+74:  if (cfg.bodySize) {
+75:    styles.push(`${sel} [data-edit="body"], ${sel} [data-edit="text"] { font-size: ${cfg.bodySize}px !important; }`)
+79:  if (cfg.objectFit && cfg.objectFit !== 'cover') {
+80:    styles.push(`${sel} img[data-section-image] { object-fit: ${cfg.objectFit} !important; }`)
+82:  if (cfg.focalPoint && cfg.focalPoint !== 'center') {
+84:    styles.push(`${sel} img[data-section-image] { object-position: ${cfg.focalPoint} !important; }`)
+86:  if (cfg.imageMaxWidth && cfg.imageMaxWidth !== 100) {
+87:    styles.push(`${sel} img[data-section-image] { max-width: ${cfg.imageMaxWidth}% !important; }`)
+94:    if (cfg.height) styles.push(`${sel} .slideshow { height: ${cfg.height}vh !important; }`)
+95:    if (cfg.minHeight) styles.push(`${sel} .slideshow { min-height: ${cfg.minHeight}px !important; }`)
+96:    if (cfg.maxHeight) styles.push(`${sel} .slideshow { max-height: ${cfg.maxHeight}px !important; }`)
+102:    if (cfg.contentPosition) {
+106:      styles.push(`${sel} .slideshow__overlay { justify-content: ${alignments[cfg.contentPosition] || 'flex-end'}; }`)
+112:    if (cfg.columnsDesktop && cfg.columnsDesktop !== 3) {
+113:      styles.push(`${sel} .homeu-collection-grid { grid-template-columns: repeat(${cfg.columnsDesktop}, minmax(0, 1fr)) !important; }`)
+115:    if (cfg.columnsTablet && cfg.columnsTablet !== 2) {
+116:      styles.push(`@media (max-width: 900px) { ${sel} .homeu-collection-grid { grid-template-columns: repeat(${cfg.columnsTablet}, minmax(0, 1fr)) !important; } }`)
+118:    if (cfg.gap && cfg.gap !== 30) {
+119:      styles.push(`${sel} .homeu-collection-grid { gap: ${cfg.gap}px !important; }`)
+121:    if (cfg.cardRadius && cfg.cardRadius > 0) {
+122:      styles.push(`${sel} .homeu-collection-card { border-radius: ${cfg.cardRadius}px !important; }`)
+124:    if (cfg.titleColor && cfg.titleColor !== '#ffffff') {
+125:      styles.push(`${sel} .homeu-collection-card__title { color: ${cfg.titleColor} !important; }`)
+127:    if (cfg.titleSize && cfg.titleSize !== 29) {
+128:      styles.push(`${sel} .homeu-collection-card__title { font-size: ${cfg.titleSize}px !important; }`)
+134:    if (cfg.columnsDesktop && cfg.columnsDesktop !== 5) {
+135:      styles.push(`${sel} .product-grid { grid-template-columns: repeat(${cfg.columnsDesktop}, 1fr) !important; }`)
+137:    if (cfg.columnsTablet && cfg.columnsTablet !== 3) {
+138:      styles.push(`@media (max-width: 900px) { ${sel} .product-grid { grid-template-columns: repeat(${cfg.columnsTablet}, 1fr) !important; } }`)
+140:    if (cfg.gap && cfg.gap !== 24) {
+141:      styles.push(`${sel} .product-grid { gap: ${cfg.gap}px !important; }`)
+143:    if (cfg.titleSize) {
+144:      styles.push(`${sel} .grid-product__title { font-size: ${cfg.titleSize}px !important; }`)
+146:    if (cfg.priceSize) {
+147:      styles.push(`${sel} .grid-product__price { font-size: ${cfg.priceSize}px !important; }`)
+149:    if (cfg.imageRadius && cfg.imageRadius !== 3) {
+150:      styles.push(`${sel} .grid-product__image-wrap { border-radius: ${cfg.imageRadius}px !important; }`)
+152:    if (cfg.showSaleBadge === false) {
+155:    if (cfg.saleBadgeColor) {
+156:      styles.push(`${sel} .grid-product__price--original { color: ${cfg.saleBadgeColor}; }`)
+158:    if (cfg.hoverEffect === 'shadow') {
+161:    } else if (cfg.hoverEffect === 'none') {
+168:    if (cfg.headingSize) styles.push(`${sel} .homepage-cta__inner h2 { font-size: ${cfg.headingSize}px !important; }`)
+169:    if (cfg.textSize) styles.push(`${sel} .homepage-cta__inner p { font-size: ${cfg.textSize}px !important; }`)
+170:    if (cfg.contentMaxWidth) styles.push(`${sel} .homepage-cta__inner { max-width: ${cfg.contentMaxWidth}px; }`)
+175:    if (cfg.formWidth) styles.push(`${sel} form { max-width: ${cfg.formWidth}px !important; }`)
+176:    if (cfg.inputRadius) styles.push(`${sel} input { border-radius: ${cfg.inputRadius}px !important; }`)
+177:    if (cfg.inputBorderColor) styles.push(`${sel} input { border-color: ${cfg.inputBorderColor} !important; }`)
+182:    if (cfg.logoWidth) styles.push(`${sel} [data-section-media] img { width: ${cfg.logoWidth}px !important; }`)
+183:    if (cfg.logoHeight) styles.push(`${sel} [data-section-media] img { height: ${cfg.logoHeight}px !important; }`)
+184:    if (cfg.gap && cfg.gap !== 36) styles.push(`${sel} [data-section-media] { margin: 0 ${cfg.gap / 2}px; }`)
+185:    if (cfg.grayscale === false) styles.push(`${sel} [data-section-media] img { filter: none !important; }`)
+190:    if (cfg.cardRadius && cfg.cardRadius !== 12) {
+191:      styles.push(`${sel} [data-section-id="${sectionId}"] > div > div > div { border-radius: ${cfg.cardRadius}px !important; }`)
+193:    if (cfg.cardBg && cfg.cardBg !== '#ffffff') {
+194:      styles.push(`${sel} [data-section-id="${sectionId}"] > div > div > div { background: ${cfg.cardBg} !important; }`)
+200:    if (cfg.counterBg) styles.push(`${sel} .homepage-stats { background: ${cfg.counterBg} !important; }`)
+201:    if (cfg.counterTextColor) styles.push(`${sel} .homepage-stats { color: ${cfg.counterTextColor} !important; }`)
+202:    if (cfg.numberSize) styles.push(`${sel} .homepage-stats [data-edit*="number"] { font-size: ${cfg.numberSize}px !important; }`)
+203:    if (cfg.labelSize) styles.push(`${sel} .homepage-stats [data-edit*="label"] { font-size: ${cfg.labelSize}px !important; }`)
+208:    if (cfg.fontSize) styles.push(`${sel} > div { font-size: ${cfg.fontSize}px !important; }`)
+213:    if (cfg.headingSize) styles.push(`${sel} h1 { font-size: ${cfg.headingSize}px !important; }`)
+214:    if (cfg.textColor) styles.push(`${sel} .homepage-video-hero { color: ${cfg.textColor} !important; }`)
+215:    if (cfg.contentMaxWidth) styles.push(`${sel} .homepage-video-hero > div { max-width: ${cfg.contentMaxWidth}px; }`)
+216:    if (cfg.height) styles.push(`${sel} .homepage-video-hero { height: ${cfg.height}vh !important; }`)
+217:    if (cfg.overlayColor) styles.push(`${sel} .homepage-video-hero > div + div { background: ${cfg.overlayColor}; }`)
+222:    if (cfg.height) styles.push(`${sel} .homepage-image-bar { height: ${cfg.height}px !important; }`)
+223:    if (cfg.mobileHeight) styles.push(`@media (max-width: 600px) { ${sel} .homepage-image-bar { height: ${cfg.mobileHeight}px !important; } }`)
+224:    if (cfg.gap) styles.push(`${sel} .homepage-image-bar { gap: ${cfg.gap}px; }`)
+229:    if (cfg.imageWidth && cfg.imageWidth !== '50%') {
+230:      styles.push(`${sel} .homepage-image-text__image-wrap { width: ${cfg.imageWidth}; }`)
+231:      styles.push(`${sel} .homepage-image-text__content { width: ${100 - parseInt(cfg.imageWidth)}%; }`)
+233:    if (cfg.contentPadding) {
+234:      styles.push(`${sel} .homepage-image-text__content { padding: ${cfg.contentPadding}px ${Math.min(cfg.contentPadding + 8, 120)}px; }`)
+236:    if (cfg.contentBg) styles.push(`${sel} .homepage-image-text__content { background: ${cfg.contentBg} !important; }`)
+237:    if (cfg.minHeight) styles.push(`${sel} .homepage-image-text__inner { min-height: ${cfg.minHeight}px; }`)
+242:    if (cfg.columns && cfg.columns !== 3) {
+243:      styles.push(`${sel} > div > div { grid-template-columns: repeat(${cfg.columns}, 1fr) !important; }`)
+245:    if (cfg.gap && cfg.gap !== 8) {
+246:      styles.push(`${sel} > div > div { gap: ${cfg.gap}px !important; }`)
+248:    if (cfg.itemRadius && cfg.itemRadius !== 8) {
+249:      styles.push(`${sel} [data-section-media] { border-radius: ${cfg.itemRadius}px !important; }`)
+255:    if (cfg.cardWidth) styles.push(`${sel} a { min-width: ${cfg.cardWidth}px; }`)
+256:    if (cfg.imageHeight) styles.push(`${sel} a > div:first-child { height: ${cfg.imageHeight}px !important; }`)
+257:    if (cfg.cardRadius) styles.push(`${sel} a { border-radius: ${cfg.cardRadius}px !important; }`)
+258:    if (cfg.cardBg) styles.push(`${sel} a { background: ${cfg.cardBg} !important; }`)
+263:    if (cfg.maxWidth && cfg.maxWidth !== 700) {
+264:      styles.push(`${sel} .homepage-brand-text__body { max-width: ${cfg.maxWidth}px; }`)
+269:  if (cfg.animation && cfg.animation !== 'none') {
+276:    styles.push(`${sel} { ${animMap[cfg.animation] || ''}; }`)
+281:  if (cfg.customClass) {
+282:    styles.push(`.${cfg.customClass.split(' ').join(', .')} { }`)

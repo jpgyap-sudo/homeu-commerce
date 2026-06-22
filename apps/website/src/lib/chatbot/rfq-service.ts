@@ -168,8 +168,8 @@ export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
       eventType: 'RFQ_SUBMITTED',
       leadId: input.leadId,
       conversationId: input.conversationId,
-      leadName: input.leadId, // placeholder — lead name lookup needed
-      mobile: '',
+      leadName: customerName || input.leadId || 'Anonymous Visitor',
+      mobile: customerPhone || '',
       summary: `${input.items.length} items requested for ${input.projectType || 'project'} at ${input.deliveryLocation || 'TBD'}`,
       rfqItems: input.items.length,
       urgency: input.targetDate ? `Target: ${input.targetDate}` : undefined,

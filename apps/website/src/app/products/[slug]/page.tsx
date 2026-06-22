@@ -17,6 +17,16 @@ interface ProductImage {
   sort_order?: number
 }
 
+interface ProductVariant {
+  id: number
+  title: string
+  sku?: string | null
+  price: number
+  salePrice?: number | null
+  inventoryQuantity?: number
+  isDefault?: boolean
+}
+
 interface Product {
   id: string
   title: string
@@ -36,6 +46,7 @@ interface Product {
   seoTitle?: string
   seoDescription?: string
   tags?: string[]
+  variants?: ProductVariant[]
 }
 
 interface RelatedProduct {
@@ -60,6 +71,7 @@ export default function ProductDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0)
   const [related, setRelated] = useState<RelatedProduct[]>([])
   const [zoomed, setZoomed] = useState(false)
+  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null)
 
   useEffect(() => {
     if (!slug) return
@@ -67,6 +79,7 @@ export default function ProductDetailPage() {
     setError('')
     setSelectedImage(0)
     setZoomed(false)
+    setSelectedVariantId(null)
 
     fetch(`/api/products/${slug}`)
       .then(res => {
@@ -76,6 +89,10 @@ export default function ProductDetailPage() {
       })
       .then((data: Product) => {
         setProduct(data)
+        if (data.variants && data.variants.length > 0) {
+          const def = data.variants.find(v => v.isDefault) || data.variants[0]
+          setSelectedVariantId(def.id)
+        }
         // Load related products from same category
         if (data.category?.slug) {
           fetch(`/api/products?category=${data.category.slug}&limit=5`)
@@ -126,6 +143,16 @@ export default function ProductDetailPage() {
   const activeImg = images[selectedImage]
 
   const badges = getProductBadges(product)
+
+  // When the product has selectable models (e.g. Linea Sofa: Armchair vs
+  // Two/Three/Four-seater), the chosen variant's own price overrides the
+  // product's base "from" price shown everywhere else.
+  const hasVariants = Boolean(product.variants && product.variants.length > 1)
+  const selectedVariant = hasVariants
+    ? product.variants!.find(v => v.id === selectedVariantId) || product.variants![0]
+    : null
+  const displayPrice = selectedVariant ? (selectedVariant.salePrice || selectedVariant.price) : product.price
+  const displayOriginalPrice = selectedVariant ? selectedVariant.price : product.originalPrice
 
   const descHtml = product.description
     ? renderLexical(
@@ -251,16 +278,36 @@ export default function ProductDetailPage() {
           )}
 
           {/* Price */}
-          {product.showPrice !== false && product.price != null && (
-            <div className={`product-detail__price${isOnSale(product.price, product.originalPrice) ? ' is-sale' : ''}`}>
+          {product.showPrice !== false && displayPrice != null && (
+            <div className={`product-detail__price${isOnSale(displayPrice, displayOriginalPrice) ? ' is-sale' : ''}`}>
               <span className="product-detail__price-current">
-                {formatPrice(product.price)}
+                {formatPrice(displayPrice)}
               </span>
-              {isOnSale(product.price, product.originalPrice) && (
+              {isOnSale(displayPrice, displayOriginalPrice) && (
                 <span className="product-detail__price-compare">
-                  {formatPrice(product.originalPrice)}
+                  {formatPrice(displayOriginalPrice)}
                 </span>
               )}
+            </div>
+          )}
+
+          {/* Model / variant selector — products like Linea Sofa sell as
+              several selectable sizes, each with its own price. */}
+          {hasVariants && (
+            <div className="product-detail__variants">
+              <label className="product-detail__variants-label" htmlFor="variant-select">Model</label>
+              <select
+                id="variant-select"
+                className="product-detail__variants-select"
+                value={selectedVariantId ?? ''}
+                onChange={e => setSelectedVariantId(Number(e.target.value))}
+              >
+                {product.variants!.map(v => (
+                  <option key={v.id} value={v.id}>
+                    {v.title} — {formatPrice(v.salePrice || v.price)}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
           {product.priceNote && (
@@ -272,10 +319,10 @@ export default function ProductDetailPage() {
             <QuickRFQ
               product={{
                 id: product.id,
-                title: product.title,
+                title: selectedVariant ? `${product.title} — ${selectedVariant.title}` : product.title,
                 slug: product.slug,
-                price: product.price,
-                sku: product.sku,
+                price: displayPrice,
+                sku: selectedVariant?.sku || product.sku,
                 imageUrl: product.imageUrl || product.images?.[0]?.url,
               }}
             />

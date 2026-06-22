@@ -1039,6 +1039,29 @@
   opacity: 0.45;
 }
 
+.product-detail__variants {
+  margin: 4px 0 16px;
+}
+.product-detail__variants-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--debut-text-muted, #666);
+  margin-bottom: 6px;
+}
+.product-detail__variants-select {
+  width: 100%;
+  max-width: 420px;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1.5px solid var(--debut-border, #d9e0d7);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
 /* PDP "You may also like" header */
 .collection-related-header { text-align: center; margin: 8px 0 28px; }
 .collection-related-header h2 {

@@ -813,10 +813,11 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/lib/chatbot/rfq-service.ts`](apps/website/src/lib/chatbot/rfq-service.ts) |
 | **Type** | Data mapping defect |
-| **Status** | Active |
+| **Status** | ✅ Resolved |
 | **Description** | The RFQ alert payload assigns `input.leadId` to `leadName` as a placeholder instead of resolving the lead's actual display name. |
 | **Impact** | Sales notifications are confusing and less actionable, especially when multiple new RFQs arrive close together. |
 | **Fix Guidance** | Resolve the lead once inside the RFQ transaction/service, populate the real name and contact context, use a clear anonymous fallback, and cover notification mapping with a service test. |
+| **ResolvedBy** | Antigravity (planning mode) on 2026-06-22 — Sourced customerName and customerPhone from leads db query and passed to sendTelegramAlert in rfq-service.ts. |
 
 ### GAP-MED-038: Quotations Lack Customer Approval, Versioning, and Deposit Flow
 
