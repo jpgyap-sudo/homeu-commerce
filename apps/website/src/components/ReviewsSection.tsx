@@ -340,7 +340,11 @@ function WriteReviewModal({ productSlug, onClose, onSubmitted }: {
                 readOnly={signedIn}
                 title={signedIn ? 'Auto-filled from your account' : undefined}
               />
-              {signedIn && <div style={{ fontSize: 11, color: '#667168', marginTop: 4 }}>Auto-filled from your account. Not shown publicly.</div>}
+              <div style={{ fontSize: 11, color: '#667168', marginTop: 4 }}>
+                {signedIn
+                  ? 'Auto-filled from your account. Not shown publicly.'
+                  : 'Your email will not be shown publicly — used for verification only.'}
+              </div>
             </div>
 
             <div style={{ marginBottom: 14 }}>

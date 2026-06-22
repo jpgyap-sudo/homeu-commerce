@@ -21,6 +21,10 @@ export async function POST(request: NextRequest) {
          VALUES ($1, 'bot', $2, 'text')`,
         [conversationId, replyText]
       )
+      await query(
+        `UPDATE chatbot.conversations SET message_count = COALESCE(message_count, 0) + 1, last_message_at = now() WHERE id = $1`,
+        [conversationId]
+      )
       return NextResponse.json({ success: true, channel: 'website' })
     }
 

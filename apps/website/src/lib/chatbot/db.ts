@@ -184,12 +184,15 @@ export async function insertMessage(data: MessageInsert): Promise<string> {
   )
 
   // Update conversation message count and last_message_at
-  await query(
-    'UPDATE chatbot.conversations SET message_count = message_count + 1, last_message_at = now() WHERE id = $1',
-    [data.conversationId]
-  ).catch((err) => {
+  // Use COALESCE to handle NULL message_count (legacy rows)
+  try {
+    await query(
+      'UPDATE chatbot.conversations SET message_count = COALESCE(message_count, 0) + 1, last_message_at = now() WHERE id = $1',
+      [data.conversationId]
+    )
+  } catch (err) {
     console.error('[chatbot-db] Failed to update conversation message count:', err)
-  })
+  }
 
   return rows[0].id
 }

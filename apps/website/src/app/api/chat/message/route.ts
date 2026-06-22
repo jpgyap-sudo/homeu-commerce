@@ -230,32 +230,38 @@ export async function POST(request: NextRequest) {
 
     // ── Persist messages to PostgreSQL ───────────────────────
     if (conversationId) {
-      // Persist visitor message
-      insertMessage({
-        conversationId,
-        senderType: 'visitor',
-        content: message.trim(),
-        messageType: 'text',
-        metadata: { intent: classified.intent, currentPage },
-      }).catch((err: Error) => {
+      try {
+        // Persist visitor message — required; fail loudly if this doesn't save
+        await insertMessage({
+          conversationId,
+          senderType: 'visitor',
+          content: message.trim(),
+          messageType: 'text',
+          metadata: { intent: classified.intent, currentPage },
+        })
+      } catch (err: any) {
         console.error('[chatbot] Failed to persist visitor message:', err.message)
-      })
+        return NextResponse.json({ error: 'Failed to save message' }, { status: 500 })
+      }
 
-      // Persist bot reply
-      insertMessage({
-        conversationId,
-        senderType: 'bot',
-        content: reply,
-        messageType: 'text',
-        metadata: {
-          actions,
-          intent: classified.intent,
-          productRecommendations: productRecommendations.length > 0 ? productRecommendations.map(r => r.productId) : undefined,
-          quickReplies,
-        },
-      }).catch((err: Error) => {
+      // Persist bot reply — best-effort since the visitor message was already saved
+      try {
+        await insertMessage({
+          conversationId,
+          senderType: 'bot',
+          content: reply,
+          messageType: 'text',
+          metadata: {
+            actions,
+            intent: classified.intent,
+            productRecommendations: productRecommendations.length > 0 ? productRecommendations.map(r => r.productId) : undefined,
+            quickReplies,
+          },
+        })
+      } catch (err: any) {
         console.error('[chatbot] Failed to persist bot reply:', err.message)
-      })
+        // non-fatal — visitor message was saved
+      }
     }
 
     return NextResponse.json({
