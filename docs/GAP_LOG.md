@@ -3,7 +3,7 @@
 > **Purpose:** Single source of truth for known gaps, missing features, and technical debt across the DaVinciOS system.
 > **Scope:** Covers the DaVinciOS CMS backend, chatbot concierge, API routes, admin panel, frontend components, collections, deployment pipeline, and agent definitions.
 > **Status:** Active — gaps are logged for tracking by all Kilo Code extensions and agents.
-> **Last Updated:** 2026-06-23T02:30+08:00
+> **Last Updated:** 2026-06-22 19:25:48+08:00
 
 ---
 
@@ -942,6 +942,1934 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 | **Description** | Migrating legacy Shopify customers tagged `designer` (the old Shopify Forms-based trade signup, ~1,959 customers) into the new `designer_club_applications` table: 144 were imported directly via the Shopify Admin API (paginated), then the remaining 1,453 via a full customer-export CSV (`tools/import-designer-club-shopify.mjs --execute`) for a total of 1,597 imported. **204 rows in that export had no email address at all** (only name and/or phone) and were skipped outright — `designer_club_applications.email` is `NOT NULL`, and an email-less trade contact isn't actionable through the admin queue's normal flow (status updates, follow-up) the same way anyway. |
 | **Impact** | ~10% of the legacy "designer" customer list (204 of 1,959) has no record in the new system at all — if any of them are followed up with via phone/other channels, there's nothing in `/admin/designer-club` to track that against. |
 | **Fix Guidance** | Re-export from Shopify Admin (Customers filtered by tag `designer`) including the `Phone`/`Default Address Phone` columns, identify the rows with no email, and decide: (a) import them with a placeholder/null-safe email scheme (would need `email` to become nullable, same pattern as `company_name` in migration 023), or (b) leave them out of this table and handle as a separate phone-only contact list. Needs an explicit decision before building either path — not safe to assume silently. |
+
+
+## 🟠 Playwright Audit (2026-06-22 19:25:48+08:00)
+
+
+### GAP-AUDIT-__HTTP_200
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | got 500 |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-_admin_login_HTTP_200
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | got 500 |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Login__email_input_exists
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Login: email input exists |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Login__password_input_exists
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Login: password input exists |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Login__submit_button_exists
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Login: submit button exists |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Login__can_fill_credentials
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Missing form elements |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Dashboard__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Dashboard__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Dashboard: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Dashboard__shows_metrics
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Products__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Products__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Products: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Products__New__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Products__New__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Products: New: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Products__New__has_form_inputs
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Products: New: has form inputs |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Products__New__has_save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Products: New: has save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Categories__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Categories__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Categories: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Categories__New__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Categories__New__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Categories: New: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Categories__New__has_form_inputs
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Categories: New: has form inputs |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Categories__New__has_save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Categories: New: has save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Collections__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Collections__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Collections: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Collections__New__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Collections__New__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Collections: New: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Collections__New__has_form_inputs
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Collections: New: has form inputs |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Collections__New__has_save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Collections: New: has save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Central_Inbox__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Central_Inbox__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Central Inbox: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Central_Inbox__renders_inbox_UI
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Email_Inbox__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Email_Inbox__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Email Inbox: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Quotations__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Quotations__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Quotations: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Quotations__New__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Quotations__New__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Quotations: New: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Quotations__New__has_form_inputs
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Quotations: New: has form inputs |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Quotations__New__has_save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Quotations: New: has save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-RFQ_Requests__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-RFQ_Requests__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | RFQ Requests: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Customers__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Customers__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Customers: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Customers__New__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Customers__New__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Customers: New: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Customers__New__has_form_inputs
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Customers: New: has form inputs |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Customers__New__has_save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Customers: New: has save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Designer_Club__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Designer_Club__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Designer Club: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Theme__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Theme__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Theme: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Blogs__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Blogs__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Blogs: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Blogs__New__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Blogs__New__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Blogs: New: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Blogs__New__has_form_inputs
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Blogs: New: has form inputs |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Blogs__New__has_save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Blogs: New: has save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Navigation__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Navigation__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Navigation: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Pages__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Pages__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Pages: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Pages__New__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Pages__New__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Pages: New: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Pages__New__has_form_inputs
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Pages: New: has form inputs |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Pages__New__has_save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Pages: New: has save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Media__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Media__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Media: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Media__New__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Media__New__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Media: New: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Media__New__has_form_inputs
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Media: New: has form inputs |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Media__New__has_save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Media: New: has save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Redirects__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Redirects__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Redirects: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Redirects__New__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Redirects__New__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Redirects: New: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Redirects__New__has_form_inputs
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Redirects: New: has form inputs |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Redirects__New__has_save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Redirects: New: has save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Reviews__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Reviews__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Reviews: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__Traffic__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__Traffic__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics: Traffic: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__Leads__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__Leads__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics: Leads: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__Pipeline__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__Pipeline__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics: Pipeline: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__Products__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__Products__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics: Products: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__Speed__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__Speed__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics: Speed: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__Reports__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics__Reports__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics: Reports: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Leads__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Leads__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Leads: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Appointments__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Appointments__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Appointments: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-App_Settings__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-App_Settings__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | App Settings: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Instagram_Feed__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Instagram_Feed__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Instagram Feed: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Users__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Users__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: Users: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Users__has_settings_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: Users: has settings fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Store__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Store__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: Store: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Store__has_settings_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: Store: has settings fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Email__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Email__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: Email: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Email__has_settings_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: Email: has settings fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Social__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Social__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: Social: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Social__has_settings_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: Social: has settings fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Notifications__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Notifications__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: Notifications: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__Notifications__has_settings_fi
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: Notifications: has settings fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__AI__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__AI__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: AI: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__AI__has_settings_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: AI: has settings fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__CDN__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__CDN__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: CDN: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__CDN__has_settings_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: CDN: has settings fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__URLs__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__URLs__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: URLs: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__URLs__has_settings_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: URLs: has settings fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__System__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__System__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: System: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings__System__has_settings_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings: System: has settings fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Workflows__has_content
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Internal Server Error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Workflows__no_500_error
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Workflows: no 500 error |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Product_New__title_field_exists
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Product New: title field exists |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Product_New__save_button_exists
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Product New: save button exists |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Category_New__title_field_exists
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Category New: title field exists |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Category_New__save_button_exists
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Category New: save button exists |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings_store__save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings/store: save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings_store__has_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings/store: has fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings_notifications__save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings/notifications: save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings_notifications__has_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings/notifications: has fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings_urls__save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings/urls: save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings_urls__has_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings/urls: has fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings_cdn__save_button
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings/cdn: save button |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Settings_cdn__has_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Settings/cdn: has fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Email_Settings__SMTP_fields
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Email Settings: SMTP fields |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics_traffic__loads
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics/traffic: loads |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics_leads__loads
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics/leads: loads |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics_pipeline__loads
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics/pipeline: loads |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics_products__loads
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics/products: loads |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics_speed__loads
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics/speed: loads |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
+
+### GAP-AUDIT-Analytics_reports__loads
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Various admin pages |
+| **Type** | Wiring / Data / UI gap |
+| **Status** | 🔴 Open |
+| **Description** | Analytics/reports: loads |
+| **Impact** | Admin feature not fully functional |
+| **Root Cause** | Discovered by Playwright audit on 2026-06-22 19:25:48+08:00 |
+| **Fix Guidance** | Verify routes, DB data, and UI wiring |
+
 
 ## 🔵 Low Severity Gaps
 

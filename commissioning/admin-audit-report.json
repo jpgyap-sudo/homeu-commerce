@@ -1,0 +1,1116 @@
+{
+  "timestamp": "2026-06-22T19:25:48.137Z",
+  "summary": {
+    "total": 242,
+    "passed": 94,
+    "failed": 148,
+    "warnings": 18,
+    "passRate": 39,
+    "consoleErrors": 61,
+    "pageErrors": 0,
+    "failedRequests": 0
+  },
+  "gaps": [
+    {
+      "name": "/ HTTP 200",
+      "detail": "got 500"
+    },
+    {
+      "name": "/admin/login HTTP 200",
+      "detail": "got 500"
+    },
+    {
+      "name": "Login: email input exists",
+      "detail": ""
+    },
+    {
+      "name": "Login: password input exists",
+      "detail": ""
+    },
+    {
+      "name": "Login: submit button exists",
+      "detail": ""
+    },
+    {
+      "name": "Login: can fill credentials",
+      "detail": "Missing form elements"
+    },
+    {
+      "name": "Dashboard: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Dashboard: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Dashboard: shows metrics",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Products: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Products: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Products: New: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Products: New: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Products: New: has form inputs",
+      "detail": ""
+    },
+    {
+      "name": "Products: New: has save button",
+      "detail": ""
+    },
+    {
+      "name": "Categories: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Categories: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Categories: New: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Categories: New: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Categories: New: has form inputs",
+      "detail": ""
+    },
+    {
+      "name": "Categories: New: has save button",
+      "detail": ""
+    },
+    {
+      "name": "Collections: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Collections: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Collections: New: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Collections: New: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Collections: New: has form inputs",
+      "detail": ""
+    },
+    {
+      "name": "Collections: New: has save button",
+      "detail": ""
+    },
+    {
+      "name": "Central Inbox: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Central Inbox: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Central Inbox: renders inbox UI",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Email Inbox: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Email Inbox: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Quotations: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Quotations: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Quotations: New: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Quotations: New: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Quotations: New: has form inputs",
+      "detail": ""
+    },
+    {
+      "name": "Quotations: New: has save button",
+      "detail": ""
+    },
+    {
+      "name": "RFQ Requests: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "RFQ Requests: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Customers: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Customers: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Customers: New: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Customers: New: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Customers: New: has form inputs",
+      "detail": ""
+    },
+    {
+      "name": "Customers: New: has save button",
+      "detail": ""
+    },
+    {
+      "name": "Designer Club: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Designer Club: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Theme: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Theme: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Blogs: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Blogs: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Blogs: New: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Blogs: New: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Blogs: New: has form inputs",
+      "detail": ""
+    },
+    {
+      "name": "Blogs: New: has save button",
+      "detail": ""
+    },
+    {
+      "name": "Navigation: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Navigation: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Pages: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Pages: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Pages: New: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Pages: New: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Pages: New: has form inputs",
+      "detail": ""
+    },
+    {
+      "name": "Pages: New: has save button",
+      "detail": ""
+    },
+    {
+      "name": "Media: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Media: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Media: New: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Media: New: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Media: New: has form inputs",
+      "detail": ""
+    },
+    {
+      "name": "Media: New: has save button",
+      "detail": ""
+    },
+    {
+      "name": "Redirects: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Redirects: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Redirects: New: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Redirects: New: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Redirects: New: has form inputs",
+      "detail": ""
+    },
+    {
+      "name": "Redirects: New: has save button",
+      "detail": ""
+    },
+    {
+      "name": "Reviews: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Reviews: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Analytics: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Analytics: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Analytics: Traffic: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Analytics: Traffic: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Analytics: Leads: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Analytics: Leads: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Analytics: Pipeline: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Analytics: Pipeline: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Analytics: Products: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Analytics: Products: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Analytics: Speed: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Analytics: Speed: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Analytics: Reports: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Analytics: Reports: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Leads: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Leads: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Appointments: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Appointments: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "App Settings: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "App Settings: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Instagram Feed: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Instagram Feed: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Settings: Users: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Settings: Users: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Settings: Users: has settings fields",
+      "detail": ""
+    },
+    {
+      "name": "Settings: Store: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Settings: Store: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Settings: Store: has settings fields",
+      "detail": ""
+    },
+    {
+      "name": "Settings: Email: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Settings: Email: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Settings: Email: has settings fields",
+      "detail": ""
+    },
+    {
+      "name": "Settings: Social: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Settings: Social: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Settings: Social: has settings fields",
+      "detail": ""
+    },
+    {
+      "name": "Settings: Notifications: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Settings: Notifications: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Settings: Notifications: has settings fields",
+      "detail": ""
+    },
+    {
+      "name": "Settings: AI: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Settings: AI: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Settings: AI: has settings fields",
+      "detail": ""
+    },
+    {
+      "name": "Settings: CDN: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Settings: CDN: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Settings: CDN: has settings fields",
+      "detail": ""
+    },
+    {
+      "name": "Settings: URLs: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Settings: URLs: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Settings: URLs: has settings fields",
+      "detail": ""
+    },
+    {
+      "name": "Settings: System: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Settings: System: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Settings: System: has settings fields",
+      "detail": ""
+    },
+    {
+      "name": "Workflows: has content",
+      "detail": "Internal Server Error"
+    },
+    {
+      "name": "Workflows: no 500 error",
+      "detail": ""
+    },
+    {
+      "name": "Product New: title field exists",
+      "detail": ""
+    },
+    {
+      "name": "Product New: save button exists",
+      "detail": ""
+    },
+    {
+      "name": "Category New: title field exists",
+      "detail": ""
+    },
+    {
+      "name": "Category New: save button exists",
+      "detail": ""
+    },
+    {
+      "name": "Settings/store: save button",
+      "detail": ""
+    },
+    {
+      "name": "Settings/store: has fields",
+      "detail": ""
+    },
+    {
+      "name": "Settings/notifications: save button",
+      "detail": ""
+    },
+    {
+      "name": "Settings/notifications: has fields",
+      "detail": ""
+    },
+    {
+      "name": "Settings/urls: save button",
+      "detail": ""
+    },
+    {
+      "name": "Settings/urls: has fields",
+      "detail": ""
+    },
+    {
+      "name": "Settings/cdn: save button",
+      "detail": ""
+    },
+    {
+      "name": "Settings/cdn: has fields",
+      "detail": ""
+    },
+    {
+      "name": "Email Settings: SMTP fields",
+      "detail": ""
+    },
+    {
+      "name": "Analytics/traffic: loads",
+      "detail": ""
+    },
+    {
+      "name": "Analytics/leads: loads",
+      "detail": ""
+    },
+    {
+      "name": "Analytics/pipeline: loads",
+      "detail": ""
+    },
+    {
+      "name": "Analytics/products: loads",
+      "detail": ""
+    },
+    {
+      "name": "Analytics/speed: loads",
+      "detail": ""
+    },
+    {
+      "name": "Analytics/reports: loads",
+      "detail": ""
+    }
+  ],
+  "pageDetails": {
+    "/admin/dashboard": {
+      "label": "Dashboard",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/products": {
+      "label": "Products",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/products/new": {
+      "label": "Products: New",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/categories": {
+      "label": "Categories",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/categories/new": {
+      "label": "Categories: New",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/collections": {
+      "label": "Collections",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/collections/new": {
+      "label": "Collections: New",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/apps/central-inbox": {
+      "label": "Central Inbox",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/apps/email-inbox": {
+      "label": "Email Inbox",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/quotations": {
+      "label": "Quotations",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/quotations/new": {
+      "label": "Quotations: New",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/rfq": {
+      "label": "RFQ Requests",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/customers": {
+      "label": "Customers",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/customers/new": {
+      "label": "Customers: New",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/designer-club": {
+      "label": "Designer Club",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/theme": {
+      "label": "Theme",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/blogs": {
+      "label": "Blogs",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/blogs/new": {
+      "label": "Blogs: New",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/navigation": {
+      "label": "Navigation",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/pages": {
+      "label": "Pages",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/pages/new": {
+      "label": "Pages: New",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/media": {
+      "label": "Media",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/media/new": {
+      "label": "Media: New",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/redirects": {
+      "label": "Redirects",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/redirects/new": {
+      "label": "Redirects: New",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/reviews": {
+      "label": "Reviews",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/analytics": {
+      "label": "Analytics",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/analytics/traffic": {
+      "label": "Analytics: Traffic",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/analytics/leads": {
+      "label": "Analytics: Leads",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/analytics/pipeline": {
+      "label": "Analytics: Pipeline",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/analytics/products": {
+      "label": "Analytics: Products",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/analytics/speed": {
+      "label": "Analytics: Speed",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/analytics/reports": {
+      "label": "Analytics: Reports",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/collections/leads": {
+      "label": "Leads",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/collections/appointments": {
+      "label": "Appointments",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/apps": {
+      "label": "App Settings",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/apps/instagram": {
+      "label": "Instagram Feed",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/settings/users": {
+      "label": "Settings: Users",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/settings/store": {
+      "label": "Settings: Store",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/settings/email": {
+      "label": "Settings: Email",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/settings/social": {
+      "label": "Settings: Social",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/settings/notifications": {
+      "label": "Settings: Notifications",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/settings/ai": {
+      "label": "Settings: AI",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/settings/cdn": {
+      "label": "Settings: CDN",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/settings/urls": {
+      "label": "Settings: URLs",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/settings/system": {
+      "label": "Settings: System",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    },
+    "/admin/workflows": {
+      "label": "Workflows",
+      "status": "ERROR",
+      "title": "",
+      "hasContent": false,
+      "warnings": [],
+      "pageErrors": [],
+      "isEmpty": false
+    }
+  },
+  "consoleErrors": [
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/login"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/dashboard"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/products"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/products/new"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/categories"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/categories/new"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/collections"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/collections/new"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/apps/central-inbox"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/apps/email-inbox"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/quotations"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/quotations/new"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/rfq"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/customers"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/customers/new"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/designer-club"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/theme"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/blogs"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/blogs/new"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3000/admin/navigation"
+    }
+  ],
+  "pageErrors": [],
+  "failedRequests": []
+}

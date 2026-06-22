@@ -6,7 +6,10 @@ const nextConfig = {
   // Next's automatic dependency tracer doesn't always catch packages with
   // dynamic requires. This forces them (and their actual deps) to be traced
   // and copied in, instead of webpack-bundling them.
-  serverExternalPackages: ['imapflow', 'mailparser'],
+  // imapflow/mailparser are used by lib/mail-client.ts for the email inbox IMAP sync
+  // pg/pg-connection-string are used by lib/db.ts (loaded from instrumentation.ts via
+  // rfq-cleanup-sweep.ts) — these are Node.js native modules that must not be bundled.
+  serverExternalPackages: ['imapflow', 'mailparser', 'pg', 'pg-connection-string'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**' },
