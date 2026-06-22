@@ -131,7 +131,8 @@ async function fetchFeaturedReviews(limit: number): Promise<FeaturedReview[]> {
   try {
     const res = await query(
       `SELECT r.id, r.reviewer_name, r.rating, r.title, r.body, r.verified_purchase,
-              p.title as product_title, p.slug as product_slug, p.image_url as product_image
+              p.title as product_title, p.slug as product_slug,
+              (SELECT url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1) AS product_image
        FROM reviews r
        JOIN products p ON p.id = r.product_id
        WHERE r.status = 'approved' AND r.rating >= 4 AND r.body IS NOT NULL AND length(r.body) > 0
