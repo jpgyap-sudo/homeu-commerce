@@ -13,6 +13,7 @@
 import { ImapFlow } from 'imapflow'
 import { simpleParser } from 'mailparser'
 import { query } from '@/lib/db'
+import { getLatestSequenceRange } from '@/lib/mail-sync'
 
 export interface EmailConfig {
   host: string
@@ -117,10 +118,12 @@ export async function syncEmails(limit = 50): Promise<{ synced: number; total: n
     try {
       // Determine fetch range
       if (limit > 0) {
-        // Fetch latest N emails by sequence number
-        const messages = client.fetch(`${1}:${limit}`, { uid: true, flags: true, source: true })
-        for await (const msg of messages) {
-          synced += await processMessage(msg, config) ? 1 : 0
+        const range = getLatestSequenceRange(client.mailbox ? client.mailbox.exists : 0, limit)
+        if (range) {
+          const messages = client.fetch(range, { uid: true, flags: true, source: true })
+          for await (const msg of messages) {
+            synced += await processMessage(msg, config) ? 1 : 0
+          }
         }
       } else {
         // Backfill: search for messages from last 6 months, then fetch those

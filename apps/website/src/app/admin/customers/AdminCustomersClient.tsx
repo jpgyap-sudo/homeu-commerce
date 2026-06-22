@@ -141,7 +141,7 @@ function OtpVerificationModal({
   onCancel,
 }: {
   selectedCount: number
-  onVerified: () => void
+  onVerified: () => Promise<void>
   onCancel: () => void
 }) {
   const [step, setStep] = useState<'sending' | 'input' | 'verifying' | 'deleting' | 'done' | 'error'>('sending')
@@ -164,7 +164,7 @@ function OtpVerificationModal({
         const otpRes = await fetch('/api/admin/otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, action: 'generate' }),
+          body: JSON.stringify({ action: 'generate', purpose: 'customer_delete' }),
         })
         const otpData = await otpRes.json()
         if (!otpRes.ok) throw new Error(otpData.error || 'Failed to send OTP')
@@ -192,32 +192,21 @@ function OtpVerificationModal({
       const verifyRes = await fetch('/api/admin/otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: adminEmail, action: 'verify', code: code.trim() }),
+        body: JSON.stringify({ action: 'verify', purpose: 'customer_delete', code: code.trim() }),
       })
       const verifyData = await verifyRes.json()
       if (!verifyRes.ok) throw new Error(verifyData.error || 'Invalid code')
 
       // OTP verified — proceed with deletion
       setStep('deleting')
-      const delRes = await fetch('/api/admin/customers', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ids: [], // We pass nothing here — the parent must have already sent IDs
-        }),
-      })
-      if (!delRes.ok) {
-        const delData = await delRes.json().catch(() => ({}))
-        throw new Error(delData.error || 'Failed to delete customers')
-      }
-
+      await onVerified()
       setStep('done')
-      setTimeout(() => onVerified(), 1000)
+      setTimeout(onCancel, 1000)
     } catch (err: any) {
       setError(err.message || 'Verification failed')
       setStep('input')
     }
-  }, [code, adminEmail, onVerified])
+  }, [code, onVerified, onCancel])
 
   const modalOverlay: React.CSSProperties = {
     position: 'fixed', inset: 0, zIndex: 9999,
@@ -414,7 +403,6 @@ export default function AdminCustomersClient({ customers, total, search, sort, c
 
   const handleDeleteVerified = async () => {
     // OTP was verified — send IDs and delete
-    setShowOtpModal(false)
     try {
       const res = await fetch('/api/admin/customers', {
         method: 'DELETE',
@@ -429,6 +417,7 @@ export default function AdminCustomersClient({ customers, total, search, sort, c
       router.refresh()
     } catch (err: any) {
       setBulkError(err.message || 'Failed to delete customers')
+      throw err
     }
   }
 
