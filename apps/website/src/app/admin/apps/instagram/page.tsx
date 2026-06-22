@@ -196,7 +196,7 @@ export default function InstagramAdminPage() {
       const data = await r.json().catch(() => ({}))
       if (!r.ok) throw new Error(data.error || 'Instagram sync failed')
       await Promise.all([fetchPosts(), fetchSyncStatus()])
-      toast(`Synced: ${data.imported} new, ${data.updated} updated${data.skipped ? `, ${data.skipped} skipped` : ''}`)
+      toast(`Synced: ${data.imported} new, ${data.updated} updated${data.skipped ? `, ${data.skipped} skipped` : ''}${data.failed ? `, ${data.failed} failed` : ''}`)
     } catch (err: any) {
       toast(err.message || 'Instagram sync failed')
     } finally {

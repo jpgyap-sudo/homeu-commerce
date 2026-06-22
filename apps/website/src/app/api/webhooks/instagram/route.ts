@@ -9,7 +9,7 @@ function validMetaSignature(rawBody: string, signature: string | null, secret: s
   if (!signature?.startsWith('sha256=') || !secret) return false
   const supplied = signature.slice('sha256='.length)
   const expected = createHmac('sha256', secret).update(rawBody).digest('hex')
-  if (supplied.length !== expected.length) return false
+  if (!/^[a-f0-9]{64}$/i.test(supplied) || supplied.length !== expected.length) return false
   return timingSafeEqual(Buffer.from(supplied, 'hex'), Buffer.from(expected, 'hex'))
 }
 

@@ -3,8 +3,10 @@
 import { useState, FormEvent, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import siteConfig from '@/data/site-config.json'
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
+const BRAND_LOGO = siteConfig.logo?.shopifyUrl || ''
 
 export default function LoginPage() {
   const router = useRouter()
@@ -80,21 +82,46 @@ export default function LoginPage() {
     <div style={{ display: 'flex', minHeight: '100vh', background: '#faf9f6' }}>
       {/* Left brand panel */}
       <div style={{
-        flex: '0 0 400px', background: 'linear-gradient(135deg, #151a17 0%, #2a3228 50%, #1a2620 100%)',
+        flex: '0 0 480px', background: 'linear-gradient(135deg, #eaf4fb 0%, #d7ebf8 50%, #c3e0f3 100%)',
         display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
         padding: 48, position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', inset: 0, opacity: 0.04, background: 'radial-gradient(circle at 30% 50%, #fff 0%, transparent 60%), radial-gradient(circle at 70% 80%, #b88935 0%, transparent 50%)' }} />
+        <style>{`
+          @keyframes loginLogoJump {
+            0%, 100% { transform: translateY(0) scale(1); }
+            30% { transform: translateY(-14px) scale(1.04); }
+            50% { transform: translateY(0) scale(0.98); }
+            65% { transform: translateY(-4px) scale(1.01); }
+          }
+          .login-brand-logo-badge {
+            animation: loginLogoJump 2.6s ease-in-out infinite;
+          }
+        `}</style>
+        <div style={{ position: 'absolute', inset: 0, opacity: 0.05, background: 'radial-gradient(circle at 30% 50%, #fff 0%, transparent 60%), radial-gradient(circle at 70% 80%, #b88935 0%, transparent 50%)' }} />
         <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🏡</div>
-          <h1 style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: 36, fontWeight: 400, color: '#fff', margin: '0 0 8px', letterSpacing: '-0.02em' }}>Home Atelier</h1>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 1.6, maxWidth: 280 }}>
-            Curated furniture for the modern Filipino home. Made-to-order, crafted with care.
+          {BRAND_LOGO ? (
+            <div
+              className="login-brand-logo-badge"
+              style={{
+                width: 320, height: 320, margin: '0 auto 16px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #fff 0%, #fdf6e8 100%)',
+                border: '4px solid #b88935',
+                boxShadow: '0 12px 36px rgba(184, 137, 53, 0.35)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <img src={BRAND_LOGO} alt="Home Atelier" style={{ width: 240, height: 240, objectFit: 'contain' }} />
+            </div>
+          ) : (
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🏡</div>
+          )}
+          <p style={{ color: 'rgba(26,38,32,0.65)', fontSize: 14, lineHeight: 1.6, maxWidth: 300, margin: '0 auto' }}>
+            Curated furniture and timeless pieces for the modern homeowners. Offering customized solutions, crafted with care.
           </p>
           <div style={{ marginTop: 32, display: 'flex', gap: 8, justifyContent: 'center' }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#b88935' }} />
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(26,38,32,0.15)' }} />
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(26,38,32,0.15)' }} />
           </div>
         </div>
       </div>

@@ -72,6 +72,20 @@ const HEADER_FONT_OPTIONS: { label: string; stack: string }[] = [
 export default function ThemeEditor({ initial, initialCss, initialHeader }: { initial: Section[]; initialCss: string; initialHeader: HeaderSettings }) {
   const [sections, setSections] = useState<Section[]>(initial)
   const [currentTemplate, setCurrentTemplate] = useState<'index' | 'product' | 'collection'>('index')
+  const [previewProductSlug, setPreviewProductSlug] = useState('outline-chaise-sofa')
+
+  // Load first active product slug on mount for preview
+  useEffect(() => {
+    fetch('/api/products?limit=1')
+      .then(r => r.json())
+      .then(data => {
+        const first = data?.docs?.[0]
+        if (first?.slug) {
+          setPreviewProductSlug(first.slug)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   // Load sections when template changes
   useEffect(() => {
@@ -1802,7 +1816,19 @@ async function patchSection(id: number, body: any) {
           <button onClick={() => setAdding(!adding)} style={{ width: '100%', padding: '14px', background: '#fff', border: '2px dashed #c2cdbe', color: '#1e7a47', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Add section</button>
           {adding && (
             <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 8, background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, padding: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, zIndex: 20 }}>
-              {SECTION_TYPES.filter(t => !FOOTER_SECTION_TYPES.has(t)).map(t => (
+              {SECTION_TYPES.filter(t => {
+                if (FOOTER_SECTION_TYPES.has(t)) return false
+                if (currentTemplate === 'index') {
+                  return t !== 'product_details' && t !== 'collection_header' && t !== 'product_grid'
+                }
+                if (currentTemplate === 'product') {
+                  return t !== 'collection_header' && t !== 'product_grid'
+                }
+                if (currentTemplate === 'collection') {
+                  return t !== 'product_details'
+                }
+                return true
+              }).map(t => (
                 <button key={t} onClick={() => addSection(t)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', border: '1px solid #eef1ed', borderRadius: 8, background: '#fafbf9', cursor: 'pointer', textAlign: 'left' }}>
                   <span style={{ fontSize: 16 }}>{SECTION_META[t].icon}</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: '#151a17' }}>{SECTION_META[t].label}</span>
@@ -1856,7 +1882,7 @@ async function patchSection(id: number, body: any) {
           <button onClick={refreshPreview} style={{ padding: '6px 14px', background: '#f0f7f2', color: '#1e7a47', border: '1px solid #cfe3d6', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>↻ Refresh</button>
           <a href={
             currentTemplate === 'product'
-              ? `${STOREFRONT_BASE_URL || ''}/products/linea-sofa`
+              ? `${STOREFRONT_BASE_URL || ''}/products/${previewProductSlug}`
               : currentTemplate === 'collection'
               ? `${STOREFRONT_BASE_URL || ''}/products`
               : `${STOREFRONT_BASE_URL || ''}/`
@@ -1867,7 +1893,7 @@ async function patchSection(id: number, body: any) {
             key={previewKey}
             src={
               currentTemplate === 'product'
-                ? `${STOREFRONT_BASE_URL}/products/linea-sofa?preview=${previewKey}`
+                ? `${STOREFRONT_BASE_URL}/products/${previewProductSlug}?preview=${previewKey}`
                 : currentTemplate === 'collection'
                 ? `${STOREFRONT_BASE_URL}/products?preview=${previewKey}`
                 : `${STOREFRONT_BASE_URL}/?preview=${previewKey}`

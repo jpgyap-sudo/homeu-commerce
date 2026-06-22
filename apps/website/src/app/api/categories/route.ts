@@ -14,7 +14,7 @@ import { getSession } from '@/lib/auth'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 100)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
     const [result, countResult] = await Promise.all([

@@ -106,10 +106,15 @@ export async function syncInstagramFeed() {
     config
   )
 
-  const summary = { imported: 0, updated: 0, skipped: 0, total: payload.data?.length || 0 }
+  const summary = { imported: 0, updated: 0, skipped: 0, failed: 0, total: payload.data?.length || 0 }
   for (const media of payload.data || []) {
-    const result = await upsertInstagramMedia(media)
-    summary[result]++
+    try {
+      const result = await upsertInstagramMedia(media)
+      summary[result]++
+    } catch (err: any) {
+      summary.failed++
+      console.error(`[instagram-sync] Failed media ${media.id}:`, err.message)
+    }
   }
   return summary
 }
