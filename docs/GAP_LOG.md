@@ -3,7 +3,7 @@
 > **Purpose:** Single source of truth for known gaps, missing features, and technical debt across the DaVinciOS system.
 > **Scope:** Covers the DaVinciOS CMS backend, chatbot concierge, API routes, admin panel, frontend components, collections, deployment pipeline, and agent definitions.
 > **Status:** Active — gaps are logged for tracking by all Kilo Code extensions and agents.
-> **Last Updated:** 2026-06-21T00:00+08:00
+> **Last Updated:** 2026-06-22T00:00+08:00
 
 ---
 
@@ -909,6 +909,17 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 | **Impact** | Non-designers must understand section names and assemble a coherent site from scratch, increasing decision fatigue and dependence on custom CSS or developer help. |
 | **Fix Guidance** | Group sections by hero, content, commerce, social, conversion, and advanced; add searchable visual thumbnails and "best for" guidance; provide HomeU-ready page presets; support saved reusable blocks and style presets; and offer a first-run checklist for logo, colors, navigation, hero, featured products, contact/RFQ, footer, mobile review, and publish. |
 
+### GAP-MED-047: Product Photos Have Inconsistent Backgrounds — Collage/Grid Views Look Mismatched
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | Product images across `products`/`product_images` (sourced from the original Shopify catalog — many different photographers/studio setups over time), surfaced most visibly in [`apps/website/src/app/products/page.tsx`](apps/website/src/app/products/page.tsx)'s collection-header collage and any grid/comparison view that places several products side by side |
+| **Type** | Visual consistency / catalog data quality |
+| **Status** | Active |
+| **Description** | Product photos were never shot or post-processed with a consistent background. Side by side (e.g. the 4-image collection-header collage, or any future "compare" or grid feature), some products sit on black, some on white/grey gradient studio backgrounds, some on colored backgrounds, some in lifestyle/room scenes — it reads as mismatched rather than curated. A temporary CSS fix (desaturate + tint every collage tile the same way via `filter: grayscale(...) sepia(...)`, plus a stronger gradient overlay, in `debut-overrides.css`'s `.collection-banner__collage-tile`) makes the *banner specifically* look cohesive, but doesn't touch the underlying photos, so the same mismatch will reappear anywhere else multiple product photos are shown together unstyled (e.g. plain product grids, search results). |
+| **Impact** | Storefront looks less polished/professional than a single-photographer catalog; undermines the premium positioning the rest of the theme work is going for. |
+| **Fix Guidance** | There's already a self-hosted AI product-photo tool for this: `product-image-studio` (Docker container `product-studio-backend` on the VPS, source at `/root/productgenerator` — generates 5 consistent views per product via fal.ai GPT-image-1-mini + Gemini QA, including a "luxury interior scene" background option). Running it across the full catalog is a real-cost, real-time AI generation batch job (per-product API calls, not free/instant) — needs a scoped decision (which products, which view types, budget) before kicking off, not something to run unprompted. Until then, prioritize background-consistency for whatever subset of products commonly appears together (homepage featured products, collection-header collages, bestsellers) rather than the full catalog at once. |
+
 ## 🔵 Low Severity Gaps
 
 ### GAP-LOW-001: Bank Account Details are Placeholder Text
@@ -1312,10 +1323,10 @@ The existing Playwright audit reported 113 passes, one timeout, and five warning
 |----------|-------------|-----------|
 | 🔴 Critical | 1 | **Admin OTP returned to requester (CRIT-004)** |
 | 🟠 High | 13 | Existing 9 items plus typed theme form wiring, safe theme mutations/import, setting-to-output contracts, and complete website-template editing |
-| 🟡 Medium | 28 | Existing 22 items plus global theme contract, footer wiring, preview usability, asset health, responsive controls, and no-code onboarding |
+| 🟡 Medium | 29 | Existing 22 items plus global theme contract, footer wiring, preview usability, asset health, responsive controls, no-code onboarding, and **inconsistent product photo backgrounds (MED-047)** |
 | 🔵 Low | 20 | Bank placeholder, Viber placeholder, Schema migration pending, component-map.md missing, Bare catch blocks, Inline auth styles, UX inconsistency, Dual rendering paths, msgCounter reset, Silent catch, Product URL unused, Viber not clickable, No delete on edit page, Contextual back-link, Admin login branding (DaVinciOS logo class), E2e test Turbopack patterns, Stale homeu.ph domain references, **Slideshow Shopify CDN URLs**, **Favicon Shopify CDN URL**, **Chat uploads local disk** |
 | ✅ Resolved | 40 | **Previously:** CRIT-001, CRIT-002, HIGH-001 through HIGH-009, MED-001,002,003,009-015,017,018, LOW-016,017,018, RES-001-003 (22 gaps). **2026-06-17 false-positive sweep:** MED-021 (DaVinciOS variable naming), MED-026 (17 agent/skill files), MED-027 (Claude DO-Spaces skill), MED-028 (design resources), MED-029 (agent definitions), MED-030 (AI instructions), MED-032 (.env.example), MED-033 (kilo.json ref) — all 9 flagged DaVinciOS references are correct (DaVinciOS IS the backend). Plus corrected MED-018 rationale. **2026-06-21:** RES-004 closed the analytics/leads/appointments/reports/workflows wiring audit; RES-005 closed the RFQ-chat local migration drift and Facebook inbox webhook schema mismatch; RES-006 closed the unified no-code settings platform's missing storage table and wired its saved settings into the actual runtime (AI provider, Telegram, chat widget); RES-007 closed an active data-loss bug where admin media uploads wrote to the container's ephemeral disk instead of DigitalOcean Spaces. |
-| **Total** | **101** | **62 active + 40 resolved** |
+| **Total** | **102** | **63 active + 40 resolved** |
 
 ---
 
@@ -1507,6 +1518,7 @@ The existing Playwright audit reported 113 passes, one timeout, and five warning
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-06-22 | **Logged GAP-MED-047: inconsistent product photo backgrounds** — owner flagged that the collection-header collage (and any grid showing several products together) looks mismatched since product photos were never shot/processed with a consistent background. Applied a free instant fix (desaturate+tint every collage tile the same way in `debut-overrides.css`, plus a stronger overlay) so the banner specifically reads as cohesive. The real fix — regenerating photos with `product-image-studio` (the self-hosted fal.ai/GPT-image-1-mini product-photo tool already running on the VPS) — is a real-cost, real-time AI batch job that needs a scoped decision (which products, budget) before running, so it's logged as an active gap rather than run unprompted. | Claude |
 | 2026-06-21 | **Fixed admin media upload writing to ephemeral container disk instead of DO Spaces** — Resolved RES-007: the "Upload a new file" path in the media picker wrote to `public/uploads/` on the website container's filesystem (no volume mount — destroyed on every deploy) despite its own docs claiming it used DigitalOcean Spaces, and never registered the file in the `media` table. Added `lib/do-spaces.ts`, wired it to the admin-configured CDN settings (added the missing `doSpacesRegion` field), rewrote the route to do real sha256 dedupe + Spaces upload + `media` row insert, and verified PUT/GET/DELETE against real production credentials. | Claude |
 | 2026-06-21 | **Unified no-code settings platform finished and wired to runtime** — Resolved RES-006: added the missing `"DaVinciOS_kv"` table (`015_davincios_kv.sql`), removed a broken duplicate migration that seeded fake defaults via an unset Postgres GUC, made the AI provider and Telegram alert sender read admin-saved settings instead of only env vars, gave the storefront chat widget a real public config endpoint (fixing a dead `enableChat` toggle and Viber number that previously only existed in `NEXT_PUBLIC_*` build-time env vars), and replaced a non-functional TypeScript-in-`.mjs` test with a passing 18-check wiring audit. | Claude |
 | 2026-06-21 | **RFQ chat local migration drift + Facebook inbox webhook schema fix** — Resolved RES-005: re-applied `005_add_rfq_chat.sql` against the local DB (tables were missing despite the migration ledger claiming they'd run), rewrote the Facebook webhook to match the real `inbox_contacts`/`inbox_messages` schema, and added `014_inbox_id_defaults.sql` so the leftover PayloadCMS-era `inbox_*` tables generate their own `id` again now that the framework that used to do it is gone. Verified end-to-end with a simulated webhook insert chain; TypeScript and preflight pass. | Claude |

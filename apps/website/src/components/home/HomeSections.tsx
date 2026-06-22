@@ -332,17 +332,11 @@ async function renderSection(section: HomepageSection) {
             {featuredReviews.length === 0 ? null : (
               <div className="homepage-reviews__grid">
                 {featuredReviews.map(r => (
-                  <div key={r.id} className="homepage-reviews__card">
-                    <div className="homepage-reviews__stars" aria-label={`${r.rating} out of 5 stars`}>
-                      {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
-                    </div>
-                    {r.title && <h3 className="homepage-reviews__title">{r.title}</h3>}
-                    <p className="homepage-reviews__body">&ldquo;{r.body}&rdquo;</p>
-                    <div className="homepage-reviews__meta">
-                      <strong>{r.reviewer_name || 'Anonymous'}</strong>
-                      {r.verified_purchase && <span className="homepage-reviews__verified">Verified Buyer</span>}
-                      <span> · </span>
-                      <Link href={`/products/${r.product_slug}`}>{r.product_title}</Link>
+                  <div key={r.id} className="review-card">
+                    {r.title && <h3 className="review-card__title">{r.title}</h3>}
+                    <p className="review-card__body">&ldquo;{r.body}&rdquo;</p>
+                    <div className="review-card__meta">
+                      {r.reviewer_name || 'Anonymous'} · <Link href={`/products/${r.product_slug}`}>{r.product_title}</Link>
                     </div>
                   </div>
                 ))}
