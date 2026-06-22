@@ -43,6 +43,16 @@ interface ProductData {
   updated_at: string
 }
 
+interface ProductVariant {
+  id: number
+  title: string
+  sku?: string | null
+  price: number
+  salePrice?: number | null
+  inventoryQuantity?: number | null
+  isDefault?: boolean
+}
+
 // ── Status / Sales Channel options ───────────────────────────────────
 
 const STATUS_OPTIONS = [
@@ -130,6 +140,7 @@ export default function EditProductPage() {
   const [seoTitle, setSeoTitle] = useState('')
   const [seoDescription, setSeoDescription] = useState('')
   const [originalProduct, setOriginalProduct] = useState<ProductData | null>(null)
+  const [variants, setVariants] = useState<ProductVariant[]>([])
 
   // ── Load data ─────────────────────────────────────────────────
   useEffect(() => {
@@ -152,6 +163,7 @@ export default function EditProductPage() {
         const product = await prodRes.json()
         setOriginalProduct(product)
         populateForm(product)
+        setVariants(product.variants || [])
       } catch (err: any) {
         setError(err.message || 'Failed to load product')
       } finally {
@@ -399,6 +411,20 @@ export default function EditProductPage() {
           </label>
         </Section>
 
+        {/* ── Section: Variants ── */}
+        <Section title="Models / Variants">
+          <p style={{ fontSize: 13, color: '#667168', margin: '-4px 0 14px' }}>
+            For products sold as several selectable models (e.g. Armchair / Two-seater / Three-seater),
+            each with its own price. When variants exist, the storefront shows a model dropdown instead
+            of the single Price field above.
+          </p>
+          <VariantsEditor
+            productId={parseInt(params?.id as string, 10)}
+            variants={variants}
+            onChange={setVariants}
+          />
+        </Section>
+
         {/* ── Section: Inventory ── */}
         <Section title="Inventory">
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 14, cursor: 'pointer' }}>
@@ -546,6 +572,169 @@ const inputStyle: React.CSSProperties = {
   background: '#fff',
   color: '#151a17',
   boxSizing: 'border-box',
+}
+
+const cellInputStyle: React.CSSProperties = { ...inputStyle, padding: '8px 10px', fontSize: 13 }
+
+/** CRUD editor for a product's models/variants — each row saves itself
+ * immediately via the admin variants API, no separate "Save" step needed
+ * since these are a different table from the parent product form. */
+function VariantsEditor({ productId, variants, onChange }: {
+  productId: number
+  variants: ProductVariant[]
+  onChange: (variants: ProductVariant[]) => void
+}) {
+  const [busyId, setBusyId] = useState<number | 'new' | null>(null)
+  const [draft, setDraft] = useState({ title: '', sku: '', price: '', salePrice: '', inventoryQuantity: '' })
+  const [rowError, setRowError] = useState('')
+
+  async function addVariant() {
+    if (!draft.title.trim() || !draft.price) { setRowError('Title and price are required'); return }
+    setRowError('')
+    setBusyId('new')
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/variants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: draft.title, sku: draft.sku || null, price: draft.price,
+          salePrice: draft.salePrice || null, inventoryQuantity: draft.inventoryQuantity || 0,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to add variant')
+      onChange([...variants, data.variant ? {
+        id: data.variant.id, title: data.variant.title, sku: data.variant.sku,
+        price: parseFloat(data.variant.price), salePrice: data.variant.sale_price ? parseFloat(data.variant.sale_price) : null,
+        inventoryQuantity: data.variant.inventory_quantity, isDefault: data.variant.is_default,
+      } : draft as any])
+      setDraft({ title: '', sku: '', price: '', salePrice: '', inventoryQuantity: '' })
+    } catch (err: any) {
+      setRowError(err.message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function updateVariant(id: number, patch: Partial<ProductVariant>) {
+    setBusyId(id)
+    try {
+      const body: any = {}
+      if (patch.title !== undefined) body.title = patch.title
+      if (patch.sku !== undefined) body.sku = patch.sku
+      if (patch.price !== undefined) body.price = patch.price
+      if (patch.salePrice !== undefined) body.salePrice = patch.salePrice
+      if (patch.inventoryQuantity !== undefined) body.inventoryQuantity = patch.inventoryQuantity
+      const res = await fetch(`/api/admin/products/${productId}/variants/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to update variant') }
+      onChange(variants.map(v => v.id === id ? { ...v, ...patch } : v))
+    } catch (err: any) {
+      setRowError(err.message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function deleteVariant(id: number) {
+    if (!confirm('Delete this model? This cannot be undone.')) return
+    setBusyId(id)
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/variants/${id}`, { method: 'DELETE', credentials: 'include' })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to delete variant') }
+      onChange(variants.filter(v => v.id !== id))
+    } catch (err: any) {
+      setRowError(err.message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  return (
+    <div>
+      {variants.length > 0 && (
+        <div style={{ overflowX: 'auto', marginBottom: 14 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ textAlign: 'left', color: '#667168' }}>
+                <th style={{ padding: '4px 8px' }}>Model / Option</th>
+                <th style={{ padding: '4px 8px' }}>SKU</th>
+                <th style={{ padding: '4px 8px' }}>Price</th>
+                <th style={{ padding: '4px 8px' }}>Sale Price</th>
+                <th style={{ padding: '4px 8px' }}>Stock</th>
+                <th style={{ padding: '4px 8px' }} />
+              </tr>
+            </thead>
+            <tbody>
+              {variants.map(v => (
+                <tr key={v.id} style={{ borderTop: '1px solid #eef1ed' }}>
+                  <td style={{ padding: '4px 8px' }}>
+                    <input defaultValue={v.title} style={cellInputStyle}
+                      onBlur={e => e.target.value !== v.title && updateVariant(v.id, { title: e.target.value })} />
+                  </td>
+                  <td style={{ padding: '4px 8px' }}>
+                    <input defaultValue={v.sku || ''} style={cellInputStyle}
+                      onBlur={e => e.target.value !== (v.sku || '') && updateVariant(v.id, { sku: e.target.value })} />
+                  </td>
+                  <td style={{ padding: '4px 8px' }}>
+                    <input type="number" min={0} step={0.01} defaultValue={v.price} style={{ ...cellInputStyle, maxWidth: 120 }}
+                      onBlur={e => parseFloat(e.target.value) !== v.price && updateVariant(v.id, { price: parseFloat(e.target.value) })} />
+                  </td>
+                  <td style={{ padding: '4px 8px' }}>
+                    <input type="number" min={0} step={0.01} defaultValue={v.salePrice ?? ''} style={{ ...cellInputStyle, maxWidth: 120 }}
+                      placeholder="—"
+                      onBlur={e => updateVariant(v.id, { salePrice: e.target.value ? parseFloat(e.target.value) : null })} />
+                  </td>
+                  <td style={{ padding: '4px 8px' }}>
+                    <input type="number" defaultValue={v.inventoryQuantity ?? 0} style={{ ...cellInputStyle, maxWidth: 90 }}
+                      onBlur={e => parseInt(e.target.value, 10) !== v.inventoryQuantity && updateVariant(v.id, { inventoryQuantity: parseInt(e.target.value, 10) })} />
+                  </td>
+                  <td style={{ padding: '4px 8px' }}>
+                    <button type="button" onClick={() => deleteVariant(v.id)} disabled={busyId === v.id}
+                      style={{ background: 'none', border: 'none', color: '#b42318', cursor: 'pointer', fontSize: 16 }}
+                      title="Delete this model">✕</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+        <Field label="Model / Option">
+          <input value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })}
+            placeholder="e.g. Two-seater 1650x900x820mm" style={cellInputStyle} />
+        </Field>
+        <Field label="SKU">
+          <input value={draft.sku} onChange={e => setDraft({ ...draft, sku: e.target.value })} style={cellInputStyle} />
+        </Field>
+        <Field label="Price">
+          <input type="number" min={0} step={0.01} value={draft.price} onChange={e => setDraft({ ...draft, price: e.target.value })} style={cellInputStyle} />
+        </Field>
+        <Field label="Sale Price">
+          <input type="number" min={0} step={0.01} value={draft.salePrice} onChange={e => setDraft({ ...draft, salePrice: e.target.value })} style={cellInputStyle} />
+        </Field>
+        <Field label="Stock">
+          <input type="number" value={draft.inventoryQuantity} onChange={e => setDraft({ ...draft, inventoryQuantity: e.target.value })} style={cellInputStyle} />
+        </Field>
+        <button type="button" onClick={addVariant} disabled={busyId === 'new'}
+          style={{
+            padding: '8px 16px', background: '#1a6d3e', color: '#fff', border: 'none',
+            borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: busyId === 'new' ? 'not-allowed' : 'pointer',
+            height: 38,
+          }}>
+          {busyId === 'new' ? 'Adding…' : '+ Add Model'}
+        </button>
+      </div>
+      {rowError && <p style={{ color: '#b42318', fontSize: 12, marginTop: 8 }}>{rowError}</p>}
+    </div>
+  )
 }
 
 const selectStyle: React.CSSProperties = {
