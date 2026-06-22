@@ -246,7 +246,7 @@ async function renderSection(section: HomepageSection) {
                   <Link href={`/products?category=${c.slug}`} className="homeu-collection-card__link" aria-label={`Browse ${c.title}`} style={{ position: 'absolute', inset: 0, display: 'block', color: '#fff', textDecoration: 'none' }}>
                     <div className="homeu-collection-card__media" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
                       {c.image_url
-                        ? <Image src={c.image_url} alt="" fill sizes="(max-width: 749px) 50vw, 33vw" className="homeu-collection-card__image" style={{ objectFit: 'cover', objectPosition: 'center top' }} unoptimized />
+                        ? <Image src={c.image_url} alt="" fill sizes="(max-width: 749px) 50vw, 33vw" className="homeu-collection-card__image" style={{ objectFit: 'cover', objectPosition: 'center top' }} data-section-image unoptimized />
                         : <div className="homeu-collection-card__placeholder" />}
                     </div>
                     <div className="homeu-collection-card__title-wrap" style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
@@ -267,7 +267,7 @@ async function renderSection(section: HomepageSection) {
         <section className="index-section homepage-image-text">
           <div className="homepage-image-text__inner">
             <div className="homepage-image-text__image-wrap" data-section-media="true">
-              {cfg.image ? <Image src={cfg.image} data-edit-image="image" alt={cfg.title || ''} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 50vw" unoptimized />
+              {cfg.image ? <Image src={cfg.image} data-edit-image="image" alt={cfg.title || ''} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 50vw" data-section-image unoptimized />
                : <div style={{ width: '100%', height: '100%', minHeight: 380, background: '#eef1ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9aa69c', fontSize: 14 }}>Click to add image</div>}
             </div>
             <div className="homepage-image-text__content">
@@ -286,7 +286,7 @@ async function renderSection(section: HomepageSection) {
         <div className="homepage-image-bar">
           {(cfg.images || []).map((img: any, i: number) => {
             const inner = img.image
-              ? <Image src={img.image} data-edit-image={`images.${i}.image`} alt={img.alt || `Image ${i + 1}`} fill style={{ objectFit: 'cover' }} sizes="33vw" unoptimized />
+              ? <Image src={img.image} data-edit-image={`images.${i}.image`} alt={img.alt || `Image ${i + 1}`} fill style={{ objectFit: 'cover' }} sizes="33vw" data-section-image unoptimized />
               : <div style={{ width: '100%', height: '100%', background: '#eef1ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9aa69c', fontSize: 12 }}>Click to add</div>
             return (
               <div key={i} className="homepage-image-bar__item" data-section-media="true">
@@ -332,7 +332,7 @@ async function renderSection(section: HomepageSection) {
                     <Link href={`/products/${p.slug}`} className="grid-product__link" data-product-index={pIndex}>
                       <div className="grid-product__image-wrap" style={{ position: 'relative', width: '100%', aspectRatio: '1', overflow: 'hidden', background: '#fff' }}>
                         {p.image_url
-                          ? <Image src={p.image_url} alt={p.title} width={600} height={600} sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 25vw" className="grid-product__image" style={{ objectFit: 'contain', width: '100%', height: '100%', background: '#fff' }} unoptimized />
+                          ? <Image src={p.image_url} alt={p.title} width={600} height={600} sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 25vw" className="grid-product__image" style={{ objectFit: 'contain', width: '100%', height: '100%', background: '#fff' }} data-section-image unoptimized />
                           : <div className="grid-product__image-placeholder" />}
                         {/* Preview-only swap button overlay */}
                         <div className="homeu-product-swap-btn" data-product-index={pIndex}
@@ -558,7 +558,7 @@ async function renderSection(section: HomepageSection) {
                   style={isList ? { display: 'flex', gap: 20, alignItems: 'center', padding: 16, border: '1px solid #eef1ed', borderRadius: 12 } : {}}>
                   <Link href={`/blog/${a.handle}`} style={isList ? { flexShrink: 0, width: 160, height: 120 } : { display: 'block' }}>
                     {a.image_url
-                      ? <Image src={a.image_url} alt={a.title} width={isList ? 160 : 400} height={isList ? 120 : 300} style={{ objectFit: 'cover', width: '100%', borderRadius: 8 }} unoptimized />
+                      ? <Image src={a.image_url} alt={a.title} width={isList ? 160 : 400} height={isList ? 120 : 300} style={{ objectFit: 'cover', width: '100%', borderRadius: 8 }} data-section-image unoptimized />
                       : <div style={{ width: '100%', height: isList ? 120 : 200, background: '#eef1ed', borderRadius: 8 }} />}
                   </Link>
                   <div style={{ flex: 1 }}>
@@ -629,7 +629,7 @@ async function renderSection(section: HomepageSection) {
                 }} data-section-media="true">
                   {item.image ? (item.link
                     ? <Link href={item.link} style={{ display: 'block', width: '100%', height: '100%' }}>
-                        <Image src={item.image} data-edit-image={`items.${i}.image`} alt={item.title || ''} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 33vw" unoptimized />
+                        <Image src={item.image} data-edit-image={`items.${i}.image`} alt={item.title || ''} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 33vw" data-section-image unoptimized />
                       </Link>
                     : <Image src={item.image} data-edit-image={`items.${i}.image`} alt={item.title || ''} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 33vw" unoptimized />)
                   : <div style={{ width: '100%', height: '100%', minHeight: 240, background: '#eef1ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9aa69c' }}>Click to add image</div>}
@@ -665,7 +665,7 @@ async function renderSection(section: HomepageSection) {
                   }}>
                   <div style={{ height: 220, position: 'relative' }}>
                     {c.image_url
-                      ? <Image src={c.image_url} alt={c.title} fill style={{ objectFit: 'cover' }} sizes="220px" unoptimized />
+                      ? <Image src={c.image_url} alt={c.title} fill style={{ objectFit: 'cover' }} sizes="220px" data-section-image unoptimized />
                       : <div style={{ width: '100%', height: '100%', background: '#eef1ed' }} />}
                   </div>
                   <div style={{ padding: '12px 14px', textAlign: 'center' }}>

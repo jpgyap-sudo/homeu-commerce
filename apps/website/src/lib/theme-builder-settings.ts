@@ -55,6 +55,7 @@ export interface SettingDefinition {
     | 'alignment'
     | 'collection_picker'
     | 'product_picker'
+    | 'focal_point'
     | 'icon_picker'
   default: SettingValue
   options?: SettingOption[]
@@ -164,6 +165,24 @@ const COMMON_ANIMATION: SettingDefinition[] = [
 const COMMON_CUSTOM_CLASS: SettingDefinition[] = [
   { key: 'customClass', label: 'Custom CSS Class', type: 'text', default: '', group: 'Advanced',
     hint: 'Add custom CSS class names (space-separated)' },
+]
+
+const COMMON_IMAGE: SettingDefinition[] = [
+  { key: 'imageMaxWidth',     label: 'Image Max Width',    type: 'range', default: 100, min: 20, max: 100, step: 5, unit: '%', group: 'Image' },
+  { key: 'imageAspectRatio', label: 'Image Aspect Ratio', type: 'select', default: 'auto', group: 'Image',
+    options: [
+      { label: 'Original', value: 'auto' },
+      { label: 'Square (1:1)', value: '1:1' },
+      { label: 'Portrait (3:4)', value: '3:4' },
+      { label: 'Landscape (4:3)', value: '4:3' },
+      { label: 'Wide (16:9)', value: '16:9' },
+    ]},
+  { key: 'objectFit',        label: 'Image Fit',          type: 'select', default: 'cover', group: 'Image',
+    options: [
+      { label: 'Cover (crop)', value: 'cover' },
+      { label: 'Contain (fit)', value: 'contain' },
+    ]},
+  { key: 'focalPoint',       label: 'Focal Point',        type: 'focal_point', default: 'center', group: 'Image' },
 ]
 
 // ── Section-Specific Settings ─────────────────────────────────────────────

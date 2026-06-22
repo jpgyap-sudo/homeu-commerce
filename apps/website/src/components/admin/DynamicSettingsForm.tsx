@@ -220,6 +220,53 @@ function ImagePickerField({ setting, value, onChange, onOpenMediaPicker }: {
   )
 }
 
+const FOCAL_OPTIONS = [
+  { label: 'Top Left', value: 'top left' },
+  { label: 'Top', value: 'top' },
+  { label: 'Top Right', value: 'top right' },
+  { label: 'Left', value: 'left' },
+  { label: 'Center', value: 'center' },
+  { label: 'Right', value: 'right' },
+  { label: 'Bottom Left', value: 'bottom left' },
+  { label: 'Bottom', value: 'bottom' },
+  { label: 'Bottom Right', value: 'bottom right' },
+]
+
+function FocalPointField({ setting, value, onChange }: {
+  setting: SettingDefinition; value: string; onChange: (v: string) => void
+}) {
+  const current = value ?? setting.default ?? 'center'
+  return (
+    <div>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 4, maxWidth: 210,
+      }}>
+        {FOCAL_OPTIONS.map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => onChange(opt.value)}
+            title={opt.label}
+            style={{
+              padding: '10px 4px', border: current === opt.value ? '2px solid #1a6d3e' : '1.5px solid #d9e0d7',
+              borderRadius: 6, background: current === opt.value ? '#f0f7f2' : '#fff',
+              color: '#151a17', fontSize: 11, fontWeight: current === opt.value ? 700 : 400,
+              cursor: 'pointer', textAlign: 'center',
+              position: 'relative',
+            }}
+          >
+            {opt.label === 'top left' ? '↖' : opt.label === 'top' ? '↑' : opt.label === 'top right' ? '↗' :
+             opt.label === 'left' ? '←' : opt.label === 'center' ? '⊕' : opt.label === 'right' ? '→' :
+             opt.label === 'bottom left' ? '↙' : opt.label === 'bottom' ? '↓' :
+             opt.label === 'bottom right' ? '↘' : ''}
+          </button>
+        ))}
+      </div>
+      {setting.hint && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa69c' }}>{setting.hint}</p>}
+    </div>
+  )
+}
+
 function FontPickerField({ setting, value, onChange }: {
   setting: SettingDefinition; value: string; onChange: (v: string) => void
 }) {
@@ -372,6 +419,7 @@ function DynamicField({ setting, value, onChange, ...extra }: {
   if (setting.type === 'select') return <SelectField setting={setting} value={value ?? ''} onChange={onChange} />
   if (setting.type === 'checkbox') return <CheckboxField setting={setting} value={value ?? false} onChange={onChange} />
   if (setting.type === 'image_picker') return <ImagePickerField setting={setting} value={value ?? ''} onChange={onChange} onOpenMediaPicker={extra.onOpenMediaPicker} />
+  if (setting.type === 'focal_point') return <FocalPointField setting={setting} value={value ?? ''} onChange={onChange} />
   if (setting.type === 'font_picker') return <FontPickerField setting={setting} value={value ?? ''} onChange={onChange} />
   if (setting.type === 'alignment') return <AlignmentField setting={setting} value={value ?? ''} onChange={onChange} />
   if (setting.type === 'link') return <LinkField setting={setting} value={value ?? ''} onChange={onChange} />

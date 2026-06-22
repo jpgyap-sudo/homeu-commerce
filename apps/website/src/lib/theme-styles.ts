@@ -75,6 +75,18 @@ export function generateSectionStyles(
     styles.push(`${sel} [data-edit="body"], ${sel} [data-edit="text"] { font-size: ${cfg.bodySize}px !important; }`)
   }
 
+  // ── Universal image controls (focal point, fit, max-width) ──────────
+  if (cfg.objectFit && cfg.objectFit !== 'cover') {
+    styles.push(`${sel} img[data-section-image] { object-fit: ${cfg.objectFit} !important; }`)
+  }
+  if (cfg.focalPoint && cfg.focalPoint !== 'center') {
+    // Convert 'top left', 'center', 'bottom right' etc. to object-position
+    styles.push(`${sel} img[data-section-image] { object-position: ${cfg.focalPoint} !important; }`)
+  }
+  if (cfg.imageMaxWidth && cfg.imageMaxWidth !== 100) {
+    styles.push(`${sel} img[data-section-image] { max-width: ${cfg.imageMaxWidth}% !important; }`)
+  }
+
   // ── Section-specific ────────────────────────────────────────────────
 
   // Slideshow
