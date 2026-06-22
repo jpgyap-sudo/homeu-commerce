@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 
+function snakeToCamel(obj: any): any {
+  if (obj === null || typeof obj !== 'object') return obj
+  if (Array.isArray(obj)) return obj.map(snakeToCamel)
+  const cameled: any = {}
+  for (const key of Object.keys(obj)) {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+    cameled[camelKey] = snakeToCamel(obj[key])
+    if (key === 'pending_revision' || key === 'revision_request') {
+      cameled[key] = obj[key]
+    }
+  }
+  return cameled
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession()
@@ -48,7 +62,7 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json({
-      docs: dataResult.rows,
+      docs: dataResult.rows.map(snakeToCamel),
       totalDocs,
       limit,
       page,
@@ -96,7 +110,7 @@ export async function POST(request: NextRequest) {
       ]
     )
 
-    return NextResponse.json({ success: true, quotation: result.rows[0] }, { status: 201 })
+    return NextResponse.json({ success: true, quotation: snakeToCamel(result.rows[0]) }, { status: 201 })
   } catch (error: any) {
     console.error('Quotations POST error:', error)
     return NextResponse.json(

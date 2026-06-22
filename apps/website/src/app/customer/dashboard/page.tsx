@@ -237,7 +237,7 @@ export default function CustomerDashboardPage() {
               >
                 <div>
                   <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                    RFQ #{rfq.id.slice(-6).toUpperCase()}
+                    RFQ #{String(rfq.id).slice(-6).toUpperCase()}
                   </div>
                   <div style={{ fontSize: 13, color: '#666' }}>
                     {new Date(rfq.createdAt).toLocaleDateString('en-PH', {

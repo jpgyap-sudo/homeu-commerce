@@ -42,6 +42,8 @@ interface QuotationData {
   termsReturnPolicy?: string
   termsRejectionOfItems?: string
   termsRefundPolicy?: string
+  pending_revision?: boolean
+  revision_request?: string
 }
 
 const STATUS_BADGES: Record<string, { label: string; color: string }> = {
@@ -57,6 +59,12 @@ export default function QuotationViewPage() {
   const [quotation, setQuotation] = useState<QuotationData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [token, setToken] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [actionMsg, setActionMsg] = useState('')
+  const [showRevise, setShowRevise] = useState(false)
+  const [reviseText, setReviseText] = useState('')
+  const [showBankModal, setShowBankModal] = useState(false)
 
   useEffect(() => {
     async function loadQuotation() {
@@ -64,7 +72,11 @@ export default function QuotationViewPage() {
         const id = params?.id
         if (!id) throw new Error('Quotation ID not found')
 
-        const res = await fetch(`/api/quotations/${id}`)
+        const tok = new URLSearchParams(window.location.search).get('token')
+        setToken(tok)
+
+        const url = tok ? `/api/quotations/${id}?token=${tok}` : `/api/quotations/${id}`
+        const res = await fetch(url)
         if (!res.ok) throw new Error('Quotation not found')
 
         const data = await res.json()
@@ -78,6 +90,60 @@ export default function QuotationViewPage() {
 
     loadQuotation()
   }, [params?.id])
+
+  async function handleApprove() {
+    if (!quotation) return
+    setActionLoading(true); setActionMsg('')
+    try {
+      const res = await fetch(`/api/quotations/${quotation.id}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'accept', token }),
+      })
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.error || 'Failed to approve')
+      }
+      const data = await res.json()
+      setQuotation(data.quotation)
+      setActionMsg('✅ Quotation approved! We will start preparing your order.')
+      setShowBankModal(false)
+    } catch (err: any) {
+      setActionMsg('❌ ' + err.message)
+      setShowBankModal(false)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  async function handleRevise() {
+    if (!quotation) return
+    if (!reviseText.trim()) return
+    setActionLoading(true); setActionMsg('')
+    try {
+      const res = await fetch(`/api/quotations/${quotation.id}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'revision',
+          message: reviseText.trim(),
+          token,
+        }),
+      })
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.error || 'Failed to send revision request')
+      }
+      const data = await res.json()
+      setQuotation(data.quotation)
+      setActionMsg('✅ Revision request sent! The team will review and update your quotation.')
+      setShowRevise(false)
+    } catch (err: any) {
+      setActionMsg('❌ ' + err.message)
+    } finally {
+      setActionLoading(false)
+    }
+  }
 
   function handlePrint() {
     window.print()
@@ -105,6 +171,7 @@ export default function QuotationViewPage() {
   }
 
   const statusInfo = STATUS_BADGES[quotation.status] || { label: quotation.status, color: '#999' }
+  const canAct = quotation.status === 'sent' && !quotation.pending_revision
 
   return (
     <>
@@ -138,6 +205,176 @@ export default function QuotationViewPage() {
           </button>
         </div>
       </div>
+
+      {/* ── Approval / Revision Action Bar ── */}
+      {canAct && (
+        <div className="no-print" style={{
+          maxWidth: 800,
+          margin: '20px auto',
+          background: '#fff', borderRadius: 16, padding: 24,
+          border: '1px solid #e3e8e0', boxShadow: '0 4px 24px rgba(0,0,0,0.04)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: showRevise ? 16 : 12 }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 12, background: '#e8f2ec',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+            }}>📋</div>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ margin: '0 0 2px', fontSize: 15, fontWeight: 700, color: '#151a17' }}>
+                Review Your Quotation
+              </h3>
+              <p style={{ margin: 0, fontSize: 13, color: '#667168' }}>
+                Please review the items, pricing, and terms. If you are ready to proceed, click approve to view down payment instructions.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button onClick={() => setShowBankModal(true)} disabled={actionLoading} style={{
+              flex: 1, padding: '14px 24px', background: '#1a6d3e', color: '#fff',
+              border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              opacity: actionLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+              ✅ Approve & Pay Deposit
+            </button>
+            <button onClick={() => setShowRevise(!showRevise)} disabled={actionLoading} style={{
+              padding: '14px 24px', background: '#fff', color: '#d97706',
+              border: '1.5px solid #fde68a', borderRadius: 10, fontSize: 14, fontWeight: 600,
+              cursor: 'pointer', whiteSpace: 'nowrap',
+            }}>
+              ✏️ Request Changes
+            </button>
+          </div>
+
+          {/* Revision form */}
+          {showRevise && (
+            <div style={{ marginTop: 16, padding: 16, background: '#fffbeb', borderRadius: 10, border: '1px solid #fde68a' }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: '#92400e', margin: '0 0 8px' }}>
+                What would you like to change?
+              </p>
+              <textarea value={reviseText} onChange={e => setReviseText(e.target.value)} rows={3}
+                placeholder="E.g. Can you adjust the quantity of Item #2? I would prefer a different color for Item #1..."
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #fde68a', borderRadius: 8, fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }} />
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button onClick={handleRevise} disabled={actionLoading || !reviseText.trim()} style={{
+                  padding: '10px 20px', background: '#d97706', color: '#fff', border: 'none',
+                  borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}>
+                  {actionLoading ? 'Sending…' : 'Send Revision Request'}
+                </button>
+                <button onClick={() => setShowRevise(false)} style={{ padding: '10px 20px', background: '#fff', border: '1px solid #d9e0d7', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {actionMsg && (
+            <div style={{ marginTop: 12, padding: '10px 14px', background: actionMsg.includes('✅') ? '#ecfdf5' : '#fef2f2', borderRadius: 8, fontSize: 13, color: actionMsg.includes('✅') ? '#065f46' : '#991b1b' }}>
+              {actionMsg}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Revision Requested Status Card ── */}
+      {quotation.pending_revision && (
+        <div className="no-print" style={{
+          maxWidth: 800,
+          margin: '20px auto',
+          background: '#fffbeb', borderRadius: 16, padding: 24,
+          border: '1px solid #fde68a', display: 'flex', gap: 16, alignItems: 'flex-start',
+        }}>
+          <span style={{ fontSize: 24 }}>🔄</span>
+          <div>
+            <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: '#92400e' }}>Revision Requested</h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#b45309' }}>
+              We have received your request for changes. Our team is currently preparing an updated quotation version for you.
+            </p>
+            {quotation.revision_request && (
+              <div style={{ marginTop: 12, padding: 12, background: '#fff', borderRadius: 8, border: '1px solid #fef3c7', fontSize: 13, fontStyle: 'italic', color: '#451a03' }}>
+                &ldquo;{quotation.revision_request}&rdquo;
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Quotation Approved Status Card ── */}
+      {quotation.status === 'accepted' && (
+        <div className="no-print" style={{
+          maxWidth: 800,
+          margin: '20px auto',
+          background: '#ecfdf5', borderRadius: 16, padding: 24,
+          border: '1px solid #a7f3d0', display: 'flex', gap: 16, alignItems: 'center',
+        }}>
+          <span style={{ fontSize: 24 }}>🎉</span>
+          <div>
+            <h3 style={{ margin: '0 0 2px', fontSize: 15, fontWeight: 700, color: '#065f46' }}>Quotation Approved</h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#047857' }}>
+              Thank you! You have approved this quotation. We are preparing your order.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Bank Details / Deposit Payment Modal ── */}
+      {showBankModal && (
+        <div className="no-print" style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: 20,
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 16, padding: 28, maxWidth: 500, width: '100%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            boxSizing: 'border-box',
+          }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: '#111827' }}>
+              Confirm Approval & Pay Deposit
+            </h3>
+            
+            <p style={{ fontSize: 14, color: '#4b5563', lineHeight: 1.5, margin: '0 0 20px' }}>
+              To lock in pricing and initiate production, please pay the required down payment (refer to Payment Terms below) via bank transfer/deposit.
+            </p>
+
+            <div style={{
+              background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 12,
+              padding: 16, marginBottom: 20,
+            }}>
+              <strong style={{ fontSize: 12, color: '#374151', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Bank Transfer Details
+              </strong>
+              <div style={{
+                marginTop: 8, fontSize: 14, color: '#1f2937', fontFamily: 'monospace',
+                whiteSpace: 'pre-wrap', lineHeight: 1.6,
+              }}>
+                {quotation.termsBankDetails || 'Account Name: Home Atelier Inc.\nBank: BDO\nAccount Number: 001234567890'}
+              </div>
+            </div>
+
+            <p style={{ fontSize: 13, color: '#4b5563', lineHeight: 1.5, margin: '0 0 24px' }}>
+              💡 Please email your proof of payment / deposit slip to <a href="mailto:sales@homeatelier.ph" style={{ color: '#1a6d3e', fontWeight: 600 }}>sales@homeatelier.ph</a> to start production.
+            </p>
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowBankModal(false)} disabled={actionLoading} style={{
+                padding: '10px 20px', background: '#fff', border: '1px solid #d1d5db',
+                borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              }}>
+                Cancel
+              </button>
+              <button onClick={handleApprove} disabled={actionLoading} style={{
+                padding: '10px 24px', background: '#1a6d3e', color: '#fff', border: 'none',
+                borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                opacity: actionLoading ? 0.7 : 1,
+              }}>
+                {actionLoading ? 'Confirming…' : 'I Have Transferred Deposit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Quotation Document ── */}
       <div ref={printRef} style={{

@@ -270,10 +270,11 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/app/customer/`](apps/website/src/app/customer/), [`apps/website/src/app/admin/customers/`](apps/website/src/app/admin/customers/), [`apps/website/src/app/admin/quotations/`](apps/website/src/app/admin/quotations/) |
 | **Type** | Missing B2B feature |
-| **Status** | Active |
+| **Status** | ✅ Resolved |
 | **Description** | Customer accounts do not provide a dedicated trade/designer mode with organizations, multiple projects, team members, client approvals, project pricing, tax/company details, reusable specifications, or role-based access. |
 | **Impact** | Designers, contractors, property managers, hospitality teams, and repeat commercial buyers must coordinate outside HomeU, limiting retention and larger project opportunities. |
 | **Fix Guidance** | Add organization accounts, trade verification, team roles, project-level price books, client-facing approval links, reusable product schedules, and quotation ownership/reporting by organization. |
+| **ResolvedBy** | Combined with GAP-HIGH-018 (Room Passport) into a private "Designer Room Passport & Project Planner" workspace, tracked in FEATURE_LOG.md. |
 
 ### GAP-HIGH-016: RFQ and Quotation Follow-Up Is Not Automated
 
@@ -303,10 +304,11 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/components/ProductDNACard.tsx`](apps/website/src/components/ProductDNACard.tsx), [`apps/website/src/components/chat/ChatWidget.tsx`](apps/website/src/components/chat/ChatWidget.tsx), [`apps/website/src/components/QuoteCart.tsx`](apps/website/src/components/QuoteCart.tsx), [`apps/website/src/app/admin/apps/central-inbox/page.tsx`](apps/website/src/app/admin/apps/central-inbox/page.tsx) |
 | **Type** | Strategic product opportunity |
-| **Status** | Active |
+| **Status** | ✅ Resolved |
 | **Description** | The platform has most enabling components but no unified Room Passport: a persistent digital room/project twin containing photos, measurements, style, budget, real HomeU product scenes, feasibility checks, alternatives, collaborators, approvals, RFQ versions, appointments, conversations, and sales actions. |
 | **Impact** | HomeU cannot yet turn visual inspiration into a differentiated, measurable, end-to-end furniture project experience. Existing AI, RFQ, inbox, analytics, and Product DNA capabilities remain useful but fragmented. |
 | **Fix Guidance** | Start with a living-room MVP. Upload a room photo and measurements; extract editable constraints; create three catalog-grounded bundles; show confidence, fit, budget, and availability checks; support customer/designer approval; convert a frozen project version to RFQ; give sales an AI-drafted next action and quotation. Learn only from consented, attributable outcomes. |
+| **ResolvedBy** | Combined with GAP-HIGH-015 (Trade Workspace) into a private "Designer Room Passport & Project Planner" workspace, tracked in FEATURE_LOG.md. |
 
 ### GAP-HIGH-019: Theme Editor Does Not Use the Typed Dynamic Settings Form
 

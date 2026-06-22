@@ -163,6 +163,12 @@ export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
       // Best-effort
     }
 
+    // Calculate total value for priority triaging
+    const rfqTotalVal = input.items.reduce((sum, item) => sum + (item.referencePrice || 0) * item.quantity, 0)
+    const isHighPriority = rfqTotalVal > 150000 || ['hotel', 'restaurant', 'office'].includes(String(input.projectType).toLowerCase())
+    const priorityEmoji = isHighPriority ? '🔥 [HIGH PRIORITY]' : '🟢 [Standard Priority]'
+    const adminBase = process.env.ADMIN_PUBLIC_SERVER_URL || 'https://admin.homeatelier.ph'
+
     // Send Telegram alert
     await sendTelegramAlert({
       eventType: 'RFQ_SUBMITTED',
@@ -170,9 +176,11 @@ export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
       conversationId: input.conversationId,
       leadName: customerName || input.leadId || 'Anonymous Visitor',
       mobile: customerPhone || '',
-      summary: `${input.items.length} items requested for ${input.projectType || 'project'} at ${input.deliveryLocation || 'TBD'}`,
+      summary: `${priorityEmoji}\n${input.items.length} items requested for ${input.projectType || 'project'} at ${input.deliveryLocation || 'TBD'}`,
       rfqItems: input.items.length,
+      rFQTotal: rfqTotalVal > 0 ? rfqTotalVal.toLocaleString('en-PH', { minimumFractionDigits: 0 }) : undefined,
       urgency: input.targetDate ? `Target: ${input.targetDate}` : undefined,
+      adminUrl: `${adminBase}/admin/rfq/${rfqCartId}`,
     })
 
     // Log to central logger

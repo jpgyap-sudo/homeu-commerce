@@ -34,6 +34,7 @@
 | Address management | ✅ Live | CRUD for shipping/billing addresses |
 | RFQ history | ✅ Live | List and detail views of submitted RFQs |
 | Quotation view | ✅ Live | Customer-facing quotation detail with PDF download |
+| Designer Room Passport & Project Planner (Features 1 & 2) | ⏳ Planned | Private workspace combining photo upload, AI style profiling, fit/feasibility checks, and collaborative specs for verified designers |
 
 ## 🤖 AI Chatbot Concierge
 

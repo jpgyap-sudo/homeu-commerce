@@ -139,7 +139,7 @@ export default function RFQDetailPage() {
       <div style={{ marginBottom: 24, fontSize: 14 }}>
         <Link href="/customer/dashboard" style={{ color: '#666' }}>Dashboard</Link>
         <span style={{ color: '#999', margin: '0 8px' }}>/</span>
-        <span style={{ color: '#222', fontWeight: 600 }}>RFQ #{rfq.id.slice(-6).toUpperCase()}</span>
+        <span style={{ color: '#222', fontWeight: 600 }}>RFQ #{String(rfq.id).slice(-6).toUpperCase()}</span>
       </div>
 
       {/* ── Chat Messages Section ── */}

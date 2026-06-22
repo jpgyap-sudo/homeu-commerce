@@ -83,7 +83,7 @@ export default function CustomerOrdersPage() {
                 <div key={rfq.id} className="order-card">
                   <div className="order-card__header">
                     <div>
-                      <p className="order-card__id">Request #{rfq.id.slice(-6).toUpperCase()}</p>
+                      <p className="order-card__id">Request #{String(rfq.id).slice(-6).toUpperCase()}</p>
                       <p className="order-card__date">
                         {new Date(rfq.createdAt).toLocaleDateString('en-PH', {
                           year: 'numeric', month: 'long', day: 'numeric',
