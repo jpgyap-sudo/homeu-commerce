@@ -1556,60 +1556,130 @@ textarea {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   Reviews — ONE shared card format, used identically on the homepage
-   ("What Our Customers Say") and on each product page. Cloned 1:1 from
-   the original homeu.ph review format: bold title, quoted body, then
-   a plain "Name · Product" attribution line — no stars, no dates, no
-   badges on the card itself.
+   Reviews carousel — ONE shared component (ReviewsCarousel.tsx), used
+   identically on the homepage and on each product page. Cloned 1:1
+   from the original homeu.ph "Let Customers Speak For Us" widget:
+   heading, overall star rating + review count, then a 3-up carousel
+   of cards (stars, title, body, reviewer name, product thumbnail)
+   with prev/next arrows.
    ══════════════════════════════════════════════════════════════ */
 
-.homepage-reviews__grid {
-  display: grid;
-  /* auto-fit so a single review doesn't stretch into 2 empty columns —
-     each card sizes itself within the range instead of always forcing
-     a fixed 3-up grid regardless of how many reviews there are. */
-  grid-template-columns: repeat(auto-fit, minmax(280px, 360px));
-  gap: 24px;
+.reviews-carousel {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.reviews-carousel__heading {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+
+.reviews-carousel__stars {
+  color: #1a1a1a;
+  letter-spacing: 3px;
+  line-height: 1;
+}
+
+.reviews-carousel__count {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
+.reviews-carousel__track {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   margin-top: 32px;
 }
 
-/* Product page: a full vertical list, not a multi-column grid — there can
-   be many reviews here and they're read in full, not skimmed as a teaser. */
-.review-card-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.reviews-carousel__cards {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
 }
 
-.review-card {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 24px;
-  background: var(--surface);
-  display: flex;
-  flex-direction: column;
+.reviews-carousel__card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
 }
 
-.review-card__title {
+.reviews-carousel__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.reviews-carousel__card .reviews-carousel__stars {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.reviews-carousel__title {
   font-size: 15px;
   font-weight: 600;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 }
 
-.review-card__body {
+.reviews-carousel__body {
   font-size: 14px;
   line-height: 1.6;
   color: var(--text);
-  margin: 0 0 16px;
-  flex: 1;
+  margin: 0 0 10px;
+  /* clamp to 3 lines, matching the original widget's truncated preview */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.review-card__meta {
-  font-size: 12px;
+.reviews-carousel__name {
+  font-size: 13px;
   color: var(--muted);
+  margin-bottom: 12px;
 }
 
-.review-card__meta a {
-  color: var(--brand);
-  text-decoration: none;
+.reviews-carousel__thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface-alt, #f4f2ee);
+}
+
+.reviews-carousel__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.reviews-carousel__arrow {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reviews-carousel__arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+@media (max-width: 900px) {
+  .reviews-carousel__cards {
+    grid-template-columns: 1fr;
+  }
 }

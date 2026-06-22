@@ -13,6 +13,7 @@ import type { HomepageSection } from '@/lib/theme'
 import { SECTION_META } from '@/lib/theme-types'
 import { HOMEU_CURATED_COLLECTION_SLUGS } from '@/lib/homepage-collections'
 import { mergeWithDefaults } from '@/lib/theme-builder-settings'
+import ReviewsCarousel from '@/components/ReviewsCarousel'
 import { formatPrice } from '@/lib/format-utils'
 import { generateSectionStyles, ANIMATION_CSS, GRADIENT_TEXT_CSS } from '@/lib/theme-styles'
 import SectionAnimation from '@/components/home/SectionAnimation'
@@ -123,13 +124,14 @@ interface FeaturedReview {
   verified_purchase: boolean
   product_title: string
   product_slug: string
+  product_image: string | null
 }
 
 async function fetchFeaturedReviews(limit: number): Promise<FeaturedReview[]> {
   try {
     const res = await query(
       `SELECT r.id, r.reviewer_name, r.rating, r.title, r.body, r.verified_purchase,
-              p.title as product_title, p.slug as product_slug
+              p.title as product_title, p.slug as product_slug, p.image_url as product_image
        FROM reviews r
        JOIN products p ON p.id = r.product_id
        WHERE r.status = 'approved' AND r.rating >= 4 AND r.body IS NOT NULL AND length(r.body) > 0
@@ -139,6 +141,17 @@ async function fetchFeaturedReviews(limit: number): Promise<FeaturedReview[]> {
     )
     return res.rows
   } catch { return [] }
+}
+
+async function fetchReviewStats(): Promise<{ avg: number; count: number }> {
+  try {
+    const res = await query(
+      `SELECT COUNT(*) as count, COALESCE(ROUND(AVG(rating)::numeric, 1), 0) as avg
+       FROM reviews WHERE status = 'approved'`,
+      []
+    )
+    return { avg: parseFloat(res.rows[0]?.avg) || 0, count: parseInt(res.rows[0]?.count, 10) || 0 }
+  } catch { return { avg: 0, count: 0 } }
 }
 
 // ── Individual section renderers ─────────────────────────────────────────
@@ -322,26 +335,24 @@ async function renderSection(section: HomepageSection) {
     }
 
     case 'reviews': {
-      const featuredReviews = await fetchFeaturedReviews(6)
+      const maxReviews = Number(cfg.maxReviews) || 12
+      const [featuredReviews, reviewStats] = await Promise.all([
+        fetchFeaturedReviews(maxReviews),
+        fetchReviewStats(),
+      ])
+      if (featuredReviews.length === 0) return null
       return (
         <section className="index-section homepage-reviews">
           <div className="page-width">
-            <div className="section-header text-center">
-              <h2 className="section-header__title h2" data-edit="heading">{cfg.heading || 'What Our Customers Say'}</h2>
-            </div>
-            {featuredReviews.length === 0 ? null : (
-              <div className="homepage-reviews__grid">
-                {featuredReviews.map(r => (
-                  <div key={r.id} className="review-card">
-                    {r.title && <h3 className="review-card__title">{r.title}</h3>}
-                    <p className="review-card__body">&ldquo;{r.body}&rdquo;</p>
-                    <div className="review-card__meta">
-                      {r.reviewer_name || 'Anonymous'} · <Link href={`/products/${r.product_slug}`}>{r.product_title}</Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <ReviewsCarousel
+              heading={cfg.heading || 'Let Customers Speak For Us'}
+              reviews={featuredReviews}
+              avgRating={reviewStats.avg}
+              reviewCount={reviewStats.count}
+              columns={Number(cfg.columns) || 3}
+              autoScroll={cfg.autoScroll !== false}
+              scrollInterval={Number(cfg.scrollInterval) || 2}
+            />
           </div>
         </section>
       )

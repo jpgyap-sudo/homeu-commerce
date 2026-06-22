@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import ReviewsCarousel from '@/components/ReviewsCarousel'
 
 interface Reply {
   id: string
@@ -18,14 +19,6 @@ interface Review {
   source: string
   review_date: string
   replies: Reply[] | null
-}
-
-function StarRow({ rating, size = 14 }: { rating: number; size?: number }) {
-  return (
-    <span style={{ color: '#d9a04b', fontSize: size, letterSpacing: 1 }} aria-label={`${rating} out of 5 stars`}>
-      {'★'.repeat(Math.round(rating))}{'☆'.repeat(5 - Math.round(rating))}
-    </span>
-  )
 }
 
 export default function ReviewsSection({ productId, productSlug, productTitle, productImage }: {
@@ -76,33 +69,30 @@ export default function ReviewsSection({ productId, productSlug, productTitle, p
   }
 
   return (
-    <section style={{ marginTop: 48, borderTop: '1px solid #e8ece8', paddingTop: 32 }}>
+    <section style={{ marginTop: 48 }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Customer Reviews</h2>
-        <StarRow rating={avgRating} size={18} />
-        <span style={{ fontSize: 14, color: '#667168' }}>
-          {avgRating.toFixed(1)} out of 5 · {reviewCount} review{reviewCount !== 1 ? 's' : ''}
-        </span>
-      </div>
+      <ReviewsCarousel
+        heading="Let Customers Speak For Us"
+        avgRating={avgRating}
+        reviewCount={reviewCount}
+        reviews={reviews}
+      />
 
-      <div className="review-card-list">
-        {reviews.map(review => (
-          <div key={review.id} className="review-card">
-            {review.title && <h3 className="review-card__title">{review.title}</h3>}
-            {review.body && <p className="review-card__body">&ldquo;{review.body}&rdquo;</p>}
-            <div className="review-card__meta">{review.reviewer_name || 'Anonymous'}</div>
-
-            {review.replies && review.replies.length > 0 && review.replies.map(reply => (
-              <div key={reply.id} style={{ marginTop: 10, marginLeft: 20, padding: 12, background: '#f7f9f6', borderRadius: 8 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#667168', marginBottom: 4 }}>Home Atelier Team</div>
-                <div style={{ fontSize: 13, color: '#3a4540' }}>{reply.body}</div>
+      {reviews.some(r => r.replies && r.replies.length > 0) && (
+        <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {reviews.filter(r => r.replies && r.replies.length > 0).map(review => (
+            review.replies!.map(reply => (
+              <div key={reply.id} style={{ padding: 12, background: '#f7f9f6', borderRadius: 8, fontSize: 13 }}>
+                <div style={{ fontWeight: 700, color: '#667168', marginBottom: 4 }}>
+                  Home Atelier Team replied to {review.reviewer_name || 'Anonymous'}
+                </div>
+                <div style={{ color: '#3a4540' }}>{reply.body}</div>
               </div>
-            ))}
-          </div>
-        ))}
-      </div>
+            ))
+          ))}
+        </div>
+      )}
     </section>
   )
 }

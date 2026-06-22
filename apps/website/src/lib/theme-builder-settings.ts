@@ -361,7 +361,7 @@ const FEATURED_PRODUCTS_SETTINGS: SettingDefinition[] = [
 ]
 
 const REVIEWS_SETTINGS: SettingDefinition[] = [
-  { key: 'heading',         label: 'Heading',           type: 'text', default: 'What Our Customers Say', group: 'Content' },
+  { key: 'heading',         label: 'Heading',           type: 'text', default: 'Let Customers Speak For Us', group: 'Content' },
   { key: 'columns',         label: 'Review Columns',    type: 'range', default: 3, min: 1, max: 5, step: 1, group: 'Layout' },
   { key: 'autoScroll',      label: 'Auto Scroll',       type: 'checkbox', default: true, group: 'Behavior' },
   { key: 'scrollInterval',  label: 'Scroll Interval (s)', type: 'range', default: 2, min: 1, max: 10, step: 0.5, unit: 's', group: 'Behavior',

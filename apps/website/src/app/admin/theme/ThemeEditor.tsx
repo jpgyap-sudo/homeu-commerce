@@ -22,7 +22,7 @@ const SECTION_PRESETS: Record<string, Record<string, any>> = {
   image_with_text: { image: '', title: 'Title', text: 'Describe this image...', buttonText: 'Learn More', buttonLink: '/products' },
   image_bar: { images: [{ image: '', link: '' }, { image: '', link: '' }, { image: '', link: '' }] },
   featured_products: { heading: 'Featured Pieces', source: 'auto', limit: 8, curatedIds: [] },
-  reviews: { heading: 'What Our Customers Say' },
+  reviews: { heading: 'Let Customers Speak For Us', columns: 3, autoScroll: true, scrollInterval: 2, maxReviews: 12 },
   instagram: { heading: 'Follow Us', handle: 'homeatelierph', tiles: 6 },
   cta: { heading: 'Get in Touch', text: 'We\'d love to hear from you', primaryText: 'Contact Us', primaryLink: '/contact', bgColor: '' },
   newsletter: { heading: 'Join our mailing list', subtext: 'Be the first to know about new arrivals.', buttonText: 'Subscribe', placeholder: 'Enter your email', bgColor: '', successMessage: 'Thanks for subscribing!' },
