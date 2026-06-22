@@ -92,7 +92,9 @@ export async function GET(request: NextRequest) {
     const productsResult = await query(
       `SELECT p.*,
               (SELECT row_to_json(c.*) FROM categories c WHERE c.id = p.category_id) as category,
-              (SELECT json_agg(row_to_json(pi.*) ORDER BY pi.sort_order) FROM product_images pi WHERE pi.product_id = p.id) as images
+              (SELECT json_agg(row_to_json(pi.*) ORDER BY pi.sort_order) FROM product_images pi WHERE pi.product_id = p.id) as images,
+              (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id AND r.status = 'approved') as live_review_count,
+              (SELECT ROUND(AVG(rating)::numeric, 2) FROM reviews r WHERE r.product_id = p.id AND r.status = 'approved') as live_avg_rating
        FROM products p
        ${whereClause}
        ORDER BY p.${safeOrderBy}
@@ -215,6 +217,8 @@ function formatProduct(row: any) {
     imageUrl: row.images?.[0]?.url || null,
     materials: row.materials,
     tags: row.tags || [],
+    reviewCount: parseInt(row.live_review_count, 10) || 0,
+    avgRating: row.live_avg_rating ? parseFloat(row.live_avg_rating) : 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

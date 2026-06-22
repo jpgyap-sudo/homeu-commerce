@@ -1683,3 +1683,25 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* Product card star rating + review count — shown under the title,
+   above the price, on every product grid (products page, homepage
+   featured products, search results). Cloned from the original
+   homeu.ph card format. */
+.product-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.product-card__stars {
+  color: #1a1a1a;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.product-card__review-count {
+  font-size: 12px;
+  color: var(--muted);
+}

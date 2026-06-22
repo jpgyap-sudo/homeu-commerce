@@ -23,7 +23,12 @@ interface CollectionTile { id: number; title: string; slug: string; image_url: s
 interface ProductCard {
   id: number; title: string; slug: string; price: number | null; sale_price: number | null
   image_url: string | null; category_title: string | null
+  review_count?: number; avg_rating?: number | string
 }
+
+const REVIEW_STATS_SELECT = `
+              (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id AND r.status = 'approved') as review_count,
+              (SELECT ROUND(AVG(rating)::numeric, 2) FROM reviews r WHERE r.product_id = p.id AND r.status = 'approved') as avg_rating`
 
 async function fetchCollections(featuredOnly: boolean, limit: number): Promise<CollectionTile[]> {
   try {
@@ -59,7 +64,7 @@ async function fetchProductsByCollection(slug: string, limit: number): Promise<P
     const res = await query(
       `SELECT DISTINCT ON (p.id) p.id, p.title, p.slug, p.price, p.sale_price,
               (SELECT url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1) AS image_url,
-              cat.title AS category_title
+              cat.title AS category_title,${REVIEW_STATS_SELECT}
        FROM products p
        JOIN collection_products cp ON cp.product_id = p.id
        JOIN categories col ON col.id = cp.collection_id
@@ -78,7 +83,7 @@ async function fetchProductsAuto(limit: number): Promise<ProductCard[]> {
     const res = await query(
       `SELECT DISTINCT ON (p.id) p.id, p.title, p.slug, p.price, p.sale_price,
               (SELECT url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1) AS image_url,
-              cat.title AS category_title
+              cat.title AS category_title,${REVIEW_STATS_SELECT}
        FROM products p
        JOIN product_images pi2 ON pi2.product_id = p.id
        LEFT JOIN categories cat ON cat.id = p.category_id
@@ -99,7 +104,7 @@ async function fetchProductsByIds(ids: number[]): Promise<ProductCard[]> {
     const res = await query(
       `SELECT p.id, p.title, p.slug, p.price, p.sale_price,
               (SELECT url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1) AS image_url,
-              cat.title AS category_title
+              cat.title AS category_title,${REVIEW_STATS_SELECT}
        FROM products p
        LEFT JOIN categories cat ON cat.id = p.category_id
        WHERE p.id IN (${placeholders}) AND p.status = 'active'`,
@@ -316,6 +321,14 @@ async function renderSection(section: HomepageSection) {
                       </div>
                       <div className="grid-product__meta">
                         <p className="grid-product__title">{p.title}</p>
+                        {!!p.review_count && (
+                          <div className="product-card__rating">
+                            <span className="product-card__stars" aria-label={`${p.avg_rating} out of 5 stars`}>
+                              {'★'.repeat(Math.round(Number(p.avg_rating) || 0))}{'☆'.repeat(5 - Math.round(Number(p.avg_rating) || 0))}
+                            </span>
+                            <span className="product-card__review-count">{p.review_count} review{p.review_count !== 1 ? 's' : ''}</span>
+                          </div>
+                        )}
                         <div className="grid-product__price">
                           {p.sale_price
                             ? <><span className="grid-product__price--current">{peso(p.sale_price)}</span> <span className="grid-product__price--original">{peso(p.price)}</span></>

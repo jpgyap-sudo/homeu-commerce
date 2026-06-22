@@ -37,6 +37,14 @@ export async function GET(
       [product.id]
     )
 
+    const breakdownResult = await query(
+      `SELECT rating, COUNT(*) as count FROM reviews
+       WHERE product_id = $1 AND status = 'approved' GROUP BY rating`,
+      [product.id]
+    )
+    const breakdown: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+    for (const row of breakdownResult.rows) breakdown[row.rating] = parseInt(row.count, 10)
+
     const reviewsResult = await query(
       `SELECT id, reviewer_name, rating, title, body, verified_purchase, source, review_date,
               (SELECT json_agg(rr.* ORDER BY rr.created_at) FROM review_replies rr WHERE rr.review_id = reviews.id) as replies
@@ -50,10 +58,62 @@ export async function GET(
     return NextResponse.json({
       reviewCount: parseInt(statsResult.rows[0].count, 10) || 0,
       avgRating: parseFloat(statsResult.rows[0].avg) || 0,
+      breakdown,
       reviews: reviewsResult.rows,
     })
   } catch (err: any) {
     console.error('[products/:id/reviews] GET error:', err.message)
     return NextResponse.json({ error: 'Failed to load reviews' }, { status: 500 })
+  }
+}
+
+/**
+ * POST /api/products/[id]/reviews — customer submits a review via the
+ * public "Write a Review" form. Always lands as status='pending' — same
+ * manual-decision-only policy as every other review source (import,
+ * admin-created); nothing here auto-publishes.
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const body = await request.json()
+    const { reviewerName, reviewerEmail, rating, title, reviewBody } = body
+
+    const ratingNum = parseInt(rating, 10)
+    if (!reviewerName || !String(reviewerName).trim()) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+    }
+    if (!ratingNum || ratingNum < 1 || ratingNum > 5) {
+      return NextResponse.json({ error: 'Rating must be 1-5' }, { status: 400 })
+    }
+    if (!reviewBody || !String(reviewBody).trim()) {
+      return NextResponse.json({ error: 'Review text is required' }, { status: 400 })
+    }
+
+    const productResult = await query(
+      `SELECT id FROM products WHERE slug = $1 OR id::text = $1 LIMIT 1`,
+      [id]
+    )
+    if (productResult.rowCount === 0) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+    }
+    const productId = productResult.rows[0].id
+
+    await query(
+      `INSERT INTO reviews
+        (product_id, reviewer_name, reviewer_email, rating, title, body, status,
+         source, verified_purchase, review_date)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending', 'storefront', false, NOW())`,
+      [productId, String(reviewerName).trim(), reviewerEmail || null, ratingNum,
+        title || null, String(reviewBody).trim()]
+    )
+
+    return NextResponse.json({ ok: true, message: 'Thanks! Your review will appear after it\'s reviewed by our team.' }, { status: 201 })
+  } catch (err: any) {
+    console.error('[products/:id/reviews] POST error:', err.message)
+    return NextResponse.json({ error: 'Failed to submit review' }, { status: 500 })
   }
 }

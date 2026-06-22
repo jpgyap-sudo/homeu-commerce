@@ -18,6 +18,20 @@ interface Product {
   category?: { id: string; title: string; slug: string }
   materials?: string
   tags?: string[]
+  reviewCount?: number
+  avgRating?: number
+}
+
+function ProductStars({ rating, count }: { rating: number; count: number }) {
+  if (!count) return null
+  return (
+    <div className="product-card__rating">
+      <span className="product-card__stars" aria-label={`${rating} out of 5 stars`}>
+        {'★'.repeat(Math.round(rating))}{'☆'.repeat(5 - Math.round(rating))}
+      </span>
+      <span className="product-card__review-count">{count} review{count !== 1 ? 's' : ''}</span>
+    </div>
+  )
 }
 
 interface Category {
@@ -397,6 +411,7 @@ function ProductsContent() {
                     <Link href={href} className="grid-view-item__link">
                       <div className="grid-view-item__title product-card__title">{product.title}</div>
                     </Link>
+                    <ProductStars rating={product.avgRating || 0} count={product.reviewCount || 0} />
                     {product.showPrice !== false && product.price != null && (
                       <div className={`price${onSale ? ' price--on-sale' : ''}`}>
                         <dl>
