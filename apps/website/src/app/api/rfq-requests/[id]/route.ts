@@ -46,12 +46,14 @@ export async function GET(
       `SELECT r.*, COALESCE(
         (SELECT jsonb_agg(jsonb_build_object(
           'id', ri.id,
+          'productId', ri.product_id,
+          'productSlug', p.slug,
           'productTitleSnapshot', ri.product_title_snapshot,
           'skuSnapshot', ri.sku_snapshot,
           'unitPriceSnapshot', ri.unit_price_snapshot,
           'quantity', ri.quantity,
           'notes', ri.notes
-        ) ORDER BY ri.id) FROM rfq_request_items ri WHERE ri.rfq_request_id = r.id),
+        ) ORDER BY ri.id) FROM rfq_request_items ri LEFT JOIN products p ON p.id = ri.product_id WHERE ri.rfq_request_id = r.id),
         '[]'::jsonb
       ) as items
       FROM rfq_requests r

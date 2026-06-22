@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import nodemailer from 'nodemailer'
 import { generatePricingSuggestions } from '@/utils/ollama-utils'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
@@ -199,26 +198,59 @@ export async function POST(request: NextRequest) {
       // AI suggestions are optional
     }
 
-    // Email notification
+    // Admin notification email — uses the admin's DB-configured SMTP settings
+    // (Settings -> Email), not raw env vars, which are unset in production.
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://store.homeu.ph'
     try {
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      })
+      const { createMailTransporter, loadSmtpConfig } = await import('@/lib/smtp-config')
+      const smtp = await loadSmtpConfig()
+      const transporter = await createMailTransporter()
       await transporter.sendMail({
-        from: process.env.SMTP_FROM || 'noreply@homeu.ph',
-        to: process.env.NOTIFICATION_EMAIL || 'admin@homeu.ph',
+        from: smtp.from || 'noreply@homeu.ph',
+        to: smtp.salesEmail || smtp.from || 'admin@homeu.ph',
         subject: `New RFQ Request from ${customerName || email}`,
-        text: `New RFQ Request\n\nCustomer: ${customerName || 'N/A'}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nMessage: ${message || 'N/A'}\n\nItems: ${items ? JSON.stringify(items) : 'None'}`,
+        text: `New RFQ Request\n\nCustomer: ${customerName || 'N/A'}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nMessage: ${message || 'N/A'}\n\nItems: ${items ? JSON.stringify(items) : 'None'}\n\nView: ${process.env.DAVINCIOS_PUBLIC_SERVER_URL || 'https://admin.homeu.ph'}/admin/rfq/${rfq.id}`,
       })
-    } catch {
-      // Email is optional
+    } catch (err: any) {
+      console.error('[rfq] admin notification email failed:', err.message)
     }
+
+    // Customer confirmation email — previously the customer got nothing in
+    // their inbox at all, no proof their RFQ was received and no way back
+    // to track it short of staying logged in and finding it in their
+    // dashboard. This is the receipt.
+    if (email) {
+      try {
+        const { createMailTransporter, loadSmtpConfig } = await import('@/lib/smtp-config')
+        const smtp = await loadSmtpConfig()
+        const transporter = await createMailTransporter()
+        const trackingLink = `${siteUrl}/customer/rfq/${rfq.id}`
+        const itemLines = (items || [])
+          .map((i: RFQItemInput) => `  • ${i.productTitleSnapshot || i.title || 'Item'} × ${i.quantity || 1}`)
+          .join('\n')
+        await transporter.sendMail({
+          from: smtp.from || 'noreply@homeu.ph',
+          to: email,
+          subject: `We received your quotation request — RFQ #${String(rfq.id).padStart(6, '0')}`,
+          text: `Hi ${customerName || 'there'},\n\nThanks for your request for quotation! Our team will review it and get back to you shortly.\n\nReference: RFQ #${String(rfq.id).padStart(6, '0')}\n${itemLines ? `\nItems:\n${itemLines}\n` : ''}\nTrack your request anytime: ${trackingLink}\n\n— Home Atelier Team`,
+        })
+      } catch (err: any) {
+        console.error('[rfq] customer confirmation email failed:', err.message)
+      }
+    }
+
+    // Telegram alert — same channel used elsewhere (leads, appointments)
+    try {
+      const { sendTelegramAlert } = await import('@/lib/chatbot/telegram-client')
+      await sendTelegramAlert({
+        eventType: 'RFQ_SUBMITTED',
+        leadName: customerName || email,
+        mobile: phone || undefined,
+        email,
+        summary: message || `${items?.length || 0} item(s) requested`,
+        adminUrl: `${process.env.DAVINCIOS_PUBLIC_SERVER_URL || 'https://admin.homeu.ph'}/admin/rfq/${rfq.id}`,
+      })
+    } catch { /* best-effort */ }
 
     // Auto-subscribe to newsletter
     try {
@@ -233,6 +265,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      rfqId: rfq.id,
       rfq,
       aiSuggestions,
     }, { status: 201 })

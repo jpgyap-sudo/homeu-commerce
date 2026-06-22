@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { addToQuoteCart } from '@/components/QuoteCart'
 
 interface RFQItem {
   id: string
+  productId?: number | null
+  productSlug?: string | null
   productTitleSnapshot?: string
   skuSnapshot?: string
   unitPriceSnapshot?: number
@@ -103,6 +106,24 @@ export default function RFQDetailPage() {
   const statusInfo = STATUS_DETAILS[rfq.status] || { label: rfq.status, color: '#999', description: '' }
   const totalItems = rfq.items?.reduce((sum, item) => sum + item.quantity, 0) || 0
 
+  function reorderItems() {
+    const items = rfq?.items || []
+    let added = 0
+    for (const item of items) {
+      if (!item.productId) continue
+      addToQuoteCart({
+        productId: String(item.productId),
+        title: item.productTitleSnapshot || 'Product',
+        sku: item.skuSnapshot,
+        price: item.unitPriceSnapshot || undefined,
+        slug: item.productSlug || undefined,
+        quantity: item.quantity,
+      })
+      added++
+    }
+    if (added > 0) router.push('/quote-cart')
+  }
+
   // Dynamic import of RfqChatContainer
   const [ChatComponent, setChatComponent] = useState<any>(null)
 
@@ -168,7 +189,17 @@ export default function RFQDetailPage() {
         {/* Requested Items */}
         {rfq.items && rfq.items.length > 0 && (
           <div style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: 8, padding: 20 }}>
-            <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>Requested Items</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ margin: 0, fontSize: 18 }}>Requested Items</h2>
+              {rfq.items.some(i => i.productId) && (
+                <button onClick={reorderItems} style={{
+                  padding: '8px 16px', background: '#151a17', color: '#fff', border: 'none',
+                  borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}>
+                  🔁 Request Similar Quote
+                </button>
+              )}
+            </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #ddd' }}>
