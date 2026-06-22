@@ -1556,18 +1556,32 @@ textarea {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   Homepage Reviews ("What Our Customers Say") — native reviews,
-   replaces the old empty Judge.me carousel placeholder.
+   Reviews — ONE shared card format, used identically on the homepage
+   ("What Our Customers Say") and on each product page. Cloned 1:1 from
+   the original homeu.ph review format: bold title, quoted body, then
+   a plain "Name · Product" attribution line — no stars, no dates, no
+   badges on the card itself.
    ══════════════════════════════════════════════════════════════ */
 
 .homepage-reviews__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* auto-fit so a single review doesn't stretch into 2 empty columns —
+     each card sizes itself within the range instead of always forcing
+     a fixed 3-up grid regardless of how many reviews there are. */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 360px));
   gap: 24px;
   margin-top: 32px;
 }
 
-.homepage-reviews__card {
+/* Product page: a full vertical list, not a multi-column grid — there can
+   be many reviews here and they're read in full, not skimmed as a teaser. */
+.review-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.review-card {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 24px;
@@ -1576,20 +1590,13 @@ textarea {
   flex-direction: column;
 }
 
-.homepage-reviews__stars {
-  color: #d9a04b;
-  font-size: 16px;
-  letter-spacing: 2px;
-  margin-bottom: 10px;
-}
-
-.homepage-reviews__title {
+.review-card__title {
   font-size: 15px;
   font-weight: 600;
   margin: 0 0 8px;
 }
 
-.homepage-reviews__body {
+.review-card__body {
   font-size: 14px;
   line-height: 1.6;
   color: var(--text);
@@ -1597,34 +1604,12 @@ textarea {
   flex: 1;
 }
 
-.homepage-reviews__meta {
+.review-card__meta {
   font-size: 12px;
   color: var(--muted);
 }
 
-.homepage-reviews__meta a {
+.review-card__meta a {
   color: var(--brand);
   text-decoration: none;
-}
-
-.homepage-reviews__verified {
-  margin-left: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #1a6d3e;
-  background: #ecfdf5;
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-
-@media (max-width: 900px) {
-  .homepage-reviews__grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 600px) {
-  .homepage-reviews__grid {
-    grid-template-columns: 1fr;
-  }
 }

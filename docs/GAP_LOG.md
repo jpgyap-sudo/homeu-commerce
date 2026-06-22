@@ -920,6 +920,17 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 | **Impact** | Storefront looks less polished/professional than a single-photographer catalog; undermines the premium positioning the rest of the theme work is going for. |
 | **Fix Guidance** | There's already a self-hosted AI product-photo tool for this: `product-image-studio` (Docker container `product-studio-backend` on the VPS, source at `/root/productgenerator` — generates 5 consistent views per product via fal.ai GPT-image-1-mini + Gemini QA, including a "luxury interior scene" background option). Running it across the full catalog is a real-cost, real-time AI generation batch job (per-product API calls, not free/instant) — needs a scoped decision (which products, which view types, budget) before kicking off, not something to run unprompted. Until then, prioritize background-consistency for whatever subset of products commonly appears together (homepage featured products, collection-header collages, bestsellers) rather than the full catalog at once. |
 
+### GAP-MED-048: 204 Shopify "designer"-tagged Customers Were Never Imported Into Designer Club — No Email On File
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`tools/import-designer-club-shopify.mjs`](../tools/import-designer-club-shopify.mjs), `designer_club_applications` table |
+| **Type** | Incomplete data migration |
+| **Status** | Active |
+| **Description** | Migrating legacy Shopify customers tagged `designer` (the old Shopify Forms-based trade signup, ~1,959 customers) into the new `designer_club_applications` table: 144 were imported directly via the Shopify Admin API (paginated), then the remaining 1,453 via a full customer-export CSV (`tools/import-designer-club-shopify.mjs --execute`) for a total of 1,597 imported. **204 rows in that export had no email address at all** (only name and/or phone) and were skipped outright — `designer_club_applications.email` is `NOT NULL`, and an email-less trade contact isn't actionable through the admin queue's normal flow (status updates, follow-up) the same way anyway. |
+| **Impact** | ~10% of the legacy "designer" customer list (204 of 1,959) has no record in the new system at all — if any of them are followed up with via phone/other channels, there's nothing in `/admin/designer-club` to track that against. |
+| **Fix Guidance** | Re-export from Shopify Admin (Customers filtered by tag `designer`) including the `Phone`/`Default Address Phone` columns, identify the rows with no email, and decide: (a) import them with a placeholder/null-safe email scheme (would need `email` to become nullable, same pattern as `company_name` in migration 023), or (b) leave them out of this table and handle as a separate phone-only contact list. Needs an explicit decision before building either path — not safe to assume silently. |
+
 ## 🔵 Low Severity Gaps
 
 ### GAP-LOW-001: Bank Account Details are Placeholder Text
@@ -1323,10 +1334,10 @@ The existing Playwright audit reported 113 passes, one timeout, and five warning
 |----------|-------------|-----------|
 | 🔴 Critical | 1 | **Admin OTP returned to requester (CRIT-004)** |
 | 🟠 High | 13 | Existing 9 items plus typed theme form wiring, safe theme mutations/import, setting-to-output contracts, and complete website-template editing |
-| 🟡 Medium | 29 | Existing 22 items plus global theme contract, footer wiring, preview usability, asset health, responsive controls, no-code onboarding, and **inconsistent product photo backgrounds (MED-047)** |
+| 🟡 Medium | 30 | Existing 22 items plus global theme contract, footer wiring, preview usability, asset health, responsive controls, no-code onboarding, inconsistent product photo backgrounds (MED-047), and **204 designer-tagged customers with no email skipped during import (MED-048)** |
 | 🔵 Low | 20 | Bank placeholder, Viber placeholder, Schema migration pending, component-map.md missing, Bare catch blocks, Inline auth styles, UX inconsistency, Dual rendering paths, msgCounter reset, Silent catch, Product URL unused, Viber not clickable, No delete on edit page, Contextual back-link, Admin login branding (DaVinciOS logo class), E2e test Turbopack patterns, Stale homeu.ph domain references, **Slideshow Shopify CDN URLs**, **Favicon Shopify CDN URL**, **Chat uploads local disk** |
 | ✅ Resolved | 40 | **Previously:** CRIT-001, CRIT-002, HIGH-001 through HIGH-009, MED-001,002,003,009-015,017,018, LOW-016,017,018, RES-001-003 (22 gaps). **2026-06-17 false-positive sweep:** MED-021 (DaVinciOS variable naming), MED-026 (17 agent/skill files), MED-027 (Claude DO-Spaces skill), MED-028 (design resources), MED-029 (agent definitions), MED-030 (AI instructions), MED-032 (.env.example), MED-033 (kilo.json ref) — all 9 flagged DaVinciOS references are correct (DaVinciOS IS the backend). Plus corrected MED-018 rationale. **2026-06-21:** RES-004 closed the analytics/leads/appointments/reports/workflows wiring audit; RES-005 closed the RFQ-chat local migration drift and Facebook inbox webhook schema mismatch; RES-006 closed the unified no-code settings platform's missing storage table and wired its saved settings into the actual runtime (AI provider, Telegram, chat widget); RES-007 closed an active data-loss bug where admin media uploads wrote to the container's ephemeral disk instead of DigitalOcean Spaces. |
-| **Total** | **102** | **63 active + 40 resolved** |
+| **Total** | **103** | **64 active + 40 resolved** |
 
 ---
 

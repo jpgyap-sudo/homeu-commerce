@@ -87,23 +87,12 @@ export default function ReviewsSection({ productId, productSlug, productTitle, p
         </span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="review-card-list">
         {reviews.map(review => (
-          <div key={review.id} style={{ borderBottom: '1px solid #f0f2ef', paddingBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <StarRow rating={review.rating} />
-              <strong style={{ fontSize: 13 }}>{review.reviewer_name || 'Anonymous'}</strong>
-              {review.verified_purchase && (
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#1a6d3e', background: '#ecfdf5', padding: '2px 8px', borderRadius: 6 }}>
-                  VERIFIED BUYER
-                </span>
-              )}
-              <span style={{ fontSize: 11, color: '#9aa69c' }}>
-                {new Date(review.review_date).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
-              </span>
-            </div>
-            {review.title && <div style={{ fontWeight: 600, fontSize: 14, marginTop: 6 }}>{review.title}</div>}
-            {review.body && <div style={{ fontSize: 14, color: '#3a4540', marginTop: 4, lineHeight: 1.6 }}>{review.body}</div>}
+          <div key={review.id} className="review-card">
+            {review.title && <h3 className="review-card__title">{review.title}</h3>}
+            {review.body && <p className="review-card__body">&ldquo;{review.body}&rdquo;</p>}
+            <div className="review-card__meta">{review.reviewer_name || 'Anonymous'}</div>
 
             {review.replies && review.replies.length > 0 && review.replies.map(reply => (
               <div key={reply.id} style={{ marginTop: 10, marginLeft: 20, padding: 12, background: '#f7f9f6', borderRadius: 8 }}>
