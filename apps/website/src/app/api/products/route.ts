@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 import { buildCategoryTagCondition } from '@/lib/category-filter'
+import { compileRules } from '@/lib/collection-rules'
 
 // ── GET (public — no auth required for storefront reads) ─────────────
 
@@ -33,21 +34,40 @@ export async function GET(request: NextRequest) {
     }
 
     if (category) {
-      paramIndex++
-      // Match by the product's assigned category (slug or legacy title)…
-      const categoryChecks = [
-        `EXISTS (SELECT 1 FROM categories c WHERE c.id = p.category_id AND (LOWER(c.slug) = LOWER($${paramIndex}) OR LOWER(c.title) = LOWER($${paramIndex})))`,
-      ]
-      values.push(category)
-      // …OR by the Shopify smart-collection TAG rule for this handle, so the
-      // granular nav dropdowns (sofa, pendant-light, rugs, …) resolve.
-      const tagCond = buildCategoryTagCondition(category, paramIndex + 1)
-      if (tagCond) {
-        categoryChecks.push(tagCond.sql)
-        values.push(...tagCond.values)
-        paramIndex += tagCond.values.length
+      // Smart collections (e.g. "Limited-Time Collection Offer") aren't tied
+      // to a product's single category_id — they're a dynamic rule (like
+      // SALE_PRICE > 0) evaluated across the whole catalog. Check for one
+      // before falling back to the normal category_id/tag matching.
+      const smartResult = await query(
+        `SELECT rules, rules_match FROM categories WHERE LOWER(slug) = LOWER($1) AND collection_type = 'smart' LIMIT 1`,
+        [category]
+      )
+      if (smartResult.rowCount && smartResult.rowCount > 0) {
+        const { where, params } = compileRules(
+          smartResult.rows[0].rules || [],
+          smartResult.rows[0].rules_match === 'any' ? 'any' : 'all',
+          paramIndex
+        )
+        conditions.push(`(${where})`)
+        values.push(...params)
+        paramIndex += params.length
+      } else {
+        paramIndex++
+        // Match by the product's assigned category (slug or legacy title)…
+        const categoryChecks = [
+          `EXISTS (SELECT 1 FROM categories c WHERE c.id = p.category_id AND (LOWER(c.slug) = LOWER($${paramIndex}) OR LOWER(c.title) = LOWER($${paramIndex})))`,
+        ]
+        values.push(category)
+        // …OR by the Shopify smart-collection TAG rule for this handle, so the
+        // granular nav dropdowns (sofa, pendant-light, rugs, …) resolve.
+        const tagCond = buildCategoryTagCondition(category, paramIndex + 1)
+        if (tagCond) {
+          categoryChecks.push(tagCond.sql)
+          values.push(...tagCond.values)
+          paramIndex += tagCond.values.length
+        }
+        conditions.push(`(${categoryChecks.join(' OR ')})`)
       }
-      conditions.push(`(${categoryChecks.join(' OR ')})`)
     }
 
     // Missing data filters (admin diagnostic)

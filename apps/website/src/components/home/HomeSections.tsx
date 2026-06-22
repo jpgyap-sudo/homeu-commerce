@@ -15,6 +15,7 @@ import { HOMEU_CURATED_COLLECTION_SLUGS } from '@/lib/homepage-collections'
 import { mergeWithDefaults } from '@/lib/theme-builder-settings'
 import ReviewsCarousel from '@/components/ReviewsCarousel'
 import { formatPrice } from '@/lib/format-utils'
+import { compileRules } from '@/lib/collection-rules'
 import { generateSectionStyles, ANIMATION_CSS, GRADIENT_TEXT_CSS } from '@/lib/theme-styles'
 import SectionAnimation from '@/components/home/SectionAnimation'
 
@@ -61,6 +62,33 @@ async function fetchCollectionsBySlugs(slugs: string[]): Promise<CollectionTile[
 
 async function fetchProductsByCollection(slug: string, limit: number): Promise<ProductCard[]> {
   try {
+    // Smart collections (e.g. "Limited-Time Collection Offer") have no rows
+    // in collection_products — membership is a dynamic rule (SALE_PRICE > 0,
+    // etc.) evaluated against the whole catalog, same engine used by the
+    // /products category page and the admin Collections builder.
+    const smart = await query(
+      `SELECT rules, rules_match FROM categories WHERE LOWER(slug) = LOWER($1) AND collection_type = 'smart' LIMIT 1`,
+      [slug]
+    )
+    if (smart.rowCount && smart.rowCount > 0) {
+      const { where, params } = compileRules(
+        smart.rows[0].rules || [],
+        smart.rows[0].rules_match === 'any' ? 'any' : 'all'
+      )
+      const res = await query(
+        `SELECT p.id, p.title, p.slug, p.price, p.sale_price,
+                (SELECT url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1) AS image_url,
+                cat.title AS category_title,${REVIEW_STATS_SELECT}
+         FROM products p
+         LEFT JOIN categories cat ON cat.id = p.category_id
+         WHERE p.status = 'active' AND (${where})
+         ORDER BY p.sale_price ASC NULLS LAST, p.id ASC
+         LIMIT $${params.length + 1}`,
+        [...params, limit]
+      )
+      return res.rows
+    }
+
     const res = await query(
       `SELECT DISTINCT ON (p.id) p.id, p.title, p.slug, p.price, p.sale_price,
               (SELECT url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1) AS image_url,
