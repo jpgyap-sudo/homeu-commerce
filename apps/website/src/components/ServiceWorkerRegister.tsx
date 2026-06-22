@@ -13,19 +13,30 @@ export default function ServiceWorkerRegister() {
       // Don't register SW on admin subdomain
       if (window.location.hostname.startsWith('admin.')) return
 
+      // Reload once when a new SW takes control, so a stale cached shell
+      // or chunk reference from a previous deploy never sticks around —
+      // without this, `updatefound` only logged and the new SW sat
+      // "waiting" indefinitely since nothing ever called skipWaiting from
+      // the page side, leaving visitors on an old cached version after
+      // every deploy until they happened to hard-refresh.
+      let reloading = false
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloading) return
+        reloading = true
+        window.location.reload()
+      })
+
       navigator.serviceWorker
         .register('/sw.js', { scope: '/' })
         .then((reg) => {
           console.log('[PWA] SW registered:', reg.scope)
 
-          // Check for updates on page load
           reg.addEventListener('updatefound', () => {
             const installing = reg.installing
             if (installing) {
               installing.addEventListener('statechange', () => {
                 if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New version available — notify user
-                  console.log('[PWA] New version available')
+                  console.log('[PWA] New version available, activating...')
                 }
               })
             }

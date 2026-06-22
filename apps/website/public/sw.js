@@ -6,14 +6,22 @@
  * Background sync for offline RFQ submission.
  * Push notifications for quotation alerts.
  *
- * Version: 1.0.0
+ * Version: 1.0.1
+ *
+ * 2026-06-22: bumped cache versions (v1 -> v2). _next/static/ chunks are
+ * cache-first with no expiry, so repeated deploys in a single day leave
+ * old chunk responses sitting in the cache indefinitely; if a client's
+ * cached HTML shell or chunk reference goes stale against a new build,
+ * Chrome surfaces a generic "This page couldn't load" error. Bumping the
+ * version forces every client's `activate` handler to drop the old caches
+ * (see the `keep` filter below) and start clean.
  */
 
 const CACHE = {
-  STATIC: 'homeu-static-v1',
-  FONTS: 'homeu-fonts-v1',
-  IMAGES: 'homeu-images-v1',
-  SHELL: 'homeu-shell-v1',
+  STATIC: 'homeu-static-v2',
+  FONTS: 'homeu-fonts-v2',
+  IMAGES: 'homeu-images-v2',
+  SHELL: 'homeu-shell-v2',
 }
 
 const STATIC_URLS = [
