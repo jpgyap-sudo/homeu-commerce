@@ -20,6 +20,7 @@ interface ReviewRow {
   imported_from_judgeme: boolean
   review_date: string
   reply_count: number
+  photos: string[] | null
 }
 
 const TABS: { key: string; label: string }[] = [
@@ -236,6 +237,16 @@ export default function AdminReviewsPage() {
                   )}
                   {r.title && <div style={{ fontSize: 13, fontWeight: 600, color: '#151a17', marginTop: 6 }}>{r.title}</div>}
                   <div style={{ fontSize: 13, color: '#3a4540', marginTop: 4, lineHeight: 1.5 }}>{r.body}</div>
+                  {r.photos && r.photos.length > 0 && (
+                    <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                      {r.photos.map((url: string, i: number) => (
+                        <img key={i} src={url} alt={`Review photo ${i + 1}`} style={{
+                          width: 56, height: 56, borderRadius: 6, objectFit: 'cover',
+                          border: '1px solid #d9e0d7', cursor: 'pointer',
+                        }} onClick={() => window.open(url, '_blank')} />
+                      ))}
+                    </div>
+                  )}
                   {r.fraud_reasons?.length > 0 && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                       {r.fraud_reasons.map(reason => (

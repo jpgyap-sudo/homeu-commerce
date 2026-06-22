@@ -18,6 +18,7 @@ interface Review {
   source: string
   review_date: string
   replies: Reply[] | null
+  photos: string[] | null
 }
 
 type SortMode = 'recent' | 'highest' | 'lowest'
@@ -169,6 +170,17 @@ export default function ReviewsSection({ productId, productSlug, productTitle, p
               <div style={{ fontWeight: 600, fontSize: 14, marginTop: 6 }}>{review.reviewer_name || 'Anonymous'}</div>
               {review.title && <div style={{ fontWeight: 600, fontSize: 15, marginTop: 4 }}>{review.title}</div>}
               {review.body && <div style={{ fontSize: 14, color: '#3a4540', marginTop: 4, lineHeight: 1.6 }}>{review.body}</div>}
+              {/* Review photos */}
+              {review.photos && review.photos.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                  {review.photos.map((url: string, i: number) => (
+                    <img key={i} src={url} alt={`Review photo ${i + 1}`} style={{
+                      width: 72, height: 72, borderRadius: 6, objectFit: 'cover',
+                      border: '1px solid #e3e8e0', cursor: 'pointer',
+                    }} onClick={() => window.open(url, '_blank')} />
+                  ))}
+                </div>
+              )}
 
               {review.replies && review.replies.length > 0 && review.replies.map(reply => (
                 <div key={reply.id} style={{ marginTop: 10, padding: 12, background: '#f7f9f6', borderRadius: 8 }}>
@@ -203,6 +215,61 @@ function WriteReviewModal({ productSlug, onClose, onSubmitted }: {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  const [signedIn, setSignedIn] = useState(false)
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
+  const [photoUrls, setPhotoUrls] = useState<string[]>([])
+  const [photoMediaIds, setPhotoMediaIds] = useState<number[]>([])
+
+  // Auto-fill name + email for signed-in customers
+  useEffect(() => {
+    fetch('/api/customers/me', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.email) {
+          setEmail(d.email)
+          setName(d.name || '')
+          setSignedIn(true)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    setUploadingPhotos(true)
+    setError('')
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        if (file.size > 10 * 1024 * 1024) {
+          setError(`"${file.name}" exceeds 10 MB limit`)
+          continue
+        }
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch(`/api/products/${productSlug}/reviews/upload-photo`, {
+          method: 'POST',
+          body: formData,
+        })
+        const data = await res.json()
+        if (!res.ok) { setError(data.error || 'Upload failed'); continue }
+        setPhotoUrls(prev => [...prev, data.url])
+        setPhotoMediaIds(prev => [...prev, data.media_id])
+      }
+    } catch {
+      setError('Photo upload failed. Please try again.')
+    } finally {
+      setUploadingPhotos(false)
+      // Reset the file input so the same file can be re-selected
+      e.target.value = ''
+    }
+  }
+
+  function removePhoto(index: number) {
+    setPhotoUrls(prev => prev.filter((_, i) => i !== index))
+    setPhotoMediaIds(prev => prev.filter((_, i) => i !== index))
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -212,7 +279,7 @@ function WriteReviewModal({ productSlug, onClose, onSubmitted }: {
       const res = await fetch(`/api/products/${productSlug}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reviewerName: name, reviewerEmail: email, rating, title, reviewBody: body }),
+        body: JSON.stringify({ reviewerName: name, reviewerEmail: email, rating, title, reviewBody: body, photoUrls: photoMediaIds }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Something went wrong'); return }
@@ -263,8 +330,17 @@ function WriteReviewModal({ productSlug, onClose, onSubmitted }: {
             </div>
 
             <div style={{ marginBottom: 14 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Email (optional)</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Email *</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                style={{ ...inputStyle, ...(signedIn ? { background: '#eef1ed', cursor: 'not-allowed' } : {}) }}
+                readOnly={signedIn}
+                title={signedIn ? 'Auto-filled from your account' : undefined}
+              />
+              {signedIn && <div style={{ fontSize: 11, color: '#667168', marginTop: 4 }}>Auto-filled from your account. Not shown publicly.</div>}
             </div>
 
             <div style={{ marginBottom: 14 }}>
@@ -277,7 +353,35 @@ function WriteReviewModal({ productSlug, onClose, onSubmitted }: {
               <textarea required rows={4} value={body} onChange={e => setBody(e.target.value)} style={{ ...inputStyle, resize: 'vertical' }} />
             </div>
 
-            <button type="submit" disabled={submitting} style={{
+            {/* Photo upload */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Photos (optional, up to 10 MB each)</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
+                onChange={handlePhotoUpload}
+                disabled={uploadingPhotos}
+                style={{ fontSize: 12 }}
+              />
+              {uploadingPhotos && <div style={{ fontSize: 11, color: '#667168', marginTop: 4 }}>Uploading...</div>}
+              {photoUrls.length > 0 && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                  {photoUrls.map((url, i) => (
+                    <div key={i} style={{ position: 'relative', width: 60, height: 60, borderRadius: 6, overflow: 'hidden', border: '1px solid #d9e0d7' }}>
+                      <img src={url} alt={`Review photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <button type="button" onClick={() => removePhoto(i)} style={{
+                        position: 'absolute', top: 2, right: 2, width: 18, height: 18, borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', fontSize: 10,
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button type="submit" disabled={submitting || uploadingPhotos} style={{
               width: '100%', padding: '12px', background: '#151a17', color: '#fff', border: 'none',
               borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: submitting ? 'default' : 'pointer',
               opacity: submitting ? 0.6 : 1,

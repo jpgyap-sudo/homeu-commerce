@@ -24,7 +24,11 @@ export async function GET(
   try {
     const result = await query(
       `SELECT r.*, p.title as product_title, p.slug as product_slug,
-              (SELECT json_agg(rr.* ORDER BY rr.created_at) FROM review_replies rr WHERE rr.review_id = r.id) as replies
+              (SELECT json_agg(rr.* ORDER BY rr.created_at) FROM review_replies rr WHERE rr.review_id = r.id) as replies,
+              (SELECT json_agg(m.url ORDER BY rp.created_at)
+               FROM review_photos rp
+               JOIN media m ON m.id = rp.media_id
+               WHERE rp.review_id = r.id) as photos
        FROM reviews r LEFT JOIN products p ON p.id = r.product_id
        WHERE r.id = $1`,
       [id]

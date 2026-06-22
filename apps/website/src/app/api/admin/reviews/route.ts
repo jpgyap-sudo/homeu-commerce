@@ -45,7 +45,11 @@ export async function GET(request: NextRequest) {
               r.reviewer_name, r.reviewer_email, r.rating, r.title, r.body,
               r.status, r.fraud_score, r.fraud_reasons, r.verified_purchase,
               r.source, r.imported_from_judgeme, r.review_date, r.created_at, r.published_at,
-              (SELECT COUNT(*) FROM review_replies WHERE review_id = r.id) as reply_count
+              (SELECT COUNT(*) FROM review_replies WHERE review_id = r.id) as reply_count,
+              (SELECT json_agg(m.url ORDER BY rp.created_at)
+               FROM review_photos rp
+               JOIN media m ON m.id = rp.media_id
+               WHERE rp.review_id = r.id) as photos
        FROM reviews r
        LEFT JOIN products p ON p.id = r.product_id
        ${where}
