@@ -1948,24 +1948,53 @@
 .account-form__error { color: #c00; font-size: 13px; margin: 0 0 16px; }
 .account-form__success { color: #059669; font-size: 13px; margin: 0 0 16px; }
 
+/* ── RFQ project file attachments ─────────────────────────────────────────── */
+.rfq-attachments { background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 20px; }
+.rfq-attachments__title { margin: 0 0 8px; font-size: 18px; }
+.rfq-attachments__hint { margin: 0 0 16px; font-size: 13px; color: #777; line-height: 1.6; }
+.rfq-attachments__error { background: #fee; color: #c00; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; }
+.rfq-attachments__list { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.rfq-attachments__item { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 10px 14px; font-size: 13px; }
+.rfq-attachments__link { color: #151a17; text-decoration: none; font-weight: 600; flex-shrink: 0; }
+.rfq-attachments__link:hover { text-decoration: underline; }
+.rfq-attachments__meta { color: #999; flex: 1; }
+.rfq-attachments__remove { background: none; border: none; color: #c00; cursor: pointer; font-size: 14px; padding: 2px 6px; }
+.rfq-attachments__upload-btn { display: inline-block; padding: 10px 20px; background: #151a17; color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
 /* ── Customer Dashboard ("My HomeU" command center) ──────────────────────── */
-.dashboard-shell { max-width: 1080px; margin: 0 auto; padding: 40px 24px 80px; }
+.dashboard-shell { max-width: 1080px; margin: 0 auto; padding: 40px 24px 80px; font-family: var(--debut-font-body, 'Cardo', Georgia, serif); }
+.dashboard-shell h1, .dashboard-shell h2 { font-family: var(--debut-font-heading, 'Crimson Text', Georgia, serif); letter-spacing: 0.01em; }
 .dashboard-loading { color: #888; text-align: center; padding: 60px 0; }
 .dashboard-error { background: #fef2f2; border: 1px solid #fecaca; color: #b42318; padding: 12px 16px; border-radius: 4px; margin-bottom: 24px; font-size: 14px; }
 
-.dashboard-hero { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin-bottom: 36px; }
-.dashboard-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #1a6d3e; margin: 0 0 6px; }
-.dashboard-hero h1 { font-family: var(--debut-font-heading, 'Crimson Text', Georgia, serif); font-size: clamp(26px, 3.6vw, 38px); font-weight: 400; margin: 0; }
-.dashboard-hero-sub { color: #888; font-size: 14px; margin: 6px 0 0; }
+.dashboard-hero { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 36px; }
+.dashboard-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #1a6d3e; margin: 0 0 8px; }
+.dashboard-eyebrow-logo { height: 40px; width: auto; object-fit: contain; margin: 0 0 10px; display: block; }
+.dashboard-hero h1 { font-weight: 500; font-size: clamp(28px, 3.8vw, 40px); line-height: 1.15; margin: 0; color: var(--debut-text, #1a2620); }
+.dashboard-hero-sub { color: #999; font-size: 13px; margin: 8px 0 0; letter-spacing: 0.02em; }
 .dashboard-hero-actions { display: flex; gap: 10px; align-items: center; }
 .dashboard-logout-btn { background: none; border: 1px solid #e0a0a0; color: #b42318; border-radius: 2px; padding: 10px 18px; font-size: 13px; cursor: pointer; }
 .dashboard-logout-btn:hover { background: #fef2f2; }
 
-.dashboard-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+.dashboard-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 28px; }
 @media (max-width: 640px) { .dashboard-stats { grid-template-columns: 1fr; } }
-.dashboard-stat-card { border: 1px solid var(--debut-borders, #ebebeb); border-radius: 4px; padding: 20px; display: flex; flex-direction: column; gap: 4px; }
-.dashboard-stat-value { font-family: var(--debut-font-heading, 'Crimson Text', Georgia, serif); font-size: 28px; }
-.dashboard-stat-label { font-size: 12px; color: #888; letter-spacing: 0.03em; }
+.dashboard-stat-card { border: 1px solid var(--debut-borders, #ebebeb); border-radius: 6px; padding: 22px; display: flex; flex-direction: column; gap: 4px; background: linear-gradient(160deg, #fff 0%, #fbfcfa 100%); }
+.dashboard-stat-value { font-family: var(--debut-font-heading, 'Cormorant Garamond', 'Crimson Text', Georgia, serif); font-size: 34px; font-weight: 500; color: var(--debut-text, #1a2620); }
+.dashboard-stat-label { font-size: 11px; color: #888; letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* ── Book Appointment widget ─────────────────────────────────────────────── */
+.dashboard-widget-card { border: 1px solid var(--debut-borders, #ebebeb); border-radius: 6px; padding: 22px; margin-bottom: 28px; background: #fff; }
+.dashboard-appointment-widget h2 { font-family: var(--debut-font-heading, 'Crimson Text', Georgia, serif); font-size: 18px; font-weight: 400; margin: 0; }
+.dashboard-appointment-upcoming { font-size: 14px; background: #f4f9f6; border-radius: 4px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dashboard-appointment-status { font-size: 12px; font-weight: 600; }
+.dashboard-appointment-empty { font-size: 13px; color: #888; margin: 8px 0 0; }
+.dashboard-appointment-form { margin-top: 14px; display: flex; flex-direction: column; gap: 14px; }
+.dashboard-appointment-form-row { display: grid; grid-template-columns: 1fr 1fr 0.6fr; gap: 12px; }
+@media (max-width: 640px) { .dashboard-appointment-form-row { grid-template-columns: 1fr; } }
+.dashboard-appointment-form label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: #667168; text-transform: uppercase; letter-spacing: 0.04em; }
+.dashboard-appointment-form input, .dashboard-appointment-form textarea { font-family: inherit; font-size: 14px; font-weight: 400; text-transform: none; letter-spacing: normal; color: var(--debut-text, #1a2620); padding: 10px 12px; border: 1px solid var(--debut-borders, #ebebeb); border-radius: 4px; }
+.dashboard-appointment-form-actions { display: flex; gap: 10px; }
+.dashboard-appointment-msg { font-size: 13px; color: #1a6d3e; margin: 10px 0 0; }
 
 .dashboard-cart-nudge { display: flex; justify-content: space-between; align-items: center; background: #f4f9f6; border: 1px solid #cfe6da; border-radius: 4px; padding: 14px 20px; margin-bottom: 28px; text-decoration: none; color: var(--debut-text, #3a3a3a); font-size: 14px; transition: background 0.15s; }
 .dashboard-cart-nudge:hover { background: #e8f2ec; }

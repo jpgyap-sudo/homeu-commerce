@@ -81,3 +81,76 @@ export async function GET(
     return NextResponse.json({ error: error.message || 'Failed to fetch RFQ request' }, { status: 500 })
   }
 }
+
+/**
+ * PATCH /api/rfq-requests/[id]
+ *
+ * Two narrow actions, gated by role:
+ *   - Customer: { action: 'request_extension', reason } — asks the store
+ *     to push back the 30-day auto-archive deadline before it hits.
+ *   - Staff: { action: 'approve_extension' | 'deny_extension', extendDays? }
+ *     — decides on a pending request.
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const { id } = await params
+    const rfqId = parseInt(id)
+    if (isNaN(rfqId)) {
+      return NextResponse.json({ error: 'Invalid RFQ ID' }, { status: 400 })
+    }
+    const body = await request.json()
+    const { action } = body
+
+    if (action === 'request_extension') {
+      const access = resolveRfqAccess(session, null)
+      if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status })
+
+      const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 1000) : ''
+      const result = await query(
+        `UPDATE rfq_requests
+         SET extension_status = 'requested', extension_reason = $1
+         WHERE id = $2 AND archived_at IS NULL
+           AND ($3::integer IS NULL OR customer_id = $3)
+         RETURNING id, extension_status, extension_reason`,
+        [reason, rfqId, access.customerId]
+      )
+      if (result.rowCount === 0) {
+        return NextResponse.json({ error: 'RFQ not found or already archived' }, { status: 404 })
+      }
+      return NextResponse.json(snakeToCamel(result.rows[0]))
+    }
+
+    if (action === 'approve_extension' || action === 'deny_extension') {
+      if (session.role === 'customer') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      const extendDays = Number.isInteger(body.extendDays) && body.extendDays > 0 ? body.extendDays : 30
+      const approved = action === 'approve_extension'
+      const result = await query(
+        `UPDATE rfq_requests
+         SET extension_status = $1::varchar,
+             extension_approved_until = CASE WHEN $1::varchar = 'approved' THEN NOW() + ($2::text || ' days')::interval ELSE extension_approved_until END
+         WHERE id = $3
+         RETURNING id, extension_status, extension_approved_until`,
+        [approved ? 'approved' : 'denied', extendDays, rfqId]
+      )
+      if (result.rowCount === 0) {
+        return NextResponse.json({ error: 'RFQ not found' }, { status: 404 })
+      }
+      return NextResponse.json(snakeToCamel(result.rows[0]))
+    }
+
+    return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
+  } catch (error: any) {
+    console.error('RFQ request PATCH error:', error)
+    return NextResponse.json({ error: error.message || 'Failed to update RFQ request' }, { status: 500 })
+  }
+}

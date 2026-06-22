@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import RfqAttachments from '@/components/rfq/RfqAttachments'
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -45,12 +46,15 @@ interface LeadRecord {
 interface RFQRecord {
   id: string
   status: string
-  delivery_location: string | null
-  project_type: string | null
-  estimated_total: number | null
+  deliveryLocation: string | null
+  projectType: string | null
+  estimatedTotal: number | null
   notes: string | null
-  created_at: string
-  submitted_at: string | null
+  createdAt: string
+  archivedAt: string | null
+  autoArchiveDeadline: string | null
+  extensionStatus: 'none' | 'requested' | 'approved' | 'denied'
+  extensionReason: string | null
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -122,6 +126,20 @@ export default function EditCustomerPage() {
 
   // RFQ history
   const [rfqs, setRfqs] = useState<RFQRecord[]>([])
+  const [expandedRfqId, setExpandedRfqId] = useState<string | null>(null)
+
+  async function handleExtensionDecision(rfqId: string, approve: boolean) {
+    try {
+      const res = await fetch(`/api/rfq-requests/${rfqId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: approve ? 'approve_extension' : 'deny_extension', extendDays: 30 }),
+      })
+      if (!res.ok) return
+      setRfqs(prev => prev.map(r => r.id === rfqId ? { ...r, extensionStatus: approve ? 'approved' : 'denied' } : r))
+    } catch { /* surfaced via the badge staying as-is */ }
+  }
 
   // Form fields (editable)
   const [name, setName] = useState('')
@@ -394,30 +412,57 @@ export default function EditCustomerPage() {
                   <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600, color: '#667168', fontSize: 11, textTransform: 'uppercase' }}>Location</th>
                   <th style={{ textAlign: 'right', padding: '8px 12px', fontWeight: 600, color: '#667168', fontSize: 11, textTransform: 'uppercase' }}>Est. Total</th>
                   <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600, color: '#667168', fontSize: 11, textTransform: 'uppercase' }}>Created</th>
+                  <th style={{ padding: '8px 12px' }} />
                 </tr>
               </thead>
               <tbody>
                 {rfqs.map(rfq => (
-                  <tr key={rfq.id} style={{ borderBottom: '1px solid #eef1ed' }}>
-                    <td style={{ padding: '8px 12px' }}>
-                      <Link href={`/admin/rfq/${rfq.id}`} style={{ color: '#1a6d3e', textDecoration: 'none', fontWeight: 500, fontSize: 12 }}>
-                        {rfq.id.substring(0, 8)}...
-                      </Link>
-                    </td>
-                    <td style={{ padding: '8px 12px' }}>
-                      <span className={`status-badge status-${rfq.status === 'submitted' ? 'contacted' : rfq.status}`}>
-                        {rfqStatusLabel(rfq.status)}
-                      </span>
-                    </td>
-                    <td style={{ padding: '8px 12px', color: '#667168' }}>{rfq.project_type || '—'}</td>
-                    <td style={{ padding: '8px 12px', color: '#667168' }}>{rfq.delivery_location || '—'}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>
-                      {rfq.estimated_total != null
-                        ? `₱${Number(rfq.estimated_total).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
-                        : '—'}
-                    </td>
-                    <td style={{ padding: '8px 12px', fontSize: 12, color: '#667168' }}>{formatDate(rfq.created_at)}</td>
-                  </tr>
+                  <>
+                    <tr key={rfq.id} style={{ borderBottom: '1px solid #eef1ed' }}>
+                      <td style={{ padding: '8px 12px', fontSize: 12, color: '#667168' }}>#{rfq.id}</td>
+                      <td style={{ padding: '8px 12px' }}>
+                        <span className={`status-badge status-${rfq.status === 'submitted' ? 'contacted' : rfq.status}`}>
+                          {rfqStatusLabel(rfq.status)}
+                        </span>
+                        {rfq.archivedAt && <span style={{ marginLeft: 6, fontSize: 11, color: '#999' }}>📦 Archived</span>}
+                        {rfq.extensionStatus === 'requested' && <span style={{ marginLeft: 6, fontSize: 11, color: '#b88935', fontWeight: 600 }}>⚠ Extension requested</span>}
+                      </td>
+                      <td style={{ padding: '8px 12px', color: '#667168' }}>{rfq.projectType || '—'}</td>
+                      <td style={{ padding: '8px 12px', color: '#667168' }}>{rfq.deliveryLocation || '—'}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>
+                        {rfq.estimatedTotal != null
+                          ? `₱${Number(rfq.estimatedTotal).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
+                          : '—'}
+                      </td>
+                      <td style={{ padding: '8px 12px', fontSize: 12, color: '#667168' }}>{formatDate(rfq.createdAt)}</td>
+                      <td style={{ padding: '8px 12px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedRfqId(prev => prev === rfq.id ? null : rfq.id)}
+                          style={{ background: 'none', border: '1px solid #d9e0d7', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: '#151a17' }}
+                        >
+                          {expandedRfqId === rfq.id ? 'Hide' : 'Manage'}
+                        </button>
+                      </td>
+                    </tr>
+                    {expandedRfqId === rfq.id && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: '12px 12px 20px', background: '#fbfcfa' }}>
+                          {rfq.extensionStatus === 'requested' && (
+                            <div style={{ background: '#fffbf0', border: '1px solid #f0d999', borderRadius: 8, padding: 14, marginBottom: 14, fontSize: 13 }}>
+                              <strong>Extension requested</strong>
+                              {rfq.extensionReason && <p style={{ margin: '4px 0 10px', color: '#666' }}>&ldquo;{rfq.extensionReason}&rdquo;</p>}
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                <button type="button" onClick={() => handleExtensionDecision(rfq.id, true)} style={{ padding: '6px 16px', background: '#1a6d3e', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Approve (+30 days)</button>
+                                <button type="button" onClick={() => handleExtensionDecision(rfq.id, false)} style={{ padding: '6px 16px', background: '#fff', color: '#b42318', border: '1px solid #fecaca', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Deny</button>
+                              </div>
+                            </div>
+                          )}
+                          <RfqAttachments rfqId={String(rfq.id)} />
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))}
               </tbody>
             </table>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { addToQuoteCart } from '@/components/QuoteCart'
+import RfqAttachments from '@/components/rfq/RfqAttachments'
 
 interface RFQItem {
   id: string
@@ -34,6 +35,11 @@ interface RFQDetail {
   createdAt: string
   updatedAt: string
   customer?: string
+  archivedAt?: string | null
+  autoArchiveDeadline?: string | null
+  extensionStatus?: 'none' | 'requested' | 'approved' | 'denied'
+  extensionReason?: string | null
+  extensionApprovedUntil?: string | null
 }
 
 // rfq_requests.status enum has exactly 5 values: new, contacted, quoted,
@@ -53,6 +59,9 @@ export default function RFQDetailPage() {
   const [rfq, setRfq] = useState<RFQDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [extensionReason, setExtensionReason] = useState('')
+  const [requestingExtension, setRequestingExtension] = useState(false)
+  const [extensionMsg, setExtensionMsg] = useState('')
 
   useEffect(() => {
     async function loadRFQ() {
@@ -111,6 +120,31 @@ export default function RFQDetailPage() {
 
   const statusInfo = STATUS_DETAILS[rfq.status] || { label: rfq.status, color: '#999', description: '' }
   const totalItems = rfq.items?.reduce((sum, item) => sum + item.quantity, 0) || 0
+  const daysUntilArchive = rfq.autoArchiveDeadline
+    ? Math.ceil((new Date(rfq.autoArchiveDeadline).getTime() - Date.now()) / 86400000)
+    : null
+  const showArchiveCountdown = rfq.status === 'new' && !rfq.archivedAt && daysUntilArchive !== null && daysUntilArchive <= 7
+
+  async function requestExtension() {
+    setRequestingExtension(true)
+    setExtensionMsg('')
+    try {
+      const res = await fetch(`/api/rfq-requests/${rfq!.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'request_extension', reason: extensionReason }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to request extension')
+      setRfq(prev => prev ? { ...prev, extensionStatus: 'requested' } : prev)
+      setExtensionMsg('Extension requested — our team will review it shortly.')
+    } catch (err: any) {
+      setExtensionMsg(err.message || 'Failed to request extension')
+    } finally {
+      setRequestingExtension(false)
+    }
+  }
 
   function reorderItems() {
     const items = rfq?.items || []
@@ -180,7 +214,61 @@ export default function RFQDetailPage() {
         <p style={{ color: '#555', margin: 0, fontSize: 14 }}>{statusInfo.description}</p>
       </div>
 
+      {/* Archived notice */}
+      {rfq.archivedAt && (
+        <div style={{ background: '#f5f5f5', border: '1px solid #ddd', borderRadius: 8, padding: 20, marginBottom: 24 }}>
+          <strong>This request was archived</strong>
+          <p style={{ margin: '4px 0 0', fontSize: 14, color: '#666' }}>
+            We didn&apos;t hear back in time to keep this request active, so it was automatically archived on{' '}
+            {new Date(rfq.archivedAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}.
+            Need to revisit it? Just message us below or submit a new request.
+          </p>
+        </div>
+      )}
+
+      {/* Auto-archive countdown + extension request */}
+      {showArchiveCountdown && (
+        <div style={{ background: '#fffbf0', border: '1px solid #f0d999', borderRadius: 8, padding: 20, marginBottom: 24 }}>
+          <strong>
+            {daysUntilArchive! <= 0
+              ? 'This request will be archived very soon'
+              : `This request will auto-archive in ${daysUntilArchive} day${daysUntilArchive !== 1 ? 's' : ''}`}
+          </strong>
+          <p style={{ margin: '4px 0 12px', fontSize: 14, color: '#666' }}>
+            We haven&apos;t responded yet — requests with no activity for 30 days are archived automatically.
+            Need more time? Ask us for an extension.
+          </p>
+          {rfq.extensionStatus === 'requested' ? (
+            <p style={{ fontSize: 13, color: '#8a6d1f', margin: 0 }}>⏳ Extension requested — awaiting approval.</p>
+          ) : rfq.extensionStatus === 'denied' ? (
+            <p style={{ fontSize: 13, color: '#c62828', margin: 0 }}>Your extension request was declined.</p>
+          ) : (
+            <>
+              <textarea
+                value={extensionReason}
+                onChange={e => setExtensionReason(e.target.value)}
+                placeholder="Optional: let us know why you need more time"
+                rows={2}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13, fontFamily: 'inherit', marginBottom: 8, boxSizing: 'border-box' }}
+              />
+              <button
+                type="button"
+                onClick={requestExtension}
+                disabled={requestingExtension}
+                style={{ padding: '8px 18px', background: '#b88935', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: requestingExtension ? 'not-allowed' : 'pointer' }}
+              >
+                {requestingExtension ? 'Requesting…' : 'Request Extension'}
+              </button>
+              {extensionMsg && <p style={{ fontSize: 13, color: '#555', marginTop: 8 }}>{extensionMsg}</p>}
+            </>
+          )}
+        </div>
+      )}
+
       <div style={{ display: 'grid', gap: 24 }}>
+        {/* Project Files */}
+        <RfqAttachments rfqId={String(rfq.id)} />
+
         {/* RFQ Info */}
         <div style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: 8, padding: 20 }}>
           <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>Request Details</h2>

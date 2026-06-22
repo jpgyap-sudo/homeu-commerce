@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatPrice } from '@/lib/format-utils'
 import { getQuoteCart } from '@/components/QuoteCart'
+import BookAppointmentWidget from '@/components/customer/BookAppointmentWidget'
+import siteConfig from '@/data/site-config.json'
+
+// TODO: swap for the horizontal wordmark logo (deer head + "Home Atelier"
+// text) once that asset is uploaded to DO Spaces — using the round icon
+// logo as a placeholder in the meantime, same one used on /login.
+const BRAND_LOGO = siteConfig.logo?.shopifyUrl || ''
 
 interface Customer {
   id: string
@@ -158,7 +165,11 @@ export default function CustomerDashboardPage() {
       {/* Hero */}
       <div className="dashboard-hero">
         <div>
-          <p className="dashboard-eyebrow">My HomeU</p>
+          {BRAND_LOGO ? (
+            <img src={BRAND_LOGO} alt="Home Atelier" className="dashboard-eyebrow-logo" />
+          ) : (
+            <p className="dashboard-eyebrow">My HomeU</p>
+          )}
           <h1>Welcome back, {customer.name.split(' ')[0]}</h1>
           {memberSince && <p className="dashboard-hero-sub">Member since {memberSince}</p>}
         </div>
@@ -180,10 +191,6 @@ export default function CustomerDashboardPage() {
           <span className="dashboard-stat-value">{stats.awaitingDecision}</span>
           <span className="dashboard-stat-label">Awaiting Your Decision</span>
         </div>
-        <div className="dashboard-stat-card">
-          <span className="dashboard-stat-value">{formatPrice(stats.totalInvestment)}</span>
-          <span className="dashboard-stat-label">Your HomeU Investment</span>
-        </div>
       </div>
 
       {/* Continue where you left off */}
@@ -193,6 +200,11 @@ export default function CustomerDashboardPage() {
           <span className="dashboard-cart-nudge-cta">Continue →</span>
         </Link>
       )}
+
+      {/* Book Appointment */}
+      <section className="dashboard-widget-card">
+        <BookAppointmentWidget />
+      </section>
 
       {/* Needs Your Attention */}
       {quotationsNeedingAttention.length > 0 && (

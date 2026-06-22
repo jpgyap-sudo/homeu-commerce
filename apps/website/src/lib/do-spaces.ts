@@ -7,7 +7,7 @@
  * tools/shopify-import/mirror-db-assets.mjs.
  */
 
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { loadNamespace } from '@/lib/app-config'
 
 interface SpacesCreds {
@@ -65,4 +65,10 @@ export async function uploadBufferToSpaces(
   }))
 
   return `${cdnEndpoint}/${key}`
+}
+
+/** Delete an object from DO Spaces by its storage key. */
+export async function deleteObjectFromSpaces(key: string): Promise<void> {
+  const { s3, bucket } = await getClient()
+  await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
 }

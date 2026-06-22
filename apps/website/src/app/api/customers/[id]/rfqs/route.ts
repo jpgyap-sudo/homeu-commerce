@@ -45,6 +45,8 @@ export async function GET(
               r.estimated_total, r.created_at, r.updated_at,
               r.quotation_sent_at, r.quotation_sent_via, r.quotation_notes,
               r.closed_at, r.closed_reason,
+              r.archived_at, r.auto_archive_deadline,
+              r.extension_status, r.extension_reason, r.extension_approved_until,
               COALESCE(
                 (SELECT jsonb_agg(jsonb_build_object(
                   'id', ri.id,
