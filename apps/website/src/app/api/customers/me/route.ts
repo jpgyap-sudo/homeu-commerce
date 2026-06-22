@@ -70,16 +70,28 @@ export async function GET() {
       })
     }
 
-    // No customer or lead found — return minimal profile from session
-    return NextResponse.json({
-      id: null,
-      name: session.name || session.email,
-      email: session.email,
-      phone: null,
-      company: null,
-      address: null,
-      createdAt: null,
-    })
+    // No customer or lead found — auto-create from session data
+    try {
+      const insertResult = await query(
+        `INSERT INTO customers (email, name, role, status, created_at, updated_at)
+         VALUES ($1, $2, 'customer', 'active', NOW(), NOW())
+         RETURNING id, name, email, created_at`,
+        [session.email, session.name || session.email.split('@')[0]]
+      )
+      const newCustomer = insertResult.rows[0]
+      return NextResponse.json({
+        id: newCustomer.id,
+        name: newCustomer.name,
+        email: newCustomer.email,
+        phone: null,
+        company: null,
+        address: null,
+        createdAt: newCustomer.created_at,
+      })
+    } catch (insertErr) {
+      console.error('[api/customers/me] Auto-create failed:', insertErr)
+      return NextResponse.json({ error: 'Account not found. Please contact support.' }, { status: 404 })
+    }
   } catch (err) {
     console.error('[api/customers/me] GET error:', err)
     return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })

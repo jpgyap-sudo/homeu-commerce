@@ -74,6 +74,9 @@ function ProductsContent() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const searchRef = useRef(searchTerm)
   const categoryRef = useRef(selectedCategory)
@@ -138,7 +141,26 @@ function ProductsContent() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     setPage(0)
+    setShowSuggestions(false)
     loadProducts()
+  }
+
+  // Autocomplete suggestions — debounced, fetches matching product titles
+  function handleSearchInput(value: string) {
+    setSearchTerm(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (value.trim().length < 2) { setSuggestions([]); setShowSuggestions(false); return }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/products?search=${encodeURIComponent(value.trim())}&limit=8&orderBy=title ASC`)
+        if (res.ok) {
+          const data = await res.json()
+          const titles = (data.docs || []).map((p: Product) => p.title).filter(Boolean)
+          setSuggestions(titles)
+          setShowSuggestions(titles.length > 0)
+        }
+      } catch { /* best-effort */ }
+    }, 250)
   }
 
   function handleCategoryChange(value: string) {
@@ -177,6 +199,17 @@ function ProductsContent() {
   const activeCategory = categories.find(c => c.slug === selectedCategory)
   const activeCategoryTitle = activeCategory?.title
   const collectionTitle = activeCategoryTitle || 'Our Products'
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (searchInputRef.current && !searchInputRef.current.parentElement?.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   return (
     <main className="collection-page">
@@ -230,6 +263,37 @@ function ProductsContent() {
             <p>{activeCategory.description}</p>
           </div>
         )}
+
+        {/* Search with autocomplete */}
+        <form onSubmit={handleSearch} className="products-search" style={{ position: 'relative', marginBottom: 16 }}>
+          <input
+            ref={searchInputRef}
+            type="search"
+            value={searchTerm}
+            onChange={e => handleSearchInput(e.target.value)}
+            placeholder="Search products..."
+            aria-label="Search products"
+            autoComplete="off"
+            style={{ width: '100%', padding: '12px 14px', border: '1.5px solid #d9e0d7', borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+          />
+          <button type="submit" style={{ position: 'absolute', right: 8, top: 8, padding: '6px 14px', background: '#151a17', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Search</button>
+          {showSuggestions && suggestions.length > 0 && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+              background: '#fff', border: '1px solid #d9e0d7', borderRadius: 8, marginTop: 4,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)', maxHeight: 240, overflow: 'auto',
+            }}>
+              {suggestions.map((title, i) => (
+                <button key={i} type="button" onClick={() => { setSearchTerm(title); setShowSuggestions(false); loadProducts() }}
+                  style={{ display: 'block', width: '100%', padding: '10px 14px', border: 'none', background: '#fff', textAlign: 'left', cursor: 'pointer', fontSize: 13, borderBottom: i < suggestions.length - 1 ? '1px solid #f0f0f0' : 'none' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f7f9f6'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                  {title}
+                </button>
+              ))}
+            </div>
+          )}
+        </form>
 
         {/* Filter / sort bar */}
         <div className="collection-toolbar">
