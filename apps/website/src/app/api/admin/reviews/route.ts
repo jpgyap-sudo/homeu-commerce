@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { query } from '@/lib/db'
+import { refreshProductRatingCache } from '@/lib/product-ratings'
 
 const VALID_STATUSES = new Set(['pending', 'approved', 'rejected', 'flagged'])
 
@@ -100,14 +101,4 @@ export async function POST(request: NextRequest) {
     console.error('[admin/reviews] POST error:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
-}
-
-export async function refreshProductRatingCache(productId: number) {
-  await query(
-    `UPDATE products SET
-       review_count = (SELECT COUNT(*) FROM reviews WHERE product_id = $1 AND status = 'approved'),
-       avg_rating = COALESCE((SELECT ROUND(AVG(rating)::numeric, 2) FROM reviews WHERE product_id = $1 AND status = 'approved'), 0)
-     WHERE id = $1`,
-    [productId]
-  )
 }

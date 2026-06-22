@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Helper to store/update visitor profile (called by other APIs)
-export function upsertVisitorProfile(leadId: string, data: {
+function upsertVisitorProfile(leadId: string, data: {
   email: string
   name: string
   styleDNA?: any

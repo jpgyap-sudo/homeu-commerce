@@ -239,6 +239,39 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
       .finally(() => setNavLoaded(true))
   }, [])
 
+  // ── Backups / Version History State ────────────────────────────────
+  const [backups, setBackups] = useState<any[]>([])
+  const [backupsOpen, setBackupsOpen] = useState(false)
+
+  async function loadBackups() {
+    try {
+      const res = await fetch('/api/theme/backups').then(r => r.json())
+      setBackups(res.backups || [])
+    } catch {}
+  }
+
+  useEffect(() => {
+    loadBackups()
+  }, [])
+
+  function restoreBackup(backup: any) {
+    const timestampStr = new Date(backup.timestamp).toLocaleString()
+    if (!confirm(`Restore theme to version from ${timestampStr}? This will overwrite your current draft configuration in the editor.`)) return
+    
+    const { sections: bSec, header: bHead, css: bCss, palette: bPal } = backup.data
+    
+    if (bSec) setSectionsWithHistory(bSec)
+    if (bHead) setHeader(bHead)
+    if (bCss) setCss(bCss)
+    if (bPal) setPalette(bPal)
+
+    setDirty(true)
+    setCssDirty(true)
+    setPaletteDirty(true)
+    flash('Backup loaded. Click Save Theme to publish.')
+    setBackupsOpen(false)
+  }
+
   async function saveNav() {
     setNavSaving(true)
     try {
@@ -286,6 +319,105 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2000) }
   const refreshPreview = () => setPreviewKey(k => k + 1)
 
+  // ── Section dirty close/switch warning ────────────────────────────
+  const [openedSectionConfig, setOpenedSectionConfig] = useState<{ id: number; config: any } | null>(null)
+  const [pendingClose, setPendingClose] = useState<{ currentId: number; nextId: number | null } | null>(null)
+
+  function isSectionDirty(secId: number): boolean {
+    if (!openedSectionConfig || openedSectionConfig.id !== secId) return false
+    const current = sections.find(s => s.id === secId)
+    if (!current) return false
+    return JSON.stringify(current.config) !== JSON.stringify(openedSectionConfig.config)
+  }
+
+  function handleSectionToggle(nextId: number | null) {
+    if (openId !== null && openId !== nextId && isSectionDirty(openId)) {
+      setPendingClose({ currentId: openId, nextId })
+    } else {
+      setOpenId(nextId)
+      const nextSec = sections.find(x => x.id === nextId)
+      if (nextSec) {
+        setOpenedSectionConfig({ id: nextSec.id, config: JSON.parse(JSON.stringify(nextSec.config)) })
+      } else {
+        setOpenedSectionConfig(null)
+      }
+    }
+  }
+
+  function discardAndClose() {
+    if (pendingClose && openedSectionConfig) {
+      const { currentId, nextId } = pendingClose
+      // Revert in state
+      setSections(s => s.map(x => x.id === currentId ? { ...x, config: JSON.parse(JSON.stringify(openedSectionConfig.config)) } : x))
+      
+      // Now close/switch
+      if (nextId === -1) {
+        setAllCollapsed(true)
+        setOpenId(null)
+        setOpenedSectionConfig(null)
+      } else {
+        setOpenId(nextId)
+        const nextSec = sections.find(x => x.id === nextId)
+        if (nextSec) {
+          setOpenedSectionConfig({ id: nextSec.id, config: JSON.parse(JSON.stringify(nextSec.config)) })
+        } else {
+          setOpenedSectionConfig(null)
+        }
+      }
+      setPendingClose(null)
+    }
+  }
+
+  async function saveAndClose() {
+    if (pendingClose) {
+      const { currentId, nextId } = pendingClose
+      const sec = sections.find(x => x.id === currentId)
+      if (sec) {
+        await saveSection(sec)
+      }
+      // Now close/switch
+      if (nextId === -1) {
+        setAllCollapsed(true)
+        setOpenId(null)
+        setOpenedSectionConfig(null)
+      } else {
+        setOpenId(nextId)
+        const nextSec = sections.find(x => x.id === nextId)
+        if (nextSec) {
+          setOpenedSectionConfig({ id: nextSec.id, config: JSON.parse(JSON.stringify(nextSec.config)) })
+        } else {
+          setOpenedSectionConfig(null)
+        }
+      }
+      setPendingClose(null)
+    }
+  }
+
+  // Debounce saving draft to server
+  useEffect(() => {
+    if (!dirty && !cssDirty && !paletteDirty && !navDirty) return
+
+    const timer = setTimeout(async () => {
+      try {
+        await fetch('/api/theme/preview-draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sections,
+            header,
+            css,
+            palette,
+          }),
+        })
+        refreshPreview()
+      } catch (err) {
+        console.error('Failed to save preview draft:', err)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [sections, header, css, palette, dirty, cssDirty, paletteDirty, navDirty])
+
   // ── beforeunload guard ────────────────────────────────────────────
   useEffect(() => {
     if (!dirty && !cssDirty && !paletteDirty) return
@@ -306,7 +438,7 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
   // ── Click-to-edit + in-preview actions from the preview iframe ──
   useEffect(() => {
     const openAndScroll = (id: number) => {
-      setOpenId(id)
+      handleSectionToggle(id)
       requestAnimationFrame(() => document.getElementById(`sec-card-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
     }
 
@@ -615,6 +747,7 @@ async function patchSection(id: number, body: any) {
         }
       }
       await patchSection(sec.id, { config })
+      setOpenedSectionConfig({ id: sec.id, config: JSON.parse(JSON.stringify(config)) })
       flash('Saved'); refreshPreview()
     } catch (err: any) {
       flash('Error: ' + (err.message || 'Failed to save'))
@@ -679,6 +812,20 @@ async function patchSection(id: number, body: any) {
       setDirty(false)
       setCssDirty(false)
       setPaletteDirty(false)
+      if (openId !== null) {
+        const currentSec = sections.find(x => x.id === openId)
+        if (currentSec) {
+          setOpenedSectionConfig({ id: openId, config: JSON.parse(JSON.stringify(currentSec.config)) })
+        }
+      }
+      
+      // Save backup snapshot
+      fetch('/api/theme/backups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sections, header, css, palette }),
+      }).then(() => loadBackups()).catch(() => {})
+
       flash('All changes saved'); refreshPreview()
     } catch (err: any) {
       flash('Error: ' + (err.message || 'Failed to save all'))
@@ -745,6 +892,10 @@ async function patchSection(id: number, body: any) {
   }
 
   async function addSection(type: SectionType) {
+    if (openId !== null && isSectionDirty(openId)) {
+      if (!confirm('You have unsaved changes in the open section. Discard changes and add section?')) return
+      setSections(s => s.map(x => x.id === openId ? { ...x, config: JSON.parse(JSON.stringify(openedSectionConfig?.config || {})) } : x))
+    }
     setAdding(false)
     const preset = SECTION_PRESETS[type] || {}
     const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, config: preset }) })
@@ -767,10 +918,17 @@ async function patchSection(id: number, body: any) {
       next.splice(globalPos, 0, newSec)
       return next
     })
-    setOpenId(id); setDirty(true); refreshPreview()
+    setOpenId(id)
+    setOpenedSectionConfig({ id, config: JSON.parse(JSON.stringify(preset)) })
+    setDirty(true)
+    refreshPreview()
   }
 
   async function duplicate(sec: Section) {
+    if (openId !== null && isSectionDirty(openId) && openId !== sec.id) {
+      if (!confirm('You have unsaved changes in the open section. Discard changes and duplicate?')) return
+      setSections(s => s.map(x => x.id === openId ? { ...x, config: JSON.parse(JSON.stringify(openedSectionConfig?.config || {})) } : x))
+    }
     const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: sec.type, config: sec.config }) })
     const { id } = await res.json()
     setSectionsWithHistory(s => {
@@ -780,13 +938,25 @@ async function patchSection(id: number, body: any) {
       copy.splice(idx + 1, 0, { id, type: sec.type, position: pos, enabled: sec.enabled, config: { ...sec.config } })
       return copy
     })
-    setOpenId(id); setDirty(true); refreshPreview(); flash('Section duplicated')
+    setOpenId(id)
+    setOpenedSectionConfig({ id, config: JSON.parse(JSON.stringify(sec.config)) })
+    setDirty(true)
+    refreshPreview()
+    flash('Section duplicated')
   }
 
   async function del(id: number) {
+    if (openId !== id && openId !== null && isSectionDirty(openId)) {
+      if (!confirm('You have unsaved changes in the open section. Discard changes and delete?')) return
+      setSections(s => s.map(x => x.id === openId ? { ...x, config: JSON.parse(JSON.stringify(openedSectionConfig?.config || {})) } : x))
+    }
     if (!confirm('Delete this section?')) return
     setSectionsWithHistory(s => s.filter(x => x.id !== id))
     setDirty(true)
+    if (openId === id) {
+      setOpenId(null)
+      setOpenedSectionConfig(null)
+    }
     await fetch(`/api/theme/sections/${id}`, { method: 'DELETE' })
     refreshPreview()
   }
@@ -1049,7 +1219,14 @@ async function patchSection(id: number, body: any) {
             <button onClick={redo} disabled={historyIdx >= history.length - 1} title="Redo"
               style={{ padding: '6px 10px', border: '1px solid #d9e0d7', borderRadius: 6, background: '#fff', cursor: historyIdx < history.length - 1 ? 'pointer' : 'default', fontSize: 14, opacity: historyIdx < history.length - 1 ? 1 : 0.3 }}>↪</button>
             {/* Collapse all */}
-            <button onClick={() => { setAllCollapsed(c => !c); setOpenId(allCollapsed ? null : -1) }} title={allCollapsed ? 'Expand all' : 'Collapse all'}
+            <button onClick={() => {
+              if (openId !== null && isSectionDirty(openId)) {
+                setPendingClose({ currentId: openId, nextId: -1 })
+              } else {
+                setAllCollapsed(c => !c)
+                setOpenId(allCollapsed ? null : -1)
+              }
+            }} title={allCollapsed ? 'Expand all' : 'Collapse all'}
               style={{ padding: '6px 10px', border: '1px solid #d9e0d7', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 14 }}>{allCollapsed ? '⊞' : '⊟'}</button>
             {/* Resize rail */}
             <button onClick={() => setResizing(r => !r)} title="Drag the divider to resize this panel"
@@ -1061,20 +1238,67 @@ async function patchSection(id: number, body: any) {
               style={{ padding: '6px 10px', border: '1px solid #d9e0d7', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 13 }}>⬇</button>
             <button onClick={importTheme} title="Import theme from JSON"
               style={{ padding: '6px 10px', border: '1px solid #d9e0d7', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 13 }}>⬆</button>
+            {/* Backups / History */}
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setBackupsOpen(o => !o)} title="Theme Backups / Version History"
+                style={{
+                  padding: '6px 10px', border: '1.5px solid #1e7a47', borderRadius: 6,
+                  background: backupsOpen ? '#1e7a47' : '#fff',
+                  color: backupsOpen ? '#fff' : '#1e7a47',
+                  cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4
+                }}>
+                ⏳ Backups {backups.length > 0 && `(${backups.length})`}
+              </button>
+              {backupsOpen && (
+                <div style={{
+                  position: 'absolute', top: '100%', right: 0, marginTop: 6,
+                  background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10,
+                  padding: 8, boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                  width: 240, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: 6
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#667168', padding: '2px 4px', borderBottom: '1px solid #eef1ed' }}>RESTORE BACKUP</div>
+                  {backups.length === 0 ? (
+                    <div style={{ fontSize: 12, color: '#9aa69c', padding: '6px 4px', textAlign: 'center' }}>No backups saved yet</div>
+                  ) : (
+                    backups.map((b, i) => (
+                      <button key={i} onClick={() => restoreBackup(b)}
+                        style={{
+                          width: '100%', padding: '6px 8px', background: '#f9faf8', border: '1px solid #eef1ed',
+                          borderRadius: 6, cursor: 'pointer', textAlign: 'left',
+                          transition: 'all 100ms ease'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#f0f7f2'}
+                        onMouseLeave={e => e.currentTarget.style.background = '#f9faf8'}
+                      >
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#151a17' }}>Version {i + 1}</div>
+                        <div style={{ fontSize: 10, color: '#667168', marginTop: 2 }}>{new Date(b.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
             {(dirty || cssDirty || paletteDirty) && (
               <span style={{ fontSize: 12, fontWeight: 600, color: '#b0392f', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#b0392f', display: 'inline-block' }} />
                 Unsaved
               </span>
             )}
-            <button onClick={saveAll} disabled={isSavingAll || (!dirty && !cssDirty && !paletteDirty)}
+            <button onClick={() => {
+              if (!dirty && !cssDirty && !paletteDirty) {
+                flash('Theme settings are already up to date!')
+              } else {
+                saveAll()
+              }
+            }} disabled={isSavingAll}
               style={{
-                padding: '9px 22px', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                background: (dirty || cssDirty || paletteDirty) ? 'linear-gradient(180deg, #1e7a47, #0f4f2b)' : '#d9e0d7',
-                color: (dirty || cssDirty || paletteDirty) ? '#fff' : '#9aa69c',
+                padding: '9px 22px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                border: (dirty || cssDirty || paletteDirty) ? 'none' : '1.5px solid #1e7a47',
+                background: (dirty || cssDirty || paletteDirty) ? 'linear-gradient(180deg, #1e7a47, #0f4f2b)' : '#fff',
+                color: (dirty || cssDirty || paletteDirty) ? '#fff' : '#1e7a47',
                 transition: 'all 150ms ease',
               }}>
-              {isSavingAll ? 'Saving…' : (dirty || cssDirty || paletteDirty) ? '★ Save Theme' : '★ Save Theme'}
+              {isSavingAll ? 'Saving…' : (dirty || cssDirty || paletteDirty) ? '★ Save Theme' : '★ Theme Saved'}
             </button>
           </div>
         </div>
@@ -1356,7 +1580,7 @@ async function patchSection(id: number, body: any) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#fafbf9' }}>
                       <span style={{ fontSize: 18 }}>{meta?.icon}</span>
                       <div style={{ flex: 1, fontWeight: 600, fontSize: 14, color: '#151a17' }}>{meta?.label || sec.type}</div>
-                      <button onClick={() => setOpenId(isOpen ? null : sec.id)} style={{ padding: '6px 14px', background: isOpen ? '#151a17' : '#f0f7f2', color: isOpen ? '#fff' : '#1e7a47', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      <button onClick={() => handleSectionToggle(isOpen ? null : sec.id)} style={{ padding: '6px 14px', background: isOpen ? '#151a17' : '#f0f7f2', color: isOpen ? '#fff' : '#1e7a47', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                         {isOpen ? 'Close' : 'Edit'}
                       </button>
                     </div>
@@ -1436,7 +1660,7 @@ async function patchSection(id: number, body: any) {
                     <input type="checkbox" checked={sec.enabled} onChange={() => toggleEnabled(sec)} />
                     {sec.enabled ? 'Shown' : 'Hidden'}
                   </label>
-                  <button onClick={() => setOpenId(isOpen ? null : sec.id)} style={{ padding: '7px 16px', background: isOpen ? '#151a17' : '#f0f7f2', color: isOpen ? '#fff' : '#1e7a47', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                  <button onClick={() => handleSectionToggle(isOpen ? null : sec.id)} style={{ padding: '7px 16px', background: isOpen ? '#151a17' : '#f0f7f2', color: isOpen ? '#fff' : '#1e7a47', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                     {isOpen ? 'Close' : 'Edit'}
                   </button>
                 </div>
@@ -1583,6 +1807,87 @@ async function patchSection(id: number, body: any) {
           />
         </div>
       </div>
+
+      {pendingClose && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(21, 26, 23, 0.4)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 16,
+            padding: '24px 28px',
+            width: '100%',
+            maxWidth: 420,
+            boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
+            border: '1px solid #eef1ed',
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: 18, fontWeight: 700, color: '#151a17' }}>Unsaved Section Changes</h3>
+            <p style={{ margin: '0 0 24px 0', fontSize: 14, color: '#667168', lineHeight: 1.5 }}>
+              You have modified settings in this section. Do you want to save your changes before closing?
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                onClick={saveAndClose}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: 'linear-gradient(180deg, #1e7a47, #0f4f2b)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Save changes
+              </button>
+              <button
+                onClick={discardAndClose}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: '#fcf8f8',
+                  color: '#b0392f',
+                  border: '1px solid #f2dede',
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Discard changes
+              </button>
+              <button
+                onClick={() => setPendingClose(null)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: '#fff',
+                  color: '#667168',
+                  border: '1.5px solid #d9e0d7',
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Keep editing (Cancel)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

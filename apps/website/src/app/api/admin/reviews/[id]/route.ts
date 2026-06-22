@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { query } from '@/lib/db'
-import { refreshProductRatingCache } from '../route'
+import { refreshProductRatingCache } from '@/lib/product-ratings'
 
 const VALID_STATUSES = new Set(['pending', 'approved', 'rejected', 'flagged'])
 

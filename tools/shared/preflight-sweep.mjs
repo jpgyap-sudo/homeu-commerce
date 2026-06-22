@@ -73,7 +73,7 @@ if (/PAYLOAD_SECRET|PAYLOAD_PUBLIC_SERVER_URL|PAYLOAD_TELEMETRY/.test(allEnv)) {
 // ═══════════════════════════════════════════════════════════════════════
 console.log(BOLD("\n=== PHASE 1: Dependency Audit ===\n"));
 
-existsSync(resolve(WEBSITE, "node_modules")) ? ok("node_modules exists") : block("node_modules MISSING — run npm install");
+(existsSync(resolve(WEBSITE, "node_modules")) || existsSync(resolve(REPO, "node_modules"))) ? ok("node_modules exists") : block("node_modules MISSING — run npm install");
 
 const pkgJson = JSON.parse(readFileSync(resolve(WEBSITE, "package.json"), "utf-8"));
 const allDeps = { ...pkgJson.dependencies, ...pkgJson.devDependencies };

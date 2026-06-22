@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper used by /api/customers POST (registration) to generate an activation token
-export async function generateActivationToken(customerId: number): Promise<string> {
+async function generateActivationToken(customerId: number): Promise<string> {
   const token = crypto.randomBytes(32).toString('hex')
   const expires = new Date(Date.now() + 1000 * 60 * 60 * 48) // 48 hours
 

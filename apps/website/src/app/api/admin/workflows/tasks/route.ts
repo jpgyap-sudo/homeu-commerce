@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Invalidate workflows cache so the updated status reflects immediately
-    revalidateTag('admin-workflows', 'default')
+    revalidateTag('admin-workflows')
 
     return NextResponse.json({ success: true })
   } catch (e) {
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       assignee: session.name || session.email,
     })
     if (!id) return NextResponse.json({ error: 'Failed to create task' }, { status: 500 })
-    revalidateTag('admin-workflows', 'default')
+    revalidateTag('admin-workflows')
     const now = new Date().toISOString()
     return NextResponse.json({
       id, title, description: body.description || null, status: 'pending', priority,

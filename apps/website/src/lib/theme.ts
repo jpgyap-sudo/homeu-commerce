@@ -16,7 +16,41 @@ const FOOTER_TYPES = ['footer_brand', 'footer_quick_links', 'footer_newsletter',
  * Footer-type sections live in the same table but are excluded here so they
  * render only in the footer, never in the page body.
  */
+export async function getPreviewDraft(): Promise<{
+  sections?: any[]
+  header?: any
+  css?: string
+  palette?: any
+} | null> {
+  try {
+    const res = await query(`SELECT data FROM "DaVinciOS_kv" WHERE key = 'theme_preview_draft' LIMIT 1`, [])
+    return res.rows[0]?.data || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Fetch homepage BODY sections in display order (enabled only by default).
+ * Footer-type sections live in the same table but are excluded here so they
+ * render only in the footer, never in the page body.
+ */
 export async function getHomepageSections(includeDisabled = false): Promise<HomepageSection[]> {
+  let isPreview = false
+  try {
+    const { headers } = require('next/headers')
+    isPreview = headers().get('x-theme-preview') === '1'
+  } catch {}
+
+  if (isPreview) {
+    const draft = await getPreviewDraft()
+    if (draft && Array.isArray(draft.sections)) {
+      return draft.sections
+        .filter((s: any) => !FOOTER_TYPES.includes(s.type))
+        .filter((s: any) => includeDisabled || s.enabled)
+    }
+  }
+
   try {
     const res = await query(
       `SELECT id, type, position, enabled, config
@@ -39,6 +73,21 @@ export async function getHomepageSections(includeDisabled = false): Promise<Home
 
 /** Fetch footer sections from homepage_sections (filtered by footer types). */
 export async function getFooterSections(): Promise<HomepageSection[]> {
+  let isPreview = false
+  try {
+    const { headers } = require('next/headers')
+    isPreview = headers().get('x-theme-preview') === '1'
+  } catch {}
+
+  if (isPreview) {
+    const draft = await getPreviewDraft()
+    if (draft && Array.isArray(draft.sections)) {
+      return draft.sections
+        .filter((s: any) => FOOTER_TYPES.includes(s.type))
+        .filter((s: any) => s.enabled)
+    }
+  }
+
   try {
     const res = await query(
       `SELECT id, type, position, enabled, config
@@ -61,6 +110,19 @@ export async function getFooterSections(): Promise<HomepageSection[]> {
 
 /** Custom CSS the admin can edit in the Theme editor (injected into <head>). */
 export async function getCustomCss(): Promise<string> {
+  let isPreview = false
+  try {
+    const { headers } = require('next/headers')
+    isPreview = headers().get('x-theme-preview') === '1'
+  } catch {}
+
+  if (isPreview) {
+    const draft = await getPreviewDraft()
+    if (draft && typeof draft.css === 'string') {
+      return draft.css
+    }
+  }
+
   try {
     const res = await query(`SELECT value FROM site_settings WHERE key = 'custom_css'`, [])
     const v = res.rows[0]?.value
@@ -111,6 +173,19 @@ export function headerFontGoogleQuery(stack: string): string | null {
 
 /** Header appearance settings, editable in Theme → Header. */
 export async function getHeaderSettings(): Promise<HeaderSettings> {
+  let isPreview = false
+  try {
+    const { headers } = require('next/headers')
+    isPreview = headers().get('x-theme-preview') === '1'
+  } catch {}
+
+  if (isPreview) {
+    const draft = await getPreviewDraft()
+    if (draft && draft.header) {
+      return { ...DEFAULT_HEADER, ...draft.header }
+    }
+  }
+
   try {
     const res = await query(`SELECT value FROM site_settings WHERE key = 'header_settings'`, [])
     const v = res.rows[0]?.value
@@ -138,6 +213,20 @@ export async function getThemePalette(): Promise<ThemePalette> {
     bodyFont: 'Inter, sans-serif',
     buttonRadius: 6,
   }
+
+  let isPreview = false
+  try {
+    const { headers } = require('next/headers')
+    isPreview = headers().get('x-theme-preview') === '1'
+  } catch {}
+
+  if (isPreview) {
+    const draft = await getPreviewDraft()
+    if (draft && draft.palette) {
+      return { ...defaults, ...draft.palette }
+    }
+  }
+
   try {
     const res = await query(
       `SELECT key, value FROM site_settings WHERE key LIKE 'theme_%'`,
