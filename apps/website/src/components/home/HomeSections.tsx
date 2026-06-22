@@ -82,7 +82,7 @@ async function fetchProductsByCollection(slug: string, limit: number): Promise<P
          FROM products p
          LEFT JOIN categories cat ON cat.id = p.category_id
          WHERE p.status = 'active' AND (${where})
-         ORDER BY p.sale_price ASC NULLS LAST, p.id ASC
+         ORDER BY (p.price - COALESCE(p.sale_price, p.price)) DESC, p.id ASC
          LIMIT $${params.length + 1}`,
         [...params, limit]
       )

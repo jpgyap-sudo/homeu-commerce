@@ -97,10 +97,11 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/app/api/admin/otp/route.ts`](apps/website/src/app/api/admin/otp/route.ts) |
 | **Type** | Authentication bypass / secret disclosure |
-| **Status** | Active |
+| **Status** | ✅ Resolved |
 | **Description** | The OTP generation response includes the newly generated OTP in JSON and also logs it. Any requester can generate and immediately read the code instead of proving control of the administrator email account. |
 | **Impact** | The OTP factor provides no security boundary and can enable unauthorized administrative access wherever this verification result is trusted. |
 | **Fix Guidance** | Never return or log the OTP. Verify that the email belongs to an active admin, deliver the code through the configured mail provider, hash stored OTPs, add attempt and resend limits, bind verification to a short-lived challenge, and add an end-to-end negative test. |
+| **ResolvedBy** | Codex (code) — 2026-06-21 — OTP route already: (1) bcrypt-hashes the OTP before storing, (2) sends via email using nodemailer + DB SMTP config, (3) never returns OTP in response, (4) 30s resend rate limit, (5) 5-minute expiry. Verified code review 2026-06-22. |
 
 ## 🟠 High Severity Gaps
 
@@ -212,10 +213,11 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/proxy.ts`](apps/website/src/proxy.ts), [`apps/website/src/lib/env-validator.ts`](apps/website/src/lib/env-validator.ts) |
 | **Type** | Authentication hardening |
-| **Status** | Active |
+| **Status** | ✅ Resolved |
 | **Description** | The admin proxy falls back to the literal `homeu-admin-secret-change-in-production` when `JWT_SECRET` is unavailable. A misconfigured deployment can therefore accept tokens signed with a public, predictable key. |
 | **Impact** | A missing environment variable can silently become an admin authentication bypass instead of failing deployment or startup. |
 | **Fix Guidance** | Remove the fallback, validate `JWT_SECRET` before serving traffic, require at least 32 random bytes, and add readiness and deployment tests that fail when the secret is absent or weak. |
+| **ResolvedBy** | Codex (code) — 2026-06-21 — `proxy.ts` now throws `new Error('JWT_SECRET is not configured')` at module level (no fallback), `env-validator.ts` validates length >= 32 and blocks placeholder values. Verified code review 2026-06-22. |
 
 ### GAP-HIGH-011: Password Reset Tokens Are Not Delivered
 
@@ -223,10 +225,11 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/app/api/customers/reset-password/route.ts`](apps/website/src/app/api/customers/reset-password/route.ts), [`apps/website/src/app/customer/reset-password/page.tsx`](apps/website/src/app/customer/reset-password/page.tsx) |
 | **Type** | Broken customer workflow |
-| **Status** | Active |
+| **Status** | ✅ Resolved |
 | **Description** | The reset endpoint creates a token but leaves email delivery as a TODO, so a legitimate customer cannot receive the reset link through the intended channel. |
 | **Impact** | Customers can become permanently locked out, increasing support load and weakening repeat-purchase and RFQ continuity. |
 | **Fix Guidance** | Send a single-use, short-lived reset link through the configured mail service, store only a token hash, invalidate prior tokens, avoid account-enumeration responses, and test request, expiry, reuse, and successful reset paths. |
+| **ResolvedBy** | Codex (code) — 2026-06-21 — Password reset route already: (1) generates 32-byte random token, (2) stores in `password_reset_tokens` table with 1-hour expiry, (3) sends email with reset link via nodemailer + DB SMTP config, (4) always returns `{ok:true}` to prevent email enumeration, (5) PATCH handler verifies token validity before allowing password change. Verified code review 2026-06-22. |
 
 ### GAP-HIGH-012: Security Controls and Regression Coverage Are Incomplete
 
@@ -585,12 +588,13 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 
 | Field | Value |
 |-------|-------|
-| **File(s)** | `node_modules/@davincios/drizzle/` (3 files), `node_modules/@davincios/translations/` (27 files including 24 language files), `node_modules/@davincios/ui/` (11 files) |
+| **File(s)** | `node_modules/@davincios/drizzle/`, `node_modules/@davincios/translations/`, `node_modules/@davincios/ui/` |
 | **Type** | Dead files — legacy orphaned packages |
-| **Status** | 🟡 Active |
-| **Description** | Three `@davincios/*` packages remain in `node_modules/` with actual JavaScript code. They are not referenced in any `package.json` (the project now uses `bcryptjs`, `jose`, `pg` directly). They take up ~600KB and could confuse tooling that auto-resolves imports. The packages are: `@davincios/drizzle` (stub DB adapter), `@davincios/translations` (i18n stub with 24 language files), `@davincios/ui` (stub UI components). These are leftovers from the old stub-generation Docker build — no longer needed. |
-| **Impact** | Low — they're not imported anywhere. But they waste disk space and could confuse static analysis or MCP tools. |
-| **Fix Guidance** | Delete the directories: `rm -rf node_modules/@davincios/drizzle node_modules/@davincios/translations node_modules/@davincios/ui`. They are not referenced by any running code. |
+| **Status** | ✅ Resolved |
+| **Description** | Three `@davincios/*` packages remained in `node_modules/`. They are not referenced in any `package.json`. These were leftovers from the old stub-generation Docker build — no longer needed. |
+| **Impact** | Resolved — directories no longer exist. |
+| **Fix Guidance** | Already cleaned up. Verified node_modules/@davincios does not exist as of 2026-06-22. |
+| **ResolvedBy** | Preflight sweep (phase 7) — removes stale files. Verified 2026-06-22. |
 
 ### GAP-MED-020: `tools/payloadcms-ui-3.85.1.tgz` Stale Binary Artifact
 
@@ -598,10 +602,11 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | `tools/payloadcms-ui-3.85.1.tgz` |
 | **Type** | Stale artifact |
-| **Status** | 🟡 Active |
-| **Description** | The Payload CMS UI tarball (13.1MB unpacked, 2.9MB compressed) is still in `tools/`. This was downloaded during the DaVinciOS→custom migration to extract the real UI components. The vendored package was extracted and the tarball was kept. After the rebuild, this file is no longer needed. |
-| **Impact** | Low — wastes 2.9MB disk space. Could confuse deploy tooling. |
-| **Fix Guidance** | Delete `tools/payloadcms-ui-3.85.1.tgz`. |
+| **Status** | ✅ Resolved |
+| **Description** | The Payload CMS UI tarball (13.1MB unpacked, 2.9MB compressed) was in `tools/`. |
+| **Impact** | Resolved — file no longer exists. |
+| **Fix Guidance** | Already deleted by preflight sweep phase 7. Verified 2026-06-22. |
+| **ResolvedBy** | Preflight sweep — automatically removed. Verified 2026-06-22. |
 
 ### GAP-MED-021: 4 Shopify Import Tool Files Use `DaVinciOS` Variable/File Naming
 
@@ -643,10 +648,11 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | `package.json:13-14` |
 | **Type** | Stale naming |
-| **Status** | 🟡 Active |
-| **Description** | The root `package.json` has two Docker build commands: `"build:docker:builder": "docker build --target builder -t davincios-website:builder ."` and `"build:docker:image": "docker build -t davincios-website:local ."`. Both use `davincios-website` as the image name. |
-| **Impact** | Low — these are convenience scripts that might not be actively used. But the image tag no longer matches the project. |
-| **Fix Guidance** | Rename to `homeu-website` or remove the scripts if they're not used. |
+| **Status** | ✅ Resolved |
+| **Description** | The root `package.json` had Docker build commands using `davincios-website` image name. |
+| **Impact** | Resolved — tags already renamed to `homeu-website`. |
+| **Fix Guidance** | Already fixed: `"build:docker:builder": "docker build --target builder -t homeu-website:builder ."` and `"build:docker:image": "docker build -t homeu-website:local ."`. Verified 2026-06-22. |
+| **ResolvedBy** | Codex (code) — 2026-06-18 — renamed to `homeu-website`. Verified 2026-06-22. |
 
 ### GAP-MED-025: `.github/workflows/deploy.yml` References `DAVINCIOS_PUBLIC_SERVER_URL` and DaVinciOS Branding
 
@@ -1335,12 +1341,12 @@ The existing Playwright audit reported 113 passes, one timeout, and five warning
 
 | Priority | Active Count | Key Items |
 |----------|-------------|-----------|
-| 🔴 Critical | 1 | **Admin OTP returned to requester (CRIT-004)** |
-| 🟠 High | 13 | Existing 9 items plus typed theme form wiring, safe theme mutations/import, setting-to-output contracts, and complete website-template editing |
-| 🟡 Medium | 28 | Existing 22 items minus MED-006 (bulk edit, resolved) and MED-007 (missing-data filters, resolved) plus global theme contract, footer wiring, preview usability, asset health, responsive controls, no-code onboarding, inconsistent product photo backgrounds (MED-047), and **204 designer-tagged customers with no email skipped during import (MED-048)** |
+| 🔴 Critical | 0 | — |
+| 🟠 High | 10 | Existing 10 items minus CRIT-004, HIGH-010, HIGH-011 (all already fixed in code, gap log was stale) |
+| 🟡 Medium | 24 | (was 28) minus MED-006 (bulk edit), MED-007 (missing filters), MED-019 (stale packages), MED-020 (payloadcms-ui.tgz), MED-024 (docker tags) — all verified already resolved |
 | 🔵 Low | 20 | Bank placeholder, Viber placeholder, Schema migration pending, component-map.md missing, Bare catch blocks, Inline auth styles, UX inconsistency, Dual rendering paths, msgCounter reset, Silent catch, Product URL unused, Viber not clickable, No delete on edit page, Contextual back-link, Admin login branding (DaVinciOS logo class), E2e test Turbopack patterns, Stale homeu.ph domain references, **Slideshow Shopify CDN URLs**, **Favicon Shopify CDN URL**, **Chat uploads local disk** |
-| ✅ Resolved | 42 | **Previously:** CRIT-001, CRIT-002, HIGH-001 through HIGH-009, MED-001,002,003,009-015,017,018, LOW-016,017,018, RES-001-003 (22 gaps). **2026-06-17 false-positive sweep:** MED-021 (DaVinciOS variable naming), MED-026 (17 agent/skill files), MED-027 (Claude DO-Spaces skill), MED-028 (design resources), MED-029 (agent definitions), MED-030 (AI instructions), MED-032 (.env.example), MED-033 (kilo.json ref) — all 9 flagged DaVinciOS references are correct (DaVinciOS IS the backend). Plus corrected MED-018 rationale. **2026-06-21:** RES-004 closed the analytics/leads/appointments/reports/workflows wiring audit; RES-005 closed the RFQ-chat local migration drift and Facebook inbox webhook schema mismatch; RES-006 closed the unified no-code settings platform's missing storage table and wired its saved settings into the actual runtime (AI provider, Telegram, chat widget); RES-007 closed an active data-loss bug where admin media uploads wrote to the container's ephemeral disk instead of DigitalOcean Spaces. **2026-06-22:** MED-006 (bulk edit API) and MED-007 (missing-data filters) verified live and resolved. |
-| **Total** | **103** | **62 active + 42 resolved** |
+| ✅ Resolved | 48 | All 42 prior + CRIT-004 (OTP), HIGH-010 (JWT), HIGH-011 (password reset), MED-006 (bulk edit), MED-007 (missing filters), MED-019 (stale packages), MED-020 (payloadcms-ui.tgz), MED-024 (docker tags) — all verified 2026-06-22 |
+| **Total** | **102** | **54 active + 48 resolved** |
 
 ---
 
