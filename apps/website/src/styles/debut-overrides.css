@@ -189,7 +189,7 @@
   margin: 24px auto 0;
   min-height: 200px;
   border-radius: 16px;
-  background-color: #cfcac4;
+  background-color: #c3bcbc;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -208,11 +208,16 @@
   inset: 0;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  background-color: #c3bcbc;
 }
 .collection-banner__collage-tile {
   background-size: cover;
   background-position: center;
-  background-color: #cfcac4;
+  /* Match the neutral taupe-grey used by the live Shopify collection hero.
+     Multiply turns white/near-white studio backdrops into this shared base
+     while preserving the product silhouette and its natural shadows. */
+  background-color: #c3bcbc;
+  background-blend-mode: multiply;
   /* Product photos come from many sources with wildly different studio
      backgrounds (black, white, colored, lifestyle scenes). Desaturating
      and tinting every tile the same way makes 4 unrelated backgrounds

@@ -180,12 +180,10 @@ function ProductsContent() {
 
   return (
     <main className="collection-page">
-      {/* ── Collection hero banner — collage of the collection's own product
-          photos when there are enough to build one (richer and avoids the
-          extreme crop a single tall image gets at this height), falling
-          back to the category's own image, then a plain banner. Stone
-          Options / Finish Materials swatch collections never get an image
-          banner — homeu.ph shows those as a plain text heading only. ── */}
+      {/* ── Collection hero banner — match Shopify by preferring the
+          collection's dedicated image. Collections without one fall back
+          to a normalized collage of their own product photos. Stone Options
+          / Finish Materials swatch collections always use a plain heading. ── */}
       {(() => {
         // Sample spread across the loaded products (not just the first 4 in
         // a row) so the collage shows real variety instead of looking like
@@ -194,6 +192,16 @@ function ProductsContent() {
         const collageImages = SWATCH_CATEGORY_SLUGS.has(selectedCategory)
           ? []
           : pickSpreadImages([...new Set(products.map(p => p.imageUrl).filter(Boolean))] as string[], 4)
+        if (activeCategory?.imageUrl && !SWATCH_CATEGORY_SLUGS.has(selectedCategory)) {
+          return (
+            <section
+              className="collection-banner"
+              style={{ backgroundImage: `url(${activeCategory.imageUrl})` }}
+            >
+              <h1 className="collection-banner__title">{collectionTitle}</h1>
+            </section>
+          )
+        }
         if (collageImages.length >= 3) {
           return (
             <section className="collection-banner collection-banner--collage">
@@ -204,17 +212,6 @@ function ProductsContent() {
               </div>
               <div className="collection-banner__overlay" />
               <p className="collection-banner__eyebrow">Collection</p>
-              <h1 className="collection-banner__title">{collectionTitle}</h1>
-            </section>
-          )
-        }
-        if (activeCategory?.imageUrl && !SWATCH_CATEGORY_SLUGS.has(selectedCategory)) {
-          return (
-            <section
-              className="collection-banner"
-              style={{ backgroundImage: `url(${activeCategory.imageUrl})` }}
-            >
-              <div className="collection-banner__overlay" />
               <h1 className="collection-banner__title">{collectionTitle}</h1>
             </section>
           )
