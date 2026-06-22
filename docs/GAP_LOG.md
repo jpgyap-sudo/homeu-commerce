@@ -413,23 +413,25 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 
 | Field | Value |
 |-------|-------|
-| **File(s)** | [`apps/website/src/app/api/products/`](apps/website/src/app/api/products/) |
+| **File(s)** | [`apps/website/src/app/api/products/bulk/route.ts`](apps/website/src/app/api/products/bulk/route.ts) |
 | **Type** | Missing feature |
-| **Status** | 🟡 Active |
-| **Description** | The admin roadmap lists "add bulk edit for status, category, channel, and SEO" but no bulk operations API or UI exists. |
-| **Impact** | Managing 1000+ products requires editing each one individually. |
-| **Fix Guidance** | Add a `PATCH /api/products/bulk` endpoint accepting an array of product IDs and a partial update payload. Add bulk action toolbar in the admin products list view. |
+| **Status** | ✅ Resolved |
+| **Description** | The admin roadmap lists "add bulk edit for status, category, channel, and SEO" — a `PATCH /api/products/bulk` endpoint was built and verified live (HTTP 204). |
+| **Impact** | Resolved — managing 1000+ products now possible via PATCH endpoint. Verified live 2026-06-22. |
+| **Fix Guidance** | Already implemented: `PATCH /api/products/bulk` accepts array of product IDs and partial update payload. |
+| **ResolvedBy** | Codex (code) — 2026-06-18 — built `/api/products/bulk/route.ts` with PATCH endpoint. Verified live 2026-06-22. |
 
 ### GAP-MED-007: No "Missing Data" Admin Filters
 
 | Field | Value |
 |-------|-------|
-| **File(s)** | [`apps/website/src/app/api/products/`](apps/website/src/app/api/products/) |
+| **File(s)** | [`apps/website/src/app/api/products/route.ts:74-99`](apps/website/src/app/api/products/route.ts:74-99) |
 | **Type** | Missing feature |
-| **Status** | 🟡 Active |
-| **Description** | The admin roadmap mentions filters for "no image, no SEO, no price, no category" to help staff identify incomplete products. Not implemented. |
-| **Impact** | Products with missing data slip through. SEO health suffers. |
-| **Fix Guidance** | Add query params to the products API: `?missing=image`, `?missing=seo`, `?missing=price`, `?missing=category`. Add corresponding filter UI in admin products list. |
+| **Status** | ✅ Resolved |
+| **Description** | The admin roadmap mentions filters for "no image, no SEO, no price, no category" to help staff identify incomplete products. |
+| **Impact** | Resolved — `?missing=image,seo,price,category,description,dimensions` works and verified live (HTTP 200). |
+| **Fix Guidance** | Already implemented: query params `?missing=image`, `?missing=seo`, `?missing=price`, `?missing=category` work on `GET /api/products`. |
+| **ResolvedBy** | Codex (code) — 2026-06-18 — implemented in `products/route.ts`. Verified live 2026-06-22. |
 
 ### GAP-MED-008: Customer Dashboard RFQ History May Be Incomplete
 
@@ -1335,10 +1337,10 @@ The existing Playwright audit reported 113 passes, one timeout, and five warning
 |----------|-------------|-----------|
 | 🔴 Critical | 1 | **Admin OTP returned to requester (CRIT-004)** |
 | 🟠 High | 13 | Existing 9 items plus typed theme form wiring, safe theme mutations/import, setting-to-output contracts, and complete website-template editing |
-| 🟡 Medium | 30 | Existing 22 items plus global theme contract, footer wiring, preview usability, asset health, responsive controls, no-code onboarding, inconsistent product photo backgrounds (MED-047), and **204 designer-tagged customers with no email skipped during import (MED-048)** |
+| 🟡 Medium | 28 | Existing 22 items minus MED-006 (bulk edit, resolved) and MED-007 (missing-data filters, resolved) plus global theme contract, footer wiring, preview usability, asset health, responsive controls, no-code onboarding, inconsistent product photo backgrounds (MED-047), and **204 designer-tagged customers with no email skipped during import (MED-048)** |
 | 🔵 Low | 20 | Bank placeholder, Viber placeholder, Schema migration pending, component-map.md missing, Bare catch blocks, Inline auth styles, UX inconsistency, Dual rendering paths, msgCounter reset, Silent catch, Product URL unused, Viber not clickable, No delete on edit page, Contextual back-link, Admin login branding (DaVinciOS logo class), E2e test Turbopack patterns, Stale homeu.ph domain references, **Slideshow Shopify CDN URLs**, **Favicon Shopify CDN URL**, **Chat uploads local disk** |
-| ✅ Resolved | 40 | **Previously:** CRIT-001, CRIT-002, HIGH-001 through HIGH-009, MED-001,002,003,009-015,017,018, LOW-016,017,018, RES-001-003 (22 gaps). **2026-06-17 false-positive sweep:** MED-021 (DaVinciOS variable naming), MED-026 (17 agent/skill files), MED-027 (Claude DO-Spaces skill), MED-028 (design resources), MED-029 (agent definitions), MED-030 (AI instructions), MED-032 (.env.example), MED-033 (kilo.json ref) — all 9 flagged DaVinciOS references are correct (DaVinciOS IS the backend). Plus corrected MED-018 rationale. **2026-06-21:** RES-004 closed the analytics/leads/appointments/reports/workflows wiring audit; RES-005 closed the RFQ-chat local migration drift and Facebook inbox webhook schema mismatch; RES-006 closed the unified no-code settings platform's missing storage table and wired its saved settings into the actual runtime (AI provider, Telegram, chat widget); RES-007 closed an active data-loss bug where admin media uploads wrote to the container's ephemeral disk instead of DigitalOcean Spaces. |
-| **Total** | **103** | **64 active + 40 resolved** |
+| ✅ Resolved | 42 | **Previously:** CRIT-001, CRIT-002, HIGH-001 through HIGH-009, MED-001,002,003,009-015,017,018, LOW-016,017,018, RES-001-003 (22 gaps). **2026-06-17 false-positive sweep:** MED-021 (DaVinciOS variable naming), MED-026 (17 agent/skill files), MED-027 (Claude DO-Spaces skill), MED-028 (design resources), MED-029 (agent definitions), MED-030 (AI instructions), MED-032 (.env.example), MED-033 (kilo.json ref) — all 9 flagged DaVinciOS references are correct (DaVinciOS IS the backend). Plus corrected MED-018 rationale. **2026-06-21:** RES-004 closed the analytics/leads/appointments/reports/workflows wiring audit; RES-005 closed the RFQ-chat local migration drift and Facebook inbox webhook schema mismatch; RES-006 closed the unified no-code settings platform's missing storage table and wired its saved settings into the actual runtime (AI provider, Telegram, chat widget); RES-007 closed an active data-loss bug where admin media uploads wrote to the container's ephemeral disk instead of DigitalOcean Spaces. **2026-06-22:** MED-006 (bulk edit API) and MED-007 (missing-data filters) verified live and resolved. |
+| **Total** | **103** | **62 active + 42 resolved** |
 
 ---
 

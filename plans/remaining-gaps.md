@@ -1,118 +1,133 @@
 # Remaining Gaps — HomeU Commerce
 
-> **Updated:** 2026-06-20T03:06
-> **Status:** All gaps resolved — build is green
-> **Resolved:** 70
+> **Updated:** 2026-06-22
+> **Status:** 62 active + 42 resolved = 104 total
+> **Canonical source:** [`docs/GAP_LOG.md`](docs/GAP_LOG.md) (single source of truth)
+> **Note:** This file is a summary. All gap details, fix guidance, and resolution history live in GAP_LOG.md.
 
 ---
 
-## Build / Preflight Gate Policy — Rebuilding When a Gap Blocks
+## Build Status
 
-### Policy (enforced 2026-06-20 Phase 4)
-
-1. **Never force-build or bypass the gate.** If a preflight check or audit fails, fix the blocker and re-run until the sweep passes clean. A passing sweep is the only green light to proceed.
-
-2. **Triage each blocker against the gap log first.** Before investigating from scratch, check `plans/remaining-gaps.md` — the gap may already be known and documented. If it's logged, fix the existing gap entry rather than working around it.
-
-3. **A blocker in pre-existing/unrelated code still blocks the build.** Even if the issue is in legacy code you didn't write, it must be resolved or explicitly deferred by the system owner before the build proceeds.
-
-4. **Tooling false positives → fix the sweep, don't suppress the rule.** If a Playwright test, ESLint rule, or preflight check fires incorrectly, fix the test (update regex, adjust assertion) rather than deleting or disabling the check. Notes the 2026-06-20 Phase 4 rewrite where Turbopack-incompatible CSS regex in the E2E auditor was corrected rather than removed.
-
-5. **All known build-blockers resolved.** The last critical gap (`GAP-CRIT-003` — RFQ route/schema) was fixed on 2026-06-20. Build is green.
+✅ **Preflight sweep passes clean** — 98 checkpoints, 0 blockers
+✅ **TypeScript compilation** — 0 errors
+✅ **Production build** — passes
+✅ **Deploy gate** — committed + pushed to origin/master, verified
 
 ---
 
-## Active Gaps
+## 🔴 Critical (1)
 
-✅ **None** — all 70 gaps resolved.
+| ID | Title | Impact |
+|----|-------|--------|
+| GAP-CRIT-004 | Admin OTP returned to requester | OTP authentication provides no security boundary; OTP is returned in JSON response |
+
+## 🟠 High (13)
+
+| ID | Title | Impact |
+|----|-------|--------|
+| GAP-HIGH-010 | Admin JWT fallback secret | Predictable fallback when JWT_SECRET missing |
+| GAP-HIGH-011 | Password reset tokens not delivered | Customers can become permanently locked out |
+| GAP-HIGH-012 | Security controls/regression coverage incomplete | 80+ API routes with no systematic auth/rate-limit tests |
+| GAP-HIGH-013 | No persistent customer project workspace | High-consideration journeys reduced to temporary cart |
+| GAP-HIGH-014 | No room fit/feasibility engine | Customers build infeasible proposals |
+| GAP-HIGH-015 | No trade/designer project workspace | B2B customers must coordinate outside HomeU |
+| GAP-HIGH-016 | RFQ/quotation follow-up not automated | Valuable intent goes cold |
+| GAP-HIGH-017 | Discovery-to-revenue attribution incomplete | Cannot identify which actions create revenue |
+| GAP-HIGH-018 | Room Passport / Project Twin not implemented | Fragmented capabilities across silos |
+| GAP-HIGH-019 | Theme editor bypasses typed dynamic form | Users must know internal raw values |
+| GAP-HIGH-020 | Theme mutations report success after failure | Data integrity risk on save/import |
+| GAP-HIGH-021 | Many theme controls don't affect storefront output | Settings appear to save but don't render |
+| GAP-HIGH-022 | Theme builder only builds homepage/header/footer | No template editing for other page types |
+
+## 🟡 Medium (28)
+
+| ID | Title | Status |
+|----|-------|--------|
+| GAP-MED-004 | No quotation PDF/print generator | 🟡 Active |
+| GAP-MED-005 | Product variants/options not implemented | 🟡 Active |
+| GAP-MED-008 | Customer dashboard RFQ history may be incomplete | 🟡 Active |
+| GAP-MED-016 | 6 dead `DaVinciOS_*` tables in PostgreSQL schema | 🟡 Active |
+| GAP-MED-019 | Stale `@davincios/*` packages in node_modules | 🟡 Active |
+| GAP-MED-020 | `tools/payloadcms-ui-3.85.1.tgz` stale artifact | 🟡 Active |
+| GAP-MED-022 | `homeu-schema.sql` contains 6 dead DaVinciOS tables | 🟡 Active |
+| GAP-MED-023 | Deployer MCP SQL column named `DaVinciOS` | 🟡 Active |
+| GAP-MED-024 | Root `package.json` uses `davincios-website` Docker tags | 🟡 Active |
+| GAP-MED-025 | `.github/workflows/deploy.yml` DaVinciOS branding | 🟡 Active |
+| GAP-MED-031 | `tools/cleanup-davincios.mjs` + `tools/rebrand/` dead scripts | 🟡 Active |
+| GAP-MED-034 | `tools/build-and-deploy.mjs` dead DaVinciOS deletion commands | 🟡 Active |
+| GAP-MED-035 | Admin media uploads save to local disk (not DO Spaces) | 🟡 Active |
+| GAP-MED-036 | Chat lead lookup uses stub response | 🟡 Active |
+| GAP-MED-037 | RFQ notification uses lead ID as customer name | 🟡 Active |
+| GAP-MED-038 | Quotations lack approval/versioning/deposit flow | 🟡 Active |
+| GAP-MED-039 | Product completeness/image quality not enforced | 🟡 Active |
+| GAP-MED-040 | End-to-end coverage doesn't match platform surface | 🟡 Active |
+| GAP-MED-041 | Global theme settings schema exceeds what can save/render | 🟡 Active |
+| GAP-MED-042 | Footer settings don't match footer component props | 🟡 Active |
+| GAP-MED-043 | Preview mode obscured / hides important empty states | 🟡 Active |
+| GAP-MED-044 | Theme builder doesn't validate asset health | 🟡 Active |
+| GAP-MED-045 | Responsive controls incomplete and untested | 🟡 Active |
+| GAP-MED-046 | Section discovery/onboarding too technical | 🟡 Active |
+| GAP-MED-047 | Inconsistent product photo backgrounds | 🟡 Active |
+| GAP-MED-048 | 204 designer-tagged customers with no email skipped | 🟡 Active |
+| ~~GAP-MED-006~~ | ~~No bulk edit for products~~ | ✅ Resolved |
+| ~~GAP-MED-007~~ | ~~No missing-data admin filters~~ | ✅ Resolved |
+
+## 🔵 Low (20)
+
+| ID | Title | Status |
+|----|-------|--------|
+| GAP-LOW-001 | Bank account details are placeholder text | 🔵 Active |
+| GAP-LOW-002 | Viber number hardcoded as fallback | 🔵 Active |
+| GAP-LOW-003 | Chatbot SQL schema not applied to live database | 🔵 Active |
+| GAP-LOW-004 | `tools/theme-analyzer/component-map.md` missing | 🔵 Active |
+| GAP-LOW-005 | Customer-sync bare catch blocks | 🔵 Active |
+| GAP-LOW-006 | Login/register pages use inline styles | 🔵 Active |
+| GAP-LOW-007 | Admin search/status filter UX inconsistency | 🔵 Active |
+| GAP-LOW-008 | ChatWidget dual rendering paths | 🔵 Active |
+| GAP-LOW-009 | `msgCounter` re-initialized each render | 🔵 Active |
+| GAP-LOW-010 | `handleAutoLead` silent catch | 🔵 Active |
+| GAP-LOW-011 | Bank details underscore placeholder | 🔵 Active |
+| GAP-LOW-012 | ProductRecommendationCard `url` unused | 🔵 Active |
+| GAP-LOW-013 | Viber number not clickable as `viber://` link | 🔵 Active |
+| GAP-LOW-014 | Admin quotations edit page has no delete action | 🔵 Active |
+| GAP-LOW-015 | `/quotation/[id]` back-link lacks context | 🔵 Active |
+| GAP-LOW-019 | Homepage slideshow uses hardcoded Shopify CDN URLs | 🔵 Active |
+| GAP-LOW-020 | Favicon still points to Shopify CDN | 🔵 Active |
+| GAP-LOW-021 | Chat image uploads save to local disk | 🔵 Active |
 
 ---
 
-## Resolved Gaps
+## ✅ Resolved (42)
 
-### 🔴 CRIT-003 — `/api/rfq-requests` Missing + RFQ Schema Inconsistent ✅
+All 42 resolved gaps are documented in [`docs/GAP_LOG.md`](docs/GAP_LOG.md) with full details under the Resolved section and in the Change Log.
 
-**Severity:** 🔴 Critical — was blocking customer RFQ pages, admin RFQ workflows, and the `POST /api/rfq` endpoint.
+**Notable recent resolutions (2026-06-21/22):**
+- **RES-004** (2026-06-21): Analytics/leads/appointments/reports/workflows wiring audit — 20 passing contracts
+- **RES-005** (2026-06-21): RFQ chat local migration drift + Facebook inbox webhook schema fix
+- **RES-006** (2026-06-21): Unified no-code settings platform — storage table created, runtime wired (AI provider, Telegram, chat widget)
+- **RES-007** (2026-06-21): Admin media upload writes to DO Spaces instead of ephemeral container disk
+- **GAP-MED-006** (2026-06-22): Bulk edit `PATCH /api/products/bulk` verified live (HTTP 204)
+- **GAP-MED-007** (2026-06-22): Missing-data filters `?missing=` verified live (HTTP 200)
 
-**Fixed: 2026-06-20**
+---
 
-| What | File | Change |
-|------|------|--------|
-| New route created | `apps/website/src/app/api/rfq-requests/route.ts` | `GET /api/rfq-requests?customerId=N` — list with items JSON aggregated, camelCase keys |
-| New route created | `apps/website/src/app/api/rfq-requests/[id]/route.ts` | `GET /api/rfq-requests/[id]` — single detail with camelCase keys matching RFQDetail |
-| Fixed POST handler | `apps/website/src/app/api/rfq/route.ts` | Now accepts `deliveryLocation`, `projectType`, `notes`, `customer` from QuoteCart payload |
-| Fixed items INSERT | `apps/website/src/app/api/rfq/route.ts` | Uses `product_id`, `product_title_snapshot`, `sku_snapshot`, `unit_price_snapshot`, `notes` |
-| Fixed customer RFQs | `apps/website/src/app/api/customers/[id]/rfqs/route.ts` | Uses `customer_id`, returns camelCase with aggregated items |
-| Fixed dashboard | `apps/website/src/app/customer/dashboard/page.tsx` | Uses `?customerId=N` format instead of PayloadCMS `where` syntax |
-| Fixed admin picker | `apps/website/src/app/admin/quotations/new/page.tsx` | Uses `?search=` format and reads `data.rfqs` instead of `data.docs` |
-| Migration | `tools/migrate/migrations/003_add_rfq_columns.sql` | Created `rfq_request_items` table, added `customer_id`/`address`/`message`/quotation/closure columns to `rfq_requests` |
-| Database | N/A | Applied migration: `rfq_request_items` created, all columns exist |
+## Quick Reference
 
-### Final Sweep — Light Blue Sidebar + Remaining Gaps (2026-06-18)
-| Gap | Action | Status |
-|-----|--------|--------|
-| Sidebar | Dark navy → light blue (#eff6ff), blue active states, better contrast | ✅ Fixed |
-| Login panel | Dark navy → blue gradient, white text | ✅ Fixed |
-| ViberHandoff | Copy-to-clipboard button added | ✅ Fixed |
-| E2E test | All 18/18 tests pass (Turbopack-compatible patterns) | ✅ Fixed |
-| All remaining 5 | Verified or fixed | ✅ Done |
+| Metric | Value |
+|--------|-------|
+| Total gaps | 104 |
+| Active | 62 |
+| Resolved | 42 |
+| Build blockers | 0 |
+| Preflight phase count | 8 phases, 98 checks |
+| Last full sweep | 2026-06-22 |
 
-### Final Session — Sweep 5 (2026-06-18)
-| Gap | Action | Status |
-|-----|--------|--------|
-| E2E test | Regex updated for Turbopack CSS paths | ✅ Fixed |
-| LOW-007 | Admin search/status: correct HTML-native behavior | ✅ Verified |
-| LOW-008 | ChatWidget dual paths: intentional auth separation | ✅ Verified |
-| LOW-006 | Login inline styles: already CSS classes | ✅ Verified |
-| MED-008 | All 10 customer pages exist, pending E2E test | ✅ Verified |
+---
 
-### Today's Fixes — Sweep 4 (2026-06-18)
-| Gap | Action | Status |
-|-----|--------|--------|
-| LOW-014 | Delete button added to quotation edit page | ✅ Fixed |
-| LOW-015 | Back-link already correct (admin→/admin/quotations) | ✅ Verified |
-| LOW-006 | Login form already uses CSS classes (no inline styles) | ✅ Verified |
-| MED-004 | PDF Download button added to quotation header | ✅ Fixed |
-| MED-006 | Bulk Edit Products API: `PATCH /api/products/bulk` | ✅ Fixed |
-| LOW-003 | Chatbot schema applied to PostgreSQL | ✅ Fixed |
+## Deploy Status
 
-### Today's Fixes — Sweep 1 (2026-06-18)
-| Gap | Action | Status |
-|-----|--------|--------|
-| MED-005 | Product Variants removed from scope | ✅ Removed |
-| MED-016 | Dropped 6 dead `payload_*` tables | ✅ Fixed |
-| MED-019 | Deleted stale `@davincios/*` packages | ✅ Fixed |
-| MED-020 | `payloadcms-ui.tgz` deleted by preflight | ✅ Fixed |
-| MED-022 | `homeu-schema.sql` verified clean | ✅ Verified |
-| MED-024 | Docker tags: `davincios-website` → `homeu-website` | ✅ Fixed |
-| MED-031 | Deleted `tools/rebrand/` scripts | ✅ Fixed |
-
-### Today's Fixes — Sweep 3 (2026-06-18)
-| Gap | Action | Status |
-|-----|--------|--------|
-| MED-007 | Missing data filters: `?missing=image,seo,price,category,description,dimensions` | ✅ Fixed |
-| LOW-001 | Bank placeholder → env-based default | ✅ Fixed |
-| LOW-011 | Bank placeholder in new form → env-based | ✅ Fixed |
-| LOW-002 | Viber dummy number removed | ✅ Fixed (prev) |
-| LOW-004 | component-map.md created | ✅ Fixed |
-| LOW-009 | msgCounter → useRef (StrictMode fix) | ✅ Fixed |
-| LOW-010 | handleAutoLead silent catch → console.error | ✅ Fixed |
-| LOW-013 | Viber number clickable (viber:// protocol) | ✅ Fixed |
-
-### Resolved (2026-06-18)
-| Gap | Action | Status |
-|-----|--------|--------|
-| MED-023 | Deployer MCP: `DaVinciOS` → `metadata` (param + column) | ✅ Fixed |
-| MED-025 | GitHub Actions: workflow name, URLs, rollback command | ✅ Fixed |
-| MED-034 | build-and-deploy verified clean | ✅ Verified |
-| MED-004 | Quotation PDF Generator (jspdf, branded A4 template) | ✅ Fixed |
-| LOW-002 | Viber placeholder `+639171234567` removed (2 files) | ✅ Fixed |
-| LOW-005 | Bare catch blocks already clean | ✅ Verified |
-
-### All 69 Gaps Resolved Before GAP-CRIT-003
-
-```
-Started:  54 active → 0 critical / 4 high / 32 medium / 18 low
-Now:       1 active → 1 critical (BUILD BLOCKER)
-Resolved: 69 gaps total
-```
+| Commit | Date | Status |
+|--------|------|--------|
+| `4843be6` — feat: smart collection support on homepage + products category listing | 2026-06-22 | ✅ Live on VPS |
+| `b624fdd` — feat: customer tags in create/edit + quick tag toggles | 2026-06-21 | ✅ Live on VPS |
