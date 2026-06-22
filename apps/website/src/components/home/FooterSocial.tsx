@@ -3,7 +3,16 @@ import siteConfig from '@/data/site-config.json'
 interface FooterSocialProps {
   config?: {
     title?: string
+    heading?: string
     platforms?: Array<{ name: string; url: string; label: string }>
+    facebook?: string
+    instagram?: string
+    twitter?: string
+    youtube?: string
+    pinterest?: string
+    tiktok?: string
+    linkedin?: string
+    showIcons?: boolean
   }
 }
 
@@ -15,13 +24,34 @@ const SOCIAL_PATHS: Record<string, string> = {
 }
 
 export function FooterSocial({ config = {} }: FooterSocialProps) {
-  const title = config.title || 'Follow Us'
-  const platforms = config.platforms || [
-    { name: 'instagram', url: siteConfig.social.instagram, label: 'Instagram' },
-    { name: 'facebook', url: siteConfig.social.facebook, label: 'Facebook' },
-    { name: 'pinterest', url: siteConfig.social.pinterest, label: 'Pinterest' },
-    { name: 'youtube', url: siteConfig.social.youtube, label: 'YouTube' },
-  ]
+  const title = config.heading || config.title || 'Follow Us'
+
+  // Convert flat URL fields from settings schema to platforms[] the component expects
+  const buildPlatforms = (): Array<{ name: string; url: string; label: string }> => {
+    const urlMap: Record<string, { name: string; label: string }> = {
+      facebook: { name: 'facebook', label: 'Facebook' },
+      instagram: { name: 'instagram', label: 'Instagram' },
+      twitter: { name: 'twitter', label: 'X (Twitter)' },
+      youtube: { name: 'youtube', label: 'YouTube' },
+      pinterest: { name: 'pinterest', label: 'Pinterest' },
+      tiktok: { name: 'tiktok', label: 'TikTok' },
+      linkedin: { name: 'linkedin', label: 'LinkedIn' },
+    }
+    const result: Array<{ name: string; url: string; label: string }> = []
+    for (const [key, info] of Object.entries(urlMap)) {
+      const url = (config as any)[key] || (siteConfig.social as any)?.[key] || ''
+      if (url) result.push({ name: info.name, url: String(url), label: info.label })
+    }
+    return result.length > 0 ? result : [
+      { name: 'facebook', url: siteConfig.social.facebook, label: 'Facebook' },
+      { name: 'instagram', url: siteConfig.social.instagram, label: 'Instagram' },
+      { name: 'pinterest', url: siteConfig.social.pinterest, label: 'Pinterest' },
+      { name: 'youtube', url: siteConfig.social.youtube, label: 'YouTube' },
+    ]
+  }
+
+  const showIcons = config.showIcons !== false
+  const platforms = config.platforms || buildPlatforms()
 
   return (
     <div className="footer-section footer-section--social">

@@ -20,7 +20,7 @@ export async function SiteFooter() {
       <div className="site-footer__grid page-width">
 
         {configMap.footer_brand && <FooterBrand config={configMap.footer_brand} />}
-        {configMap.footer_quick_links && <FooterQuickLinks />}
+        {configMap.footer_quick_links && <FooterQuickLinks config={configMap.footer_quick_links} />}
         {configMap.footer_newsletter && <FooterNewsletter config={configMap.footer_newsletter} />}
         {configMap.footer_social && <FooterSocial config={configMap.footer_social} />}
 
