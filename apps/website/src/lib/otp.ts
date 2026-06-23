@@ -67,8 +67,8 @@ export async function sendOtpEmail(
       html: `
         <div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
           <div style="text-align: center; margin-bottom: 20px;">
-            <span style="font-size: 32px;">🏡</span>
-            <h2 style="color: #1a6d3e; font-family: Georgia, serif; margin: 8px 0 0;">Home Atelier</h2>
+            <img src="https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/uploads/reviews/bdda42a44380cbd7858cdc620097aed8e17f7bd2d1837be245688e77c9942ba5.png" alt="Home Atelier" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 8px;" />
+            <h2 style="color: #1a6d3e; font-family: Georgia, serif; margin: 0;">Home Atelier</h2>
             <p style="color: #666; font-size: 13px; margin: 4px 0 0;">${purposeLabel}</p>
           </div>
 

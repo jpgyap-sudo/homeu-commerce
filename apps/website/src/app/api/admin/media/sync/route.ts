@@ -14,7 +14,7 @@ import { getSession } from '@/lib/auth'
 import { query } from '@/lib/db'
 
 const IMG_RE = /https?:\/\/[^\s"'<>\\)]+\.(?:jpg|jpeg|png|webp|gif|avif)/gi
-const SHA_RE = /cdn-mirror\/([a-f0-9]{64})\.(\w+)/i
+const SHA_RE = /(?:cdn-mirror|uploads(?:\/[a-z0-9_-]+)?)\/([a-f0-9]{64})\.(\w+)/i
 const PRIORITY: Record<string, number> = { brand: 5, theme: 4, collection: 3, product: 2, article: 1, upload: 0, other: 0 }
 const KIND: Record<string, string> = { brand: 'logo', theme: 'banner', collection: 'image', product: 'product', article: 'article', upload: 'image', other: 'image' }
 

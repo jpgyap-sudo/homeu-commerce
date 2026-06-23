@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { LoginForm } from './LoginForm'
 import siteConfig from '@/data/site-config.json'
 
-const BRAND_LOGO = siteConfig.logo?.shopifyUrl || ''
+const BRAND_LOGO = 'https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/uploads/reviews/bdda42a44380cbd7858cdc620097aed8e17f7bd2d1837be245688e77c9942ba5.png'
 
 export default async function AdminLoginPage() {
   const session = await getSession()

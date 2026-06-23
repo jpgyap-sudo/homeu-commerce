@@ -25,6 +25,7 @@ export default function NewMediaPage() {
   const [url, setUrl] = useState('')
   const [alt, setAlt] = useState('')
   const [filename, setFilename] = useState('')
+  const [source, setSource] = useState('upload')
   const [uploading, setUploading] = useState(false)
 
   // ── Upload a file straight to DO Spaces ────────────────────────
@@ -35,6 +36,7 @@ export default function NewMediaPage() {
     try {
       const fd = new FormData()
       fd.append('file', file)
+      fd.append('source', source)
       const res = await fetch('/api/admin/media/upload', { method: 'POST', body: fd })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error || 'Upload failed')
@@ -63,6 +65,7 @@ export default function NewMediaPage() {
         url: url.trim(),
         alt: alt.trim() || null,
         filename: filename.trim() || null,
+        source: source,
       }
 
       const res = await fetch('/api/media', {
@@ -109,9 +112,27 @@ export default function NewMediaPage() {
       </div>
 
       <h1 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 700, color: '#151a17' }}>Add Media</h1>
-      <p style={{ color: '#667168', marginBottom: 32, fontSize: 14 }}>
+      <p style={{ color: '#667168', marginBottom: 24, fontSize: 14 }}>
         Enter the URL of an image or file to add to the media library.
       </p>
+
+      {/* Category selection */}
+      <Section title="Media Category">
+        <p style={{ margin: '0 0 12px', fontSize: 13, color: '#667168' }}>
+          Select the category for this media. This determines how it is organized and filtered.
+        </p>
+        <select
+          value={source}
+          onChange={e => setSource(e.target.value)}
+          style={inputStyle}
+        >
+          <option value="upload">General Upload</option>
+          <option value="brand">Brand Logo / Asset</option>
+          <option value="product">Product Image</option>
+          <option value="article">Blog / Article Image</option>
+          <option value="theme">Theme / Design Asset</option>
+        </select>
+      </Section>
 
       {/* Messages */}
       {error && (

@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await query(
-      `INSERT INTO media (url, alt, filename, mime_type, filesize, width, height, updated_at, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+      `INSERT INTO media (url, alt, filename, mime_type, filesize, width, height, source, updated_at, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
        RETURNING *`,
       [
         body.url.trim(),
@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
         body.filesize != null ? parseInt(body.filesize) : null,
         body.width != null ? parseInt(body.width) : null,
         body.height != null ? parseInt(body.height) : null,
+        body.source?.trim() || 'upload',
       ]
     )
 

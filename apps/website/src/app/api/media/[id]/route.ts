@@ -52,7 +52,7 @@ export async function PATCH(
     const body = await request.json()
 
     const allowedFields = new Set([
-      'url', 'alt', 'filename', 'mime_type', 'filesize', 'width', 'height',
+      'url', 'alt', 'filename', 'mime_type', 'filesize', 'width', 'height', 'source',
     ])
 
     const setClauses: string[] = []

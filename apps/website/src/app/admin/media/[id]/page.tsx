@@ -22,6 +22,7 @@ interface MediaData {
   width: number | null
   height: number | null
   url: string | null
+  source?: string | null
   created_at: string
   updated_at: string
 }
@@ -55,6 +56,7 @@ export default function EditMediaPage() {
   const [filesize, setFilesize] = useState<number | null>(null)
   const [width, setWidth] = useState<number | null>(null)
   const [height, setHeight] = useState<number | null>(null)
+  const [source, setSource] = useState('upload')
   const [createdAt, setCreatedAt] = useState('')
   const [originalMedia, setOriginalMedia] = useState<MediaData | null>(null)
 
@@ -89,6 +91,7 @@ export default function EditMediaPage() {
     setFilesize(data.filesize)
     setWidth(data.width)
     setHeight(data.height)
+    setSource(data.source || 'upload')
     setCreatedAt(data.created_at)
   }
 
@@ -107,6 +110,7 @@ export default function EditMediaPage() {
         filename: filename.trim() || null,
         alt: alt.trim() || null,
         url: url.trim() || null,
+        source: source,
       }
 
       const res = await fetch(`/api/media/${id}`, {
@@ -251,6 +255,15 @@ export default function EditMediaPage() {
             </Field>
             <Field label="Alt Text">
               <input type="text" value={alt} onChange={e => setAlt(e.target.value)} style={inputStyle} placeholder="Descriptive alt text for accessibility" />
+            </Field>
+            <Field label="Category">
+              <select value={source} onChange={e => setSource(e.target.value)} style={inputStyle}>
+                <option value="upload">General Upload</option>
+                <option value="brand">Brand Logo / Asset</option>
+                <option value="product">Product Image</option>
+                <option value="article">Blog / Article Image</option>
+                <option value="theme">Theme / Design Asset</option>
+              </select>
             </Field>
           </div>
         </Section>

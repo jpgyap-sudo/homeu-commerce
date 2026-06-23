@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const file = formData.get('file') as File | null
+    const source = formData.get('source') as string || 'upload'
     if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
     const bytes = Buffer.from(await file.arrayBuffer())
@@ -29,6 +30,11 @@ export async function POST(request: NextRequest) {
     // Dedupe: identical bytes reuse the existing Spaces object + media row.
     const existing = await query(`SELECT * FROM media WHERE sha256 = $1 LIMIT 1`, [sha256])
     if (existing.rows.length > 0) {
+      // If we re-uploaded it and selected a custom category, let's update source if it was 'upload'
+      if (existing.rows[0].source === 'upload' && source !== 'upload') {
+        const updated = await query(`UPDATE media SET source = $1, updated_at = NOW() WHERE id = $2 RETURNING *`, [source, existing.rows[0].id])
+        return NextResponse.json({ url: existing.rows[0].url, deduped: true, media: updated.rows[0] }, { status: 200 })
+      }
       return NextResponse.json({ url: existing.rows[0].url, deduped: true, media: existing.rows[0] }, { status: 200 })
     }
 
@@ -37,9 +43,9 @@ export async function POST(request: NextRequest) {
 
     const inserted = await query(
       `INSERT INTO media (url, filename, mime_type, filesize, sha256, source, kind, usage, used_count, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, 'upload', 'image', '[]'::jsonb, 0, NOW(), NOW())
+       VALUES ($1, $2, $3, $4, $5, $6, 'image', '[]'::jsonb, 0, NOW(), NOW())
        RETURNING *`,
-      [url, file.name, file.type || null, bytes.length, sha256]
+      [url, file.name, file.type || null, bytes.length, sha256, source]
     )
 
     return NextResponse.json({ url, deduped: false, media: inserted.rows[0] }, { status: 201 })

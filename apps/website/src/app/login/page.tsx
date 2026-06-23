@@ -6,7 +6,7 @@ import Link from 'next/link'
 import siteConfig from '@/data/site-config.json'
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
-const BRAND_LOGO = siteConfig.logo?.shopifyUrl || ''
+const BRAND_LOGO = 'https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/uploads/reviews/bdda42a44380cbd7858cdc620097aed8e17f7bd2d1837be245688e77c9942ba5.png'
 
 type Step = 'login' | 'otp_verify'
 
