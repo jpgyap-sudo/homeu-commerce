@@ -35,6 +35,18 @@ function formatDate(iso: string): string {
   } catch { return iso }
 }
 
+function formatPreferredDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—'
+  const cleanStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr
+  const parts = cleanStr.split('-')
+  if (parts.length !== 3) return cleanStr
+  const year = parseInt(parts[0], 10)
+  const month = parseInt(parts[1], 10) - 1
+  const day = parseInt(parts[2], 10)
+  const dateObj = new Date(year, month, day)
+  return dateObj.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 export default function AppointmentDetailPage() {
   const params = useParams()
   const apptId = params.id as string
@@ -143,7 +155,7 @@ export default function AppointmentDetailPage() {
             {saving && <span style={{ marginLeft: 8, color: '#667168', fontSize: 12 }}>Saving…</span>}
           </Field>
           <Field label="Created" value={formatDate(appt.created_at)} />
-          <Field label="Preferred Date" value={appt.preferred_date || '—'} />
+          <Field label="Preferred Date" value={formatPreferredDate(appt.preferred_date)} />
           <Field label="Preferred Time" value={appt.preferred_time || '—'} />
           <Field label="Visitor Count" value={String(appt.visitor_count || '—')} />
           <Field label="Categories of Interest" value={(appt.categories_of_interest || []).join(', ') || '—'} />

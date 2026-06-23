@@ -18,28 +18,55 @@ interface ShowroomCalendarProps {
   initialEvents?: CalendarEvent[]
 }
 
+function getLocalYYYYMMDD(d: Date = new Date()): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const date = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${date}`
+}
+
+function formatSelectedDayHeader(dateStr: string): string {
+  const parts = dateStr.split('-')
+  if (parts.length !== 3) return dateStr
+  const year = parseInt(parts[0], 10)
+  const month = parseInt(parts[1], 10) - 1
+  const day = parseInt(parts[2], 10)
+  const dateObj = new Date(year, month, day)
+  return dateObj.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+}
+
 export default function ShowroomCalendar({ initialEvents }: ShowroomCalendarProps) {
   const [events, setEvents] = useState<CalendarEvent[]>(initialEvents || [])
   const [loading, setLoading] = useState(!initialEvents)
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [selectedDate, setSelectedDate] = useState<string>(getLocalYYYYMMDD())
 
   useEffect(() => {
-    if (initialEvents) return
+    if (initialEvents) {
+      setEvents(initialEvents)
+      setLoading(false)
+      return
+    }
+
+    let active = true
     async function loadEvents() {
       try {
+        setLoading(true)
         const res = await fetch('/api/admin/dashboard/tasks', { credentials: 'include' })
-        if (res.ok) {
+        if (res.ok && active) {
           const data = await res.json()
           setEvents(data.calendarEvents || [])
         }
       } catch (err) {
         console.error('[ShowroomCalendar] Failed to load events:', err)
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
     loadEvents()
+    return () => {
+      active = false
+    }
   }, [initialEvents])
 
   // Calendar calculations
@@ -67,7 +94,7 @@ export default function ShowroomCalendar({ initialEvents }: ShowroomCalendarProp
   const handleToday = () => {
     const today = new Date()
     setCurrentDate(today)
-    setSelectedDate(today.toISOString().split('T')[0])
+    setSelectedDate(getLocalYYYYMMDD(today))
   }
 
   // Days grid generation
@@ -150,7 +177,7 @@ export default function ShowroomCalendar({ initialEvents }: ShowroomCalendarProp
         {daysGrid.map((slot, index) => {
           const dayEvents = eventsByDate[slot.dateStr] || []
           const isSelected = selectedDate === slot.dateStr
-          const isToday = new Date().toISOString().split('T')[0] === slot.dateStr
+          const isToday = getLocalYYYYMMDD() === slot.dateStr
 
           return (
             <div
@@ -221,7 +248,7 @@ export default function ShowroomCalendar({ initialEvents }: ShowroomCalendarProp
       {/* Selected Day Detail List */}
       <div style={{ marginTop: 20, padding: 16, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
         <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: 'var(--luxe-navy-900)' }}>
-          Events on {new Date(selectedDate).toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          Events on {formatSelectedDayHeader(selectedDate)}
         </h4>
 
         {selectedDayEvents.length === 0 ? (

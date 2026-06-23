@@ -44,7 +44,9 @@ export async function GET(request: NextRequest) {
     let showroomRequests: any[] = []
     try {
       const apptResult = await query(`
-        SELECT a.id, COALESCE(l.name, 'Unknown') as lead_name, a.preferred_date, a.preferred_time, a.created_at
+        SELECT a.id, COALESCE(l.name, 'Unknown') as lead_name, 
+               TO_CHAR(a.preferred_date, 'YYYY-MM-DD') as preferred_date, 
+               a.preferred_time, a.created_at
         FROM chatbot.appointments a
         LEFT JOIN chatbot.leads l ON l.id = a.lead_id
         WHERE a.status = 'requested'
@@ -60,7 +62,9 @@ export async function GET(request: NextRequest) {
     let upcomingAppointments: any[] = []
     try {
       const upcomingResult = await query(`
-        SELECT a.id, COALESCE(l.name, 'Unknown') as lead_name, a.preferred_date, a.preferred_time, a.status
+        SELECT a.id, COALESCE(l.name, 'Unknown') as lead_name, 
+               TO_CHAR(a.preferred_date, 'YYYY-MM-DD') as preferred_date, 
+               a.preferred_time, a.status
         FROM chatbot.appointments a
         LEFT JOIN chatbot.leads l ON l.id = a.lead_id
         WHERE a.status = 'confirmed'
@@ -91,7 +95,9 @@ export async function GET(request: NextRequest) {
     let pastAppointments: any[] = []
     try {
       const apptHistoryResult = await query(`
-        SELECT a.id, COALESCE(l.name, 'Unknown') as lead_name, a.preferred_date, a.status, a.updated_at
+        SELECT a.id, COALESCE(l.name, 'Unknown') as lead_name, 
+               TO_CHAR(a.preferred_date, 'YYYY-MM-DD') as preferred_date, 
+               a.status, a.updated_at
         FROM chatbot.appointments a
         LEFT JOIN chatbot.leads l ON l.id = a.lead_id
         WHERE a.status IN ('completed', 'cancelled')
@@ -122,7 +128,9 @@ export async function GET(request: NextRequest) {
     try {
       // 6a. Appointments
       const apptCalendarResult = await query(`
-        SELECT a.id, COALESCE(l.name, 'Unknown') as lead_name, a.preferred_date, a.preferred_time, a.status
+        SELECT a.id, COALESCE(l.name, 'Unknown') as lead_name, 
+               TO_CHAR(a.preferred_date, 'YYYY-MM-DD') as preferred_date, 
+               a.preferred_time, a.status
         FROM chatbot.appointments a
         LEFT JOIN chatbot.leads l ON l.id = a.lead_id
         WHERE a.preferred_date >= CURRENT_DATE - INTERVAL '60 days'
@@ -131,7 +139,7 @@ export async function GET(request: NextRequest) {
       const apptEvents = apptCalendarResult.rows.map((row: any) => ({
         id: row.id,
         type: 'appointment',
-        date: row.preferred_date ? new Date(row.preferred_date).toISOString().split('T')[0] : null,
+        date: row.preferred_date || null,
         title: `Showroom Visit: ${row.lead_name}`,
         time: row.preferred_time || '',
         status: row.status,
@@ -141,14 +149,16 @@ export async function GET(request: NextRequest) {
 
       // 6b. Quotations
       const quoteCalendarResult = await query(`
-        SELECT id, quotation_number, customer_name, grand_total, created_at, status
+        SELECT id, quotation_number, customer_name, grand_total, 
+               TO_CHAR(created_at AT TIME ZONE 'Asia/Manila', 'YYYY-MM-DD') as created_date, 
+               status
         FROM quotations
         WHERE created_at >= NOW() - INTERVAL '60 days'
       `)
       const quoteEvents = quoteCalendarResult.rows.map((row: any) => ({
         id: row.id,
         type: 'quotation',
-        date: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
+        date: row.created_date || null,
         title: `Quote ${row.quotation_number}: ${row.customer_name}`,
         time: `₱${Number(row.grand_total).toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
         status: row.status,

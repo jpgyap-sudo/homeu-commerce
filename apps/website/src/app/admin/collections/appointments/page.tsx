@@ -42,6 +42,18 @@ function formatDate(iso: string): string {
   } catch { return iso }
 }
 
+function formatPreferredDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—'
+  const cleanStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr
+  const parts = cleanStr.split('-')
+  if (parts.length !== 3) return cleanStr
+  const year = parseInt(parts[0], 10)
+  const month = parseInt(parts[1], 10) - 1
+  const day = parseInt(parts[2], 10)
+  const dateObj = new Date(year, month, day)
+  return dateObj.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 export default function AdminAppointmentsListPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
@@ -237,7 +249,7 @@ export default function AdminAppointmentsListPage() {
                           </div>
                           <div style={{ fontSize: 12, color: '#667168', marginTop: 2 }}>{apt.lead_email}</div>
                         </td>
-                        <td style={{ padding: 12, fontSize: 13 }}>{apt.preferred_date || '—'}</td>
+                        <td style={{ padding: 12, fontSize: 13 }}>{formatPreferredDate(apt.preferred_date)}</td>
                         <td style={{ padding: 12, fontSize: 13 }}>{apt.preferred_time || '—'}</td>
                         <td style={{ padding: 12, fontSize: 13 }}>{apt.visitor_count || '—'}</td>
                         <td style={{ padding: 12, fontSize: 12, color: '#667168' }}>

@@ -5,6 +5,18 @@ import Link from 'next/link'
 import ProductDNACard from '@/components/ProductDNACard'
 import ShowroomCalendar from '@/components/admin/ShowroomCalendar'
 
+function formatTaskDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—'
+  const cleanStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr
+  const parts = cleanStr.split('-')
+  if (parts.length !== 3) return cleanStr
+  const year = parseInt(parts[0], 10)
+  const month = parseInt(parts[1], 10) - 1
+  const day = parseInt(parts[2], 10)
+  const dateObj = new Date(year, month, day)
+  return dateObj.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 // ── Types ──────────────────────────────────────────────────────────
 
 interface UnreadCounts { website: number; email: number; facebook: number; instagram: number }
@@ -115,20 +127,22 @@ export default function AdminDashboardClient() {
     const { unreadChats, pendingRfqs, showroomRequests, upcomingAppointments } = tasks.tasksToDo
     
     unreadChats.forEach(c => {
+      const activeTime = c.last_message_at || c.lastMessageAt
       todoList.push({
         type: 'chat',
-        title: `Unread chat from ${c.lead_name}`,
-        desc: `Last active: ${new Date(c.last_message_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}`,
+        title: `Unread chat from ${c.lead_name || c.leadName || 'Anonymous Visitor'}`,
+        desc: `Last active: ${activeTime ? new Date(activeTime).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }) : '—'}`,
         icon: '💬',
         href: `/admin/apps/central-inbox`
       })
     })
 
     pendingRfqs.forEach(r => {
+      const submitTime = r.created_at || r.createdAt
       todoList.push({
         type: 'rfq',
-        title: `RFQ from ${r.customerName} pending quotation`,
-        desc: `Submitted: ${new Date(r.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} · Est: ₱${Number(r.estimated_total || 0).toLocaleString('en-PH')}`,
+        title: `RFQ from ${r.customer_name || r.customerName || 'Valued Customer'} pending quotation`,
+        desc: `Submitted: ${submitTime ? new Date(submitTime).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—'} · Est: ₱${Number(r.estimated_total || r.estimatedTotal || 0).toLocaleString('en-PH')}`,
         icon: '◐',
         href: `/admin/rfq`
       })
@@ -137,8 +151,8 @@ export default function AdminDashboardClient() {
     showroomRequests.forEach(a => {
       todoList.push({
         type: 'showroom_request',
-        title: `Showroom Visit request from ${a.lead_name}`,
-        desc: `Requested date: ${a.preferred_date || '—'} @ ${a.preferred_time || '—'}`,
+        title: `Showroom Visit request from ${a.lead_name || a.leadName || 'Unknown Lead'}`,
+        desc: `Requested date: ${formatTaskDate(a.preferred_date || a.preferredDate)} @ ${a.preferred_time || a.preferredTime || '—'}`,
         icon: '🆕',
         href: `/admin/collections/appointments`
       })
@@ -147,8 +161,8 @@ export default function AdminDashboardClient() {
     upcomingAppointments.forEach(a => {
       todoList.push({
         type: 'upcoming_showroom',
-        title: `Upcoming showroom visit: ${a.lead_name}`,
-        desc: `Date: ${a.preferred_date || '—'} @ ${a.preferred_time || '—'}`,
+        title: `Upcoming showroom visit: ${a.lead_name || a.leadName || 'Unknown Lead'}`,
+        desc: `Date: ${formatTaskDate(a.preferred_date || a.preferredDate)} @ ${a.preferred_time || a.preferredTime || '—'}`,
         icon: '⏰',
         href: `/admin/collections/appointments`
       })
@@ -160,9 +174,10 @@ export default function AdminDashboardClient() {
     const { quotations, appointments, rfqs } = tasks.pastTasks
     
     quotations.slice(0, 5).forEach(q => {
+      const createTime = q.created_at || q.createdAt
       doneList.push({
-        title: `Quotation ${q.quotationNumber} sent to ${q.customerName}`,
-        desc: `Created: ${new Date(q.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} · Total: ₱${Number(q.grandTotal || 0).toLocaleString('en-PH')}`,
+        title: `Quotation ${q.quotation_number || q.quotationNumber || '—'} sent to ${q.customer_name || q.customerName || 'Valued Customer'}`,
+        desc: `Created: ${createTime ? new Date(createTime).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—'} · Total: ₱${Number(q.grand_total || q.grandTotal || 0).toLocaleString('en-PH')}`,
         icon: '📄',
         href: `/admin/quotations/${q.id}`
       })
@@ -170,8 +185,8 @@ export default function AdminDashboardClient() {
 
     appointments.slice(0, 5).forEach(a => {
       doneList.push({
-        title: `Showroom visit for ${a.lead_name} marked ${a.status}`,
-        desc: `Scheduled date: ${a.preferred_date || '—'}`,
+        title: `Showroom visit for ${a.lead_name || a.leadName || 'Unknown Lead'} marked ${a.status}`,
+        desc: `Scheduled date: ${formatTaskDate(a.preferred_date || a.preferredDate)}`,
         icon: '📅',
         href: `/admin/collections/appointments`
       })
@@ -179,7 +194,7 @@ export default function AdminDashboardClient() {
 
     rfqs.slice(0, 5).forEach(r => {
       doneList.push({
-        title: `RFQ from ${r.customerName} resolved`,
+        title: `RFQ from ${r.customer_name || r.customerName || 'Valued Customer'} resolved`,
         desc: `Status: ${r.status}`,
         icon: '◐',
         href: `/admin/rfq`
