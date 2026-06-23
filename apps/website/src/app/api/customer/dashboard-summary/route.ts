@@ -30,9 +30,6 @@ export async function GET(_request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  if (session.role !== 'customer') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
   const customerId = Number(session.id)
   if (!Number.isInteger(customerId) || customerId <= 0) {
     return NextResponse.json({ error: 'Customer account is invalid' }, { status: 403 })

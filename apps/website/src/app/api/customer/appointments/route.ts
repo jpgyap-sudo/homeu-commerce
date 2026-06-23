@@ -31,7 +31,7 @@ async function resolveLeadId(customerId: number, name: string, email: string, ph
 
 export async function GET(_request: NextRequest) {
   const session = await getSession()
-  if (!session || session.role !== 'customer') {
+  if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {
@@ -64,7 +64,7 @@ export async function GET(_request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession()
-  if (!session || session.role !== 'customer') {
+  if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {
