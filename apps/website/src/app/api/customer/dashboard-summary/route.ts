@@ -44,6 +44,8 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
     }
 
+    const customerEmail = customerRes.rows[0].email || session.email
+
     const rfqsRes = await query(
       `SELECT r.*,
               COALESCE(
@@ -66,20 +68,39 @@ export async function GET(_request: NextRequest) {
                 WHERE m.conversation_id = c.id AND m.customer_visible = TRUE AND m.deleted_at IS NULL
                 ORDER BY m.created_at DESC LIMIT 1) AS last_message_preview
        FROM rfq_requests r
-       LEFT JOIN rfq_chat_conversations c ON c.rfq_request_id = r.id
+       LEFT JOIN LATERAL (
+         SELECT *
+         FROM rfq_chat_conversations
+         WHERE rfq_request_id = r.id
+         ORDER BY last_message_at DESC NULLS LAST, created_at DESC
+         LIMIT 1
+       ) c ON TRUE
        WHERE r.customer_id = $1
+          OR LOWER(COALESCE(r.email, '')) = LOWER($2)
        ORDER BY r.created_at DESC
        LIMIT 100`,
-      [customerId]
+      [customerId, customerEmail]
     )
 
     const quotationsRes = await query(
-      `SELECT id, quotation_number, rfq_id, status, pending_revision, revision_request, total, created_at, updated_at
-       FROM quotations
-       WHERE customer_id = $1
-       ORDER BY created_at DESC
+      `SELECT q.id,
+              q.quotation_number,
+              q.rfq_id,
+              q.status,
+              q.pending_revision,
+              q.revision_request,
+              COALESCE(q.grand_total, q.total, 0) AS total,
+              q.created_at,
+              q.updated_at
+       FROM quotations q
+       LEFT JOIN rfq_requests r ON r.id = q.rfq_id
+       WHERE q.customer_id = $1
+          OR LOWER(COALESCE(q.email, q.customer_email, '')) = LOWER($2)
+          OR r.customer_id = $1
+          OR LOWER(COALESCE(r.email, '')) = LOWER($2)
+       ORDER BY q.created_at DESC
        LIMIT 100`,
-      [customerId]
+      [customerId, customerEmail]
     )
 
     const rfqs = rfqsRes.rows.map(snakeToCamel)

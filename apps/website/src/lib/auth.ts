@@ -17,6 +17,7 @@ function getJwtSecret(): Uint8Array {
 }
 const COOKIE_NAME = 'homeu_admin_session'
 const SESSION_DURATION = 60 * 60 * 24 // 24 hours
+const ADMIN_ROLES = new Set(['admin', 'superadmin', 'editor', 'sales'])
 
 // ============================================================
 // Password hashing with bcrypt
@@ -112,6 +113,10 @@ export async function authenticateAdmin(
   const user = rows[0]
   if (!user) {
     return { error: 'Invalid email or password' }
+  }
+
+  if (!ADMIN_ROLES.has(user.role)) {
+    return { error: 'This account does not have DaVinciOS access' }
   }
 
   // Verify password using bcrypt

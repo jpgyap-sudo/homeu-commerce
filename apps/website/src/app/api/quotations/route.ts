@@ -16,6 +16,33 @@ function snakeToCamel(obj: any): any {
   return cameled
 }
 
+async function resolveQuotationCustomerId(input: {
+  customer?: unknown
+  email?: unknown
+  rfq?: unknown
+}): Promise<number | null> {
+  const explicitCustomer = Number(input.customer)
+  if (Number.isInteger(explicitCustomer) && explicitCustomer > 0) return explicitCustomer
+
+  const rfqId = Number(input.rfq)
+  if (Number.isInteger(rfqId) && rfqId > 0) {
+    const rfqResult = await query('SELECT customer_id FROM rfq_requests WHERE id = $1 LIMIT 1', [rfqId])
+    const customerId = Number(rfqResult.rows[0]?.customer_id)
+    if (Number.isInteger(customerId) && customerId > 0) return customerId
+  }
+
+  if (typeof input.email === 'string' && input.email.trim()) {
+    const customerResult = await query(
+      'SELECT id FROM customers WHERE LOWER(email) = LOWER($1) LIMIT 1',
+      [input.email.trim()]
+    )
+    const customerId = Number(customerResult.rows[0]?.id)
+    if (Number.isInteger(customerId) && customerId > 0) return customerId
+  }
+
+  return null
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession()
@@ -46,8 +73,8 @@ export async function GET(request: NextRequest) {
       params.push(customerId)
     }
     if (search) {
-      conditions.push(`(quotation_number ILIKE $${params.length + 1} OR customer_name ILIKE $${params.length + 1} OR email ILIKE $${params.length + 1})`)
-      params.push(`%${search}%`, `%${search}%`, `%${search}%`)
+      conditions.push(`(quotation_number ILIKE $${params.length + 1} OR customer_name ILIKE $${params.length + 1} OR email ILIKE $${params.length + 1} OR customer_email ILIKE $${params.length + 1})`)
+      params.push(`%${search}%`)
     }
 
     const where = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''
@@ -103,6 +130,11 @@ export async function POST(request: NextRequest) {
     const nextNum = parseInt(maxResult.rows[0].max_id) + 1
     const year = new Date().getFullYear()
     const quotationNumber = body.quotationNumber || `Q-${year}-${String(nextNum).padStart(4, '0')}`
+    const customerId = await resolveQuotationCustomerId({
+      customer: body.customer,
+      email: body.email,
+      rfq: body.rfq,
+    })
 
     const result = await query(
       `INSERT INTO quotations (
@@ -125,7 +157,7 @@ export async function POST(request: NextRequest) {
         body.notes || '',
         body.deliveryLocation || null,
         body.projectType || 'home',
-        body.customer ? Number(body.customer) : null,
+        customerId,
         body.rfq ? Number(body.rfq) : null,
         JSON.stringify(body.items || []),
         Number(body.subtotal) || 0,

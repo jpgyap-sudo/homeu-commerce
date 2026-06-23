@@ -12,16 +12,21 @@ export async function GET(
 
   try {
     const { id } = await params
+    const { searchParams } = new URL(request.url)
 
     const { rows } = await query(
       `SELECT q.*,
         COALESCE(
-          (SELECT json_agg(json_build_object(
-            'title', qi.title, 'quantity', qi.quantity,
-            'unitPrice', qi.unit_price, 'totalPrice', qi.total_price
+          NULLIF(q.items, '[]'::jsonb),
+          (SELECT jsonb_agg(jsonb_build_object(
+            'description', qi.title,
+            'quantity', qi.quantity,
+            'unitCost', qi.unit_price,
+            'discountedCost', qi.unit_price,
+            'total', qi.total_price
           )) FROM quotations_items qi WHERE qi.quotation_id = q.id),
-          '[]'
-        ) as items
+          '[]'::jsonb
+        ) as pdf_items
        FROM quotations q WHERE q.id = $1`,
       [id]
     )
@@ -29,28 +34,41 @@ export async function GET(
     if (rows.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const q = rows[0]
-    const pdfBuffer = generateQuotationPDF({
+    const pdfBuffer = await generateQuotationPDF({
       id: q.id,
+      quotationNumber: q.quotation_number,
       title: q.title,
       customerName: q.customer_name,
-      customerEmail: q.customer_email,
+      customerEmail: q.customer_email || q.email,
+      email: q.email || q.customer_email,
+      phone: q.phone,
+      deliveryLocation: q.delivery_location,
+      projectType: q.project_type,
       status: q.status,
-      items: q.items || [],
+      items: q.pdf_items || [],
       subtotal: Number(q.subtotal || 0),
-      tax: Number(q.tax || 0),
+      shippingCost: Number(q.shipping_cost || 0),
       total: Number(q.total || 0),
+      grandTotal: Number(q.grand_total || q.total || 0),
       notes: q.notes,
-      bankDetails: q.bank_details || {},
-      terms: q.terms,
-      warranty: q.warranty,
+      termsDeliveryLeadtime: q.terms_delivery_leadtime,
+      termsPaymentTerms: q.terms_payment_terms,
+      termsWarranty: q.terms_warranty,
+      termsBankDetails: q.terms_bank_details,
+      termsCancellationPolicy: q.terms_cancellation_policy,
+      termsReturnPolicy: q.terms_return_policy,
+      termsRejectionOfItems: q.terms_rejection_of_items,
+      termsRefundPolicy: q.terms_refund_policy,
       validUntil: q.valid_until,
       createdAt: q.created_at,
     })
+    const filenameName = String(q.customer_name || 'homeu').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-|-$/g, '')
+    const disposition = searchParams.get('preview') === '1' ? 'inline' : 'attachment'
 
     return new NextResponse(pdfBuffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="quotation-${id}-${q.customer_name || 'homeu'}.pdf"`,
+        'Content-Disposition': `${disposition}; filename="quotation-${q.quotation_number || id}-${filenameName || 'homeu'}.pdf"`,
       }
     })
   } catch (err: any) {

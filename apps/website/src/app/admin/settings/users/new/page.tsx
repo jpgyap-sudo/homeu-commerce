@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 export default async function NewUserPage() {
   const session = await getSession()
   if (!session) redirect('/admin/login')
+  if (session.role !== 'admin' && session.role !== 'superadmin') redirect('/admin/settings/users')
 
   return (
     <div style={{ maxWidth: 520 }}>
@@ -24,8 +25,9 @@ export default async function NewUserPage() {
           const name = String(formData.get('name') || '').trim()
           const password = String(formData.get('password') || '')
           const role = String(formData.get('role') || 'admin')
+          const staffRoles = new Set(['admin', 'superadmin', 'editor', 'sales'])
 
-          if (!email || !password) {
+          if (!email || !password || !staffRoles.has(role)) {
             return
           }
 
@@ -66,6 +68,7 @@ export default async function NewUserPage() {
             <option value="admin">Admin</option>
             <option value="superadmin">Super Admin</option>
             <option value="editor">Editor</option>
+            <option value="sales">Sales</option>
           </select>
         </div>
 

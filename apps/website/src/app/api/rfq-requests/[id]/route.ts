@@ -64,8 +64,12 @@ export async function GET(
       ) as items
       FROM rfq_requests r
       WHERE r.id = $1
-        AND ($2::integer IS NULL OR r.customer_id = $2)`,
-      [rfqId, access.customerId]
+        AND (
+          $2::integer IS NULL
+          OR r.customer_id = $2
+          OR LOWER(COALESCE(r.email, '')) = LOWER($3)
+        )`,
+      [rfqId, access.customerId, session.email]
     )
 
     if (result.rows.length === 0) {
@@ -118,9 +122,9 @@ export async function PATCH(
         `UPDATE rfq_requests
          SET extension_status = 'requested', extension_reason = $1
          WHERE id = $2 AND archived_at IS NULL
-           AND ($3::integer IS NULL OR customer_id = $3)
+           AND ($3::integer IS NULL OR customer_id = $3 OR LOWER(COALESCE(email, '')) = LOWER($4))
          RETURNING id, extension_status, extension_reason`,
-        [reason, rfqId, access.customerId]
+        [reason, rfqId, access.customerId, session.email]
       )
       if (result.rowCount === 0) {
         return NextResponse.json({ error: 'RFQ not found or already archived' }, { status: 404 })

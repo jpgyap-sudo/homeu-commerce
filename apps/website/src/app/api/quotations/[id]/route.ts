@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { getOrCreateConversation, insertMessage } from '@/lib/rfq-chat-db'
 import crypto from 'crypto'
 
 function camelToSnake(str: string): string {
@@ -19,6 +20,62 @@ function snakeToCamel(obj: any): any {
     }
   }
   return cameled
+}
+
+async function linkQuotationCustomerIfMissing(quotationId: string | number, quote: any): Promise<any> {
+  if (quote.customer_id) return quote
+
+  let customerId: number | null = null
+  if (quote.rfq_id) {
+    const rfqCustomer = await query('SELECT customer_id FROM rfq_requests WHERE id = $1 LIMIT 1', [quote.rfq_id])
+    const fromRfq = Number(rfqCustomer.rows[0]?.customer_id)
+    if (Number.isInteger(fromRfq) && fromRfq > 0) customerId = fromRfq
+  }
+
+  const email = quote.email || quote.customer_email
+  if (!customerId && email) {
+    const customerResult = await query(
+      'SELECT id FROM customers WHERE LOWER(email) = LOWER($1) LIMIT 1',
+      [email]
+    )
+    const fromEmail = Number(customerResult.rows[0]?.id)
+    if (Number.isInteger(fromEmail) && fromEmail > 0) customerId = fromEmail
+  }
+
+  if (!customerId) return quote
+
+  const linked = await query(
+    `UPDATE quotations
+     SET customer_id = $1, updated_at = NOW()
+     WHERE id = $2 AND customer_id IS NULL
+     RETURNING *, TO_CHAR(valid_until, 'YYYY-MM-DD') as valid_until`,
+    [customerId, quotationId]
+  )
+  return linked.rows[0] || { ...quote, customer_id: customerId }
+}
+
+async function recordRfqQuotationEvent(options: {
+  rfqId: number
+  quotationId: number
+  versionNumber: number
+  eventType: string
+  eventLabel: string
+}) {
+  const conversationId = await getOrCreateConversation(options.rfqId)
+  await insertMessage({
+    conversationId,
+    senderType: 'system',
+    content: options.eventLabel,
+    messageType: options.eventType === 'quotation_sent' ? 'notification' : 'system_event',
+    relatedQuotationId: options.quotationId,
+    relatedVersionNumber: options.versionNumber,
+    metadata: {
+      eventType: options.eventType,
+      quotationId: options.quotationId,
+      versionNumber: options.versionNumber,
+      rfqRequestId: options.rfqId,
+    },
+  })
 }
 
 export async function GET(
@@ -151,7 +208,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
     }
 
-    const updated = result.rows[0]
+    let updated = await linkQuotationCustomerIfMissing(id, result.rows[0])
 
     // Sync quotations_items table if items are updated
     if (fields.includes('items') && body.items && Array.isArray(body.items)) {
@@ -188,21 +245,32 @@ export async function PATCH(
         const qRfqResult = await query('SELECT rfq_id FROM quotations WHERE id = $1', [id])
         const rfqId = qRfqResult.rows[0]?.rfq_id
         if (rfqId) {
-          const APP_URL = process.env.APP_URL || 'http://localhost:3000'
-          fetch(`${APP_URL}/api/system/rfq-chat/quotation-event`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              rfqRequestId: rfqId,
-              quotationId: Number(id),
-              versionNumber: updated.current_version || 1,
-              eventType: statusEventMap[body.status],
-              eventLabel: statusEventMap[body.status] === 'quotation_sent' ? 'Quotation sent to you' : undefined,
-            }),
-          }).catch(() => {})
+          if (body.status === 'sent') {
+            await query(
+              `UPDATE rfq_requests
+               SET status = CASE WHEN status IN ('new', 'contacted') THEN 'quoted' ELSE status END,
+                   quotation_sent_at = COALESCE($2::timestamptz, NOW()),
+                   quotation_sent_via = COALESCE($3, 'email'),
+                   updated_at = NOW()
+               WHERE id = $1`,
+              [rfqId, body.sentAt || null, body.sentVia || null]
+            )
+          }
+
+          await recordRfqQuotationEvent({
+            rfqId,
+            quotationId: Number(id),
+            versionNumber: updated.current_version || 1,
+            eventType: statusEventMap[body.status],
+            eventLabel: body.status === 'sent'
+              ? 'Quotation sent to you'
+              : body.status === 'accepted'
+                ? 'Quotation accepted'
+                : 'Quotation rejected',
+          })
         }
-      } catch {
-        // Non-blocking
+      } catch (eventErr: any) {
+        console.warn('[quotation] RFQ status/chat event skipped:', eventErr.message)
       }
     }
 

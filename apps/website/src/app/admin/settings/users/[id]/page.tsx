@@ -10,14 +10,16 @@ interface Props {
 export default async function EditUserPage({ params }: Props) {
   const session = await getSession()
   if (!session) redirect('/admin/login')
+  if (session.role !== 'admin' && session.role !== 'superadmin') redirect('/admin/settings/users')
 
   const { id } = await params
   const userId = parseInt(id, 10)
 
   const r = await query(
     `SELECT id, email, COALESCE(name, email) as name, role, status
-     FROM customers WHERE id = $1 AND role = 'admin'`,
-    [userId]
+     FROM customers
+     WHERE id = $1 AND role = ANY($2::text[])`,
+    [userId, ['admin', 'superadmin', 'editor', 'sales']]
   )
   const user = r.rows[0]
   if (!user) redirect('/admin/settings/users')
@@ -38,6 +40,8 @@ export default async function EditUserPage({ params }: Props) {
           const role = String(formData.get('role') || 'admin')
           const status = String(formData.get('status') || 'active')
           const newPassword = String(formData.get('newPassword') || '').trim()
+          const staffRoles = new Set(['admin', 'superadmin', 'editor', 'sales'])
+          if (!staffRoles.has(role)) return
 
           try {
             if (newPassword) {
@@ -45,14 +49,14 @@ export default async function EditUserPage({ params }: Props) {
               const hash = await hp(newPassword)
               await query(
                 `UPDATE customers SET name = $1, role = $2, status = $3, password_hash = $4, updated_at = NOW()
-                 WHERE id = $5`,
-                [name || user.name, role, status, hash, userId]
+                 WHERE id = $5 AND role = ANY($6::text[])`,
+                [name || user.name, role, status, hash, userId, ['admin', 'superadmin', 'editor', 'sales']]
               )
             } else {
               await query(
                 `UPDATE customers SET name = $1, role = $2, status = $3, updated_at = NOW()
-                 WHERE id = $4`,
-                [name || user.name, role, status, userId]
+                 WHERE id = $4 AND role = ANY($5::text[])`,
+                [name || user.name, role, status, userId, ['admin', 'superadmin', 'editor', 'sales']]
               )
             }
           } catch (e) {
@@ -81,6 +85,7 @@ export default async function EditUserPage({ params }: Props) {
             <option value="admin">Admin</option>
             <option value="superadmin">Super Admin</option>
             <option value="editor">Editor</option>
+            <option value="sales">Sales</option>
           </select>
         </div>
 
@@ -130,7 +135,7 @@ export default async function EditUserPage({ params }: Props) {
           action={async () => {
             'use server'
             try {
-              await query('DELETE FROM customers WHERE id = $1 AND role = $2', [userId, 'admin'])
+              await query('DELETE FROM customers WHERE id = $1 AND role = ANY($2::text[])', [userId, ['admin', 'superadmin', 'editor', 'sales']])
             } catch (e) {
               console.error('Failed to delete user:', e)
             }

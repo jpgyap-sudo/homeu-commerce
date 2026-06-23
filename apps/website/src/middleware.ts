@@ -89,7 +89,13 @@ export async function middleware(request: NextRequest) {
 
   // Verify JWT
   try {
-    await jwtVerify(token, JWT_SECRET)
+    const { payload } = await jwtVerify(token, JWT_SECRET)
+    if (payload.role === 'customer') {
+      if (host === ADMIN_HOST) {
+        return NextResponse.redirect(`https://${STORE_HOST}/customer/dashboard`)
+      }
+      return NextResponse.redirect(new URL('/customer/dashboard', request.url))
+    }
     return NextResponse.next({ request: { headers: requestHeaders } })
   } catch {
     // Token invalid or expired — clear it and redirect

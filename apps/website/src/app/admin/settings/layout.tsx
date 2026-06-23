@@ -5,6 +5,7 @@ import SettingsNav from './SettingsNav'
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession()
   if (!session) redirect('/admin/login')
+  if (session.role === 'customer') redirect('/customer/dashboard')
 
   return (
     <div style={{ padding: '24px 32px', fontFamily: 'Inter, sans-serif', maxWidth: 1100 }}>

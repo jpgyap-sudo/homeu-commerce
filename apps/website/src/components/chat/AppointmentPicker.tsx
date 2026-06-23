@@ -36,6 +36,11 @@ export function AppointmentPicker({ leadId, conversationId, onSuccess, onError, 
   const [categories, setCategories] = useState<CategoryOption[]>([])
   const [categoriesLoading, setCategoriesLoading] = useState(true)
 
+  const selectedDate = date ? new Date(`${date}T00:00:00`) : null
+  const isSunday = selectedDate?.getDay() === 0
+  const minTime = isSunday ? '13:00' : '10:00'
+  const maxTime = '17:30'
+
   useEffect(() => {
     async function loadCategories() {
       try {
@@ -100,7 +105,7 @@ export function AppointmentPicker({ leadId, conversationId, onSuccess, onError, 
 
       <label>
         Preferred Time
-        <input type="time" value={time} onChange={e => setTime(e.target.value)} required />
+        <input type="time" value={time} min={minTime} max={maxTime} step={1800} onChange={e => setTime(e.target.value)} required />
       </label>
 
       <label>

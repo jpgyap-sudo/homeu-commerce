@@ -405,9 +405,6 @@ export default function EditQuotationPage() {
         shippingCost,
         grandTotal,
         validUntil: validUntil || null,
-        status, // keep current status for save step
-        sentAt: sentAt || undefined,
-        sentVia: sentVia || undefined,
         internalNotes: internalNotes || undefined,
         termsDeliveryLeadtime: terms.deliveryLeadtime,
         termsPaymentTerms: terms.paymentTerms,
@@ -459,6 +456,9 @@ Home Atelier Team`
         throw new Error(emailErr.error || 'Failed to send email to client')
       }
       const emailData = await emailRes.json()
+      if (!emailData.sent) {
+        throw new Error(emailData.note || 'Email was not sent. Check SMTP settings before marking this quotation as sent.')
+      }
 
       // 2. Update status and log send info in db
       const res = await fetch(`/api/quotations/${id}`, {
@@ -538,6 +538,11 @@ Home Atelier Team`
     )
   }
 
+  const clientPreviewHref = quotation?.guestToken
+    ? `/quotation/${quotation.id}?token=${quotation.guestToken}`
+    : `/quotation/${quotation?.id || ''}`
+  const pdfPreviewHref = `/api/admin/quotations/pdf/${quotation?.id}?preview=1`
+
   return (
     <main style={{ maxWidth: 1100, margin: '40px auto', padding: '0 24px' }}>
       {/* Header */}
@@ -552,7 +557,7 @@ Home Atelier Team`
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Link
-            href={`/quotation/${quotation?.id}`}
+            href={clientPreviewHref}
             target="_blank"
             style={{
               padding: '8px 16px',
@@ -565,6 +570,23 @@ Home Atelier Team`
           >
             👁 Preview
           </Link>
+          <a
+            href={pdfPreviewHref}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              padding: '8px 16px',
+              background: '#fff',
+              color: '#222',
+              border: '1px solid #c9a050',
+              borderRadius: 6,
+              textDecoration: 'none',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            PDF Preview
+          </a>
           {(status === 'draft' || status === 'sent') && (
             <button
               type="button"
