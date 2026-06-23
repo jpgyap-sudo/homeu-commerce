@@ -81,6 +81,12 @@ export default function CustomerQuotationPage() {
     loadQuotation()
   }, [params?.id, router])
 
+  const [actionLoading, setActionLoading] = useState(false)
+  const [actionMsg, setActionMsg] = useState('')
+  const [showRevise, setShowRevise] = useState(false)
+  const [reviseText, setReviseText] = useState('')
+  const [reviseItems, setReviseItems] = useState<Set<string>>(new Set())
+
   if (loading) {
     return (
       <main style={{ maxWidth: 800, margin: '40px auto', padding: '0 24px', textAlign: 'center' }}>
@@ -99,12 +105,6 @@ export default function CustomerQuotationPage() {
       </main>
     )
   }
-
-  const [actionLoading, setActionLoading] = useState(false)
-  const [actionMsg, setActionMsg] = useState('')
-  const [showRevise, setShowRevise] = useState(false)
-  const [reviseText, setReviseText] = useState('')
-  const [reviseItems, setReviseItems] = useState<Set<string>>(new Set())
 
   async function handleApprove() {
     if (!quotation) return

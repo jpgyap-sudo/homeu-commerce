@@ -95,6 +95,17 @@ export default function RFQDetailPage() {
     loadRFQ()
   }, [params?.id, router])
 
+  // Dynamic import of RfqChatContainer — declared before early returns to
+  // comply with React's Rules of Hooks (all hooks must be called in the same
+  // order on every render, so they cannot be placed after if/return).
+  const [ChatComponent, setChatComponent] = useState<any>(null)
+
+  useEffect(() => {
+    import('@/components/rfq-chat/RfqChatContainer').then(mod => {
+      setChatComponent(() => mod.default)
+    }).catch(() => {})
+  }, [])
+
   if (loading) {
     return (
       <main style={{ maxWidth: 700, margin: '40px auto', padding: '0 24px', textAlign: 'center' }}>
@@ -163,15 +174,6 @@ export default function RFQDetailPage() {
     }
     if (added > 0) router.push('/quote-cart')
   }
-
-  // Dynamic import of RfqChatContainer
-  const [ChatComponent, setChatComponent] = useState<any>(null)
-
-  useEffect(() => {
-    import('@/components/rfq-chat/RfqChatContainer').then(mod => {
-      setChatComponent(() => mod.default)
-    }).catch(() => {})
-  }, [])
 
   return (
     <main style={{ maxWidth: 700, margin: '40px auto', padding: '0 24px' }}>
