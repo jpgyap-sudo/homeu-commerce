@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const offset = Math.max(Number(searchParams.get('offset')) || 0, 0)
 
     let sql = `
-      SELECT a.*, l.name as lead_name, l.email as lead_email, l.mobile as lead_mobile
+      SELECT a.*, TO_CHAR(a.preferred_date, 'YYYY-MM-DD') as preferred_date, l.name as lead_name, l.email as lead_email, l.mobile as lead_mobile
       FROM chatbot.appointments a
       LEFT JOIN chatbot.leads l ON l.id = a.lead_id
       WHERE 1=1

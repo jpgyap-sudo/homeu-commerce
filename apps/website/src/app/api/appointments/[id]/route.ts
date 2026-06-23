@@ -17,7 +17,7 @@ export async function GET(
   try {
     const { id } = await params
     const r = await query(
-      `SELECT a.*, l.name as lead_name, l.email as lead_email, l.mobile as lead_mobile
+      `SELECT a.*, TO_CHAR(a.preferred_date, 'YYYY-MM-DD') as preferred_date, l.name as lead_name, l.email as lead_email, l.mobile as lead_mobile
        FROM chatbot.appointments a
        LEFT JOIN chatbot.leads l ON a.lead_id = l.id
        WHERE a.id = $1`,
@@ -50,7 +50,7 @@ export async function PATCH(
 
     const result = await query(
       `UPDATE chatbot.appointments SET status = $1, notes = COALESCE($2, notes)
-       WHERE id = $3 RETURNING *`,
+       WHERE id = $3 RETURNING *, TO_CHAR(preferred_date, 'YYYY-MM-DD') as preferred_date`,
       [body.status, typeof body.notes === 'string' ? body.notes : null, id]
     )
     if (result.rowCount === 0) {

@@ -27,7 +27,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const result = await query('SELECT * FROM quotations WHERE id = $1', [id])
+    const result = await query("SELECT *, TO_CHAR(valid_until, 'YYYY-MM-DD') as valid_until FROM quotations WHERE id = $1", [id])
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
     }
@@ -101,7 +101,7 @@ export async function PATCH(
         `UPDATE quotations SET pending_revision = false, revision_request = '', current_version = current_version + 1, updated_at = NOW() WHERE id = $1`,
         [id]
       )
-      const row = await query('SELECT * FROM quotations WHERE id = $1', [id])
+      const row = await query("SELECT *, TO_CHAR(valid_until, 'YYYY-MM-DD') as valid_until FROM quotations WHERE id = $1", [id])
       return NextResponse.json({ ...row.rows[0], revisionResolved: true })
     }
 
@@ -116,7 +116,7 @@ export async function PATCH(
     }
     if (fields.length === 0) {
       // Just the revision resolve, no data changes
-      const row = await query('SELECT * FROM quotations WHERE id = $1', [id])
+      const row = await query("SELECT *, TO_CHAR(valid_until, 'YYYY-MM-DD') as valid_until FROM quotations WHERE id = $1", [id])
       return NextResponse.json({ ...snakeToCamel(row.rows[0]), revisionResolved: true })
     }
     const sets = fields.map((f, i) => {
@@ -134,7 +134,7 @@ export async function PATCH(
     })
     values.push(id)
     const result = await query(
-      `UPDATE quotations SET ${sets}, updated_at = NOW() WHERE id = $${values.length} RETURNING *`,
+      `UPDATE quotations SET ${sets}, updated_at = NOW() WHERE id = $${values.length} RETURNING *, TO_CHAR(valid_until, 'YYYY-MM-DD') as valid_until`,
       values
     )
     if (result.rows.length === 0) {
