@@ -46,6 +46,7 @@ export default function AdminQuotationsPage() {
   const [error, setError] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [sendingId, setSendingId] = useState<string | null>(null)
 
   useEffect(() => {
     loadQuotations()
@@ -83,6 +84,87 @@ export default function AdminQuotationsPage() {
       setQuotations(prev => prev.filter(q => q.id !== id))
     } catch (err: any) {
       alert(err.message)
+    }
+  }
+
+  async function handleQuickSend(q: Quotation) {
+    if (!q.email || !q.email.trim()) {
+      alert('Client email address is required to send the quotation. Please edit the quotation to add an email address.')
+      return
+    }
+
+    if (!confirm(`Send quotation #${q.quotationNumber} to client email (${q.email})?`)) return
+
+    setSendingId(q.id)
+    setError('')
+
+    try {
+      // 1. Fetch single quotation to get guestToken
+      const detailRes = await fetch(`/api/quotations/${q.id}`, { credentials: 'include' })
+      if (!detailRes.ok) throw new Error('Failed to load quotation details')
+      const detailData = await detailRes.json()
+      const guestToken = detailData.guestToken
+
+      // 2. Send the email using the SMTP endpoint
+      const guestUrl = `${window.location.origin}/quotation/${q.id}?token=${guestToken || ''}`
+      const emailBody = `Dear ${q.customerName},
+
+Thank you for choosing Home Atelier. We have prepared your quotation #${q.quotationNumber} for your review.
+
+You can view the full details and respond to this quotation online at:
+${guestUrl}
+
+If you have any questions or would like to request revisions, please let us know.
+
+Best regards,
+Home Atelier Team`
+
+      const emailRes = await fetch('/api/admin/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: q.email.trim(),
+          subject: `Quotation #${q.quotationNumber} from Home Atelier`,
+          body: emailBody,
+        }),
+      })
+
+      if (!emailRes.ok) {
+        const emailErr = await emailRes.json()
+        throw new Error(emailErr.error || 'Failed to send email to client')
+      }
+      const emailData = await emailRes.json()
+
+      // 3. Update status in db
+      const res = await fetch(`/api/quotations/${q.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'sent',
+          sentAt: new Date().toISOString(),
+          sentVia: 'email',
+        }),
+      })
+
+      if (!res.ok) throw new Error('Failed to update quotation status to Sent')
+
+      let msg = `Quotation #${q.quotationNumber} sent successfully to ${q.email}!`
+      if (emailData.note && emailData.note.includes('saved locally')) {
+        msg = `Quotation status updated to Sent! (SMTP is not configured, so the email was saved to the inbox locally for simulation)`
+      }
+
+      alert(msg)
+      // Update local state status
+      setQuotations(prev => prev.map(item => {
+        if (item.id === q.id) {
+          return { ...item, status: 'sent' }
+        }
+        return item
+      }))
+    } catch (err: any) {
+      alert(err.message || 'Failed to send')
+    } finally {
+      setSendingId(null)
     }
   }
 
@@ -300,7 +382,24 @@ export default function AdminQuotationsPage() {
                         : '—'}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
+                        {q.status === 'draft' && (
+                          <button
+                            onClick={() => handleQuickSend(q)}
+                            disabled={sendingId !== null}
+                            style={{
+                              color: '#0066cc',
+                              fontSize: 13,
+                              background: 'none',
+                              border: 'none',
+                              cursor: sendingId !== null ? 'not-allowed' : 'pointer',
+                              padding: 0,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {sendingId === q.id ? 'Sending...' : 'Send'}
+                          </button>
+                        )}
                         <Link
                           href={`/admin/quotations/${q.id}`}
                           style={{ color: '#222', fontSize: 13 }}

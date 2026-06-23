@@ -3,6 +3,20 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { extractMaterialsFromDescription, extractDimensionsFromDescription } from '@/lib/format-utils'
+
+interface Product {
+  id: string
+  title: string
+  sku?: string
+  price?: number
+  salePrice?: number
+  dimensions?: string
+  materials?: string
+  description?: any
+  images?: Array<{ url: string }>
+}
+
 
 interface QuotationItem {
   id: string
@@ -50,6 +64,8 @@ interface QuotationData {
   createdAt: string
   updatedAt: string
   guestToken?: string
+  pending_revision?: boolean
+  revision_request?: string
 }
 
 function computeDiscountedCost(unitCost: number, discountPercent: number): number {
@@ -85,30 +101,142 @@ export default function EditQuotationPage() {
   const [internalNotes, setInternalNotes] = useState('')
   const [terms, setTerms] = useState<Record<string, string>>({})
 
+  // Product Picker state
+  const [showProductPicker, setShowProductPicker] = useState(false)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loadingProducts, setLoadingProducts] = useState(false)
+  const [productSearch, setProductSearch] = useState('')
+
+  // Versions state
+  const [versions, setVersions] = useState<any[]>([])
+  const [loadingVersions, setLoadingVersions] = useState(false)
+
   const subtotal = items.reduce((sum: number, item: any) => sum + item.total, 0)
   const grandTotal = Math.round((subtotal + shippingCost) * 100) / 100
 
+  // Load products when picker is opened or search changes
   useEffect(() => {
-    async function loadQuotation() {
+    if (productSearch.length >= 2 || showProductPicker) {
+      loadProducts()
+    }
+  }, [productSearch, showProductPicker])
+
+  async function loadProducts() {
+    setLoadingProducts(true)
+    try {
+      let url = '/api/products?limit=20&depth=2'
+      if (productSearch) {
+        url += `&where[or][0][title][contains]=${encodeURIComponent(productSearch)}&where[or][1][sku][contains]=${encodeURIComponent(productSearch)}`
+      }
+      const res = await fetch(url)
+      if (res.ok) {
+        const data = await res.json()
+        setProducts(data.docs || [])
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err)
+    } finally {
+      setLoadingProducts(false)
+    }
+  }
+
+  function handleSelectProduct(product: Product) {
+    const newItem = {
+      key: `item-${Date.now()}`,
+      id: `item-${Date.now()}`,
+      itemNumber: items.length + 1,
+      productId: product.id,
+      productTitle: product.title,
+      description: product.title,
+      material: product.materials || extractMaterialsFromDescription(product.description),
+      dimensions: product.dimensions || extractDimensionsFromDescription(product.description),
+      color: '',
+      imageUrl: product.images?.[0]?.url || '',
+      quantity: 1,
+      unitCost: product.salePrice || product.price || 0,
+      discountPercent: 0,
+      discountedCost: computeDiscountedCost(product.salePrice || product.price || 0, 0),
+      total: computeTotal(computeDiscountedCost(product.salePrice || product.price || 0, 0), 1),
+    }
+    setItems(prev => [...prev, newItem])
+    setShowProductPicker(false)
+    setProductSearch('')
+  }
+
+  useEffect(() => {
+    async function loadQuotationAndVersions() {
       try {
         const id = params?.id
         if (!id) throw new Error('Quotation ID not found')
 
-        const res = await fetch(`/api/quotations/${id}`, { credentials: 'include' })
-        if (!res.ok) throw new Error('Failed to load quotation')
+        setLoadingVersions(true)
+        const [qRes, vRes] = await Promise.all([
+          fetch(`/api/quotations/${id}`, { credentials: 'include' }),
+          fetch(`/api/quotations/${id}/versions`, { credentials: 'include' })
+        ])
 
-        const data: QuotationData = await res.json()
+        if (!qRes.ok) throw new Error('Failed to load quotation')
+        const data: QuotationData = await qRes.json()
         setQuotation(data)
         populateForm(data)
+
+        if (vRes.ok) {
+          const vData = await vRes.json()
+          setVersions(vData.versions || [])
+        }
       } catch (err: any) {
-        setError(err.message || 'Failed to load quotation')
+        setError(err.message || 'Failed to load quotation data')
       } finally {
         setLoading(false)
+        setLoadingVersions(false)
       }
     }
 
-    loadQuotation()
+    loadQuotationAndVersions()
   }, [params?.id])
+
+  async function handleResolveRevision() {
+    setSaving(true)
+    setError('')
+    setSuccess('')
+    try {
+      const id = params?.id
+      if (!id) throw new Error('Quotation ID not found')
+
+      const res = await fetch(`/api/quotations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolveRevision: true }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to resolve revision')
+      }
+
+      setSuccess('Revision request resolved successfully!')
+      
+      // Reload details and versions
+      const [updatedRes, verRes] = await Promise.all([
+        fetch(`/api/quotations/${id}`, { credentials: 'include' }),
+        fetch(`/api/quotations/${id}/versions`, { credentials: 'include' })
+      ])
+      
+      if (updatedRes.ok) {
+        const data = await updatedRes.json()
+        setQuotation(data)
+        populateForm(data)
+      }
+      if (verRes.ok) {
+        const vData = await verRes.json()
+        setVersions(vData.versions || [])
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to resolve revision')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   function populateForm(data: QuotationData) {
     setCustomerName(data.customerName || '')
@@ -262,7 +390,47 @@ export default function EditQuotationPage() {
       const id = params?.id
       if (!id) throw new Error('Quotation ID not found')
 
-      // 1. Send the email using the SMTP endpoint
+      // ── Auto-save current form state before sending ──
+      const quotationUpdate = {
+        customerName,
+        email: email || undefined,
+        phone,
+        deliveryLocation: deliveryLocation || undefined,
+        projectType: projectType || undefined,
+        items: items.map((item: any) => ({
+          ...item,
+          product: item.productId || (typeof item.product === 'object' ? item.product?.id : item.product) || undefined,
+        })),
+        subtotal,
+        shippingCost,
+        grandTotal,
+        validUntil: validUntil || null,
+        status, // keep current status for save step
+        sentAt: sentAt || undefined,
+        sentVia: sentVia || undefined,
+        internalNotes: internalNotes || undefined,
+        termsDeliveryLeadtime: terms.deliveryLeadtime,
+        termsPaymentTerms: terms.paymentTerms,
+        termsWarranty: terms.warranty,
+        termsBankDetails: terms.bankDetails,
+        termsCancellationPolicy: terms.cancellationPolicy,
+        termsReturnPolicy: terms.returnPolicy,
+        termsRejectionOfItems: terms.rejectionOfItems,
+        termsRefundPolicy: terms.refundPolicy,
+      }
+
+      const saveRes = await fetch(`/api/quotations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(quotationUpdate),
+      })
+
+      if (!saveRes.ok) {
+        const saveErrData = await saveRes.json()
+        throw new Error(saveErrData.error || 'Failed to save changes before sending')
+      }
+
+      // ── Now proceed with sending email ──
       const guestUrl = `${window.location.origin}/quotation/${id}?token=${quotation?.guestToken || ''}`
       const emailBody = `Dear ${customerName},
 
@@ -305,16 +473,31 @@ Home Atelier Team`
 
       if (!res.ok) throw new Error('Failed to update quotation status to Sent')
 
-      let msg = `Quotation sent successfully via email to ${email}!`
+      let msg = `Quotation saved and sent successfully via email to ${email}!`
       if (emailData.note && emailData.note.includes('saved locally')) {
-        msg = `Quotation status updated to Sent! (SMTP is not configured, so the email was saved to the inbox locally for simulation)`
+        msg = `Quotation changes saved and status updated to Sent! (SMTP is not configured, so the email was saved to the inbox locally for simulation)`
       }
 
       setSuccess(msg)
       setStatus('sent')
-      setSentAt(new Date().toISOString())
+      const newSentAt = new Date().toISOString()
+      setSentAt(newSentAt)
       setSentVia('email')
-      setTimeout(() => router.refresh(), 1500)
+
+      // Reload details and versions
+      const [updatedRes, verRes] = await Promise.all([
+        fetch(`/api/quotations/${id}`, { credentials: 'include' }),
+        fetch(`/api/quotations/${id}/versions`, { credentials: 'include' })
+      ])
+      
+      if (updatedRes.ok) {
+        const data = await updatedRes.json()
+        setQuotation(data)
+      }
+      if (verRes.ok) {
+        const vData = await verRes.json()
+        setVersions(vData.versions || [])
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to send')
     } finally {
@@ -457,6 +640,47 @@ Home Atelier Team`
         <div style={{ background: '#e8f5e9', color: '#2e7d32', padding: '12px 16px', borderRadius: 6, marginBottom: 20, fontSize: 14 }}>{success}</div>
       )}
 
+      {quotation?.pending_revision && (
+        <div style={{
+          background: '#fff3cd',
+          border: '1.5px solid #ffeeba',
+          borderRadius: 8,
+          padding: 16,
+          marginBottom: 20,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 16,
+        }}>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: '#856404' }}>
+              🔄 Revision Requested by Client
+            </h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#856404', fontStyle: 'italic' }}>
+              &ldquo;{quotation.revision_request || 'No message provided'}&rdquo;
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleResolveRevision}
+            disabled={saving}
+            style={{
+              padding: '8px 16px',
+              background: '#856404',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              cursor: saving ? 'not-allowed' : 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {saving ? 'Processing...' : 'Mark as Resolved'}
+          </button>
+        </div>
+      )}
+
       {rfqId && (
         <div style={{ display: 'inline-block', background: '#e8f5e9', border: '1px solid #c8e6c9', borderRadius: 8, padding: '8px 12px', fontSize: 13, marginBottom: 16 }}>
           ✓ Linked to RFQ: <Link href={`/admin/rfq/${rfqId}`} style={{ color: '#0066cc', fontWeight: 600 }}>View RFQ Details</Link>
@@ -547,7 +771,96 @@ Home Atelier Team`
 
         {/* Items */}
         <div style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: 8, padding: 20, marginBottom: 24 }}>
-          <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>Items</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h2 style={{ margin: 0, fontSize: 18 }}>Items</h2>
+            <button
+              type="button"
+              onClick={() => setShowProductPicker(true)}
+              style={{
+                padding: '8px 16px',
+                background: '#222',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              + Add Product
+            </button>
+          </div>
+
+          {/* Product Picker Modal */}
+          {showProductPicker && (
+            <div style={{
+              border: '1px solid #ccc',
+              borderRadius: 8,
+              padding: 16,
+              marginBottom: 16,
+              background: '#fff',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <strong style={{ fontSize: 14 }}>Select a Product</strong>
+                <button
+                  type="button"
+                  onClick={() => { setShowProductPicker(false); setProductSearch('') }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#666' }}
+                >
+                  ✕ Close
+                </button>
+              </div>
+              <input
+                type="text"
+                placeholder="Search products by name or SKU..."
+                value={productSearch}
+                onChange={e => setProductSearch(e.target.value)}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #ccc',
+                  borderRadius: 6,
+                  fontSize: 14,
+                  boxSizing: 'border-box',
+                  marginBottom: 8,
+                }}
+              />
+              {loadingProducts ? (
+                <p style={{ fontSize: 13, color: '#666' }}>Loading products...</p>
+              ) : (
+                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                  {products.map(product => (
+                    <div
+                      key={product.id}
+                      onClick={() => handleSelectProduct(product)}
+                      style={{
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid #eee',
+                        borderRadius: 4,
+                        marginBottom: 2,
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#f5f5f5' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
+                    >
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{product.title}</div>
+                      <div style={{ fontSize: 12, color: '#666' }}>
+                        {product.sku && `SKU: ${product.sku} · `}
+                        ₱{(product.salePrice || product.price || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                        {product.dimensions && ` · ${product.dimensions}`}
+                        {product.materials && ` · ${product.materials}`}
+                      </div>
+                    </div>
+                  ))}
+                  {products.length === 0 && productSearch.length >= 2 && (
+                    <p style={{ fontSize: 13, color: '#999' }}>No products found.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {items.length === 0 ? (
             <p style={{ textAlign: 'center', color: '#999', fontSize: 14 }}>No items in this quotation.</p>
           ) : (
@@ -689,6 +1002,62 @@ Home Atelier Team`
                 </div>
               ))}
             </div>
+          </div>
+        </details>
+
+        {/* Version History (collapsible summary) */}
+        <details style={{ marginBottom: 24 }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 16, padding: '8px 0', userSelect: 'none' }}>
+            📜 Version History & Changelog ({versions.length})
+          </summary>
+          <div style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: 8, padding: 20, marginTop: 12 }}>
+            {loadingVersions ? (
+              <p style={{ fontSize: 13, color: '#666' }}>Loading version history...</p>
+            ) : versions.length === 0 ? (
+              <p style={{ fontSize: 13, color: '#999', margin: 0 }}>No version history recorded yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {versions.map((ver: any) => (
+                  <div key={ver.id} style={{ borderBottom: '1px solid #eef1ed', paddingBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <strong style={{ fontSize: 14 }}>Version #{ver.version_number}</strong>
+                      <span style={{ fontSize: 12, color: '#666' }}>
+                        {new Date(ver.created_at).toLocaleString('en-PH')} by {ver.created_by}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#444', marginBottom: 6 }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        background: ver.revision_type === 'customer_revision' ? '#fff3cd' : ver.revision_type === 'initial' ? '#e8f2ec' : '#e0f2fe',
+                        color: ver.revision_type === 'customer_revision' ? '#856404' : ver.revision_type === 'initial' ? '#1a6d3e' : '#0369a1',
+                        marginRight: 8,
+                        textTransform: 'capitalize'
+                      }}>
+                        {ver.revision_type ? ver.revision_type.replace('_', ' ') : 'edit'}
+                      </span>
+                      {ver.revision_message && (
+                        <span style={{ fontStyle: 'italic', color: '#555' }}>
+                          &ldquo;{ver.revision_message}&rdquo;
+                        </span>
+                      )}
+                    </div>
+                    {ver.changelog && Array.isArray(ver.changelog) && ver.changelog.length > 0 && (
+                      <ul style={{ margin: '4px 0 0 20px', padding: 0, fontSize: 12, color: '#666' }}>
+                        {ver.changelog.map((c: any, idx: number) => (
+                          <li key={idx} style={{ marginBottom: 2 }}>
+                            <strong>{c.label}:</strong> {c.from} &rarr; {c.to}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </details>
 
