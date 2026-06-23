@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { renderLexical } from '@/lib/renderLexical'
-import { formatPrice } from '@/lib/format-utils'
+import { formatPrice, cleanHtmlToText } from '@/lib/format-utils'
 import { QuickRFQ } from '@/components/QuoteCart'
 import BundleOffer from '@/components/BundleOffer'
 import { getProductBadges, isOnSale } from '@/lib/product-badges'
@@ -282,22 +282,44 @@ export default function ProductDetailClient({ product, config = {} }: { product:
           </p>
 
           {/* Meta */}
-          {((product.materials && showMaterials) || (product.dimensions && showDimensions)) && (
-            <div className="product-detail__meta">
-              {product.materials && showMaterials && (
-                <div className="product-detail__meta-row">
-                  <span className="product-detail__meta-label">Materials</span>
-                  <span>{product.materials}</span>
-                </div>
-              )}
-              {product.dimensions && showDimensions && (
-                <div className="product-detail__meta-row">
-                  <span className="product-detail__meta-label">Dimensions</span>
-                  <span>{product.dimensions}</span>
-                </div>
-              )}
-            </div>
-          )}
+          {(() => {
+            const cleanDesc = cleanHtmlToText(product.description).toLowerCase()
+            
+            const isMaterialsDuplicated = product.materials ? (
+              cleanDesc.includes(product.materials.toLowerCase()) || 
+              cleanDesc.includes('material:') || 
+              cleanDesc.includes('materials:')
+            ) : false
+            
+            const isDimensionsDuplicated = product.dimensions ? (
+              cleanDesc.includes(product.dimensions.toLowerCase()) || 
+              cleanDesc.includes('dimension:') || 
+              cleanDesc.includes('dimensions:') || 
+              cleanDesc.includes('size:')
+            ) : false
+
+            const displayMaterials = product.materials && showMaterials && !isMaterialsDuplicated
+            const displayDimensions = product.dimensions && showDimensions && !isDimensionsDuplicated
+
+            if (!displayMaterials && !displayDimensions) return null
+
+            return (
+              <div className="product-detail__meta">
+                {displayMaterials && (
+                  <div className="product-detail__meta-row">
+                    <span className="product-detail__meta-label">Materials</span>
+                    <span>{product.materials}</span>
+                  </div>
+                )}
+                {displayDimensions && (
+                  <div className="product-detail__meta-row">
+                    <span className="product-detail__meta-label">Dimensions</span>
+                    <span>{product.dimensions}</span>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Description */}
           {descHtml && (
