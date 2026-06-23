@@ -106,6 +106,11 @@ export default function ProductDetailClient({ product, config = {} }: { product:
         }
       ` }} />
 
+      {/* Bundle offer — sits above the gallery/add-to-cart, same placement as homeu.ph */}
+      <div className="page-width">
+        <BundleOffer productSlug={product.slug} mainVariantId={selectedVariantId} />
+      </div>
+
       {/* Breadcrumb */}
       {showBreadcrumbs && (
         <nav className="breadcrumb page-width" aria-label="Breadcrumb">
@@ -329,10 +334,6 @@ export default function ProductDetailClient({ product, config = {} }: { product:
             />
           )}
         </div>
-      </div>
-
-      <div className="page-width">
-        <BundleOffer productSlug={product.slug} mainVariantId={selectedVariantId} />
       </div>
 
       <div className="page-width">
