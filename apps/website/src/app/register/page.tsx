@@ -4,6 +4,8 @@ import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+const BRAND_LOGO = 'https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/uploads/efd19283f64781b5bde261b2ddfb68f2168affb76ed6e34f642c1b3b0f58d8af.png'
+
 type Step = 'form' | 'otp'
 
 export default function RegisterPage() {
@@ -127,6 +129,17 @@ export default function RegisterPage() {
   if (step === 'otp') {
     return (
       <div style={{ display: 'flex', minHeight: '100vh', background: '#faf9f6' }}>
+        <style>{`
+          @keyframes registerLogoJump {
+            0%, 100% { transform: translateY(0) scale(1); }
+            30% { transform: translateY(-14px) scale(1.04); }
+            50% { transform: translateY(0) scale(0.98); }
+            65% { transform: translateY(-4px) scale(1.01); }
+          }
+          .register-brand-logo-badge {
+            animation: registerLogoJump 2.6s ease-in-out infinite;
+          }
+        `}</style>
         {/* Left brand panel */}
         <div style={{
           flex: '0 0 400px', background: 'linear-gradient(135deg, #151a17 0%, #2a3228 50%, #1a2620 100%)',
@@ -135,7 +148,22 @@ export default function RegisterPage() {
         }}>
           <div style={{ position: 'absolute', inset: 0, opacity: 0.04, background: 'radial-gradient(circle at 30% 50%, #fff 0%, transparent 60%), radial-gradient(circle at 70% 80%, #b88935 0%, transparent 50%)' }} />
           <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
+            {BRAND_LOGO ? (
+              <div
+                className="register-brand-logo-badge"
+                style={{
+                  width: 240, height: 240, margin: '0 auto 24px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #fff 0%, #fdf6e8 100%)',
+                  border: '3px solid #b88935',
+                  boxShadow: '0 10px 28px rgba(184, 137, 53, 0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <img src={BRAND_LOGO} alt="Home Atelier" style={{ width: 180, height: 180, objectFit: 'contain' }} />
+              </div>
+            ) : (
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
+            )}
             <h1 style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: 32, fontWeight: 400, color: '#fff', margin: '0 0 8px', letterSpacing: '-0.02em' }}>Check your email</h1>
             <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 1.6, maxWidth: 280 }}>
               We sent a 6-digit verification code to <strong style={{ color: '#fff' }}>{email}</strong>
@@ -224,6 +252,17 @@ export default function RegisterPage() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#faf9f6' }}>
+      <style>{`
+        @keyframes registerLogoJump {
+          0%, 100% { transform: translateY(0) scale(1); }
+          30% { transform: translateY(-14px) scale(1.04); }
+          50% { transform: translateY(0) scale(0.98); }
+          65% { transform: translateY(-4px) scale(1.01); }
+        }
+        .register-brand-logo-badge {
+          animation: registerLogoJump 2.6s ease-in-out infinite;
+        }
+      `}</style>
       {/* Left brand panel */}
       <div style={{
         flex: '0 0 400px', background: 'linear-gradient(135deg, #151a17 0%, #2a3228 50%, #1a2620 100%)',
@@ -232,7 +271,22 @@ export default function RegisterPage() {
       }}>
         <div style={{ position: 'absolute', inset: 0, opacity: 0.04, background: 'radial-gradient(circle at 30% 50%, #fff 0%, transparent 60%), radial-gradient(circle at 70% 80%, #b88935 0%, transparent 50%)' }} />
         <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🏡</div>
+          {BRAND_LOGO ? (
+            <div
+              className="register-brand-logo-badge"
+              style={{
+                width: 240, height: 240, margin: '0 auto 24px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #fff 0%, #fdf6e8 100%)',
+                border: '3px solid #b88935',
+                boxShadow: '0 10px 28px rgba(184, 137, 53, 0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <img src={BRAND_LOGO} alt="Home Atelier" style={{ width: 180, height: 180, objectFit: 'contain' }} />
+            </div>
+          ) : (
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🏡</div>
+          )}
           <h1 style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: 36, fontWeight: 400, color: '#fff', margin: '0 0 8px', letterSpacing: '-0.02em' }}>Join Home Atelier</h1>
           <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 1.6, maxWidth: 280 }}>
             Create an account to save your favorite pieces, get pricing, and submit quotation requests.

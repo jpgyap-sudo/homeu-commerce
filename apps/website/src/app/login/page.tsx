@@ -191,6 +191,17 @@ export default function LoginPage() {
   if (step === 'otp_verify') {
     return (
       <div style={{ display: 'flex', minHeight: '100vh', background: '#faf9f6' }}>
+        <style>{`
+          @keyframes loginLogoJump {
+            0%, 100% { transform: translateY(0) scale(1); }
+            30% { transform: translateY(-14px) scale(1.04); }
+            50% { transform: translateY(0) scale(0.98); }
+            65% { transform: translateY(-4px) scale(1.01); }
+          }
+          .login-brand-logo-badge {
+            animation: loginLogoJump 2.6s ease-in-out infinite;
+          }
+        `}</style>
         {/* Left brand panel */}
         <div style={{
           flex: '0 0 480px', background: 'linear-gradient(135deg, #eaf4fb 0%, #d7ebf8 50%, #c3e0f3 100%)',
@@ -199,7 +210,22 @@ export default function LoginPage() {
         }}>
           <div style={{ position: 'absolute', inset: 0, opacity: 0.05, background: 'radial-gradient(circle at 30% 50%, #fff 0%, transparent 60%), radial-gradient(circle at 70% 80%, #b88935 0%, transparent 50%)' }} />
           <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🔐</div>
+            {BRAND_LOGO ? (
+              <div
+                className="login-brand-logo-badge"
+                style={{
+                  width: 320, height: 320, margin: '0 auto 16px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #fff 0%, #fdf6e8 100%)',
+                  border: '4px solid #b88935',
+                  boxShadow: '0 12px 36px rgba(184, 137, 53, 0.35)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <img src={BRAND_LOGO} alt="Home Atelier" style={{ width: 240, height: 240, objectFit: 'contain' }} />
+              </div>
+            ) : (
+              <div style={{ fontSize: 48, marginBottom: 16 }}>🔐</div>
+            )}
             <h2 style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: 28, fontWeight: 400, color: '#151a17', margin: '0 0 8px' }}>Verify it's you</h2>
             <p style={{ color: 'rgba(26,38,32,0.65)', fontSize: 14, lineHeight: 1.6, maxWidth: 260 }}>
               We sent a verification code to <strong>{email}</strong> since this device isn't recognized.

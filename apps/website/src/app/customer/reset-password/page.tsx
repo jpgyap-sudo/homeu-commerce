@@ -74,10 +74,14 @@ function ResetPasswordContent() {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{
-            width: 56, height: 56, borderRadius: 14, background: '#151a17',
+            width: 56, height: 56, borderRadius: '50%', border: '1px solid #b88935',
+            background: 'linear-gradient(135deg, #fff 0%, #fdf6e8 100%)',
+            boxShadow: '0 4px 12px rgba(184, 137, 53, 0.15)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 28, marginBottom: 16,
-          }}>🔐</div>
+            marginBottom: 16, overflow: 'hidden'
+          }}>
+            <img src="https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/uploads/reviews/bdda42a44380cbd7858cdc620097aed8e17f7bd2d1837be245688e77c9942ba5.png" alt="Home Atelier" style={{ width: 44, height: 44, objectFit: 'contain' }} />
+          </div>
           <h1 style={{
             fontFamily: "'Crimson Text', Georgia, serif", fontSize: 28, fontWeight: 400,
             margin: '0 0 6px', color: '#151a17',
