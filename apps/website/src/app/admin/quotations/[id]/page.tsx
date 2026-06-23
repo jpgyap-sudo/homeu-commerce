@@ -76,6 +76,19 @@ function computeTotal(discountedCost: number, quantity: number): number {
   return Math.round(discountedCost * quantity * 100) / 100
 }
 
+function storefrontBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL || ''
+  if (configured && !configured.includes('admin.homeatelier.ph')) {
+    return configured.replace(/\/$/, '')
+  }
+  return 'https://store.homeatelier.ph'
+}
+
+function quotationPublicUrl(id: string, token?: string): string {
+  const suffix = token ? `?token=${encodeURIComponent(token)}` : ''
+  return `${storefrontBaseUrl()}/quotation/${id}${suffix}`
+}
+
 export default function EditQuotationPage() {
   const params = useParams()
   const router = useRouter()
@@ -368,7 +381,7 @@ export default function EditQuotationPage() {
 
   function handleCopyLink() {
     if (!quotation) return
-    const guestUrl = `${window.location.origin}/quotation/${quotation.id}?token=${quotation.guestToken || ''}`
+    const guestUrl = quotationPublicUrl(quotation.id, quotation.guestToken)
     navigator.clipboard.writeText(guestUrl)
     setSuccess('Client quotation link copied to clipboard!')
     setTimeout(() => setSuccess(''), 3000)
@@ -428,7 +441,7 @@ export default function EditQuotationPage() {
       }
 
       // ── Now proceed with sending email ──
-      const guestUrl = `${window.location.origin}/quotation/${id}?token=${quotation?.guestToken || ''}`
+      const guestUrl = quotationPublicUrl(String(id), quotation?.guestToken)
       const emailBody = `Dear ${customerName},
 
 Thank you for choosing Home Atelier. We have prepared your quotation #${quotation?.quotationNumber || ''} for your review.
@@ -539,8 +552,8 @@ Home Atelier Team`
   }
 
   const clientPreviewHref = quotation?.guestToken
-    ? `/quotation/${quotation.id}?token=${quotation.guestToken}`
-    : `/quotation/${quotation?.id || ''}`
+    ? quotationPublicUrl(quotation.id, quotation.guestToken)
+    : quotation ? quotationPublicUrl(quotation.id) : storefrontBaseUrl()
   const pdfPreviewHref = `/api/admin/quotations/pdf/${quotation?.id}?preview=1`
 
   return (

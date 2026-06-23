@@ -39,6 +39,19 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   rejected: { label: '❌ Rejected', color: '#e74c3c' },
 }
 
+function storefrontBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL || ''
+  if (configured && !configured.includes('admin.homeatelier.ph')) {
+    return configured.replace(/\/$/, '')
+  }
+  return 'https://store.homeatelier.ph'
+}
+
+function quotationPublicUrl(id: string, token?: string): string {
+  const suffix = token ? `?token=${encodeURIComponent(token)}` : ''
+  return `${storefrontBaseUrl()}/quotation/${id}${suffix}`
+}
+
 export default function AdminQuotationsPage() {
   const router = useRouter()
   const [quotations, setQuotations] = useState<Quotation[]>([])
@@ -106,7 +119,7 @@ export default function AdminQuotationsPage() {
       const guestToken = detailData.guestToken
 
       // 2. Send the email using the SMTP endpoint
-      const guestUrl = `${window.location.origin}/quotation/${q.id}?token=${guestToken || ''}`
+      const guestUrl = quotationPublicUrl(q.id, guestToken)
       const emailBody = `Dear ${q.customerName},
 
 Thank you for choosing Home Atelier. We have prepared your quotation #${q.quotationNumber} for your review.
