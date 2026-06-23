@@ -14,6 +14,7 @@ type RFQItemInput = {
   price?: number
   quantity?: number
   notes?: string
+  acceptsAlternatives?: boolean
 }
 
 /**
@@ -36,10 +37,27 @@ export async function GET(request: NextRequest) {
 
     // Single RFQ detail
     if (id) {
+      // r.customer_name/email/phone are a snapshot taken at submission time
+      // (always present, even for guest/chatbot RFQs with no customer row).
+      // Enrich — never overwrite — with the customers.company and the most
+      // recent matching chatbot.leads row (buyer_type/score), best-effort.
       const r = await query(
-        `SELECT r.*, c.name as customer_name, c.email as customer_email, c.phone as customer_phone
+        `SELECT r.*,
+                c.company AS customer_company,
+                cl.buyer_type AS lead_buyer_type,
+                cl.company_name AS lead_company_name,
+                cl.score AS lead_score,
+                cl.score_label AS lead_score_label
          FROM rfq_requests r
          LEFT JOIN customers c ON r.customer_id = c.id
+         LEFT JOIN LATERAL (
+           SELECT buyer_type, company_name, score, score_label
+           FROM chatbot.leads
+           WHERE davincios_customer_id = r.customer_id::text
+              OR LOWER(email) = LOWER(r.email)
+           ORDER BY created_at DESC
+           LIMIT 1
+         ) cl ON true
          WHERE r.id = $1`,
         [parseInt(id)]
       )
@@ -72,11 +90,19 @@ export async function GET(request: NextRequest) {
         return {
           ...item,
           product_materials: materials,
-          product_dimensions: dimensions
+          product_dimensions: dimensions,
+          // pg returns NUMERIC columns as strings — coerce so the admin UI
+          // can do arithmetic (quantity * price) without string concatenation.
+          quantity: Number(item.quantity) || 0,
+          unit_price_snapshot: Number(item.unit_price_snapshot) || 0,
         }
       })
 
-      return NextResponse.json({ ...r.rows[0], items })
+      return NextResponse.json({
+        ...r.rows[0],
+        estimated_total: r.rows[0].estimated_total != null ? Number(r.rows[0].estimated_total) : null,
+        items,
+      })
     }
 
     // List query
@@ -107,7 +133,9 @@ export async function GET(request: NextRequest) {
 
     idx++
     const rows = await query(
-      `SELECT r.*, r.customer_name, r.email, r.phone
+      `SELECT r.*,
+              (SELECT COUNT(*) FROM rfq_request_items ri WHERE ri.rfq_request_id = r.id) AS item_count,
+              (SELECT COALESCE(SUM(ri.quantity * ri.unit_price_snapshot), 0) FROM rfq_request_items ri WHERE ri.rfq_request_id = r.id) AS items_total
        FROM rfq_requests r
        ${whereSQL}
        ORDER BY r.created_at DESC
@@ -115,8 +143,14 @@ export async function GET(request: NextRequest) {
       [...values, limit, offset]
     )
 
+    const rfqs = rows.rows.map((row) => ({
+      ...row,
+      item_count: Number(row.item_count) || 0,
+      estimated_total: row.estimated_total != null ? Number(row.estimated_total) : Number(row.items_total) || null,
+    }))
+
     return NextResponse.json({
-      rfqs: rows.rows,
+      rfqs,
       total,
       limit,
       offset,
@@ -130,7 +164,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { customer, customerName, email, phone, deliveryLocation, projectType, notes, address, message, items } = body
+    const { customer, customerName, email, phone, deliveryLocation, projectType, notes, address, message, items, targetDate, budgetRange } = body
 
     if (!email) {
       return NextResponse.json(
@@ -164,9 +198,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create RFQ request with ALL fields
+    const estimatedTotal = Array.isArray(items)
+      ? items.reduce((sum: number, item: RFQItemInput) => sum + (item.unitPriceSnapshot || item.price || 0) * (item.quantity || 1), 0)
+      : 0
     const rfqResult = await query(
-      `INSERT INTO rfq_requests (customer_id, customer_name, email, phone, delivery_location, project_type, notes, address, message, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'new', NOW(), NOW()) RETURNING *`,
+      `INSERT INTO rfq_requests (customer_id, customer_name, email, phone, delivery_location, project_type, notes, address, message, target_date, budget_range, estimated_total, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'new', NOW(), NOW()) RETURNING *`,
       [
         customerId,
         customerName || '',
@@ -177,6 +214,9 @@ export async function POST(request: NextRequest) {
         notes || '',
         address || '',
         message || '',
+        targetDate || null,
+        budgetRange || null,
+        estimatedTotal || null,
       ]
     )
     const rfq = rfqResult.rows[0]
@@ -198,6 +238,7 @@ export async function POST(request: NextRequest) {
             unit_price_snapshot NUMERIC DEFAULT 0,
             quantity NUMERIC DEFAULT 1 NOT NULL,
             notes TEXT DEFAULT '',
+            accepts_alternatives BOOLEAN NOT NULL DEFAULT true,
             created_at TIMESTAMPTZ DEFAULT NOW(),
             updated_at TIMESTAMPTZ DEFAULT NOW()
           )`, []
@@ -209,9 +250,9 @@ export async function POST(request: NextRequest) {
         const unitPriceSnapshot = item.unitPriceSnapshot || item.price || 0
         const itemNotes = item.notes || ''
         await query(
-          `INSERT INTO rfq_request_items (rfq_request_id, product_id, product_title_snapshot, sku_snapshot, unit_price_snapshot, quantity, notes, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-          [rfq.id, item.product || null, productTitleSnapshot, skuSnapshot, unitPriceSnapshot, item.quantity || 1, itemNotes]
+          `INSERT INTO rfq_request_items (rfq_request_id, product_id, product_title_snapshot, sku_snapshot, unit_price_snapshot, quantity, notes, accepts_alternatives, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
+          [rfq.id, item.product || null, productTitleSnapshot, skuSnapshot, unitPriceSnapshot, item.quantity || 1, itemNotes, item.acceptsAlternatives !== false]
         )
       }
     }

@@ -3,38 +3,19 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
-interface RFQItem {
-  id: string
-  product_title: string
-  product_id: string
-  quantity: number
-  reference_price: number
-  notes?: string
-}
-
 interface RFQCart {
   id: string
-  lead_id: string
+  customer_name: string
+  email: string
+  phone: string
   status: string
   delivery_location?: string
   project_type?: string
   notes?: string
-  estimated_total?: number
+  estimated_total?: number | null
+  item_count?: number
   created_at: string
   submitted_at?: string
-  items?: RFQItem[]
-}
-
-interface LeadInfo {
-  id: string
-  name: string
-  email: string
-  mobile: string
-  buyer_type?: string
-  company_name?: string
-  status?: string
-  score?: number
-  score_label?: string
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -45,7 +26,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 }
 
 export default function AdminRFQListPage() {
-  const [rfqs, setRfqs] = useState<(RFQCart & { lead?: LeadInfo })[]>([])
+  const [rfqs, setRfqs] = useState<RFQCart[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -66,7 +47,7 @@ export default function AdminRFQListPage() {
       const res = await fetch(url)
       if (!res.ok) throw new Error('Failed to load RFQs')
       const data = await res.json()
-      setRfqs(data.docs || data || [])
+      setRfqs(data.rfqs || [])
     } catch (err: any) {
       setError(err.message || 'Failed to load RFQs')
     } finally {
@@ -219,15 +200,15 @@ export default function AdminRFQListPage() {
             <tbody>
               {rfqs.map(rfq => {
                 const statusInfo = STATUS_LABELS[rfq.status] || { label: rfq.status, color: '#999' }
-                const itemCount = rfq.items?.length || 0
+                const itemCount = rfq.item_count || 0
                 return (
                   <tr key={rfq.id} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: '10px 12px', fontWeight: 600 }}>
-                      {rfq.lead?.name || '—'}
+                      {rfq.customer_name || '—'}
                     </td>
                     <td style={{ padding: '10px 12px', color: '#666' }}>
-                      {rfq.lead?.email && <div>{rfq.lead.email}</div>}
-                      <div>{rfq.lead?.mobile || '—'}</div>
+                      {rfq.email && <div>{rfq.email}</div>}
+                      <div>{rfq.phone || '—'}</div>
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                       {itemCount > 0 ? itemCount : '—'}

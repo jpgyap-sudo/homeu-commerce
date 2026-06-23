@@ -8,44 +8,37 @@ const RfqChatAdmin = lazy(() => import('@/components/rfq-chat/RfqChatAdminContai
 
 interface RFQItem {
   id: string
-  product_title: string
-  product_id: string
+  product_id: string | null
+  product_title_snapshot: string
+  sku_snapshot?: string
   quantity: number
-  reference_price: number
+  unit_price_snapshot: number
   notes?: string
-  inspiration_image_url?: string
   accepts_alternatives?: boolean
-  match_type?: string
+  product_image_url?: string | null
 }
 
 interface RFQCart {
   id: string
-  lead_id: string
-  conversation_id?: string
+  customer_id: number | null
+  customer_name: string
+  email: string
+  phone: string
+  customer_company?: string | null
+  lead_buyer_type?: string | null
+  lead_company_name?: string | null
+  lead_score?: number | null
+  lead_score_label?: string | null
   status: string
   delivery_location?: string
   project_type?: string
   target_date?: string
   budget_range?: string
   notes?: string
-  estimated_total?: number
+  estimated_total?: number | null
   created_at: string
   submitted_at?: string
   items?: RFQItem[]
-}
-
-interface LeadInfo {
-  id: string
-  name: string
-  email: string
-  mobile: string
-  buyer_type?: string
-  company_name?: string
-  project_location?: string
-  status?: string
-  score?: number
-  score_label?: string
-  created_at?: string
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -58,7 +51,6 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export default function RFQDetailPage() {
   const params = useParams()
   const [rfq, setRfq] = useState<RFQCart | null>(null)
-  const [lead, setLead] = useState<LeadInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -73,19 +65,6 @@ export default function RFQDetailPage() {
 
         const data: RFQCart = await res.json()
         setRfq(data)
-
-        // Try loading lead info
-        if (data.lead_id) {
-          try {
-            const leadRes = await fetch(`/api/chat/leads/lookup?leadId=${data.lead_id}`)
-            if (leadRes.ok) {
-              const leadData = await leadRes.json()
-              setLead(leadData)
-            }
-          } catch {
-            // Lead lookup is best-effort
-          }
-        }
       } catch (err: any) {
         setError(err.message || 'Failed to load RFQ')
       } finally {
@@ -124,8 +103,10 @@ export default function RFQDetailPage() {
   }
 
   const statusInfo = STATUS_LABELS[rfq.status] || { label: rfq.status, color: '#999' }
-  const totalItems = rfq.items?.reduce((sum, item) => sum + item.quantity, 0) || 0
-  const estimatedTotal = rfq.estimated_total || rfq.items?.reduce((sum, item) => sum + (item.reference_price * item.quantity), 0) || 0
+  const totalItems = rfq.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0
+  const estimatedTotal = rfq.estimated_total
+    || rfq.items?.reduce((sum, item) => sum + Number(item.unit_price_snapshot || 0) * Number(item.quantity || 0), 0)
+    || 0
 
   return (
     <main style={{ maxWidth: 1100, margin: '40px auto', padding: '0 24px' }}>
@@ -186,27 +167,27 @@ export default function RFQDetailPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 14 }}>
           <div>
             <strong>Name:</strong>{' '}
-            {lead?.name || '—'}
+            {rfq.customer_name || '—'}
           </div>
           <div>
             <strong>Email:</strong>{' '}
-            <a href={`mailto:${lead?.email}`} style={{ color: '#0066cc' }}>{lead?.email || '—'}</a>
+            {rfq.email ? <a href={`mailto:${rfq.email}`} style={{ color: '#0066cc' }}>{rfq.email}</a> : '—'}
           </div>
           <div>
             <strong>Mobile:</strong>{' '}
-            {lead?.mobile || '—'}
+            {rfq.phone || '—'}
           </div>
           <div>
             <strong>Buyer Type:</strong>{' '}
-            {lead?.buyer_type || '—'}
+            {rfq.lead_buyer_type || '—'}
           </div>
           <div>
             <strong>Company:</strong>{' '}
-            {lead?.company_name || '—'}
+            {rfq.customer_company || rfq.lead_company_name || '—'}
           </div>
           <div>
             <strong>Lead Score:</strong>{' '}
-            {lead?.score != null ? `${lead.score} (${lead.score_label || 'N/A'})` : '—'}
+            {rfq.lead_score != null ? `${rfq.lead_score} (${rfq.lead_score_label || 'N/A'})` : '—'}
           </div>
         </div>
       </div>
@@ -217,7 +198,7 @@ export default function RFQDetailPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 14 }}>
           <div><strong>Delivery Location:</strong> {rfq.delivery_location || '—'}</div>
           <div><strong>Project Type:</strong> {rfq.project_type || '—'}</div>
-          <div><strong>Target Date:</strong> {rfq.target_date ? new Date(rfq.target_date).toLocaleDateString('en-PH') : '—'}</div>
+          <div><strong>Target Date:</strong> {rfq.target_date || '—'}</div>
           <div><strong>Budget Range:</strong> {rfq.budget_range || '—'}</div>
           <div><strong>Estimated Total:</strong> ₱{estimatedTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</div>
           <div><strong>Total Items:</strong> {rfq.items?.length || 0} ({totalItems} units)</div>
@@ -252,14 +233,14 @@ export default function RFQDetailPage() {
                 {rfq.items.map((item) => (
                   <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: '10px 12px', fontWeight: 600 }}>
-                      {item.product_title || '—'}
+                      {item.product_title_snapshot || '—'}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>{item.quantity}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                      ₱{(item.reference_price || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                      ₱{(item.unit_price_snapshot || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>
-                      ₱{((item.reference_price || 0) * item.quantity).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                      ₱{((item.unit_price_snapshot || 0) * item.quantity).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                       {item.accepts_alternatives !== false ? '✅ Yes' : '❌ No'}
@@ -289,7 +270,7 @@ export default function RFQDetailPage() {
       {/* ── Chat Section (Admin) ── */}
       <div style={{ marginTop: 32, marginBottom: 24 }}>
         <Suspense fallback={<div style={{ padding: 20, textAlign: 'center', color: '#999' }}>Loading chat...</div>}>
-          <RfqChatAdmin rfqId={rfq.id} customerEmail={lead?.email} />
+          <RfqChatAdmin rfqId={rfq.id} customerEmail={rfq.email} />
         </Suspense>
       </div>
 

@@ -159,9 +159,10 @@ export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
     }
 
     // Insert into rfq_requests table directly using valid database columns
+    const rfqTotalEstimate = input.items.reduce((sum, item) => sum + (item.referencePrice || 0) * item.quantity, 0)
     const { rows } = await query(
-      `INSERT INTO rfq_requests (customer_id, customer_name, email, phone, delivery_location, project_type, notes, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+      `INSERT INTO rfq_requests (customer_id, customer_name, email, phone, delivery_location, project_type, notes, target_date, budget_range, estimated_total, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
        RETURNING id`,
       [
         customerId,
@@ -171,6 +172,9 @@ export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
         input.deliveryLocation || '',
         pType,
         input.notes || '',
+        input.targetDate || null,
+        input.budgetRange || null,
+        rfqTotalEstimate || null,
         'new',
       ]
     )
@@ -194,8 +198,8 @@ export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
         }
 
         await query(
-          `INSERT INTO rfq_request_items (rfq_request_id, product_id, product_title_snapshot, sku_snapshot, unit_price_snapshot, quantity, notes, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
+          `INSERT INTO rfq_request_items (rfq_request_id, product_id, product_title_snapshot, sku_snapshot, unit_price_snapshot, quantity, notes, accepts_alternatives, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
           [
             Number(rfqCartId),
             validProdId,
@@ -203,7 +207,8 @@ export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
             skuSnapshot,
             item.referencePrice || 0,
             item.quantity || 1,
-            item.notes || ''
+            item.notes || '',
+            item.acceptsAlternatives !== false,
           ]
         )
       }
@@ -217,7 +222,7 @@ export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
     }
 
     // Calculate total value for priority triaging
-    const rfqTotalVal = input.items.reduce((sum, item) => sum + (item.referencePrice || 0) * item.quantity, 0)
+    const rfqTotalVal = rfqTotalEstimate
     const isHighPriority = rfqTotalVal > 150000 || ['hotel', 'restaurant', 'office'].includes(String(input.projectType).toLowerCase())
     const priorityEmoji = isHighPriority ? '🔥 [HIGH PRIORITY]' : '🟢 [Standard Priority]'
     const adminBase = process.env.ADMIN_PUBLIC_SERVER_URL || 'https://admin.homeatelier.ph'
