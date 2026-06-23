@@ -65,6 +65,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       slug: c.slug,
       description: c.description,
       imageUrl: c.image_url || null,
+      bannerImageUrl: c.banner_image_url || null,
+      bannerFocalX: c.banner_focal_x ?? 50,
+      bannerFocalY: c.banner_focal_y ?? 50,
+      bannerImageScale: c.banner_image_scale ?? 100,
       type: c.collection_type,
       rules: c.rules || [],
       rulesMatch: c.rules_match,
@@ -107,6 +111,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (body.slug !== undefined) set('slug', body.slug.trim())
     if (body.description !== undefined) set('description', body.description?.trim() || null)
     if (body.imageUrl !== undefined) set('image_url', body.imageUrl?.trim() || null)
+    if (body.bannerImageUrl !== undefined) set('banner_image_url', body.bannerImageUrl?.trim() || null)
+    if (body.bannerFocalX !== undefined) set('banner_focal_x', Math.min(100, Math.max(0, parseInt(body.bannerFocalX, 10) || 50)))
+    if (body.bannerFocalY !== undefined) set('banner_focal_y', Math.min(100, Math.max(0, parseInt(body.bannerFocalY, 10) || 50)))
+    if (body.bannerImageScale !== undefined) set('banner_image_scale', Math.min(160, Math.max(40, parseInt(body.bannerImageScale, 10) || 100)))
     if (body.type !== undefined) set('collection_type', body.type === 'smart' ? 'smart' : 'manual')
     if (body.rules !== undefined) set('rules', JSON.stringify(body.rules || []), '::jsonb')
     if (body.rulesMatch !== undefined) set('rules_match', body.rulesMatch === 'any' ? 'any' : 'all')

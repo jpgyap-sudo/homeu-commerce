@@ -274,7 +274,7 @@
 /* Collection description paragraph */
 .collection-description {
   max-width: 1100px;
-  margin: 40px auto 8px;
+  margin: 0 auto 8px;
   text-align: left;
 }
 .collection-description p {

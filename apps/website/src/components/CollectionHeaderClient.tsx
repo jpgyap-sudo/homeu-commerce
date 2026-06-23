@@ -4,6 +4,10 @@ interface Category {
   title: string
   slug: string
   imageUrl?: string | null
+  bannerImageUrl?: string | null
+  bannerFocalX?: number | null
+  bannerFocalY?: number | null
+  bannerImageScale?: number | null
   description?: string | null
 }
 
@@ -16,14 +20,18 @@ const SWATCH_CATEGORY_SLUGS = new Set([
 export default function CollectionHeaderClient({ category, config = {} }: { category: Category; config?: any }) {
   const showDescription = config.showDescription !== false
   const showBanner = config.showBanner !== false
-  const bannerHeight = config.bannerHeight || 300
+  const bannerHeight = config.bannerHeight || 260
   const overlayOpacity = config.overlayOpacity !== undefined ? config.overlayOpacity : 30
   const textColor = config.textColor || '#ffffff'
-  const spacingTop = config.spacingTop !== undefined ? config.spacingTop : 60
-  const spacingBottom = config.spacingBottom !== undefined ? config.spacingBottom : 60
+  const spacingTop = config.spacingTop !== undefined ? config.spacingTop : 16
+  const spacingBottom = config.spacingBottom !== undefined ? config.spacingBottom : 0
 
   const collectionTitle = category?.title || 'Our Products'
   const isSwatch = category?.slug ? SWATCH_CATEGORY_SLUGS.has(category.slug) : false
+  const bannerImage = category?.bannerImageUrl || category?.imageUrl || ''
+  const focalX = Math.min(100, Math.max(0, Number(category?.bannerFocalX ?? 50)))
+  const focalY = Math.min(100, Math.max(0, Number(category?.bannerFocalY ?? 50)))
+  const imageScale = Math.min(160, Math.max(40, Number(category?.bannerImageScale ?? 100)))
 
   if (!showBanner) {
     return (
@@ -40,10 +48,15 @@ export default function CollectionHeaderClient({ category, config = {} }: { cate
 
   return (
     <div className="collection-page" style={{ marginTop: spacingTop, marginBottom: spacingBottom }}>
-      {category?.imageUrl && !isSwatch ? (
+      {bannerImage && !isSwatch ? (
         <section
           className="collection-banner"
-          style={{ backgroundImage: `url(${category.imageUrl})`, height: bannerHeight }}
+          style={{
+            backgroundImage: `url(${bannerImage})`,
+            backgroundPosition: `${focalX}% ${focalY}%`,
+            backgroundSize: imageScale === 100 ? 'cover' : `${imageScale}% auto`,
+            height: bannerHeight,
+          }}
         >
           <div className="collection-banner__overlay" style={{
             background: `rgba(0, 0, 0, ${overlayOpacity / 100})`,
@@ -58,8 +71,8 @@ export default function CollectionHeaderClient({ category, config = {} }: { cate
       )}
 
       {showDescription && category?.description && (
-        <div className="collection-inner" style={{ paddingTop: 20, paddingBottom: 0 }}>
-          <div className="collection-description" style={{ marginBottom: 0 }}>
+        <div className="collection-inner" style={{ paddingTop: 24, paddingBottom: 0 }}>
+          <div className="collection-description" style={{ marginTop: 0, marginBottom: 0 }}>
             <p>{category.description}</p>
           </div>
         </div>

@@ -66,8 +66,8 @@ function ProductsContentInner({ config = {} }: { config?: any }) {
   const showFilters = config.showFilters !== false
   const showSort = config.showSort !== false
   const showRating = config.showRating !== false
-  const spacingTop = config.spacingTop !== undefined ? config.spacingTop : 60
-  const spacingBottom = config.spacingBottom !== undefined ? config.spacingBottom : 60
+  const spacingTop = config.spacingTop !== undefined ? config.spacingTop : 12
+  const spacingBottom = config.spacingBottom !== undefined ? config.spacingBottom : 48
 
   const searchParams = useSearchParams()
   const router = useRouter()

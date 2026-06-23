@@ -15,7 +15,10 @@ export default async function ProductsCatalogPage({
   let activeCategory = null
   if (categorySlug) {
     const res = await query(
-      `SELECT title, slug, image_url as "imageUrl", description FROM categories WHERE slug = $1 LIMIT 1`,
+      `SELECT title, slug, image_url as "imageUrl", banner_image_url as "bannerImageUrl",
+              banner_focal_x as "bannerFocalX", banner_focal_y as "bannerFocalY",
+              banner_image_scale as "bannerImageScale", description
+       FROM categories WHERE slug = $1 LIMIT 1`,
       [categorySlug]
     )
     activeCategory = res.rows[0] || null

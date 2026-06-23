@@ -9,7 +9,8 @@ export default async function NewCollectionPage() {
   if (!session) redirect('/admin/login')
 
   const initial: CollectionData = {
-    title: '', description: '', imageUrl: '',
+    title: '', description: '', imageUrl: '', bannerImageUrl: '',
+    bannerFocalX: 50, bannerFocalY: 50, bannerImageScale: 100,
     type: 'manual', rules: [], rulesMatch: 'all',
     published: true, featured: false, position: 0, productSort: 'manual',
     seoTitle: '', seoDescription: '', products: [],

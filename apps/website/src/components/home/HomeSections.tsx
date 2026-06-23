@@ -776,6 +776,8 @@ const DEFAULT_SECTION_GAP: Record<string, number> = {
   promo_bar: 0,
   slideshow: 40,
   image_bar: 32,
+  collection_header: 0,
+  product_grid: 40,
 }
 function defaultGap(type: string): number {
   return DEFAULT_SECTION_GAP[type] ?? 60

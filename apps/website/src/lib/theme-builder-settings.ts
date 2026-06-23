@@ -665,10 +665,11 @@ const PRODUCT_DETAILS_SETTINGS: SettingDefinition[] = [
 const COLLECTION_HEADER_SETTINGS: SettingDefinition[] = [
   { key: 'showDescription', label: 'Show Description', type: 'checkbox', default: true, group: 'Content' },
   { key: 'showBanner', label: 'Show Banner Image', type: 'checkbox', default: true, group: 'Banner' },
-  { key: 'bannerHeight', label: 'Banner Height', type: 'range', default: 300, min: 150, max: 600, step: 10, unit: 'px', group: 'Banner' },
+  { key: 'bannerHeight', label: 'Banner Height', type: 'range', default: 260, min: 150, max: 600, step: 10, unit: 'px', group: 'Banner' },
   { key: 'overlayOpacity', label: 'Banner Overlay Darkening', type: 'range', default: 30, min: 0, max: 90, step: 10, unit: '%', group: 'Banner' },
   { key: 'textColor', label: 'Banner Text Color', type: 'color', default: '#ffffff', group: 'Banner' },
-  ...COMMON_SPACING,
+  { key: 'spacingTop',    label: 'Spacing Top',    type: 'range', default: 16, min: 0, max: 160, step: 4, unit: 'px', group: 'Spacing' },
+  { key: 'spacingBottom', label: 'Spacing Bottom', type: 'range', default: 0, min: 0, max: 160, step: 4, unit: 'px', group: 'Spacing' },
   ...COMMON_CUSTOM_CLASS,
 ]
 
@@ -679,7 +680,8 @@ const PRODUCT_GRID_SETTINGS: SettingDefinition[] = [
   { key: 'showFilters', label: 'Show Sidebar Filters', type: 'checkbox', default: true, group: 'Sidebar' },
   { key: 'showSort', label: 'Show Sorting Dropdown', type: 'checkbox', default: true, group: 'Layout' },
   { key: 'showRating', label: 'Show Reviews / Ratings', type: 'checkbox', default: true, group: 'Layout' },
-  ...COMMON_SPACING,
+  { key: 'spacingTop',    label: 'Spacing Top',    type: 'range', default: 12, min: 0, max: 160, step: 4, unit: 'px', group: 'Spacing' },
+  { key: 'spacingBottom', label: 'Spacing Bottom', type: 'range', default: 48, min: 0, max: 160, step: 4, unit: 'px', group: 'Spacing' },
   ...COMMON_CUSTOM_CLASS,
 ]
 

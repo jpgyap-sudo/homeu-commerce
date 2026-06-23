@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
 
     const result = await query(
       `SELECT c.id, c.title, c.slug, c.description, c.image_url,
+              c.banner_image_url, c.banner_focal_x, c.banner_focal_y, c.banner_image_scale,
               c.collection_type, c.rules, c.rules_match, c.published,
               c.position, c.product_sort, c.featured,
               c.seo_title, c.seo_description, c.created_at, c.updated_at,
@@ -63,6 +64,10 @@ export async function GET(request: NextRequest) {
         slug: c.slug,
         description: c.description,
         imageUrl: c.image_url || null,
+        bannerImageUrl: c.banner_image_url || null,
+        bannerFocalX: c.banner_focal_x ?? 50,
+        bannerFocalY: c.banner_focal_y ?? 50,
+        bannerImageScale: c.banner_image_scale ?? 100,
         type: c.collection_type,
         rules: c.rules || [],
         rulesMatch: c.rules_match,
@@ -110,16 +115,21 @@ export async function POST(request: NextRequest) {
 
     const result = await query(
       `INSERT INTO categories
-         (title, slug, description, image_url, collection_type, rules, rules_match,
+         (title, slug, description, image_url, banner_image_url, banner_focal_x, banner_focal_y,
+          banner_image_scale, collection_type, rules, rules_match,
           published, position, product_sort, featured, seo_title, seo_description,
           updated_at, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10,$11,$12,$13,NOW(),NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,NOW(),NOW())
        RETURNING id`,
       [
         body.title.trim(),
         finalSlug,
         body.description?.trim() || null,
         body.imageUrl?.trim() || null,
+        body.bannerImageUrl?.trim() || null,
+        Math.min(100, Math.max(0, parseInt(body.bannerFocalX, 10) || 50)),
+        Math.min(100, Math.max(0, parseInt(body.bannerFocalY, 10) || 50)),
+        Math.min(160, Math.max(40, parseInt(body.bannerImageScale, 10) || 100)),
         type,
         JSON.stringify(rules),
         rulesMatch,

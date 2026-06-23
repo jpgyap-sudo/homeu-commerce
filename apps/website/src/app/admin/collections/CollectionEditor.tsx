@@ -24,6 +24,10 @@ export interface CollectionData {
   slug?: string
   description: string
   imageUrl: string
+  bannerImageUrl: string
+  bannerFocalX: number
+  bannerFocalY: number
+  bannerImageScale: number
   type: 'manual' | 'smart'
   rules: CollectionRule[]
   rulesMatch: 'all' | 'any'
@@ -55,6 +59,15 @@ const card: React.CSSProperties = { background: '#fff', border: '1px solid #d9e0
 const label: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 600, color: '#3a4339', marginBottom: 6 }
 const input: React.CSSProperties = { width: '100%', padding: '10px 12px', border: '1.5px solid #d9e0d7', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: '#fbfcfa', color: '#151a17', outline: 'none', boxSizing: 'border-box' }
 const sectionTitle: React.CSSProperties = { margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#151a17' }
+
+const FOCAL_PRESETS = [
+  { label: 'Center', x: 50, y: 50 },
+  { label: 'Top', x: 50, y: 20 },
+  { label: 'Upper center', x: 50, y: 35 },
+  { label: 'Left feature', x: 28, y: 50 },
+  { label: 'Right feature', x: 72, y: 50 },
+  { label: 'Bottom', x: 50, y: 78 },
+]
 
 export default function CollectionEditor({ initial }: { initial: CollectionData }) {
   const router = useRouter()
@@ -154,7 +167,12 @@ export default function CollectionEditor({ initial }: { initial: CollectionData 
     try {
       const payload = {
         title: data.title, slug: data.slug, description: data.description,
-        imageUrl: data.imageUrl, type: data.type, rules: data.rules,
+        imageUrl: data.imageUrl,
+        bannerImageUrl: data.bannerImageUrl,
+        bannerFocalX: data.bannerFocalX,
+        bannerFocalY: data.bannerFocalY,
+        bannerImageScale: data.bannerImageScale,
+        type: data.type, rules: data.rules,
         rulesMatch: data.rulesMatch, published: data.published, featured: data.featured,
         position: data.position, productSort: data.productSort,
         seoTitle: data.seoTitle, seoDescription: data.seoDescription,
@@ -352,8 +370,103 @@ export default function CollectionEditor({ initial }: { initial: CollectionData 
           </div>
 
           <div style={card}>
-            <h3 style={sectionTitle}>Image</h3>
-            <ImagePickerField value={data.imageUrl || ''} onChange={v => update('imageUrl', v)} aspectRatio="4 / 3" />
+            <h3 style={sectionTitle}>Collection tile image</h3>
+            <p style={{ margin: '-8px 0 12px', fontSize: 12, lineHeight: 1.5, color: '#667168' }}>
+              Square thumbnail used in collection grids and menus.
+            </p>
+            <ImagePickerField value={data.imageUrl || ''} onChange={v => update('imageUrl', v)} aspectRatio="1 / 1" />
+          </div>
+
+          <div style={card}>
+            <h3 style={sectionTitle}>Collection page banner</h3>
+            <p style={{ margin: '-8px 0 12px', fontSize: 12, lineHeight: 1.5, color: '#667168' }}>
+              Wide hero image for the storefront collection page. Recommended size: 1600 x 520px.
+            </p>
+            <ImagePickerField value={data.bannerImageUrl || ''} onChange={v => update('bannerImageUrl', v)} aspectRatio="16 / 5" />
+
+            <div
+              style={{
+                marginTop: 14,
+                width: '100%',
+                aspectRatio: '16 / 5',
+                borderRadius: 8,
+                overflow: 'hidden',
+                border: '1px solid #d9e0d7',
+                backgroundColor: '#c3bcbc',
+                backgroundImage: data.bannerImageUrl || data.imageUrl ? `url(${data.bannerImageUrl || data.imageUrl})` : undefined,
+                backgroundPosition: `${data.bannerFocalX}% ${data.bannerFocalY}%`,
+                backgroundSize: data.bannerImageScale === 100 ? 'cover' : `${data.bannerImageScale}% auto`,
+                backgroundRepeat: 'no-repeat',
+                display: 'grid',
+                placeItems: 'center',
+              }}
+            >
+              <span style={{ color: '#fff', textShadow: '0 1px 8px rgba(0,0,0,.35)', fontFamily: 'Georgia, serif', fontSize: 22 }}>
+                {data.title || 'Collection title'}
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gap: 12, marginTop: 14 }}>
+              <label style={label}>Image size ({data.bannerImageScale}%)</label>
+              <input
+                type="range"
+                min={40}
+                max={160}
+                step={5}
+                value={data.bannerImageScale}
+                onChange={e => update('bannerImageScale', parseInt(e.target.value, 10))}
+                style={{ width: '100%' }}
+              />
+
+              <label style={label}>Focal position</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <label style={{ fontSize: 12, color: '#667168' }}>
+                  Horizontal ({data.bannerFocalX}%)
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={data.bannerFocalX}
+                    onChange={e => update('bannerFocalX', parseInt(e.target.value, 10))}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+                <label style={{ fontSize: 12, color: '#667168' }}>
+                  Vertical ({data.bannerFocalY}%)
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={data.bannerFocalY}
+                    onChange={e => update('bannerFocalY', parseInt(e.target.value, 10))}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {FOCAL_PRESETS.map(p => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => setData(d => ({ ...d, bannerFocalX: p.x, bannerFocalY: p.y }))}
+                    style={{
+                      padding: '7px 10px',
+                      border: data.bannerFocalX === p.x && data.bannerFocalY === p.y ? '1.5px solid #1e7a47' : '1px solid #d9e0d7',
+                      borderRadius: 8,
+                      background: data.bannerFocalX === p.x && data.bannerFocalY === p.y ? '#f0f7f2' : '#fff',
+                      color: '#3a4339',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div style={card}>
