@@ -12,6 +12,7 @@ interface QuotationItem {
   material?: string
   dimensions?: string
   color?: string
+  imageUrl?: string
   quantity: number
   unitCost: number
   discountPercent: number
@@ -479,8 +480,13 @@ export default function EditQuotationPage() {
                     <tr key={item.key} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={{ textAlign: 'center', padding: '6px' }}>{item.itemNumber}</td>
                       <td style={{ padding: '6px' }}>
-                        <input type="text" value={item.description} onChange={e => updateItem(item.key, 'description', e.target.value)}
-                          style={{ width: '100%', padding: '4px 6px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13, boxSizing: 'border-box' }} />
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          {item.imageUrl && (
+                            <img src={item.imageUrl} alt="" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #eee', flexShrink: 0 }} />
+                          )}
+                          <input type="text" value={item.description} onChange={e => updateItem(item.key, 'description', e.target.value)}
+                            style={{ flex: 1, padding: '4px 6px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13, boxSizing: 'border-box' }} />
+                        </div>
                       </td>
                       <td style={{ padding: '6px' }}>
                         <input type="text" value={item.material || ''} onChange={e => updateItem(item.key, 'material', e.target.value)}

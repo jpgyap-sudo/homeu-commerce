@@ -45,9 +45,16 @@ export async function GET(request: NextRequest) {
       if (r.rows.length === 0) {
         return NextResponse.json({ error: 'RFQ not found' }, { status: 404 })
       }
-      // Fetch items
+      // Fetch items with product metadata and images
       const items = await query(
-        `SELECT * FROM rfq_request_items WHERE rfq_request_id = $1 ORDER BY id`,
+        `SELECT ri.*,
+                p.materials AS product_materials,
+                p.dimensions AS product_dimensions,
+                (SELECT pi.url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order LIMIT 1) AS product_image_url
+         FROM rfq_request_items ri
+         LEFT JOIN products p ON ri.product_id = p.id
+         WHERE ri.rfq_request_id = $1
+         ORDER BY ri.id`,
         [parseInt(id)]
       )
       return NextResponse.json({ ...r.rows[0], items: items.rows })

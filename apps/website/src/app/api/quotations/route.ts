@@ -98,17 +98,65 @@ export async function POST(request: NextRequest) {
     const quotationNumber = body.quotationNumber || `Q-${year}-${String(nextNum).padStart(4, '0')}`
 
     const result = await query(
-      `INSERT INTO quotations (quotation_number, customer_name, email, phone, status, notes, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *`,
+      `INSERT INTO quotations (
+        quotation_number, customer_name, customer_email, email, phone, status, notes,
+        delivery_location, project_type, customer_id, rfq_id, items,
+        subtotal, shipping_cost, total, grand_total, valid_until,
+        terms_delivery_leadtime, terms_payment_terms, terms_warranty, terms_bank_details,
+        terms_cancellation_policy, terms_return_policy, terms_rejection_of_items, terms_refund_policy,
+        created_at, updated_at
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, NOW(), NOW()
+      ) RETURNING *`,
       [
         quotationNumber,
         body.customerName || '',
         body.email || '',
+        body.email || '',
         body.phone || '',
         body.status || 'draft',
         body.notes || '',
+        body.deliveryLocation || null,
+        body.projectType || 'home',
+        body.customer ? Number(body.customer) : null,
+        body.rfq ? Number(body.rfq) : null,
+        JSON.stringify(body.items || []),
+        Number(body.subtotal) || 0,
+        Number(body.shippingCost) || 0,
+        Number(body.grandTotal) || 0,
+        Number(body.grandTotal) || 0,
+        body.validUntil || null,
+        body.deliveryLeadtime || null,
+        body.paymentTerms || null,
+        body.warranty || null,
+        body.bankDetails || null,
+        body.cancellationPolicy || null,
+        body.returnPolicy || null,
+        body.rejectionOfItems || null,
+        body.refundPolicy || null,
       ]
     )
+
+    const quotationId = result.rows[0].id
+
+    // Insert items into quotations_items table
+    if (body.items && Array.isArray(body.items)) {
+      for (const item of body.items) {
+        await query(
+          `INSERT INTO quotations_items (quotation_id, product_id, title, quantity, unit_price, total_price, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            quotationId,
+            item.productId ? Number(item.productId) : null,
+            item.productTitle || item.description || '',
+            Number(item.quantity) || 1,
+            Number(item.unitCost) || 0,
+            Number(item.total) || 0,
+            item.notes || null
+          ]
+        )
+      }
+    }
 
     return NextResponse.json({ success: true, quotation: snakeToCamel(result.rows[0]) }, { status: 201 })
   } catch (error: any) {

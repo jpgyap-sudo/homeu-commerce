@@ -84,12 +84,19 @@ export async function GET(request: NextRequest) {
     const itemsSQL = `SELECT r.*, COALESCE(
       (SELECT jsonb_agg(jsonb_build_object(
         'id', ri.id,
+        'productId', ri.product_id,
         'productTitleSnapshot', ri.product_title_snapshot,
         'skuSnapshot', ri.sku_snapshot,
         'unitPriceSnapshot', ri.unit_price_snapshot,
         'quantity', ri.quantity,
-        'notes', ri.notes
-      ) ORDER BY ri.id) FROM rfq_request_items ri WHERE ri.rfq_request_id = r.id),
+        'notes', ri.notes,
+        'materials', p.materials,
+        'dimensions', p.dimensions,
+        'imageUrl', (SELECT pi.url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order LIMIT 1)
+      ) ORDER BY ri.id)
+       FROM rfq_request_items ri
+       LEFT JOIN products p ON ri.product_id = p.id
+       WHERE ri.rfq_request_id = r.id),
       '[]'::jsonb
     ) as items
     FROM rfq_requests r

@@ -111,8 +111,19 @@ export async function PATCH(
       const row = await query('SELECT * FROM quotations WHERE id = $1', [id])
       return NextResponse.json({ ...snakeToCamel(row.rows[0]), revisionResolved: true })
     }
-    const sets = fields.map((f, i) => `"${camelToSnake(f)}" = $${i + 1}`).join(', ')
-    const values = fields.map((f) => body[f])
+    const sets = fields.map((f, i) => {
+      const col = camelToSnake(f)
+      if (col === 'items' || col === 'bank_details') {
+        return `"${col}" = $${i + 1}::jsonb`
+      }
+      return `"${col}" = $${i + 1}`
+    }).join(', ')
+    const values = fields.map((f) => {
+      if (f === 'items' || f === 'bankDetails') {
+        return JSON.stringify(body[f])
+      }
+      return body[f]
+    })
     values.push(id)
     const result = await query(
       `UPDATE quotations SET ${sets}, updated_at = NOW() WHERE id = $${values.length} RETURNING *`,
@@ -123,6 +134,30 @@ export async function PATCH(
     }
 
     const updated = result.rows[0]
+
+    // Sync quotations_items table if items are updated
+    if (fields.includes('items') && body.items && Array.isArray(body.items)) {
+      try {
+        await query('DELETE FROM quotations_items WHERE quotation_id = $1', [id])
+        for (const item of body.items) {
+          await query(
+            `INSERT INTO quotations_items (quotation_id, product_id, title, quantity, unit_price, total_price, notes)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [
+              id,
+              item.productId ? Number(item.productId) : (item.product ? Number(item.product) : null),
+              item.productTitle || item.description || '',
+              Number(item.quantity) || 1,
+              Number(item.unitCost) || 0,
+              Number(item.total) || 0,
+              item.notes || null
+            ]
+          )
+        }
+      } catch (err: any) {
+        console.error('[quotations] Failed to sync quotations_items table:', err.message)
+      }
+    }
 
     // ── Fire RFQ chat event for status changes ────────────
     const statusEventMap: Record<string, string> = {

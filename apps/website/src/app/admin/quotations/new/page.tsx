@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 // ── Types ──
@@ -43,6 +43,7 @@ interface QuotationItem {
   material: string
   dimensions: string
   color: string
+  imageUrl?: string
   quantity: number
   unitCost: number
   discountPercent: number
@@ -81,7 +82,17 @@ function computeTotal(discountedCost: number, quantity: number): number {
 // ── Component ──
 
 export default function NewQuotationPage() {
+  return (
+    <Suspense fallback={<main style={{ maxWidth: 1100, margin: '40px auto', padding: '0 24px', textAlign: 'center' }}><p style={{ color: '#666' }}>Loading...</p></main>}>
+      <NewQuotationPageContent />
+    </Suspense>
+  )
+}
+
+function NewQuotationPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const urlRfqId = searchParams.get('rfqId')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -120,6 +131,40 @@ export default function NewQuotationPage() {
   const subtotal = items.reduce((sum, item) => sum + item.total, 0)
   const grandTotal = Math.round((subtotal + shippingCost) * 100) / 100
 
+  // ── Auto-load RFQ from URL ──
+  useEffect(() => {
+    if (urlRfqId) {
+      fetch(`/api/rfq?id=${urlRfqId}`)
+        .then(res => {
+          if (res.ok) return res.json()
+          throw new Error('Failed to load RFQ')
+        })
+        .then(data => {
+          const mappedRfq: RFQ = {
+            id: String(data.id),
+            customerName: data.customer_name || '',
+            email: data.customer_email || '',
+            phone: data.customer_phone || '',
+            deliveryLocation: data.delivery_location || '',
+            projectType: data.project_type || 'home',
+            items: (data.items || []).map((item: any) => ({
+              id: String(item.id),
+              product: item.product_id ? { id: String(item.product_id), title: item.product_title_snapshot } : item.product_title_snapshot,
+              productTitleSnapshot: item.product_title_snapshot,
+              skuSnapshot: item.sku_snapshot,
+              unitPriceSnapshot: Number(item.unit_price_snapshot) || 0,
+              quantity: Number(item.quantity) || 1,
+              materials: item.product_materials || '',
+              dimensions: item.product_dimensions || '',
+              imageUrl: item.product_image_url || '',
+            }))
+          }
+          handleSelectRfq(mappedRfq)
+        })
+        .catch(err => console.error('Error auto-loading RFQ:', err))
+    }
+  }, [urlRfqId])
+
   // ── Load RFQs ──
   useEffect(() => {
     if (rfqSearch.length >= 2 || showRfqPicker) {
@@ -157,15 +202,19 @@ export default function NewQuotationPage() {
       const newItems: QuotationItem[] = rfq.items.map((rfqItem, idx) => {
         const productId = typeof rfqItem.product === 'object' ? rfqItem.product?.id || '' : rfqItem.product || ''
         const productTitle = typeof rfqItem.product === 'object' ? rfqItem.product?.title || rfqItem.productTitleSnapshot || '' : rfqItem.productTitleSnapshot || ''
+        const materials = (rfqItem as any).materials || (rfqItem as any).productMaterials || ''
+        const dimensions = (rfqItem as any).dimensions || (rfqItem as any).productDimensions || ''
+        const imageUrl = (rfqItem as any).imageUrl || (rfqItem as any).productImageUrl || ''
         return {
           key: `item-${Date.now()}-${idx}`,
           itemNumber: idx + 1,
           productId,
           productTitle,
           description: productTitle,
-          material: '',
-          dimensions: '',
+          material: materials,
+          dimensions: dimensions,
           color: '',
+          imageUrl,
           quantity: rfqItem.quantity || 1,
           unitCost: rfqItem.unitPriceSnapshot || 0,
           discountPercent: 0,
@@ -216,6 +265,7 @@ export default function NewQuotationPage() {
       material: product.materials || '',
       dimensions: product.dimensions || '',
       color: '',
+      imageUrl: product.images?.[0]?.url || '',
       quantity: 1,
       unitCost: product.salePrice || product.price || 0,
       discountPercent: 0,
@@ -294,11 +344,13 @@ export default function NewQuotationPage() {
         rfq: rfqId || undefined,
         items: items.map(item => ({
           itemNumber: item.itemNumber,
-          product: item.productId || undefined,
+          productId: item.productId || undefined,
+          productTitle: item.productTitle,
           description: item.description,
           material: item.material || undefined,
           dimensions: item.dimensions || undefined,
           color: item.color || undefined,
+          imageUrl: item.imageUrl || undefined,
           quantity: item.quantity,
           unitCost: item.unitCost,
           discountPercent: item.discountPercent,
@@ -655,12 +707,17 @@ export default function NewQuotationPage() {
                     <tr key={item.key} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={{ textAlign: 'center', padding: '6px' }}>{item.itemNumber}</td>
                       <td style={{ padding: '6px' }}>
-                        <input
-                          type="text"
-                          value={item.description}
-                          onChange={e => updateItem(item.key, 'description', e.target.value)}
-                          style={{ width: '100%', padding: '4px 6px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13, boxSizing: 'border-box' }}
-                        />
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          {item.imageUrl && (
+                            <img src={item.imageUrl} alt="" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #eee', flexShrink: 0 }} />
+                          )}
+                          <input
+                            type="text"
+                            value={item.description}
+                            onChange={e => updateItem(item.key, 'description', e.target.value)}
+                            style={{ flex: 1, padding: '4px 6px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13, boxSizing: 'border-box' }}
+                          />
+                        </div>
                       </td>
                       <td style={{ padding: '6px' }}>
                         <input

@@ -11,6 +11,7 @@ interface QuotationItem {
   material?: string
   dimensions?: string
   color?: string
+  imageUrl?: string
   quantity: number
   unitCost: number
   discountPercent: number
@@ -532,12 +533,19 @@ export default function QuotationViewPage() {
                   }}>
                     <td style={{ textAlign: 'center', padding: '10px 6px', fontWeight: 600 }}>{item.itemNumber}</td>
                     <td style={{ padding: '10px 6px' }}>
-                      <div>{item.description}</div>
-                      {(item.material || item.dimensions || item.color) && (
-                        <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
-                          {[item.material, item.dimensions, item.color].filter(Boolean).join(' · ')}
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        {item.imageUrl && (
+                          <img src={item.imageUrl} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid #eee', flexShrink: 0 }} />
+                        )}
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#111' }}>{item.description}</div>
+                          {(item.material || item.dimensions || item.color) && (
+                            <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
+                              {[item.material, item.dimensions, item.color].filter(Boolean).join(' · ')}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </td>
                     <td style={{ textAlign: 'center', padding: '10px 6px', fontWeight: 600 }}>{item.quantity}</td>
                     <td style={{ textAlign: 'right', padding: '10px 6px' }}>
