@@ -49,6 +49,7 @@ interface QuotationData {
   termsRefundPolicy?: string
   createdAt: string
   updatedAt: string
+  guestToken?: string
 }
 
 function computeDiscountedCost(unitCost: number, discountPercent: number): number {
@@ -237,8 +238,23 @@ export default function EditQuotationPage() {
     }
   }
 
+  function handleCopyLink() {
+    if (!quotation) return
+    const guestUrl = `${window.location.origin}/quotation/${quotation.id}?token=${quotation.guestToken || ''}`
+    navigator.clipboard.writeText(guestUrl)
+    setSuccess('Client quotation link copied to clipboard!')
+    setTimeout(() => setSuccess(''), 3000)
+  }
+
   async function handleSend() {
-    if (!confirm('Mark this quotation as sent? This will set the status to "Sent" and record the current date/time.')) return
+    if (!email || !email.trim()) {
+      setError('Client email address is required to send the quotation.')
+      return
+    }
+    const isResend = status === 'sent'
+    if (!confirm(`${isResend ? 'Resend' : 'Send'} quotation #${quotation?.quotationNumber || ''} to client email (${email})?`)) return
+    
+    setSaving(true)
     setError('')
     setSuccess('')
 
@@ -246,6 +262,37 @@ export default function EditQuotationPage() {
       const id = params?.id
       if (!id) throw new Error('Quotation ID not found')
 
+      // 1. Send the email using the SMTP endpoint
+      const guestUrl = `${window.location.origin}/quotation/${id}?token=${quotation?.guestToken || ''}`
+      const emailBody = `Dear ${customerName},
+
+Thank you for choosing Home Atelier. We have prepared your quotation #${quotation?.quotationNumber || ''} for your review.
+
+You can view the full details and respond to this quotation online at:
+${guestUrl}
+
+If you have any questions or would like to request revisions, please let us know.
+
+Best regards,
+Home Atelier Team`
+
+      const emailRes = await fetch('/api/admin/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email.trim(),
+          subject: `Quotation #${quotation?.quotationNumber || ''} from Home Atelier`,
+          body: emailBody,
+        }),
+      })
+
+      if (!emailRes.ok) {
+        const emailErr = await emailRes.json()
+        throw new Error(emailErr.error || 'Failed to send email to client')
+      }
+      const emailData = await emailRes.json()
+
+      // 2. Update status and log send info in db
       const res = await fetch(`/api/quotations/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -256,15 +303,22 @@ export default function EditQuotationPage() {
         }),
       })
 
-      if (!res.ok) throw new Error('Failed to mark as sent')
+      if (!res.ok) throw new Error('Failed to update quotation status to Sent')
 
-      setSuccess('Quotation marked as sent!')
+      let msg = `Quotation sent successfully via email to ${email}!`
+      if (emailData.note && emailData.note.includes('saved locally')) {
+        msg = `Quotation status updated to Sent! (SMTP is not configured, so the email was saved to the inbox locally for simulation)`
+      }
+
+      setSuccess(msg)
       setStatus('sent')
       setSentAt(new Date().toISOString())
       setSentVia('email')
-      setTimeout(() => router.refresh(), 500)
+      setTimeout(() => router.refresh(), 1500)
     } catch (err: any) {
       setError(err.message || 'Failed to send')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -328,23 +382,42 @@ export default function EditQuotationPage() {
           >
             👁 Preview
           </Link>
-          {status === 'draft' && (
+          {(status === 'draft' || status === 'sent') && (
             <button
+              type="button"
               onClick={handleSend}
+              disabled={saving}
               style={{
                 padding: '8px 16px',
                 background: '#0066cc',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 6,
-                cursor: 'pointer',
+                cursor: saving ? 'not-allowed' : 'pointer',
                 fontSize: 13,
                 fontWeight: 600,
+                opacity: saving ? 0.7 : 1,
               }}
             >
-              📨 Mark as Sent
+              {saving ? 'Sending...' : status === 'sent' ? '📨 Resend Email' : '📨 Send to Client'}
             </button>
           )}
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            style={{
+              padding: '8px 16px',
+              background: '#fff',
+              color: '#222',
+              border: '1px solid #ccc',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            🔗 Copy Client Link
+          </button>
           <a
             href={`/api/admin/quotations/pdf/${quotation?.id}`}
             style={{
@@ -360,6 +433,7 @@ export default function EditQuotationPage() {
             📄 Download PDF
           </a>
           <button
+            type="button"
             onClick={handleDelete}
             style={{
               padding: '8px 16px',
@@ -381,6 +455,12 @@ export default function EditQuotationPage() {
       )}
       {success && (
         <div style={{ background: '#e8f5e9', color: '#2e7d32', padding: '12px 16px', borderRadius: 6, marginBottom: 20, fontSize: 14 }}>{success}</div>
+      )}
+
+      {rfqId && (
+        <div style={{ display: 'inline-block', background: '#e8f5e9', border: '1px solid #c8e6c9', borderRadius: 8, padding: '8px 12px', fontSize: 13, marginBottom: 16 }}>
+          ✓ Linked to RFQ: <Link href={`/admin/rfq/${rfqId}`} style={{ color: '#0066cc', fontWeight: 600 }}>View RFQ Details</Link>
+        </div>
       )}
 
       <form onSubmit={handleSave}>

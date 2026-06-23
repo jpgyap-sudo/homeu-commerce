@@ -57,7 +57,17 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    return NextResponse.json(snakeToCamel(quote))
+    const secret = process.env.JWT_SECRET || 'fallback'
+    const guestToken = crypto
+      .createHmac('sha256', secret)
+      .update(`${id}-${quote.created_at}`)
+      .digest('hex')
+      .slice(0, 16)
+
+    return NextResponse.json({
+      ...snakeToCamel(quote),
+      guestToken
+    })
   } catch (error: any) {
     console.error('Quotation GET error:', error)
     return NextResponse.json(

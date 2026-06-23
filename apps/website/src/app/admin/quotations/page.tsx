@@ -27,6 +27,7 @@ interface Quotation {
   createdAt: string
   items?: QuotationItem[]
   rfq?: { id: string }
+  rfqId?: string
   pending_revision?: boolean
   revision_request?: string
 }
@@ -255,6 +256,13 @@ export default function AdminQuotationsPage() {
                       <Link href={`/admin/quotations/${q.id}`} style={{ color: '#222', textDecoration: 'none' }}>
                         {q.quotationNumber}
                       </Link>
+                      {q.rfqId && (
+                        <div style={{ fontSize: 11, fontWeight: 500, marginTop: 4 }}>
+                          <Link href={`/admin/rfq/${q.rfqId}`} style={{ color: '#0066cc', textDecoration: 'none' }}>
+                            🔗 RFQ Details
+                          </Link>
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '10px 12px' }}>{q.customerName}</td>
                     <td style={{ padding: '10px 12px', color: '#666' }}>

@@ -3,13 +3,15 @@ import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 import { generateQuotationPDF } from '@/lib/generate-quotation-pdf'
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const url = new URL(request.url)
-    const id = url.pathname.split('/').filter(Boolean).pop()
+    const { id } = await params
 
     const { rows } = await query(
       `SELECT q.*,
