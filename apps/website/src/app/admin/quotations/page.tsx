@@ -30,6 +30,7 @@ interface Quotation {
   rfqId?: string
   pending_revision?: boolean
   revision_request?: string
+  guestToken?: string
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -420,7 +421,7 @@ Home Atelier Team`
                           Edit
                         </Link>
                         <Link
-                          href={`/quotation/${q.id}`}
+                          href={quotationPublicUrl(q.id, q.guestToken)}
                           style={{ color: '#0066cc', fontSize: 13 }}
                           target="_blank"
                         >

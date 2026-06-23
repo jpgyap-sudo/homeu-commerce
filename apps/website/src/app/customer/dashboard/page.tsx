@@ -78,7 +78,7 @@ function getLastSeen(rfqId: string): number {
  * schema change needed, just reads what's already there. Closed/lost RFQs
  * are shown with a terminal badge instead of the stepper. */
 function journeyStep(rfq: Rfq, quotations: Quotation[]): number {
-  const ownQuotations = quotations.filter(q => q.rfqId === rfq.id)
+  const ownQuotations = quotations.filter(q => String(q.rfqId) === String(rfq.id))
   if (ownQuotations.some(q => q.status === 'accepted')) return 3
   if (ownQuotations.length > 0 || rfq.status === 'quoted') return 2
   if (rfq.status === 'contacted') return 1
@@ -249,7 +249,7 @@ export default function CustomerDashboardPage() {
               const hasNewMessage = Boolean(
                 rfq.lastMessageAt && new Date(rfq.lastMessageAt).getTime() > getLastSeen(rfq.id)
               )
-              const relatedQuotation = quotations.find(q => q.rfqId === rfq.id)
+              const relatedQuotation = quotations.find(q => String(q.rfqId) === String(rfq.id))
 
               return (
                 <article key={rfq.id} className="dashboard-project-card">

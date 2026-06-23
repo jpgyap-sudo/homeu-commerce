@@ -112,49 +112,102 @@ export async function syncRFQCart(
 
 export async function submitRFQ(input: RFQSubmitInput): Promise<RFQResult> {
   try {
-    // Resolve lead name from chatbot.leads table
+    // Resolve lead name and customer_id from chatbot.leads table
+    let customerId: number | null = null
     let customerName = input.leadId || ''
     let customerEmail = ''
     let customerPhone = ''
     if (input.leadId) {
       try {
         const leadRes = await query(
-          `SELECT name, email, mobile FROM chatbot.leads WHERE id = $1 LIMIT 1`,
+          `SELECT name, email, mobile, davincios_customer_id FROM chatbot.leads WHERE id = $1 LIMIT 1`,
           [input.leadId]
         )
         if (leadRes.rows.length > 0) {
           customerName = leadRes.rows[0].name || customerName
           customerEmail = leadRes.rows[0].email || ''
           customerPhone = leadRes.rows[0].mobile || ''
+          const dCustId = Number(leadRes.rows[0].davincios_customer_id)
+          if (Number.isInteger(dCustId) && dCustId > 0) {
+            customerId = dCustId
+          }
         }
-      } catch { /* fall through to defaults */ }
+      } catch (err) {
+        console.error('[chatbot] Failed to fetch lead info:', err)
+      }
     }
 
-    // Insert into rfq_requests table directly
+    // Fallback: resolve customer_id by email lookup in customers table
+    if (!customerId && customerEmail.trim()) {
+      try {
+        const custRes = await query(
+          `SELECT id FROM customers WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+          [customerEmail.trim()]
+        )
+        if (custRes.rows.length > 0) {
+          customerId = Number(custRes.rows[0].id)
+        }
+      } catch (err) {
+        console.error('[chatbot] Failed to resolve customer by email:', err)
+      }
+    }
+
+    // Clean project type to fit enum_rfq_requests_project_type
+    let pType = String(input.projectType || 'other').toLowerCase()
+    if (!['home', 'office', 'hotel', 'restaurant', 'other'].includes(pType)) {
+      pType = 'other'
+    }
+
+    // Insert into rfq_requests table directly using valid database columns
     const { rows } = await query(
-      `INSERT INTO rfq_requests (lead_id, customer_name, email, phone, delivery_location, project_type, notes, items, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+      `INSERT INTO rfq_requests (customer_id, customer_name, email, phone, delivery_location, project_type, notes, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
        RETURNING id`,
       [
-        input.leadId || null,
+        customerId,
         customerName,
         customerEmail,
         customerPhone,
         input.deliveryLocation || '',
-        input.projectType || '',
+        pType,
         input.notes || '',
-        JSON.stringify(input.items.map(item => ({
-          productId: item.productId,
-          productTitle: item.productTitle,
-          referencePrice: item.referencePrice || 0,
-          quantity: item.quantity,
-          notes: item.notes,
-        }))),
         'new',
       ]
     )
 
     const rfqCartId = String(rows[0]?.id || '')
+
+    // Loop through items and insert them into the canonical rfq_request_items table
+    if (input.items && Array.isArray(input.items) && input.items.length > 0) {
+      for (const item of input.items) {
+        const prodId = Number(item.productId)
+        const validProdId = Number.isInteger(prodId) && prodId > 0 ? prodId : null
+        
+        let skuSnapshot = ''
+        if (validProdId) {
+          try {
+            const prodRes = await query('SELECT sku FROM products WHERE id = $1 LIMIT 1', [validProdId])
+            if (prodRes.rows.length > 0) {
+              skuSnapshot = prodRes.rows[0].sku || ''
+            }
+          } catch { /* best effort */ }
+        }
+
+        await query(
+          `INSERT INTO rfq_request_items (rfq_request_id, product_id, product_title_snapshot, sku_snapshot, unit_price_snapshot, quantity, notes, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
+          [
+            Number(rfqCartId),
+            validProdId,
+            item.productTitle || '',
+            skuSnapshot,
+            item.referencePrice || 0,
+            item.quantity || 1,
+            item.notes || ''
+          ]
+        )
+      }
+    }
 
     // Mark server-side cart as submitted
     try {

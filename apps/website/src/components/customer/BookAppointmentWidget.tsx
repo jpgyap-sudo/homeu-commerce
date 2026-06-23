@@ -34,6 +34,23 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelled',
 }
 
+function formatDate(dateStr: string): string {
+  if (!dateStr) return ''
+  const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr
+  const parts = cleanDate.split('-')
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10)
+    const month = parseInt(parts[1], 10) - 1
+    const day = parseInt(parts[2], 10)
+    const d = new Date(year, month, day)
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+    }
+  }
+  const fallbackDate = new Date(dateStr)
+  return isNaN(fallbackDate.getTime()) ? dateStr : fallbackDate.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+}
+
 export default function BookAppointmentWidget() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
@@ -102,10 +119,7 @@ export default function BookAppointmentWidget() {
   const upcoming = appointments.find(a => a.status === 'requested' || a.status === 'confirmed')
   const upcomingDate = upcoming?.preferredDate || upcoming?.preferred_date || ''
   const upcomingTime = upcoming?.preferredTime || upcoming?.preferred_time || ''
-  const upcomingDateOnly = upcomingDate.includes('T') ? upcomingDate.slice(0, 10) : upcomingDate
-  const upcomingDateLabel = upcomingDateOnly
-    ? new Date(`${upcomingDateOnly}T00:00:00`).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
-    : 'Date to be confirmed'
+  const upcomingDateLabel = upcomingDate ? formatDate(upcomingDate) : 'Date to be confirmed'
   const selectedSlot = slotAvailability?.slots.find(slot => slot.time === time)
 
   return (

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import crypto from 'crypto'
 
 function snakeToCamel(obj: any): any {
   if (obj === null || typeof obj !== 'object' || obj instanceof Date) return obj
@@ -88,8 +89,19 @@ export async function GET(request: NextRequest) {
       [...params, limit, offset]
     )
 
+    const secret = process.env.JWT_SECRET || 'fallback'
+    const docs = dataResult.rows.map(row => {
+      const cameled = snakeToCamel(row)
+      cameled.guestToken = crypto
+        .createHmac('sha256', secret)
+        .update(`${row.id}-${row.created_at}`)
+        .digest('hex')
+        .slice(0, 16)
+      return cameled
+    })
+
     return NextResponse.json({
-      docs: dataResult.rows.map(snakeToCamel),
+      docs,
       totalDocs,
       limit,
       page,

@@ -19,6 +19,7 @@ export async function GET(
         COALESCE(
           NULLIF(q.items, '[]'::jsonb),
           (SELECT jsonb_agg(jsonb_build_object(
+            'productId', qi.product_id,
             'description', qi.title,
             'quantity', qi.quantity,
             'unitCost', qi.unit_price,
@@ -34,6 +35,56 @@ export async function GET(
     if (rows.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const q = rows[0]
+
+    // Process items and fetch image base64 data URIs asynchronously
+    const processedItems = []
+    for (const item of (q.pdf_items || [])) {
+      let imageUrl = item.imageUrl || item.image_url || ''
+      const productId = item.productId || item.product_id || item.product
+
+      if (!imageUrl && productId) {
+        try {
+          const imgRes = await query(
+            `SELECT m.url 
+             FROM products_rels r 
+             JOIN media m ON m.id = r.media_id 
+             WHERE r.parent_id = $1 AND r.path = 'images' 
+             ORDER BY r.order ASC LIMIT 1`,
+            [productId]
+          )
+          if (imgRes.rows.length > 0) {
+            imageUrl = imgRes.rows[0].url
+          }
+        } catch (e) {
+          console.error('Error fetching product image for PDF:', e)
+        }
+      }
+
+      let base64Image = null
+      if (imageUrl) {
+        let fullUrl = imageUrl
+        if (imageUrl.startsWith('/')) {
+          const cdnBase = process.env.NEXT_PUBLIC_CDN_URL || 'https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com'
+          fullUrl = `${cdnBase.replace(/\/$/, '')}${imageUrl}`
+        }
+        try {
+          const fetchRes = await fetch(fullUrl)
+          if (fetchRes.ok) {
+            const buf = Buffer.from(await fetchRes.arrayBuffer())
+            const mime = fetchRes.headers.get('content-type') || 'image/jpeg'
+            base64Image = `data:${mime};base64,${buf.toString('base64')}`
+          }
+        } catch (e) {
+          console.error(`Error downloading image for PDF (${fullUrl}):`, e)
+        }
+      }
+
+      processedItems.push({
+        ...item,
+        imageUrl: base64Image || imageUrl || ''
+      })
+    }
+
     const pdfBuffer = await generateQuotationPDF({
       id: q.id,
       quotationNumber: q.quotation_number,
@@ -45,7 +96,7 @@ export async function GET(
       deliveryLocation: q.delivery_location,
       projectType: q.project_type,
       status: q.status,
-      items: q.pdf_items || [],
+      items: processedItems,
       subtotal: Number(q.subtotal || 0),
       shippingCost: Number(q.shipping_cost || 0),
       total: Number(q.total || 0),
