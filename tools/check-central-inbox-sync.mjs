@@ -148,6 +148,7 @@ async function check() {
     FROM chatbot.conversations c
     LEFT JOIN chatbot.leads l ON l.id = c.lead_id
     WHERE (c.status IS NULL OR c.status = 'active')
+      AND EXISTS (SELECT 1 FROM chatbot.messages m WHERE m.conversation_id = c.id)
     ORDER BY c.last_message_at DESC NULLS LAST
     LIMIT 20
   `)

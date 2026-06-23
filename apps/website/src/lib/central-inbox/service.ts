@@ -71,6 +71,7 @@ export async function getUnifiedInbox(params: {
         FROM chatbot.conversations c
         LEFT JOIN chatbot.leads l ON l.id = c.lead_id
         WHERE (c.status IS NULL OR c.status = 'active')
+          AND EXISTS (SELECT 1 FROM chatbot.messages m WHERE m.conversation_id = c.id)
           ${searchPattern ? `AND (COALESCE(l.name, '') ILIKE $1 OR COALESCE(l.email, '') ILIKE $1 OR COALESCE(c.current_intent, '') ILIKE $1)` : ''}
         ORDER BY c.last_message_at DESC NULLS LAST
         LIMIT ${Math.min(limit, 20)} OFFSET ${offset}
