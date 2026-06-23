@@ -3,7 +3,7 @@ import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 
 function snakeToCamel(obj: any): any {
-  if (obj === null || typeof obj !== 'object') return obj
+  if (obj === null || typeof obj !== 'object' || obj instanceof Date) return obj
   if (Array.isArray(obj)) return obj.map(snakeToCamel)
   const cameled: any = {}
   for (const key of Object.keys(obj)) {
@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const countResult = await query('SELECT COUNT(*) FROM quotations')
-    const nextNum = parseInt(countResult.rows[0].count) + 1
+    const maxResult = await query('SELECT COALESCE(MAX(id), 0) as max_id FROM quotations')
+    const nextNum = parseInt(maxResult.rows[0].max_id) + 1
     const year = new Date().getFullYear()
     const quotationNumber = body.quotationNumber || `Q-${year}-${String(nextNum).padStart(4, '0')}`
 

@@ -180,6 +180,7 @@ export default function EditQuotationPage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
+    if (saving) return
     setError('')
     setSuccess('')
     setSaving(true)
@@ -201,7 +202,7 @@ export default function EditQuotationPage() {
         subtotal,
         shippingCost,
         grandTotal,
-        validUntil: validUntil || undefined,
+        validUntil: validUntil || null,
         status,
         sentAt: sentAt || undefined,
         sentVia: sentVia || undefined,

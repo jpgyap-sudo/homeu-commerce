@@ -8,7 +8,7 @@ function camelToSnake(str: string): string {
 }
 
 function snakeToCamel(obj: any): any {
-  if (obj === null || typeof obj !== 'object') return obj
+  if (obj === null || typeof obj !== 'object' || obj instanceof Date) return obj
   if (Array.isArray(obj)) return obj.map(snakeToCamel)
   const cameled: any = {}
   for (const key of Object.keys(obj)) {
@@ -106,6 +106,14 @@ export async function PATCH(
     }
 
     const fields = Object.keys(body).filter(k => k !== 'resolveRevision' && k !== 'clearRevisionFlag')
+    if (fields.includes('items')) {
+      if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
+        return NextResponse.json(
+          { error: 'Missing required field: items must be a non-empty array' },
+          { status: 400 }
+        )
+      }
+    }
     if (fields.length === 0) {
       // Just the revision resolve, no data changes
       const row = await query('SELECT * FROM quotations WHERE id = $1', [id])

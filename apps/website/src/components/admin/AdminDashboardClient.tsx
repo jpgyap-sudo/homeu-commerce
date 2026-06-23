@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import ProductDNACard from '@/components/ProductDNACard'
+import ShowroomCalendar from '@/components/admin/ShowroomCalendar'
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -53,16 +54,33 @@ export default function AdminDashboardClient() {
   const [insights, setInsights] = useState<DashboardInsights | null>(null)
   const [dna, setDna] = useState<{ summary: DNASummary; products: DNAProduct[] } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [tasks, setTasks] = useState<{
+    tasksToDo: {
+      unreadChats: any[]
+      pendingRfqs: any[]
+      showroomRequests: any[]
+      upcomingAppointments: any[]
+    }
+    pastTasks: {
+      quotations: any[]
+      appointments: any[]
+      rfqs: any[]
+    }
+    calendarEvents: any[]
+  } | null>(null)
+  const [activeTaskTab, setActiveTaskTab] = useState<'todo' | 'done'>('todo')
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [insightsRes, dnaRes] = await Promise.all([
+        const [insightsRes, dnaRes, tasksRes] = await Promise.all([
           fetch('/api/admin/dashboard/insights', { credentials: 'include' }),
           fetch('/api/admin/product-dna?bottom=1&limit=5', { credentials: 'include' }),
+          fetch('/api/admin/dashboard/tasks', { credentials: 'include' }),
         ])
         if (insightsRes.ok) setInsights(await insightsRes.json())
         if (dnaRes.ok) setDna(await dnaRes.json())
+        if (tasksRes.ok) setTasks(await tasksRes.json())
       } catch (err) { console.error('[AdminDashboardClient] Failed:', err) }
       finally { setLoading(false) }
     }
@@ -92,8 +110,177 @@ export default function AdminDashboardClient() {
     { label: 'Closed', count: f.closed, pct: f.quotations > 0 ? Math.round(f.closed / f.quotations * 100) : 0 },
   ] : []
 
+  const todoList: any[] = []
+  if (tasks) {
+    const { unreadChats, pendingRfqs, showroomRequests, upcomingAppointments } = tasks.tasksToDo
+    
+    unreadChats.forEach(c => {
+      todoList.push({
+        type: 'chat',
+        title: `Unread chat from ${c.lead_name}`,
+        desc: `Last active: ${new Date(c.last_message_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}`,
+        icon: '💬',
+        href: `/admin/apps/central-inbox`
+      })
+    })
+
+    pendingRfqs.forEach(r => {
+      todoList.push({
+        type: 'rfq',
+        title: `RFQ from ${r.customerName} pending quotation`,
+        desc: `Submitted: ${new Date(r.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} · Est: ₱${Number(r.estimated_total || 0).toLocaleString('en-PH')}`,
+        icon: '◐',
+        href: `/admin/rfq`
+      })
+    })
+
+    showroomRequests.forEach(a => {
+      todoList.push({
+        type: 'showroom_request',
+        title: `Showroom Visit request from ${a.lead_name}`,
+        desc: `Requested date: ${a.preferred_date || '—'} @ ${a.preferred_time || '—'}`,
+        icon: '🆕',
+        href: `/admin/collections/appointments`
+      })
+    })
+
+    upcomingAppointments.forEach(a => {
+      todoList.push({
+        type: 'upcoming_showroom',
+        title: `Upcoming showroom visit: ${a.lead_name}`,
+        desc: `Date: ${a.preferred_date || '—'} @ ${a.preferred_time || '—'}`,
+        icon: '⏰',
+        href: `/admin/collections/appointments`
+      })
+    })
+  }
+
+  const doneList: any[] = []
+  if (tasks) {
+    const { quotations, appointments, rfqs } = tasks.pastTasks
+    
+    quotations.slice(0, 5).forEach(q => {
+      doneList.push({
+        title: `Quotation ${q.quotationNumber} sent to ${q.customerName}`,
+        desc: `Created: ${new Date(q.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} · Total: ₱${Number(q.grandTotal || 0).toLocaleString('en-PH')}`,
+        icon: '📄',
+        href: `/admin/quotations/${q.id}`
+      })
+    })
+
+    appointments.slice(0, 5).forEach(a => {
+      doneList.push({
+        title: `Showroom visit for ${a.lead_name} marked ${a.status}`,
+        desc: `Scheduled date: ${a.preferred_date || '—'}`,
+        icon: '📅',
+        href: `/admin/collections/appointments`
+      })
+    })
+
+    rfqs.slice(0, 5).forEach(r => {
+      doneList.push({
+        title: `RFQ from ${r.customerName} resolved`,
+        desc: `Status: ${r.status}`,
+        icon: '◐',
+        href: `/admin/rfq`
+      })
+    })
+  }
+
   return (
     <div style={{ marginTop: 'var(--space-8)', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+
+      {/* ── Command Center & Showroom Calendar ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 'var(--space-6)' }}>
+        {/* Command Center */}
+        <div className="luxe-card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="luxe-card-header" style={{ borderBottom: '1px solid var(--luxe-warm-100)' }}>
+            <h2 className="luxe-card-title">🛡️ Admin Command Center</h2>
+            <div style={{ display: 'flex', background: 'var(--luxe-warm-100)', padding: 3, borderRadius: 8, gap: 4 }}>
+              <button
+                onClick={() => setActiveTaskTab('todo')}
+                style={{
+                  padding: '6px 12px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 6, cursor: 'pointer',
+                  background: activeTaskTab === 'todo' ? '#fff' : 'transparent',
+                  color: activeTaskTab === 'todo' ? 'var(--luxe-navy-900)' : 'var(--luxe-slate-400)',
+                  boxShadow: activeTaskTab === 'todo' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                To Do ({todoList.length})
+              </button>
+              <button
+                onClick={() => setActiveTaskTab('done')}
+                style={{
+                  padding: '6px 12px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 6, cursor: 'pointer',
+                  background: activeTaskTab === 'done' ? '#fff' : 'transparent',
+                  color: activeTaskTab === 'done' ? 'var(--luxe-navy-900)' : 'var(--luxe-slate-400)',
+                  boxShadow: activeTaskTab === 'done' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Activity Log ({doneList.length})
+              </button>
+            </div>
+          </div>
+          <div className="luxe-card-body" style={{ flex: 1, padding: 'var(--space-4)', maxHeight: 420, overflowY: 'auto' }}>
+            {activeTaskTab === 'todo' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {todoList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 16px', color: '#64748b' }}>
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>🎉</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>All clear!</div>
+                    <div style={{ fontSize: 12, marginTop: 2 }}>You have completed all pending tasks and follow-ups.</div>
+                  </div>
+                ) : (
+                  todoList.map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--luxe-warm-50)', padding: 12, borderRadius: 8, border: '1px solid var(--luxe-warm-100)' }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        <span style={{ fontSize: 20 }}>{item.icon}</span>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--luxe-navy-900)' }}>{item.title}</div>
+                          <div style={{ fontSize: 11, color: 'var(--luxe-slate-400)', marginTop: 2 }}>{item.desc}</div>
+                        </div>
+                      </div>
+                      <Link href={item.href} style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, background: '#1a6d3e', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', textDecoration: 'none' }}>
+                        Action
+                      </Link>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {doneList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 16px', color: '#64748b' }}>
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>No activity yet</div>
+                    <div style={{ fontSize: 12, marginTop: 2 }}>Completed actions will be logged here.</div>
+                  </div>
+                ) : (
+                  doneList.map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: 12, borderRadius: 8, border: '1px solid var(--luxe-warm-100)' }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        <span style={{ fontSize: 20 }}>{item.icon}</span>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--luxe-navy-900)' }}>{item.title}</div>
+                          <div style={{ fontSize: 11, color: 'var(--luxe-slate-400)', marginTop: 2 }}>{item.desc}</div>
+                        </div>
+                      </div>
+                      <Link href={item.href} style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: '1px solid var(--luxe-warm-200)', color: 'var(--luxe-slate-400)', borderRadius: 6, cursor: 'pointer', textDecoration: 'none' }}>
+                        View
+                      </Link>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Showroom Calendar Widget */}
+        <ShowroomCalendar initialEvents={tasks?.calendarEvents} />
+      </div>
 
       {/* ── P0: Weekly Pulse Score ──────────────────────────────────────── */}
       {insights && (

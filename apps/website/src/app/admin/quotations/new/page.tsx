@@ -202,7 +202,8 @@ function NewQuotationPageContent() {
     // Copy items from RFQ
     if (rfq.items && rfq.items.length > 0) {
       const newItems: QuotationItem[] = rfq.items.map((rfqItem, idx) => {
-        const productId = typeof rfqItem.product === 'object' ? rfqItem.product?.id || '' : rfqItem.product || ''
+        const rfqItemAny = rfqItem as any
+        const productId = rfqItemAny.productId || (typeof rfqItem.product === 'object' ? rfqItem.product?.id || '' : rfqItem.product || '')
         const productTitle = typeof rfqItem.product === 'object' ? rfqItem.product?.title || rfqItem.productTitleSnapshot || '' : rfqItem.productTitleSnapshot || ''
         const materials = (rfqItem as any).materials || (rfqItem as any).productMaterials || ''
         const dimensions = (rfqItem as any).dimensions || (rfqItem as any).productDimensions || ''
@@ -318,6 +319,7 @@ function NewQuotationPageContent() {
   // ── Save ──
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
+    if (saving) return
     setError('')
     setSuccess('')
 
@@ -362,7 +364,7 @@ function NewQuotationPageContent() {
         subtotal,
         shippingCost,
         grandTotal,
-        validUntil: validUntil || undefined,
+        validUntil: validUntil || null,
         status: 'draft',
         ...terms,
       }
