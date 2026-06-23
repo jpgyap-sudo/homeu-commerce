@@ -152,6 +152,6 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error('Migration error:', err.message)
+  console.error('Migration error:', err)
   process.exit(1)
 })

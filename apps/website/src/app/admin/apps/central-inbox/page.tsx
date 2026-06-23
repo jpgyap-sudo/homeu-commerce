@@ -32,6 +32,7 @@ const CHANNEL_COLORS: Record<string, string> = {
 
 export default function CentralInboxPage() {
   const [tab, setTab] = useState<InboxTab>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'read'>('all')
   const [conversations, setConversations] = useState<UnifiedConversation[]>([])
   const [selected, setSelected] = useState<UnifiedConversation | null>(null)
   const [messages, setMessages] = useState<UnifiedMessage[]>([])
@@ -39,18 +40,28 @@ export default function CentralInboxPage() {
   const [loading, setLoading] = useState(true)
   const [replyText, setReplyText] = useState('')
   const [sending, setSending] = useState(false)
+  const [unreadCounts, setUnreadCounts] = useState<{
+    all: number
+    website: number
+    email: number
+    facebook: number
+    instagram: number
+  }>({ all: 0, website: 0, email: 0, facebook: 0, instagram: 0 })
 
   const fetchConversations = useCallback(async () => {
     setLoading(true)
-    const params = new URLSearchParams({ tab, limit: '50' })
+    const params = new URLSearchParams({ tab, limit: '50', statusFilter })
     if (search) params.set('search', search)
     const r = await fetch(`/api/admin/central-inbox?${params}`)
     if (r.ok) {
       const d = await r.json()
       setConversations(d.conversations || [])
+      if (d.unreadCounts) {
+        setUnreadCounts(d.unreadCounts)
+      }
     }
     setLoading(false)
-  }, [tab, search])
+  }, [tab, search, statusFilter])
 
   const fetchMessages = async (conv: UnifiedConversation) => {
     setSelected(conv)
@@ -58,6 +69,35 @@ export default function CentralInboxPage() {
     if (r.ok) {
       const d = await r.json()
       setMessages(d.messages || [])
+      if (conv.unreadCount > 0) {
+        await fetch('/api/admin/central-inbox', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conversationId: conv.id, channel: conv.channel, action: 'read' })
+        })
+        fetchConversations()
+        setSelected(prev => prev ? { ...prev, unreadCount: 0 } : null)
+      }
+    }
+  }
+
+  const toggleStatus = async (action: 'read' | 'unread' | 'archive' | 'unarchive') => {
+    if (!selected) return
+    const r = await fetch('/api/admin/central-inbox', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: selected.id, channel: selected.channel, action })
+    })
+    if (r.ok) {
+      fetchConversations()
+      if (action === 'archive' || action === 'unarchive') {
+        setSelected(null)
+      } else {
+        setSelected(prev => prev ? {
+          ...prev,
+          unreadCount: action === 'read' ? 0 : 1
+        } : null)
+      }
     }
   }
 
@@ -83,12 +123,29 @@ export default function CentralInboxPage() {
 
       {/* Channel Tabs */}
       <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-6)', flexWrap: 'wrap' }}>
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => { setTab(t.key); setSelected(null) }}
-            className={`luxe-btn ${tab === t.key ? 'luxe-btn-primary' : 'luxe-btn-ghost'} luxe-btn-sm`}>
-            {t.icon} {t.label}
-          </button>
-        ))}
+        {TABS.map(t => {
+          const count = t.key !== 'archived' ? unreadCounts[t.key as keyof typeof unreadCounts] : 0
+          return (
+            <button key={t.key} onClick={() => { setTab(t.key); setSelected(null) }}
+              className={`luxe-btn ${tab === t.key ? 'luxe-btn-primary' : 'luxe-btn-ghost'} luxe-btn-sm`}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {t.icon} {t.label}
+              {count > 0 && (
+                <span style={{
+                  background: tab === t.key ? '#fff' : 'var(--luxe-blue-600)',
+                  color: tab === t.key ? 'var(--luxe-blue-600)' : '#fff',
+                  padding: '1px 6px',
+                  borderRadius: 10,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  lineHeight: 1
+                }}>
+                  {count}
+                </span>
+              )}
+            </button>
+          )
+        })}
         <div style={{ marginLeft: 'auto' }}>
           <div className="luxe-search" style={{ width: 240 }}>
             <span className="luxe-search-icon">🔍</span>
@@ -96,6 +153,23 @@ export default function CentralInboxPage() {
               onChange={e => setSearch(e.target.value)} />
           </div>
         </div>
+      </div>
+
+      {/* Sub-filters for Read/Unread status */}
+      <div style={{ display: 'flex', gap: 'var(--space-1.5)', marginBottom: 'var(--space-4)', padding: '0 var(--space-1)' }}>
+        {(['all', 'unread', 'read'] as const).map(s => (
+          <button key={s} onClick={() => { setStatusFilter(s); setSelected(null) }}
+            style={{
+              padding: '6px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--luxe-warm-200)',
+              background: statusFilter === s ? 'var(--luxe-blue-600)' : '#fff',
+              color: statusFilter === s ? '#fff' : 'var(--luxe-slate-600)',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              transition: 'all 100ms ease',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+            }}>
+            {s === 'all' ? 'All Messages' : s === 'unread' ? 'Unread' : 'Read'}
+          </button>
+        ))}
       </div>
 
       <div style={{ display: 'flex', gap: 'var(--space-4)', minHeight: '60vh' }}>
@@ -167,16 +241,40 @@ export default function CentralInboxPage() {
             <div className="luxe-card" style={{ minHeight: '50vh', maxHeight: '75vh', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
               {/* Header */}
               <div style={{ padding: 'var(--space-4) var(--space-5)', borderBottom: '1px solid var(--luxe-warm-100)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 'var(--radius-sm)',
-                    background: CHANNEL_COLORS[selected.channel] || 'var(--luxe-warm-300)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 700, color: '#fff',
-                  }}>{initials(selected.contactName)}</div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--luxe-navy-900)' }}>{selected.contactName}</div>
-                    <div style={{ fontSize: 11, color: 'var(--luxe-slate-400)' }}>{selected.channel.toUpperCase()} · {selected.contactEmail}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 'var(--radius-sm)',
+                      background: CHANNEL_COLORS[selected.channel] || 'var(--luxe-warm-300)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 11, fontWeight: 700, color: '#fff',
+                    }}>{initials(selected.contactName)}</div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--luxe-navy-900)' }}>{selected.contactName}</div>
+                      <div style={{ fontSize: 11, color: 'var(--luxe-slate-400)' }}>{selected.channel.toUpperCase()} · {selected.contactEmail}</div>
+                    </div>
+                  </div>
+
+                  {/* Actions bar */}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {(selected.unreadCount > 0 || (conversations.find(c => c.id === selected.id)?.unreadCount ?? 0) > 0) ? (
+                      <button onClick={() => toggleStatus('read')} title="Mark as Read" className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ padding: '4px 8px', fontSize: 12 }}>
+                        ✉️ Read
+                      </button>
+                    ) : (
+                      <button onClick={() => toggleStatus('unread')} title="Mark as Unread" className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ padding: '4px 8px', fontSize: 12 }}>
+                        📩 Unread
+                      </button>
+                    )}
+                    {tab === 'archived' ? (
+                      <button onClick={() => toggleStatus('unarchive')} title="Move to Inbox" className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ padding: '4px 8px', fontSize: 12 }}>
+                        📥 Unarchive
+                      </button>
+                    ) : (
+                      <button onClick={() => toggleStatus('archive')} title="Archive" className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ padding: '4px 8px', fontSize: 12 }}>
+                        📦 Archive
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 'var(--space-2)' }}>

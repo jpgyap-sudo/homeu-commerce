@@ -38,14 +38,15 @@ export async function getUnifiedInbox(params: {
   search?: string
   limit?: number
   offset?: number
+  statusFilter?: 'all' | 'unread' | 'read'
 }): Promise<{ conversations: UnifiedConversation[]; total: number }> {
-  const { tab = 'all', search = '', limit = 50, offset = 0 } = params
+  const { tab = 'all', search = '', limit = 50, offset = 0, statusFilter = 'all' } = params
   const results: UnifiedConversation[] = []
 
   const searchPattern = search ? `%${search}%` : null
 
   // ── Website Chat ──
-  if (tab === 'all' || tab === 'website') {
+  if (tab === 'all' || tab === 'website' || tab === 'archived') {
     try {
       const { rows } = await query(`
         SELECT
@@ -62,16 +63,16 @@ export async function getUnifiedInbox(params: {
             'No messages yet'
           ) AS "lastMessage",
           c.last_message_at::text AS "lastMessageAt",
-          (SELECT COUNT(*) FROM chatbot.messages m
-           WHERE m.conversation_id = c.id AND m.sender_type = 'visitor'
-          )::int AS "unreadCount",
+          CASE WHEN c.is_read THEN 0 ELSE COALESCE((SELECT COUNT(*) FROM chatbot.messages m WHERE m.conversation_id = c.id AND m.sender_type = 'visitor'), 1)::int END AS "unreadCount",
           COALESCE(c.status, 'open') AS "status",
           ARRAY[]::text[] AS "tags",
           NULL::int AS "customerId"
         FROM chatbot.conversations c
         LEFT JOIN chatbot.leads l ON l.id = c.lead_id
-        WHERE (c.status IS NULL OR c.status = 'active')
+        WHERE ${tab === 'archived' ? "c.status = 'archived'" : "(c.status IS NULL OR c.status != 'archived')"}
           AND EXISTS (SELECT 1 FROM chatbot.messages m WHERE m.conversation_id = c.id)
+          ${statusFilter === 'unread' ? 'AND NOT c.is_read' : ''}
+          ${statusFilter === 'read' ? 'AND c.is_read' : ''}
           ${searchPattern ? `AND (COALESCE(l.name, '') ILIKE $1 OR COALESCE(l.email, '') ILIKE $1 OR COALESCE(c.current_intent, '') ILIKE $1)` : ''}
         ORDER BY c.last_message_at DESC NULLS LAST
         LIMIT ${Math.min(limit, 20)} OFFSET ${offset}
@@ -81,7 +82,7 @@ export async function getUnifiedInbox(params: {
   }
 
   // ── Email ──
-  if (tab === 'all' || tab === 'email') {
+  if (tab === 'all' || tab === 'email' || tab === 'archived') {
     try {
       const { rows } = await query(`
         SELECT
@@ -98,7 +99,9 @@ export async function getUnifiedInbox(params: {
           ARRAY[e.category]::text[] AS "tags",
           e.customer_id::int AS "customerId"
         FROM emails e
-        WHERE e.folder = 'INBOX'
+        WHERE e.folder = ${tab === 'archived' ? "'ARCHIVE'" : "'INBOX'"}
+          ${statusFilter === 'unread' ? 'AND NOT e.is_read' : ''}
+          ${statusFilter === 'read' ? 'AND e.is_read' : ''}
           ${searchPattern ? `AND (e.subject ILIKE $1 OR e.sender_name ILIKE $1 OR e.sender_email ILIKE $1 OR e.body_text ILIKE $1)` : ''}
         ORDER BY e.received_at DESC
         LIMIT ${Math.min(limit, 20)} OFFSET ${offset}
@@ -108,8 +111,9 @@ export async function getUnifiedInbox(params: {
   }
 
   // ── Facebook / Instagram ──
-  if (tab === 'all' || tab === 'facebook' || tab === 'instagram') {
+  if (tab === 'all' || tab === 'facebook' || tab === 'instagram' || tab === 'archived') {
     try {
+      const channelFilter = tab === 'facebook' ? "AND ch.type = 'facebook'" : tab === 'instagram' ? "AND ch.type = 'instagram'" : ""
       const { rows } = await query(`
         SELECT
           c.id AS "id",
@@ -125,14 +129,17 @@ export async function getUnifiedInbox(params: {
             'No messages yet'
           ) AS "lastMessage",
           c.last_message_at::text AS "lastMessageAt",
-          0::int AS "unreadCount",
+          CASE WHEN c.is_read THEN 0 ELSE 1 END::int AS "unreadCount",
           COALESCE(c.status, 'open') AS "status",
           ARRAY[]::text[] AS "tags",
           ct.customer_id::int AS "customerId"
         FROM inbox_conversations c
         JOIN inbox_channels ch ON ch.id = c.channel_id
         LEFT JOIN inbox_contacts ct ON ct.id = c.contact_id
-        WHERE c.status NOT IN ('archived')
+        WHERE ${tab === 'archived' ? "c.status = 'archived'" : "c.status IS DISTINCT FROM 'archived'"}
+          ${channelFilter}
+          ${statusFilter === 'unread' ? 'AND NOT c.is_read' : ''}
+          ${statusFilter === 'read' ? 'AND c.is_read' : ''}
           ${searchPattern ? `AND (COALESCE(ct.name,'') ILIKE $1 OR COALESCE(c.subject,'') ILIKE $1)` : ''}
         ORDER BY c.last_message_at DESC NULLS LAST
         LIMIT ${Math.min(limit, 10)} OFFSET ${offset}
@@ -190,4 +197,111 @@ export async function getConversationMessages(conversationId: string, channel: C
   } catch {
     return []
   }
+}
+
+/**
+ * Update read/unread and archived status for a conversation.
+ */
+export async function updateConversationStatus(
+  conversationId: string,
+  channel: Channel,
+  action: 'read' | 'unread' | 'archive' | 'unarchive'
+): Promise<boolean> {
+  try {
+    if (channel === 'website') {
+      if (action === 'read') {
+        await query('UPDATE chatbot.conversations SET is_read = TRUE WHERE id = $1', [conversationId])
+      } else if (action === 'unread') {
+        await query('UPDATE chatbot.conversations SET is_read = FALSE WHERE id = $1', [conversationId])
+      } else if (action === 'archive') {
+        await query('UPDATE chatbot.conversations SET status = \'archived\' WHERE id = $1', [conversationId])
+      } else if (action === 'unarchive') {
+        await query('UPDATE chatbot.conversations SET status = \'active\' WHERE id = $1', [conversationId])
+      }
+      return true
+    }
+
+    if (channel === 'email') {
+      const emailId = parseInt(conversationId, 10)
+      if (isNaN(emailId)) return false
+      if (action === 'read') {
+        await query('UPDATE emails SET is_read = TRUE WHERE id = $1', [emailId])
+      } else if (action === 'unread') {
+        await query('UPDATE emails SET is_read = FALSE WHERE id = $1', [emailId])
+      } else if (action === 'archive') {
+        await query('UPDATE emails SET folder = \'ARCHIVE\' WHERE id = $1', [emailId])
+      } else if (action === 'unarchive') {
+        await query('UPDATE emails SET folder = \'INBOX\' WHERE id = $1', [emailId])
+      }
+      return true
+    }
+
+    // facebook / instagram
+    if (action === 'read') {
+      await query('UPDATE inbox_conversations SET is_read = TRUE WHERE id = $1', [conversationId])
+    } else if (action === 'unread') {
+      await query('UPDATE inbox_conversations SET is_read = FALSE WHERE id = $1', [conversationId])
+    } else if (action === 'archive') {
+      await query('UPDATE inbox_conversations SET status = \'archived\' WHERE id = $1', [conversationId])
+    } else if (action === 'unarchive') {
+      await query('UPDATE inbox_conversations SET status = \'open\' WHERE id = $1', [conversationId])
+    }
+    return true
+  } catch (err) {
+    console.error('Failed to update conversation status:', err)
+    return false
+  }
+}
+
+/**
+ * Fetch unread conversation counts across all channels.
+ */
+export async function getUnreadCounts(): Promise<{
+  all: number
+  website: number
+  email: number
+  facebook: number
+  instagram: number
+}> {
+  const counts = { all: 0, website: 0, email: 0, facebook: 0, instagram: 0 }
+  
+  // Website
+  try {
+    const { rows } = await query(`
+      SELECT COUNT(*)::int AS count 
+      FROM chatbot.conversations c
+      WHERE (c.status IS NULL OR c.status != 'archived') 
+        AND NOT c.is_read
+        AND EXISTS (SELECT 1 FROM chatbot.messages m WHERE m.conversation_id = c.id)
+    `)
+    counts.website = rows[0]?.count || 0
+  } catch {}
+
+  // Email
+  try {
+    const { rows } = await query(`
+      SELECT COUNT(*)::int AS count 
+      FROM emails 
+      WHERE folder = 'INBOX' AND NOT is_read
+    `)
+    counts.email = rows[0]?.count || 0
+  } catch {}
+
+  // Facebook / Instagram
+  try {
+    const { rows } = await query(`
+      SELECT ch.type, COUNT(*)::int AS count
+      FROM inbox_conversations c
+      JOIN inbox_channels ch ON ch.id = c.channel_id
+      WHERE c.status NOT IN ('archived') AND NOT c.is_read
+      GROUP BY ch.type
+    `)
+    for (const r of rows) {
+      if (r.type === 'facebook') counts.facebook = r.count
+      if (r.type === 'instagram') counts.instagram = r.count
+    }
+  } catch {}
+
+  counts.all = counts.website + counts.email + counts.facebook + counts.instagram
+  return counts
 }
