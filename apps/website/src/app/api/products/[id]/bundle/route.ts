@@ -29,6 +29,15 @@ export async function GET(
     }
     const mainProduct = productRes.rows[0]
 
+    // The shopper's currently-selected variant of the MAIN product (e.g. a
+    // 10-seater table). Bundles can be tiered per variant — a 6-seater table
+    // might pair with 6 chairs while a 10-seater pairs with 10 — mirroring
+    // the original Bundler app. Prefer an exact trigger_variant_id match,
+    // then fall back to the catch-all row (trigger_variant_id IS NULL).
+    const url = new URL(request.url)
+    const variantIdParam = url.searchParams.get('variantId')
+    const selectedVariantId = variantIdParam ? parseInt(variantIdParam, 10) : null
+
     const bundleRes = await query(
       `SELECT b.*,
               p.title AS bundled_title, p.slug AS bundled_slug,
@@ -37,9 +46,10 @@ export async function GET(
        FROM product_bundles b
        JOIN products p ON p.id = b.bundled_product_id
        WHERE b.product_id = $1 AND b.active = true
-       ORDER BY b.sort_order ASC
+         AND (b.trigger_variant_id IS NULL OR b.trigger_variant_id = $2)
+       ORDER BY (b.trigger_variant_id IS NOT NULL AND b.trigger_variant_id = $2) DESC, b.sort_order ASC
        LIMIT 1`,
-      [mainProduct.id]
+      [mainProduct.id, selectedVariantId]
     )
 
     if (bundleRes.rowCount === 0) {

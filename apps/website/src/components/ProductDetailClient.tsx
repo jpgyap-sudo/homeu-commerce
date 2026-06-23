@@ -332,7 +332,7 @@ export default function ProductDetailClient({ product, config = {} }: { product:
       </div>
 
       <div className="page-width">
-        <BundleOffer productSlug={product.slug} />
+        <BundleOffer productSlug={product.slug} mainVariantId={selectedVariantId} />
       </div>
 
       <div className="page-width">

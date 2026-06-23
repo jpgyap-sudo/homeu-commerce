@@ -12,7 +12,7 @@ import siteConfig from '@/data/site-config.json'
 import './chat.css'
 
 const BUBBLE_POS_KEY = 'homeu_chat_bubble_pos'
-const BUBBLE_LOGO = siteConfig.favicon?.shopifyUrl || siteConfig.logo?.shopifyUrl || ''
+const BUBBLE_LOGO = 'https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/uploads/efd19283f64781b5bde261b2ddfb68f2168affb76ed6e34f642c1b3b0f58d8af.png'
 
 interface CustomerProfile {
   id: string
@@ -608,7 +608,9 @@ export function ChatWidget() {
         <div className="chat-window">
           {/* Header */}
           <div className="chat-header">
-            <div className="chat-header-avatar">🏠</div>
+            <div className="chat-header-avatar" style={{ overflow: 'hidden', background: '#fff' }}>
+              <img src={BUBBLE_LOGO} alt="HomeU" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
             <div className="chat-header-info">
               <p className="chat-header-title">HomeU Concierge</p>
               <p className="chat-header-status">Furniture & Lighting Assistant</p>

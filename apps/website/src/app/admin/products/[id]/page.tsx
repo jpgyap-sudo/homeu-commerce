@@ -60,6 +60,8 @@ interface ProductBundle {
   bundled_slug: string
   bundled_image_url: string | null
   bundled_variant_id: number | null
+  trigger_variant_id: number | null
+  trigger_variant_title: string | null
   bundled_quantity: number
   discount_type: 'percent' | 'fixed'
   discount_value: string | number
@@ -456,6 +458,7 @@ export default function EditProductPage() {
             productId={parseInt(params?.id as string, 10)}
             bundles={bundles}
             onChange={setBundles}
+            productVariants={variants}
           />
         </Section>
 
@@ -778,10 +781,11 @@ const selectStyle: React.CSSProperties = {
 
 /** CRUD editor for a product's "Frequently Bought Together" bundle offers —
  * each row saves itself immediately via the admin bundles API. */
-function BundlesEditor({ productId, bundles, onChange }: {
+function BundlesEditor({ productId, bundles, onChange, productVariants }: {
   productId: number
   bundles: ProductBundle[]
   onChange: (bundles: ProductBundle[]) => void
+  productVariants: ProductVariant[]
 }) {
   const [busyId, setBusyId] = useState<number | 'new' | null>(null)
   const [rowError, setRowError] = useState('')
@@ -794,6 +798,7 @@ function BundlesEditor({ productId, bundles, onChange }: {
   const [quantity, setQuantity] = useState('1')
   const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent')
   const [discountValue, setDiscountValue] = useState('5')
+  const [triggerVariantId, setTriggerVariantId] = useState('')
 
   useEffect(() => {
     if (!search.trim() || selected) { setResults([]); return }
@@ -822,13 +827,14 @@ function BundlesEditor({ productId, bundles, onChange }: {
           bundledQuantity: parseInt(quantity, 10) || 1,
           discountType,
           discountValue: discountValue || 0,
+          triggerVariantId: triggerVariantId || null,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to add bundle')
       const fresh = await fetch(`/api/admin/products/${productId}/bundles`, { credentials: 'include' })
       if (fresh.ok) onChange((await fresh.json()).bundles || [])
-      setSelected(null); setSearch(''); setQuantity('1'); setDiscountValue('5')
+      setSelected(null); setSearch(''); setQuantity('1'); setDiscountValue('5'); setTriggerVariantId('')
     } catch (err: any) {
       setRowError(err.message)
     } finally {
@@ -860,6 +866,10 @@ function BundlesEditor({ productId, bundles, onChange }: {
     if (patch.discountType !== undefined) out.discount_type = patch.discountType
     if (patch.discountValue !== undefined) out.discount_value = patch.discountValue
     if (patch.active !== undefined) out.active = patch.active
+    if (patch.triggerVariantId !== undefined) {
+      out.trigger_variant_id = patch.triggerVariantId
+      out.trigger_variant_title = productVariants.find(v => v.id === patch.triggerVariantId)?.title ?? null
+    }
     return out
   }
 
@@ -885,6 +895,7 @@ function BundlesEditor({ productId, bundles, onChange }: {
             <thead>
               <tr style={{ textAlign: 'left', color: '#667168' }}>
                 <th style={{ padding: '4px 8px' }}>Partner Product</th>
+                <th style={{ padding: '4px 8px' }}>Applies to</th>
                 <th style={{ padding: '4px 8px' }}>Qty</th>
                 <th style={{ padding: '4px 8px' }}>Discount</th>
                 <th style={{ padding: '4px 8px' }}>Active</th>
@@ -899,6 +910,18 @@ function BundlesEditor({ productId, bundles, onChange }: {
                       <img src={b.bundled_image_url} alt="" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4 }} />
                     ) : null}
                     {b.bundled_title}
+                  </td>
+                  <td style={{ padding: '4px 8px' }}>
+                    <select
+                      defaultValue={b.trigger_variant_id ?? ''}
+                      style={{ ...selectStyle, maxWidth: 150, padding: '8px 8px' }}
+                      onChange={e => updateBundle(b.id, { triggerVariantId: e.target.value ? parseInt(e.target.value, 10) : null })}
+                    >
+                      <option value="">Any variant</option>
+                      {productVariants.map(v => (
+                        <option key={v.id} value={v.id}>{v.title}</option>
+                      ))}
+                    </select>
                   </td>
                   <td style={{ padding: '4px 8px' }}>
                     <input type="number" min={1} defaultValue={b.bundled_quantity} style={{ ...cellInputStyle, maxWidth: 70 }}
@@ -929,7 +952,7 @@ function BundlesEditor({ productId, bundles, onChange }: {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 0.8fr 1fr 1fr auto', gap: 8, alignItems: 'end' }}>
         <Field label="Partner Product">
           {selected ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -964,6 +987,14 @@ function BundlesEditor({ productId, bundles, onChange }: {
               )}
             </div>
           )}
+        </Field>
+        <Field label="Applies to">
+          <select value={triggerVariantId} onChange={e => setTriggerVariantId(e.target.value)} style={{ ...selectStyle, padding: '8px 8px' }}>
+            <option value="">Any variant</option>
+            {productVariants.map(v => (
+              <option key={v.id} value={v.id}>{v.title}</option>
+            ))}
+          </select>
         </Field>
         <Field label="Qty">
           <input type="number" min={1} value={quantity} onChange={e => setQuantity(e.target.value)} style={cellInputStyle} />

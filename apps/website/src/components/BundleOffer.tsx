@@ -41,9 +41,13 @@ interface BundleData {
 
 interface BundleOfferProps {
   productSlug: string
+  /** The shopper's currently-selected variant of the main product (e.g. a
+   * 6-seater vs 10-seater table) — bundles can be tiered per variant, so
+   * the offer is refetched whenever this changes. */
+  mainVariantId?: number | null
 }
 
-export default function BundleOffer({ productSlug }: BundleOfferProps) {
+export default function BundleOffer({ productSlug, mainVariantId }: BundleOfferProps) {
   const [bundle, setBundle] = useState<BundleData | null>(null)
   const [loading, setLoading] = useState(true)
   const [variantId, setVariantId] = useState<number | null>(null)
@@ -51,17 +55,20 @@ export default function BundleOffer({ productSlug }: BundleOfferProps) {
 
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/products/${productSlug}/bundle`)
+    const qs = mainVariantId ? `?variantId=${mainVariantId}` : ''
+    fetch(`/api/products/${productSlug}/bundle${qs}`)
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.bundle) {
           setBundle(data.bundle)
           setVariantId(data.bundle.bundledProduct.selectedVariantId)
+        } else {
+          setBundle(null)
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [productSlug])
+  }, [productSlug, mainVariantId])
 
   useEffect(() => {
     if (!bundle) return
