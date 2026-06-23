@@ -61,3 +61,36 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: err.message || 'Failed to delete customers' }, { status: 500 })
   }
 }
+
+/** GET /api/admin/customers — search and list customers for admin utilities. */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getSession()
+    if (!session || session.role === 'customer') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const search = searchParams.get('search') || ''
+
+    let result
+    if (search) {
+      result = await query(
+        `SELECT id, name, email, phone, company FROM customers
+         WHERE name ILIKE $1 OR email ILIKE $1 OR COALESCE(phone, '') ILIKE $1
+         ORDER BY name ASC LIMIT 50`,
+        [`%${search}%`]
+      )
+    } else {
+      result = await query(
+        `SELECT id, name, email, phone, company FROM customers
+         ORDER BY name ASC LIMIT 50`
+      )
+    }
+
+    return NextResponse.json({ customers: result.rows })
+  } catch (err: any) {
+    console.error('[API] GET customers error:', err)
+    return NextResponse.json({ error: err.message || 'Failed to fetch customers' }, { status: 500 })
+  }
+}

@@ -166,7 +166,42 @@ export async function GET(request: NextRequest) {
         href: `/admin/quotations/${row.id}`
       }))
 
-      calendarEvents = [...apptEvents, ...quoteEvents]
+      // 6c. Custom Sales Calendar Events
+      let customEvents: any[] = []
+      try {
+        const customCalendarResult = await query(`
+          SELECT id, event_type, title, description, 
+                 TO_CHAR(event_date, 'YYYY-MM-DD') as event_date, 
+                 event_time
+          FROM sales_calendar_events
+          WHERE event_date >= CURRENT_DATE - INTERVAL '60 days'
+            AND event_date <= CURRENT_DATE + INTERVAL '60 days'
+        `)
+        customEvents = customCalendarResult.rows.map((row: any) => {
+          let color = '#4b5563' // Gray for default task
+          if (row.event_type === 'site_visit') color = '#a855f7' // Purple
+          else if (row.event_type === 'meeting') color = '#d946ef' // Magenta/Pink (outside meeting)
+          else if (row.event_type === 'presentation') color = '#ec4899' // Pink (outside presentation)
+          else if (row.event_type === 'note') color = '#6b7280' // Slate
+          else if (row.event_type === 'appointment') color = '#10b981' // Green (outside appointment)
+
+          return {
+            id: `custom-${row.id}`,
+            type: 'custom',
+            eventType: row.event_type,
+            date: row.event_date || null,
+            title: row.title,
+            time: row.event_time || '',
+            status: 'pending',
+            color,
+            href: '/admin/sales-calendar'
+          }
+        })
+      } catch (e) {
+        console.warn('[tasks-api] custom calendar events query error:', (e as Error).message)
+      }
+
+      calendarEvents = [...apptEvents, ...quoteEvents, ...customEvents]
     } catch (e) {
       console.warn('[tasks-api] calendar aggregation error:', (e as Error).message)
     }

@@ -5,7 +5,8 @@ import Link from 'next/link'
 
 interface CalendarEvent {
   id: string
-  type: 'appointment' | 'quotation'
+  type: 'appointment' | 'quotation' | 'rfq' | 'custom'
+  eventType?: 'task' | 'site_visit' | 'appointment' | 'note' | 'meeting' | 'presentation'
   date: string // YYYY-MM-DD
   title: string
   time: string
@@ -214,26 +215,38 @@ export default function ShowroomCalendar({ initialEvents }: ShowroomCalendarProp
 
               {/* Day Events Indicators */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4, overflow: 'hidden' }}>
-                {dayEvents.slice(0, 3).map((evt, eIdx) => (
-                  <div
-                    key={eIdx}
-                    style={{
-                      background: evt.color + '15',
-                      color: evt.color,
-                      fontSize: 10,
-                      fontWeight: 600,
-                      padding: '2px 4px',
-                      borderRadius: 4,
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
-                      overflow: 'hidden',
-                    }}
-                    title={evt.title}
-                  >
-                    {evt.type === 'quotation' ? '📄 ' : '📅 '}
-                    {evt.title.split(': ')[1] || evt.title}
-                  </div>
-                ))}
+                {dayEvents.slice(0, 3).map((evt, eIdx) => {
+                  let icon = '•'
+                  if (evt.type === 'appointment') icon = '📅'
+                  else if (evt.type === 'quotation') icon = '📄'
+                  else if (evt.type === 'rfq') icon = '📋'
+                  else if (evt.type === 'custom') {
+                    if (evt.eventType === 'site_visit') icon = '🏠'
+                    else if (evt.eventType === 'meeting') icon = '💼'
+                    else if (evt.eventType === 'presentation') icon = '📊'
+                    else if (evt.eventType === 'note') icon = '📝'
+                    else if (evt.eventType === 'task') icon = '✅'
+                  }
+                  return (
+                    <div
+                      key={eIdx}
+                      style={{
+                        background: evt.color + '15',
+                        color: evt.color,
+                        fontSize: 10,
+                        fontWeight: 600,
+                        padding: '2px 4px',
+                        borderRadius: 4,
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                        overflow: 'hidden',
+                      }}
+                      title={evt.title}
+                    >
+                      {icon} {evt.title.split(': ')[1] || evt.title}
+                    </div>
+                  )
+                })}
                 {dayEvents.length > 3 && (
                   <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textAlign: 'center', padding: '1px 0' }}>
                     +{dayEvents.length - 3} more
@@ -257,52 +270,65 @@ export default function ShowroomCalendar({ initialEvents }: ShowroomCalendarProp
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {selectedDayEvents.map((evt, idx) => (
-              <div
-                key={idx}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: '#fff',
-                  padding: '10px 12px',
-                  borderRadius: 6,
-                  border: '1px solid #e2e8f0',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.01)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 20 }}>{evt.type === 'quotation' ? '📄' : '📅'}</span>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{evt.title}</div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                      {evt.time && <span style={{ marginRight: 8 }}>⏰ {evt.time}</span>}
-                      <span style={{ textTransform: 'capitalize', fontWeight: 600, color: evt.color }}>
-                        {evt.status}
-                      </span>
+            {selectedDayEvents.map((evt, idx) => {
+              let icon = '•'
+              if (evt.type === 'appointment') icon = '📅'
+              else if (evt.type === 'quotation') icon = '📄'
+              else if (evt.type === 'rfq') icon = '📋'
+              else if (evt.type === 'custom') {
+                if (evt.eventType === 'site_visit') icon = '🏠'
+                else if (evt.eventType === 'meeting') icon = '💼'
+                else if (evt.eventType === 'presentation') icon = '📊'
+                else if (evt.eventType === 'note') icon = '📝'
+                else if (evt.eventType === 'task') icon = '✅'
+              }
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: '#fff',
+                    padding: '10px 12px',
+                    borderRadius: 6,
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.01)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>{icon}</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{evt.title}</div>
+                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                        {evt.time && <span style={{ marginRight: 8 }}>⏰ {evt.time}</span>}
+                        <span style={{ textTransform: 'capitalize', fontWeight: 600, color: evt.color }}>
+                          {evt.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                  <Link
+                    href={evt.href}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#22c55e',
+                      border: '1px solid #22c55e',
+                      borderRadius: 6,
+                      textDecoration: 'none',
+                      background: 'transparent',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#f0fdf4' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                  >
+                    View Details &rarr;
+                  </Link>
                 </div>
-                <Link
-                  href={evt.href}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#22c55e',
-                    border: '1px solid #22c55e',
-                    borderRadius: 6,
-                    textDecoration: 'none',
-                    background: 'transparent',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#f0fdf4' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-                >
-                  View Details &rarr;
-                </Link>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
