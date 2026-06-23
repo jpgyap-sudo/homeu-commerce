@@ -4,40 +4,222 @@ import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+type Step = 'form' | 'otp'
+
 export default function RegisterPage() {
   const router = useRouter()
+  const [step, setStep] = useState<Step>('form')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
+  const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resendTimer, setResendTimer] = useState(0)
+  const [subscribeNewsletter, setSubscribeNewsletter] = useState(true) // auto-checked
+  const [acceptedTerms, setAcceptedTerms] = useState(true) // auto-checked
 
   async function handleSubmit(e: FormEvent) {
-    e.preventDefault(); setError(''); setLoading(true)
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
     try {
-      const res = await fetch('/api/customers', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone, password }),
+      const res = await fetch('/api/customers/register-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send_otp', email, name, phone }),
       })
+
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.errors?.[0]?.message || 'Registration failed')
+        throw new Error(data.errors?.[0]?.message || 'Failed to send verification code')
       }
-      const loginRes = await fetch('/api/customers/login', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+
+      // Move to OTP step
+      setStep('otp')
+      startResendTimer()
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleVerifyOtp(e: FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/customers/register-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'complete_registration',
+          email,
+          code: otp,
+          name,
+          phone,
+          password,
+          subscribe_newsletter: subscribeNewsletter,
+          accepted_terms: acceptedTerms,
+        }),
       })
-      if (!loginRes.ok) { router.push('/login'); return }
-      router.push('/customer/dashboard'); router.refresh()
-    } catch (err: any) { setError(err.message || 'Registration failed') }
-    finally { setLoading(false) }
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.errors?.[0]?.message || 'Verification failed')
+      }
+
+      router.push('/customer/dashboard')
+      router.refresh()
+    } catch (err: any) {
+      setError(err.message || 'Verification failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleResend() {
+    if (resendTimer > 0) return
+    setError('')
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/customers/register-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send_otp', email, name, phone }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.errors?.[0]?.message || 'Failed to resend')
+      }
+
+      setOtp('')
+      startResendTimer()
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend code')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function startResendTimer() {
+    setResendTimer(30)
+    const interval = setInterval(() => {
+      setResendTimer(prev => {
+        if (prev <= 1) { clearInterval(interval); return 0 }
+        return prev - 1
+      })
+    }, 1000)
   }
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '12px 14px', border: '1.5px solid #d9e0d7', borderRadius: 10,
     fontSize: 14, fontFamily: 'inherit', outline: 'none', background: '#f7f9f6', color: '#151a17',
     boxSizing: 'border-box', transition: 'border-color 0.15s',
+  }
+
+  if (step === 'otp') {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', background: '#faf9f6' }}>
+        {/* Left brand panel */}
+        <div style={{
+          flex: '0 0 400px', background: 'linear-gradient(135deg, #151a17 0%, #2a3228 50%, #1a2620 100%)',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+          padding: 48, position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.04, background: 'radial-gradient(circle at 30% 50%, #fff 0%, transparent 60%), radial-gradient(circle at 70% 80%, #b88935 0%, transparent 50%)' }} />
+          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
+            <h1 style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: 32, fontWeight: 400, color: '#fff', margin: '0 0 8px', letterSpacing: '-0.02em' }}>Check your email</h1>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 1.6, maxWidth: 280 }}>
+              We sent a 6-digit verification code to <strong style={{ color: '#fff' }}>{email}</strong>
+            </p>
+          </div>
+        </div>
+
+        {/* Right form panel */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+          <div style={{ maxWidth: 400, width: '100%' }}>
+            <div style={{ marginBottom: 32 }}>
+              <h2 style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: 28, fontWeight: 400, color: '#151a17', margin: '0 0 6px' }}>Verify your email</h2>
+              <p style={{ fontSize: 14, color: '#667168', margin: 0 }}>
+                Enter the verification code sent to your email. It expires in 5 minutes.
+              </p>
+            </div>
+
+            {error && (
+              <div style={{ padding: '12px 16px', background: '#fef2f2', color: '#991b1b', borderRadius: 10, marginBottom: 20, fontSize: 13, fontWeight: 500, border: '1px solid #fecaca' }}>
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#667168', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, display: 'block' }}>
+                  Verification Code
+                </label>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  required
+                  placeholder="000000"
+                  maxLength={6}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  style={{
+                    ...inputStyle,
+                    textAlign: 'center',
+                    fontSize: 28,
+                    letterSpacing: 12,
+                    fontWeight: 700,
+                    fontFamily: 'monospace',
+                  }}
+                  onFocus={e => e.target.style.borderColor = '#151a17'}
+                  onBlur={e => e.target.style.borderColor = '#d9e0d7'}
+                />
+              </div>
+              <button type="submit" disabled={loading || otp.length !== 6} style={{
+                padding: '14px 28px', background: '#151a17', color: '#fff', border: 'none',
+                borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: (loading || otp.length !== 6) ? 'not-allowed' : 'pointer',
+                opacity: (loading || otp.length !== 6) ? 0.7 : 1, transition: 'opacity 0.15s', marginTop: 4,
+              }}>
+                {loading ? 'Verifying…' : 'Create Account'}
+              </button>
+            </form>
+
+            <div style={{ marginTop: 24, textAlign: 'center' }}>
+              <button
+                onClick={handleResend}
+                disabled={resendTimer > 0 || loading}
+                style={{
+                  background: 'none', border: 'none', color: resendTimer > 0 ? '#9aa69c' : '#1a6d3e',
+                  fontSize: 13, fontWeight: 500, cursor: resendTimer > 0 ? 'not-allowed' : 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend code'}
+              </button>
+            </div>
+
+            <p style={{ marginTop: 16, textAlign: 'center', fontSize: 13, color: '#667168' }}>
+              <button
+                onClick={() => { setStep('form'); setError(''); setOtp('') }}
+                style={{ background: 'none', border: 'none', color: '#667168', fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                &larr; Back to registration form
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -93,12 +275,51 @@ export default function RegisterPage() {
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} placeholder="At least 6 characters"
                 style={inputStyle} onFocus={e => e.target.style.borderColor = '#151a17'} onBlur={e => e.target.style.borderColor = '#d9e0d7'} />
             </div>
-            <button type="submit" disabled={loading} style={{
-              padding: '14px 28px', background: '#151a17', color: '#fff', border: 'none',
-              borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1, transition: 'opacity 0.15s', marginTop: 4,
+
+            {/* Newsletter subscription — auto-checked */}
+            <label style={{
+              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+              fontSize: 13, color: '#667168', lineHeight: 1.4,
             }}>
-              {loading ? 'Creating account…' : 'Create Account'}
+              <input
+                type="checkbox"
+                checked={subscribeNewsletter}
+                onChange={e => setSubscribeNewsletter(e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: '#1a6d3e', cursor: 'pointer', flexShrink: 0 }}
+              />
+              <span>Subscribe to our newsletter to receive updates on new arrivals, exclusive offers, and design inspiration.</span>
+            </label>
+
+            {/* Privacy & Terms consent — required */}
+            <label style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer',
+              fontSize: 13, color: '#667168', lineHeight: 1.4,
+            }}>
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={e => setAcceptedTerms(e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: '#1a6d3e', cursor: 'pointer', flexShrink: 0, marginTop: 2 }}
+              />
+              <span>
+                I agree to the{' '}
+                <Link href="/privacy-policy" target="_blank" style={{ color: '#1a6d3e', textDecoration: 'underline' }}>
+                  Privacy Policy
+                </Link>
+                {' '}and{' '}
+                <Link href="/terms-of-service" target="_blank" style={{ color: '#1a6d3e', textDecoration: 'underline' }}>
+                  Terms of Service
+                </Link>
+                .
+              </span>
+            </label>
+
+            <button type="submit" disabled={loading || !acceptedTerms} style={{
+              padding: '14px 28px', background: '#151a17', color: '#fff', border: 'none',
+              borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: (loading || !acceptedTerms) ? 'not-allowed' : 'pointer',
+              opacity: (loading || !acceptedTerms) ? 0.7 : 1, transition: 'opacity 0.15s', marginTop: 4,
+            }}>
+              {loading ? 'Sending code…' : 'Send Verification Code'}
             </button>
           </form>
 

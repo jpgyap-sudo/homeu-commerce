@@ -46,9 +46,9 @@ export async function loadSmtpConfig(): Promise<SmtpSettings> {
     host: dbConfig.smtp_host || process.env.SMTP_HOST || 'smtp.zoho.com',
     port: parseInt(dbConfig.smtp_port || process.env.SMTP_PORT || '587'),
     secure: (dbConfig.smtp_secure || process.env.SMTP_SECURE || 'false') === 'true',
-    user: dbConfig.smtp_user || process.env.SALES_EMAIL || process.env.SMTP_FROM || '',
-    pass: dbConfig.smtp_pass || process.env.SALES_EMAIL_PASS || process.env.SMTP_PASS || '',
-    from: dbConfig.smtp_from || process.env.SMTP_FROM || '"Home Atelier" <sales@homeatelier.ph>',
+    user: dbConfig.smtp_user || process.env.SMTP_USER || process.env.SALES_EMAIL || '',
+    pass: dbConfig.smtp_pass || process.env.SMTP_PASS || process.env.SALES_EMAIL_PASS || '',
+    from: dbConfig.smtp_from || process.env.SMTP_FROM || '"Home Atelier" <noreply@homeatelier.ph>',
     salesEmail: dbConfig.smtp_sales_email || process.env.SALES_EMAIL || 'sales@homeu.ph',
   }
 }

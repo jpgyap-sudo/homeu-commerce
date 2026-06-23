@@ -8,13 +8,19 @@ import siteConfig from '@/data/site-config.json'
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
 const BRAND_LOGO = siteConfig.logo?.shopifyUrl || ''
 
+type Step = 'login' | 'otp_verify'
+
 export default function LoginPage() {
   const router = useRouter()
+  const [step, setStep] = useState<Step>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [resendTimer, setResendTimer] = useState(0)
+  const [pendingUserId, setPendingUserId] = useState<number | null>(null)
   const googleButtonRef = useRef<HTMLDivElement>(null)
   const googleInitialized = useRef(false)
 
@@ -56,20 +62,123 @@ export default function LoginPage() {
     finally { setGoogleLoading(false) }
   }
 
+  // Generate a simple device fingerprint from available browser signals
+  function getDeviceId(): string {
+    const signals = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width,
+      screen.height,
+      screen.colorDepth,
+      new Date().getTimezoneOffset(),
+    ]
+    const hash = signals.join('||')
+    // Simple hash
+    let h = 0
+    for (let i = 0; i < hash.length; i++) {
+      h = ((h << 5) - h) + hash.charCodeAt(i)
+      h = h & h // Convert to 32-bit integer
+    }
+    return 'browser_' + Math.abs(h).toString(36)
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault(); setError(''); setLoading(true)
     try {
-      const res = await fetch('/api/customers/login', {
+      // First attempt: check if OTP is needed for this device
+      const res = await fetch('/api/customers/login-device-otp', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ action: 'send_otp', email, password }),
       })
+
+      const data = await res.json()
+
       if (!res.ok) {
-        const data = await res.json()
+        // Regular login failure
         throw new Error(data.errors?.[0]?.message || 'Login failed')
       }
+
+      if (data.requires_device_otp) {
+        // OTP required — show OTP verification step
+        setPendingUserId(data.user?.id || null)
+        setStep('otp_verify')
+        startResendTimer()
+        return
+      }
+
+      // Normal login (no OTP required)
       router.push('/customer/dashboard'); router.refresh()
     } catch (err: any) { setError(err.message || 'Invalid email or password') }
     finally { setLoading(false) }
+  }
+
+  async function handleVerifyOtp(e: FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const deviceId = getDeviceId()
+      const res = await fetch('/api/customers/login-device-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'verify_login',
+          email,
+          code: otp,
+          deviceId,
+          trustDevice: true,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.errors?.[0]?.message || 'Verification failed')
+      }
+
+      router.push('/customer/dashboard')
+      router.refresh()
+    } catch (err: any) {
+      setError(err.message || 'Verification failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleResendOtp() {
+    if (resendTimer > 0 || loading) return
+    setError('')
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/customers/login-device-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send_otp', email, password }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.errors?.[0]?.message || 'Failed to resend')
+      }
+
+      setOtp('')
+      startResendTimer()
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend code')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function startResendTimer() {
+    setResendTimer(30)
+    const interval = setInterval(() => {
+      setResendTimer(prev => {
+        if (prev <= 1) { clearInterval(interval); return 0 }
+        return prev - 1
+      })
+    }, 1000)
   }
 
   const inputStyle: React.CSSProperties = {
@@ -78,6 +187,106 @@ export default function LoginPage() {
     boxSizing: 'border-box', transition: 'border-color 0.15s',
   }
 
+  // ── OTP Verification Step ──────────────────────────────────────
+  if (step === 'otp_verify') {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', background: '#faf9f6' }}>
+        {/* Left brand panel */}
+        <div style={{
+          flex: '0 0 480px', background: 'linear-gradient(135deg, #eaf4fb 0%, #d7ebf8 50%, #c3e0f3 100%)',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+          padding: 48, position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.05, background: 'radial-gradient(circle at 30% 50%, #fff 0%, transparent 60%), radial-gradient(circle at 70% 80%, #b88935 0%, transparent 50%)' }} />
+          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🔐</div>
+            <h2 style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: 28, fontWeight: 400, color: '#151a17', margin: '0 0 8px' }}>Verify it's you</h2>
+            <p style={{ color: 'rgba(26,38,32,0.65)', fontSize: 14, lineHeight: 1.6, maxWidth: 260 }}>
+              We sent a verification code to <strong>{email}</strong> since this device isn't recognized.
+            </p>
+          </div>
+        </div>
+
+        {/* Right panel */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+          <div style={{ maxWidth: 400, width: '100%' }}>
+            <div style={{ marginBottom: 32 }}>
+              <h2 style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: 28, fontWeight: 400, color: '#151a17', margin: '0 0 6px' }}>Enter verification code</h2>
+              <p style={{ fontSize: 14, color: '#667168', margin: 0 }}>
+                A 6-digit code was sent to your email. It expires in 5 minutes.
+              </p>
+            </div>
+
+            {error && (
+              <div style={{ padding: '12px 16px', background: '#fef2f2', color: '#991b1b', borderRadius: 10, marginBottom: 20, fontSize: 13, fontWeight: 500, border: '1px solid #fecaca' }}>
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#667168', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, display: 'block' }}>
+                  Verification Code
+                </label>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  required
+                  placeholder="000000"
+                  maxLength={6}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  style={{
+                    ...inputStyle,
+                    textAlign: 'center',
+                    fontSize: 28,
+                    letterSpacing: 12,
+                    fontWeight: 700,
+                    fontFamily: 'monospace',
+                  }}
+                  onFocus={e => e.target.style.borderColor = '#151a17'}
+                  onBlur={e => e.target.style.borderColor = '#d9e0d7'}
+                />
+              </div>
+              <button type="submit" disabled={loading || otp.length !== 6} style={{
+                padding: '14px 28px', background: '#151a17', color: '#fff', border: 'none',
+                borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: (loading || otp.length !== 6) ? 'not-allowed' : 'pointer',
+                opacity: (loading || otp.length !== 6) ? 0.7 : 1, transition: 'opacity 0.15s', marginTop: 4,
+              }}>
+                {loading ? 'Verifying…' : 'Verify & Sign In'}
+              </button>
+            </form>
+
+            <div style={{ marginTop: 24, textAlign: 'center' }}>
+              <button
+                onClick={handleResendOtp}
+                disabled={resendTimer > 0 || loading}
+                style={{
+                  background: 'none', border: 'none', color: resendTimer > 0 ? '#9aa69c' : '#1a6d3e',
+                  fontSize: 13, fontWeight: 500, cursor: resendTimer > 0 ? 'not-allowed' : 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend code'}
+              </button>
+            </div>
+
+            <p style={{ marginTop: 16, textAlign: 'center' }}>
+              <button
+                onClick={() => { setStep('login'); setError(''); setOtp('') }}
+                style={{ background: 'none', border: 'none', color: '#667168', fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                &larr; Back to login
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Login Form Step ─────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#faf9f6' }}>
       {/* Left brand panel */}
