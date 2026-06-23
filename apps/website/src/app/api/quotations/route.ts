@@ -92,6 +92,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
+      return NextResponse.json(
+        { error: 'Missing required field: items must be a non-empty array' },
+        { status: 400 }
+      )
+    }
+
     const countResult = await query('SELECT COUNT(*) FROM quotations')
     const nextNum = parseInt(countResult.rows[0].count) + 1
     const year = new Date().getFullYear()

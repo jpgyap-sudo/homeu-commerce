@@ -287,7 +287,7 @@ export default function AdminQuotationsPage() {
                       )}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: '#666' }}>
-                      {q.validUntil
+                      {q.validUntil && !isNaN(new Date(q.validUntil).getTime())
                         ? new Date(q.validUntil).toLocaleDateString('en-PH')
                         : '—'}
                     </td>

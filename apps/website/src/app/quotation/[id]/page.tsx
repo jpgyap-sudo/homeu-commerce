@@ -419,7 +419,7 @@ export default function QuotationViewPage() {
                 year: 'numeric', month: 'long', day: 'numeric'
               })}
             </p>
-            {quotation.validUntil && (
+            {quotation.validUntil && !isNaN(new Date(quotation.validUntil).getTime()) && (
               <p style={{ margin: 0, fontSize: 12, color: '#666' }}>
                 Valid Until: {new Date(quotation.validUntil).toLocaleDateString('en-PH', {
                   year: 'numeric', month: 'long', day: 'numeric'

@@ -318,7 +318,7 @@ export default function CustomerQuotationPage() {
           <h3 style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 700 }}>Delivery Information</h3>
           {quotation.deliveryLocation && <p style={{ margin: '2px 0', fontSize: 13, color: '#555' }}>{quotation.deliveryLocation}</p>}
           {quotation.projectType && <p style={{ margin: '2px 0', fontSize: 13, color: '#555' }}>Project: {quotation.projectType}</p>}
-          {quotation.validUntil && <p style={{ margin: '2px 0', fontSize: 13, color: '#555' }}>Valid Until: {new Date(quotation.validUntil).toLocaleDateString('en-PH')}</p>}
+          {quotation.validUntil && !isNaN(new Date(quotation.validUntil).getTime()) && <p style={{ margin: '2px 0', fontSize: 13, color: '#555' }}>Valid Until: {new Date(quotation.validUntil).toLocaleDateString('en-PH')}</p>}
         </div>
       </div>
 
