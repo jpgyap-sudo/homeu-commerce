@@ -91,9 +91,9 @@ async function loadAnalytics(): Promise<AnalyticsData> {
     ] = await Promise.all([
       // Daily traffic (last 14 days)
       query(`
-        SELECT DATE(created_at) as date, COUNT(*) as views, COUNT(DISTINCT COALESCE(visitor_id, 'anon')) as visitors
+        SELECT TO_CHAR(created_at, 'YYYY-MM-DD') as date, COUNT(*) as views, COUNT(DISTINCT COALESCE(visitor_id, 'anon')) as visitors
         FROM page_views WHERE is_admin = FALSE AND created_at >= NOW() - INTERVAL '14 days'
-        GROUP BY DATE(created_at) ORDER BY date ASC
+        GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date ASC
       `),
       // Monthly traffic (last 6 months)
       query(`
@@ -135,9 +135,9 @@ async function loadAnalytics(): Promise<AnalyticsData> {
 
       // Lead volume by day (14 days)
       query(`
-        SELECT DATE(created_at) as date, COUNT(*) as count
+        SELECT TO_CHAR(created_at, 'YYYY-MM-DD') as date, COUNT(*) as count
         FROM chatbot.leads WHERE created_at >= NOW() - INTERVAL '14 days'
-        GROUP BY DATE(created_at) ORDER BY date ASC
+        GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date ASC
       `),
       // Lead sources
       query(`
@@ -191,7 +191,7 @@ async function loadAnalytics(): Promise<AnalyticsData> {
       `),
 
       // Messages
-      query(`SELECT DATE(created_at) as date, COUNT(*) as count FROM chatbot.messages WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY DATE(created_at) ORDER BY date ASC`),
+      query(`SELECT TO_CHAR(created_at, 'YYYY-MM-DD') as date, COUNT(*) as count FROM chatbot.messages WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date ASC`),
 
       // Top delivery locations from RFQ carts
       query(`SELECT COALESCE(NULLIF(delivery_location, ''), 'Not specified') as location, COUNT(*) as count FROM chatbot.rfq_carts WHERE delivery_location IS NOT NULL GROUP BY delivery_location ORDER BY count DESC LIMIT 6`),
@@ -251,7 +251,17 @@ async function loadAnalytics(): Promise<AnalyticsData> {
 
 function fmtDate(d: string | null): string {
   if (!d) return ''
-  try { return new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) } catch { return d }
+  try {
+    const cleanStr = d.includes('T') ? d.split('T')[0] : d
+    const parts = cleanStr.split('-')
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10)
+      const month = parseInt(parts[1], 10) - 1
+      const day = parseInt(parts[2], 10)
+      return new Date(year, month, day).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+    }
+    return new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+  } catch { return d }
 }
 
 function emptyAnalytics(error?: string): AnalyticsData {

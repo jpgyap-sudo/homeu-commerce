@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     } else if (type === 'leads') {
       rows = (await query(`SELECT id, name, email, mobile, buyer_type, company_name, project_location, source_page, status, score, created_at FROM chatbot.leads WHERE created_at::date BETWEEN $1 AND $2 ORDER BY created_at DESC`, [from, to])).rows
     } else if (type === 'rfq') {
-      rows = (await query(`SELECT id, lead_id, status, delivery_location, project_type, target_date, budget_range, estimated_total, submitted_at, created_at FROM chatbot.rfq_carts WHERE created_at::date BETWEEN $1 AND $2 ORDER BY created_at DESC`, [from, to])).rows
+      rows = (await query(`SELECT id, lead_id, status, delivery_location, project_type, notes, estimated_total, submitted_at, created_at FROM chatbot.rfq_carts WHERE created_at::date BETWEEN $1 AND $2 ORDER BY created_at DESC`, [from, to])).rows
     } else if (type === 'messages') {
       rows = (await query(`SELECT id, conversation_id, sender_type, message_type, content, created_at FROM chatbot.messages WHERE created_at::date BETWEEN $1 AND $2 ORDER BY created_at DESC`, [from, to])).rows
     } else if (type === 'all') {

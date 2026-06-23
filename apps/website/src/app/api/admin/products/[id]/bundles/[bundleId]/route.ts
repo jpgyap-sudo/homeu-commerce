@@ -24,6 +24,7 @@ export async function PATCH(
 
     const fieldMap: Record<string, string> = {
       bundledVariantId: 'bundled_variant_id',
+      triggerVariantId: 'trigger_variant_id',
       bundledQuantity: 'bundled_quantity',
       discountType: 'discount_type',
       discountValue: 'discount_value',

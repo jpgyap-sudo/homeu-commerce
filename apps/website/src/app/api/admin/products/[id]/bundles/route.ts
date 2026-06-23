@@ -24,15 +24,25 @@ export async function GET(
 
     const result = await query(
       `SELECT b.*, p.title AS bundled_title, p.slug AS bundled_slug,
-              (SELECT url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1) AS bundled_image_url
+              (SELECT url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1) AS bundled_image_url,
+              tv.title AS trigger_variant_title
        FROM product_bundles b
        JOIN products p ON p.id = b.bundled_product_id
+       LEFT JOIN product_variants tv ON tv.id = b.trigger_variant_id
        WHERE b.product_id = $1
        ORDER BY b.sort_order ASC, b.id ASC`,
       [productId]
     )
 
-    return NextResponse.json({ bundles: result.rows })
+    // Own variants of this product, so the admin can pick which size/variant
+    // each bundle row should trigger on (mirrors the original Bundler app's
+    // per-variant tiers, e.g. 6-seater table -> 6 chairs, 10-seater -> 10 chairs).
+    const variantsRes = await query(
+      `SELECT id, title FROM product_variants WHERE product_id = $1 ORDER BY sort_order ASC`,
+      [productId]
+    )
+
+    return NextResponse.json({ bundles: result.rows, productVariants: variantsRes.rows })
   } catch (err: any) {
     console.error('[admin/products/:id/bundles] GET error:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
@@ -71,9 +81,9 @@ export async function POST(
 
     const result = await query(
       `INSERT INTO product_bundles
-         (product_id, bundled_product_id, bundled_variant_id, bundled_quantity, discount_type, discount_value, sort_order, active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (product_id, bundled_product_id) DO UPDATE SET
+         (product_id, bundled_product_id, bundled_variant_id, trigger_variant_id, bundled_quantity, discount_type, discount_value, sort_order, active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (product_id, bundled_product_id, COALESCE(trigger_variant_id, 0)) DO UPDATE SET
          bundled_variant_id = EXCLUDED.bundled_variant_id,
          bundled_quantity = EXCLUDED.bundled_quantity,
          discount_type = EXCLUDED.discount_type,
@@ -85,6 +95,7 @@ export async function POST(
         productId,
         bundledProductId,
         body.bundledVariantId ? parseInt(body.bundledVariantId, 10) : null,
+        body.triggerVariantId ? parseInt(body.triggerVariantId, 10) : null,
         body.bundledQuantity ? parseInt(body.bundledQuantity, 10) : 1,
         body.discountType === 'fixed' ? 'fixed' : 'percent',
         body.discountValue != null && body.discountValue !== '' ? parseFloat(body.discountValue) : 0,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { query } from '@/lib/db'
+import { getUnreadCounts } from '@/lib/central-inbox/service'
 
 export async function GET(_request: NextRequest) {
   const session = await getSession()
@@ -13,46 +14,16 @@ export async function GET(_request: NextRequest) {
     let unreadCounts = { website: 0, email: 0, facebook: 0, instagram: 0 }
 
     try {
-      const websiteResult = await query(`
-        SELECT COUNT(*)::int AS count FROM chatbot.messages m
-        WHERE m.sender_type = 'visitor'
-          AND NOT EXISTS (
-            SELECT 1 FROM chatbot.messages m2
-            WHERE m2.conversation_id = m.conversation_id
-              AND m2.sender_type IN ('admin', 'agent')
-              AND m2.created_at > m.created_at
-          )
-      `)
-      unreadCounts.website = websiteResult.rows[0]?.count || 0
-    } catch { /* chatbot tables may not exist */ }
-
-    try {
-      const emailResult = await query(`
-        SELECT COUNT(*)::int AS count FROM emails
-        WHERE folder = 'INBOX' AND (is_read = FALSE OR is_read IS NULL)
-      `)
-      unreadCounts.email = emailResult.rows[0]?.count || 0
-    } catch { /* emails table may not exist */ }
-
-    try {
-      const fbResult = await query(`
-        SELECT COUNT(*)::int AS count FROM inbox_conversations c
-        JOIN inbox_channels ch ON ch.id = c.channel_id
-        WHERE ch.type = 'facebook' AND c.status != 'archived'
-          AND (SELECT COUNT(*) FROM inbox_messages m WHERE m.conversation_id = c.id AND m.direction = 'outbound') = 0
-      `)
-      unreadCounts.facebook = fbResult.rows[0]?.count || 0
-    } catch { /* inbox tables may not exist */ }
-
-    try {
-      const igResult = await query(`
-        SELECT COUNT(*)::int AS count FROM inbox_conversations c
-        JOIN inbox_channels ch ON ch.id = c.channel_id
-        WHERE ch.type = 'instagram' AND c.status != 'archived'
-          AND (SELECT COUNT(*) FROM inbox_messages m WHERE m.conversation_id = c.id AND m.direction = 'outbound') = 0
-      `)
-      unreadCounts.instagram = igResult.rows[0]?.count || 0
-    } catch { /* inbox tables may not exist */ }
+      const counts = await getUnreadCounts()
+      unreadCounts = {
+        website: counts.website,
+        email: counts.email,
+        facebook: counts.facebook,
+        instagram: counts.instagram
+      }
+    } catch (e) {
+      console.warn('[dashboard-insights] Failed to fetch unread counts:', (e as Error).message)
+    }
 
     // ── Unreplied / forgotten ──────────────────────────────────────────
     let unrepliedCount = 0
