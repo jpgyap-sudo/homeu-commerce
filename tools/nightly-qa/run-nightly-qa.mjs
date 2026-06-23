@@ -237,18 +237,22 @@ async function phase4_themeSectionAudit() {
     'footer_brand', 'footer_quick_links', 'footer_newsletter', 'footer_social',
   ]
 
+  const footerSections = ['footer_brand', 'footer_quick_links', 'footer_newsletter', 'footer_social']
+  const homepageSections = sections.filter(s => !footerSections.includes(s))
+  let sectionsAudited = 0
+
   // Verify section schemas exist
   try {
-    const schemasFile = join(ROOT, 'apps', 'website', 'src', 'app', 'admin', 'theme', 'theme-schemas.ts')
-    if (existsSync(schemasFile)) {
-      const content = readFileSync(schemasFile, 'utf8')
+    const settingsFile = join(ROOT, 'apps', 'website', 'src', 'lib', 'theme-builder-settings.ts')
+    if (existsSync(settingsFile)) {
+      const content = readFileSync(settingsFile, 'utf8')
       for (const s of sections) {
-        if (!content.includes(`'${s}'`)) {
-          recordGap('Theme Schema', `Section type '${s}' has no schema in theme-schemas.ts`, 'high')
+        if (!content.includes(`${s}:`)) {
+          recordGap('Theme Schema', `Section type '${s}' has no schema in theme-builder-settings.ts`, 'high')
         }
       }
     }
-  } catch (e) { log(`  ⚠ Could not read theme-schemas.ts: ${e.message}`) }
+  } catch (e) { log(`  ⚠ Could not read theme-builder-settings.ts: ${e.message}`) }
 
   // Verify section types match metadata
   try {
@@ -268,14 +272,27 @@ async function phase4_themeSectionAudit() {
     const rendererFile = join(ROOT, 'apps', 'website', 'src', 'components', 'home', 'HomeSections.tsx')
     if (existsSync(rendererFile)) {
       const content = readFileSync(rendererFile, 'utf8')
-      sectionsAudited = sections.length
-      for (const s of sections) {
+      sectionsAudited += homepageSections.length
+      for (const s of homepageSections) {
         if (!content.includes(`case '${s}'`)) {
           recordGap('Section Renderer', `Section '${s}' has no renderer in HomeSections.tsx`, 'critical')
         }
       }
     }
   } catch (e) { log(`  ⚠ Could not read HomeSections.tsx: ${e.message}`) }
+
+  try {
+    const footerRendererFile = join(ROOT, 'apps', 'website', 'src', 'components', 'SiteFooter.tsx')
+    if (existsSync(footerRendererFile)) {
+      const content = readFileSync(footerRendererFile, 'utf8')
+      sectionsAudited += footerSections.length
+      for (const s of footerSections) {
+        if (!content.includes(s)) {
+          recordGap('Section Renderer', `Footer Section '${s}' has no renderer in SiteFooter.tsx`, 'critical')
+        }
+      }
+    }
+  } catch (e) { log(`  ⚠ Could not read SiteFooter.tsx: ${e.message}`) }
 
   const duration = ((Date.now() - start) / 1000).toFixed(1)
   phaseResults['4-theme'] = { status: 'ok', duration: parseFloat(duration), notes: `${sectionsAudited} sections audited` }

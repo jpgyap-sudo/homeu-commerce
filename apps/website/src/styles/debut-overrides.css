@@ -2812,3 +2812,29 @@
   clear: both;
   padding: 40px 0;
 }
+
+/* Slideshow Mobile/Desktop Images & Button styles */
+.slideshow__image--desktop {
+  display: block;
+}
+.slideshow__image--mobile {
+  display: none;
+}
+@media (max-width: 749px) {
+  .slideshow__image--desktop.has-mobile {
+    display: none;
+  }
+  .slideshow__image--mobile {
+    display: block;
+  }
+}
+.btn--outline {
+  background: transparent;
+  color: #fff;
+  border: 2px solid #fff;
+}
+.btn--outline:hover {
+  background: #fff;
+  color: #1a1a1a;
+  border-color: #fff;
+}

@@ -3,7 +3,7 @@
 > **Purpose:** Single source of truth for known gaps, missing features, and technical debt across the DaVinciOS system.
 > **Scope:** Covers the DaVinciOS CMS backend, chatbot concierge, API routes, admin panel, frontend components, collections, deployment pipeline, and agent definitions.
 > **Status:** Active — gaps are logged for tracking by all Kilo Code extensions and agents.
-> **Last Updated:** 2026-06-22 19:25:48+08:00
+> **Last Updated:** 2026-06-23 08:30:00+08:00
 
 ---
 
@@ -316,7 +316,7 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/app/admin/theme/ThemeEditor.tsx`](apps/website/src/app/admin/theme/ThemeEditor.tsx), [`apps/website/src/app/admin/theme/theme-schemas.ts`](apps/website/src/app/admin/theme/theme-schemas.ts), [`apps/website/src/components/admin/DynamicSettingsForm.tsx`](apps/website/src/components/admin/DynamicSettingsForm.tsx) |
 | **Type** | Core no-code editor wiring gap |
-| **Status** | Active |
+| **Status** | ✅ Resolved |
 | **Description** | The canonical settings registry defines selects, checkboxes, ranges, conditional fields, repeaters, image pickers, links, fonts, alignment, product pickers, and collection pickers. `ThemeEditor` still imports the backward-compatibility `SECTION_SCHEMAS` adapter and its local `renderField()`. That adapter collapses most modern setting types into plain text or number inputs, hides universal advanced controls, ignores options and conditions, and renders repeater sub-fields as basic text inputs. The complete `DynamicSettingsForm` exists but is never imported by `ThemeEditor`. |
 | **Impact** | The builder looks comprehensive but is not reliably no-code: users must know internal values such as `auto`, `curated`, `fadeIn`, percentages, booleans, and URLs, and can easily save invalid strings. Image and nested item editing is unnecessarily technical. |
 | **Fix Guidance** | Replace the compatibility adapter and local renderer with `getSectionSettings()` plus `DynamicSettingsForm`. Add first-class product/collection callbacks to the dynamic form, preserve conditions and units, render media pickers inside repeaters, and remove `theme-schemas.ts` after migration. Verify every setting type with component tests. |
@@ -3527,3 +3527,4 @@ The existing Playwright audit reported 113 passes, one timeout, and five warning
 | 2026-06-19 | **CDN media wiring audit** — Added 4 new gaps (1 medium, 3 low) covering the DO Spaces CDN not being wired for admin uploads, slideshow Shopify URLs, favicon Shopify URL, and chat uploads to local disk. Products/categories bulk migration to DO Spaces was ✅ done, but live upload pipeline and a few frontend assets still bypass the CDN. Summary updated (37 active, 36 resolved) | Roo (Debug mode) |
 | 2026-06-19 | **Featured pieces product curator** — Added new "curated" source mode for `featured_products` section, visual ProductPicker modal with category filter tabs, search, and multi-select. Created API endpoint `/api/admin/products/picker`, `ProductPicker.tsx` component, and wired in-preview product click → picker flow. Updated HomeSections renderer, theme-schemas, ThemeEditor, PreviewBridge, and admin exports. ✅ Resolved GAP-MED-FEATURED-PICKER. Summary updated (37 active, 37 resolved) | SuperRoo (Code mode) |
 | 2026-06-21 | **Admin Settings E2E Audit** — Audited all 6 settings pages. Found 2 fully broken (Store, Notifications), 1 wired but with incomplete features (System/Security), 1 navigation bug (tab active state). Added: Social Channels settings page + API + FB Messenger webhook + E2E test script. Summary updated (66 active, 37 resolved) | SuperRoo (Code mode) |
+| 2026-06-23 | **Theme customizer slideshow controls and cleanup** — Wired slides overlay opacity/color, button style mapping, responsive mobile image swaps, custom text alignment, and min/max heights. Removed obsolete `theme-schemas.ts` and updated nightly QA checks. Resolved GAP-HIGH-019. | Antigravity |

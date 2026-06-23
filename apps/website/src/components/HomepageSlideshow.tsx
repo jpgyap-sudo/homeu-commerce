@@ -10,6 +10,11 @@ interface Slide {
   subheading?: string
   buttonLabel?: string
   buttonLink?: string
+  buttonStyle?: string
+  textColor?: string
+  overlayColor?: string
+  overlayOpacity?: number
+  mobileImage?: string
 }
 
 interface SlideshowProps {
@@ -19,7 +24,10 @@ interface SlideshowProps {
   showDots?: boolean
   rotateInterval?: number
   height?: number
+  minHeight?: number
+  maxHeight?: number
   contentPosition?: string
+  contentAlign?: string
 }
 
 const DEFAULT_SLIDES: Slide[] = [
@@ -50,7 +58,10 @@ export function HomepageSlideshow({
   showDots = true,
   rotateInterval = 6000,
   height,
+  minHeight,
+  maxHeight,
   contentPosition = 'bottom',
+  contentAlign = 'center',
 }: SlideshowProps) {
   const SLIDES = slides && slides.length > 0 ? slides : DEFAULT_SLIDES
   const [current, setCurrent] = useState(0)
@@ -71,10 +82,24 @@ export function HomepageSlideshow({
     bottom: 'flex-end',
   }
 
+  const alignStyles: Record<string, { alignItems: 'flex-start' | 'center' | 'flex-end'; textAlign: 'left' | 'center' | 'right'; paddingLeft?: string; paddingRight?: string }> = {
+    left: { alignItems: 'flex-start', textAlign: 'left', paddingLeft: '8%', paddingRight: '8%' },
+    center: { alignItems: 'center', textAlign: 'center' },
+    right: { alignItems: 'flex-end', textAlign: 'right', paddingLeft: '8%', paddingRight: '8%' },
+  }
+
+  const alignment = alignStyles[contentAlign] || alignStyles.center
+
+  const slideshowStyle: React.CSSProperties = {
+    height: height ? `${height}vh` : '80vh',
+    minHeight: minHeight ? `${minHeight}px` : undefined,
+    maxHeight: maxHeight ? `${maxHeight}px` : undefined,
+  }
+
   return (
     <div
       className="slideshow"
-      style={height ? { height: `${height}vh` } : undefined}
+      style={slideshowStyle}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       aria-label="Homepage slideshow"
@@ -87,27 +112,93 @@ export function HomepageSlideshow({
             aria-hidden={idx !== current}
           >
             {slide.image ? (
-              <Image
-                src={slide.image}
-                alt=""
-                fill
-                data-edit-image={`slides.${idx}.image`}
-                style={{ objectFit: 'cover', objectPosition: 'center' }}
-                priority={idx === 0}
-                sizes="100vw"
-                unoptimized
-              />
+              <>
+                <Image
+                  src={slide.image}
+                  alt=""
+                  fill
+                  data-edit-image={`slides.${idx}.image`}
+                  className={slide.mobileImage ? 'slideshow__image--desktop has-mobile' : 'slideshow__image--desktop'}
+                  style={{ objectFit: 'cover', objectPosition: 'center' }}
+                  priority={idx === 0}
+                  sizes="100vw"
+                  unoptimized
+                />
+                {slide.mobileImage && (
+                  <Image
+                    src={slide.mobileImage}
+                    alt=""
+                    fill
+                    data-edit-image={`slides.${idx}.mobileImage`}
+                    className="slideshow__image--mobile"
+                    style={{ objectFit: 'cover', objectPosition: 'center' }}
+                    priority={idx === 0}
+                    sizes="100vw"
+                    unoptimized
+                  />
+                )}
+              </>
             ) : (
               <div style={{ position: 'absolute', inset: 0, background: '#eef1ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9aa69c', fontSize: 14 }}>
                 Click to add image
               </div>
             )}
+
+            {/* Darkening overlay background */}
+            <div
+              className="slideshow__overlay-bg"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: slide.overlayColor || 'rgba(0,0,0,0.2)',
+                opacity: (slide.overlayOpacity !== undefined ? Number(slide.overlayOpacity) : 20) / 100,
+                zIndex: 1,
+                pointerEvents: 'none',
+              }}
+            />
+
             {(slide.heading || slide.subheading || (slide.buttonLabel && slide.buttonLink)) && (
-              <div className="slideshow__overlay" style={{ justifyContent: positionStyles[contentPosition] || 'flex-end' }}>
-                {slide.heading && <h2 className="slideshow__heading" data-edit={`slides.${idx}.heading`}>{slide.heading}</h2>}
-                {slide.subheading && <p className="slideshow__subheading" data-edit={`slides.${idx}.subheading`}>{slide.subheading}</p>}
+              <div
+                className="slideshow__overlay"
+                style={{
+                  justifyContent: positionStyles[contentPosition] || 'flex-end',
+                  alignItems: alignment.alignItems,
+                  textAlign: alignment.textAlign,
+                  paddingLeft: alignment.paddingLeft,
+                  paddingRight: alignment.paddingRight,
+                  zIndex: 2,
+                }}
+              >
+                {slide.heading && (
+                  <h2
+                    className="slideshow__heading"
+                    data-edit={`slides.${idx}.heading`}
+                    style={{ color: slide.textColor || '#ffffff' }}
+                  >
+                    {slide.heading}
+                  </h2>
+                )}
+                {slide.subheading && (
+                  <p
+                    className="slideshow__subheading"
+                    data-edit={`slides.${idx}.subheading`}
+                    style={{ color: slide.textColor || '#ffffff' }}
+                  >
+                    {slide.subheading}
+                  </p>
+                )}
                 {slide.buttonLabel && slide.buttonLink && (
-                  <Link href={slide.buttonLink} className="btn btn--primary slideshow__btn" data-edit={`slides.${idx}.buttonText`}>
+                  <Link
+                    href={slide.buttonLink}
+                    className={`btn slideshow__btn ${
+                      slide.buttonStyle === 'secondary'
+                        ? 'btn--secondary'
+                        : slide.buttonStyle === 'outline'
+                        ? 'btn--outline'
+                        : 'btn--primary'
+                    }`}
+                    data-edit={`slides.${idx}.buttonText`}
+                  >
                     {slide.buttonLabel}
                   </Link>
                 )}

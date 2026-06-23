@@ -266,8 +266,16 @@ async function renderSection(section: HomepageSection, context?: any) {
 
     case 'slideshow': {
       const slides = (cfg.slides || []).map((s: any) => ({
-        image: s.image, heading: s.heading, subheading: s.subheading,
-        buttonLabel: s.buttonText || s.buttonLabel, buttonLink: s.buttonLink,
+        image: s.image,
+        heading: s.heading,
+        subheading: s.subheading,
+        buttonLabel: s.buttonText || s.buttonLabel,
+        buttonLink: s.buttonLink,
+        buttonStyle: s.buttonStyle,
+        textColor: s.textColor,
+        overlayColor: s.overlayColor,
+        overlayOpacity: s.overlayOpacity,
+        mobileImage: s.mobileImage,
       }))
       return (
         <HomepageSlideshow
@@ -276,8 +284,11 @@ async function renderSection(section: HomepageSection, context?: any) {
           showArrows={cfg.showArrows !== false}
           showDots={cfg.showDots !== false}
           rotateInterval={(cfg.rotateInterval || 6) * 1000}
-          height={cfg.height || 80}
+          height={cfg.height}
+          minHeight={cfg.minHeight}
+          maxHeight={cfg.maxHeight}
           contentPosition={cfg.contentPosition || 'bottom'}
+          contentAlign={cfg.contentAlign}
         />
       )
     }
