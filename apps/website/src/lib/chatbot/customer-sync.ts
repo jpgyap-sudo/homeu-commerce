@@ -65,7 +65,7 @@ export async function linkLeadToCustomer(leadId: string, customerId: string): Pr
   if (!leadId || !customerId) return false
   try {
     await query(
-      'UPDATE chatbot.leads SET customer_id = $1, status = $2, updated_at = NOW() WHERE id = $3',
+      'UPDATE chatbot.leads SET daVincios_customer_id = $1, status = $2, updated_at = NOW() WHERE id = $3',
       [customerId, 'linked', leadId]
     )
     return true

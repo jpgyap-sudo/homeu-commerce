@@ -16,6 +16,8 @@ interface Lead {
   status: string
   score: number
   score_label: string | null
+  total_visits: number
+  last_seen_at: string | null
   created_at: string
 }
 
@@ -161,14 +163,16 @@ export default function AdminLeadsListPage() {
                 <th style={thStyle}>Type</th>
                 <th style={thStyle}>Status</th>
                 <th style={thStyle}>Score</th>
+                <th style={thStyle}>Visits</th>
+                <th style={thStyle}>Last Seen</th>
                 <th style={thStyle}>Source</th>
                 <th style={thStyle}>Date</th>
               </tr>
             </thead>
             <tbody>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <tr key={i}>
-                  {[1, 2, 3, 4, 5, 6, 7].map((j) => (
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <tr key={i}>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((j) => (
                     <td key={j} style={{ padding: 12 }}>
                       <div style={{ height: 16, background: '#e5e7eb', borderRadius: 4, animation: 'pulse 2s infinite' }} />
                     </td>
@@ -206,6 +210,8 @@ export default function AdminLeadsListPage() {
                   <th style={thStyle}>Type</th>
                   <th style={thStyle}>Status</th>
                   <th style={thStyle}>Score</th>
+                  <th style={thStyle}>Visits</th>
+                  <th style={thStyle}>Last Seen</th>
                   <th style={thStyle}>Source</th>
                   <th style={thStyle}>Date</th>
                 </tr>
@@ -241,6 +247,20 @@ export default function AdminLeadsListPage() {
                       }}>
                         {scoreBadge(lead.score, lead.score_label)} {lead.score}
                       </span>
+                    </td>
+                    <td style={{ padding: 12, fontSize: 12, color: '#667168' }}>{lead.total_visits || 1}</td>
+                    <td style={{ padding: 12, fontSize: 11, color: '#667168' }}>
+                      {lead.last_seen_at ? (() => {
+                        try {
+                          const diffMs = Date.now() - new Date(lead.last_seen_at).getTime()
+                          const mins = Math.floor(diffMs / 60000)
+                          if (mins < 1) return 'just now'
+                          if (mins < 60) return `${mins}m ago`
+                          const hours = Math.floor(mins / 60)
+                          if (hours < 24) return `${hours}h ago`
+                          return formatDate(lead.last_seen_at)
+                        } catch { return formatDate(lead.last_seen_at) }
+                      })() : '—'}
                     </td>
                     <td style={{ padding: 12, fontSize: 12, color: '#667168' }}>{lead.source_page || '—'}</td>
                     <td style={{ padding: 12, fontSize: 12, color: '#667168' }}>{formatDate(lead.created_at)}</td>

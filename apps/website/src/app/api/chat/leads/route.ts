@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { query } from '@/lib/db'
 import { createSignal } from '@/lib/chatbot/lead-scorer'
 import { findCustomerByEmail, linkLeadToCustomer } from '@/lib/chatbot/customer-sync'
 import { insertLead, insertConversation, insertLedgerEvent } from '@/lib/chatbot/db'
@@ -44,26 +45,58 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Consent is required to proceed' }, { status: 400 })
     }
 
-    // ── Persist lead to PostgreSQL ────────────────────────────
+    // ── Dedup: check for existing lead by email ──────────────
+    // If the same email already exists, update it instead of creating a
+    // duplicate — this prevents "spamming" the leads list with multiple
+    // entries for the same returning visitor.
     let leadId: string
     let conversationId: string
+    let isReturning = false
 
     try {
-      leadId = await insertLead({
-        name,
-        email,
-        mobile,
-        buyerType,
-        companyName,
-        sourcePage,
-        consent,
-        daVinciosCustomerId: customerId,
-        metadata: {
-          sourcePage: sourcePage || null,
-          buyerType: buyerType || null,
-          companyName: companyName || null,
-        },
-      })
+      const existing = email?.trim()
+        ? await query('SELECT id, total_visits FROM chatbot.leads WHERE LOWER(email) = LOWER($1) LIMIT 1', [email.trim()])
+        : null
+
+      if (existing && (existing.rowCount ?? 0) > 0) {
+        // Returning lead — update fields and increment visit counter
+        leadId = existing.rows[0].id as string
+        isReturning = true
+        const currentVisits = Number(existing.rows[0].total_visits) || 1
+
+        await query(
+          `UPDATE chatbot.leads
+           SET name = COALESCE(NULLIF($1, ''), name),
+               mobile = COALESCE(NULLIF($2, ''), mobile),
+               buyer_type = COALESCE(NULLIF($3, ''), buyer_type),
+               company_name = COALESCE(NULLIF($4, ''), company_name),
+               source_page = COALESCE(NULLIF($5, ''), source_page),
+               total_visits = $6,
+               last_seen_at = NOW(),
+               updated_at = NOW()
+           WHERE id = $7`,
+          [name?.trim(), mobile?.trim(), buyerType || null, companyName?.trim() || null, sourcePage || null, currentVisits + 1, leadId]
+        )
+
+        console.log(`[chatbot] Returning lead ${leadId} (visit #${currentVisits + 1})`)
+      } else {
+        // New lead
+        leadId = await insertLead({
+          name,
+          email,
+          mobile,
+          buyerType,
+          companyName,
+          sourcePage,
+          consent,
+          daVinciosCustomerId: customerId,
+          metadata: {
+            sourcePage: sourcePage || null,
+            buyerType: buyerType || null,
+            companyName: companyName || null,
+          },
+        })
+      }
 
       conversationId = await insertConversation({
         leadId,
