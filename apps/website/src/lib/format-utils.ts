@@ -68,3 +68,65 @@ export function formatShortNumber(n: number): string {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return n.toLocaleString('en-PH')
 }
+
+/**
+ * Clean HTML markup to plain text, replacing block tags with newlines
+ * to preserve list structure and line breaks.
+ */
+export function cleanHtmlToText(html: any): string {
+  if (!html) return ''
+  const htmlStr = typeof html === 'string' ? html : JSON.stringify(html)
+  return htmlStr
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '\n')
+    .replace(/<p[^>]*>/gi, '\n')
+    .replace(/<div[^>]*>/gi, '\n')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&middot;/gi, '·')
+    .replace(/&times;/gi, 'x')
+    .split('\n')
+    .map(line => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n')
+}
+
+/**
+ * Clean up extra keywords and metadata suffixes from parsed values
+ */
+export function cleanMetadataField(val: string | null | undefined): string {
+  if (!val) return ''
+  let s = val.trim()
+  s = s.replace(/(?:MADE TO ORDER|CHECK OUT SWATCHES|COLLECTION ITEMS|CONTACT US FOR|DELIVERY IN|Note:).*$/i, '')
+  s = s.replace(/(?:Dimensions|Dimension|Size)\s*:.*$/i, '')
+  s = s.trim()
+  s = s.replace(/[,;.\-\s·\/]+$/, '')
+  s = s.trim()
+  if (s.length > 255) {
+    s = s.substring(0, 252) + '...'
+  }
+  return s
+}
+
+/**
+ * Fallback parser to extract dimensions from a product description HTML
+ */
+export function extractDimensionsFromDescription(html: string | null | undefined): string {
+  const text = cleanHtmlToText(html)
+  const match = text.match(/(?:dimensions|dimension|size)\s*:\s*([^\n;]+)/i)
+  return match ? cleanMetadataField(match[1]) : ''
+}
+
+/**
+ * Fallback parser to extract materials from a product description HTML
+ */
+export function extractMaterialsFromDescription(html: string | null | undefined): string {
+  const text = cleanHtmlToText(html)
+  const match = text.match(/(?:materials|material)\s*:\s*([^\n;]+)/i)
+  return match ? cleanMetadataField(match[1]) : ''
+}
+

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { extractMaterialsFromDescription, extractDimensionsFromDescription } from '@/lib/format-utils'
 
 // ── Types ──
 
@@ -14,6 +15,7 @@ interface Product {
   salePrice?: number
   dimensions?: string
   materials?: string
+  description?: any
   images?: Array<{ url: string }>
 }
 
@@ -262,8 +264,8 @@ function NewQuotationPageContent() {
       productId: product.id,
       productTitle: product.title,
       description: product.title,
-      material: product.materials || '',
-      dimensions: product.dimensions || '',
+      material: product.materials || extractMaterialsFromDescription(product.description),
+      dimensions: product.dimensions || extractDimensionsFromDescription(product.description),
       color: '',
       imageUrl: product.images?.[0]?.url || '',
       quantity: 1,

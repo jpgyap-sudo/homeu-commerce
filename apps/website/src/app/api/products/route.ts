@@ -236,6 +236,7 @@ function formatProduct(row: any) {
     images: row.images || [],
     imageUrl: row.images?.[0]?.url || null,
     materials: row.materials,
+    dimensions: row.dimensions,
     tags: row.tags || [],
     reviewCount: parseInt(row.live_review_count, 10) || 0,
     avgRating: row.live_avg_rating ? parseFloat(row.live_avg_rating) : 0,

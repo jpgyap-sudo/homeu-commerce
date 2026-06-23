@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generatePricingSuggestions } from '@/utils/ollama-utils'
 import { query } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { extractDimensionsFromDescription, extractMaterialsFromDescription } from '@/lib/format-utils'
 
 type RFQItemInput = {
   product?: string
@@ -46,10 +47,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'RFQ not found' }, { status: 404 })
       }
       // Fetch items with product metadata and images
-      const items = await query(
+      const itemsResult = await query(
         `SELECT ri.*,
                 p.materials AS product_materials,
                 p.dimensions AS product_dimensions,
+                p.description AS product_description,
                 (SELECT pi.url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order LIMIT 1) AS product_image_url
          FROM rfq_request_items ri
          LEFT JOIN products p ON ri.product_id = p.id
@@ -57,7 +59,24 @@ export async function GET(request: NextRequest) {
          ORDER BY ri.id`,
         [parseInt(id)]
       )
-      return NextResponse.json({ ...r.rows[0], items: items.rows })
+
+      const items = itemsResult.rows.map(item => {
+        let materials = item.product_materials
+        let dimensions = item.product_dimensions
+        if (!materials || !materials.trim()) {
+          materials = extractMaterialsFromDescription(item.product_description)
+        }
+        if (!dimensions || !dimensions.trim()) {
+          dimensions = extractDimensionsFromDescription(item.product_description)
+        }
+        return {
+          ...item,
+          product_materials: materials,
+          product_dimensions: dimensions
+        }
+      })
+
+      return NextResponse.json({ ...r.rows[0], items })
     }
 
     // List query

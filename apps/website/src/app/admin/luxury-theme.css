@@ -998,3 +998,18 @@
   .admin-login-shell { flex-direction: column; }
   .admin-login-brand-panel { min-height: 200px; }
 }
+
+/* ── Theme settings range sliders — bigger, easier-to-grab handle ────── */
+.theme-range-input { cursor: pointer; }
+.theme-range-input::-webkit-slider-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #1a6d3e; cursor: grab; border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+.theme-range-input::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.1); }
+.theme-range-input::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #1a6d3e; cursor: grab; border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+.theme-range-input::-moz-range-thumb:active { cursor: grabbing; transform: scale(1.1); }
