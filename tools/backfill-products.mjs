@@ -43,6 +43,75 @@ function cleanField(val) {
   return s || null;
 }
 
+function extractDimensionsFromDescription(html) {
+  const text = cleanHtml(html);
+  const lines = text.split('\n');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // 1. Colon pattern
+    const colonMatch = line.match(/^(?:dimensions|dimension|size)\s*:\s*(.+)$/i);
+    if (colonMatch) {
+      return cleanField(colonMatch[1]);
+    }
+    
+    // 2. Line label-only pattern
+    if (/^(?:dimensions|dimension|size)$/i.test(line)) {
+      const dimLines = [];
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j].trim();
+        // Break conditions
+        if (/^(?:materials|material|bulb|light|ip|max|note|made to order|delivery)\b/i.test(nextLine)) {
+          break;
+        }
+        if (/^[a-z0-9\s]+:/i.test(nextLine) && !nextLine.match(/^(?:small|large|medium|W\d+|L\d+|H\d+|D\d+|dia|ø|diameter|width|height|depth)/i)) {
+          break;
+        }
+        dimLines.push(nextLine);
+      }
+      if (dimLines.length > 0) {
+        return cleanField(dimLines.join(', '));
+      }
+    }
+  }
+  return null;
+}
+
+function extractMaterialsFromDescription(html) {
+  const text = cleanHtml(html);
+  const lines = text.split('\n');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // 1. Colon pattern
+    const colonMatch = line.match(/^(?:materials|material)\s*:\s*(.+)$/i);
+    if (colonMatch) {
+      return cleanField(colonMatch[1]);
+    }
+    
+    // 2. Line label-only pattern
+    if (/^(?:materials|material)$/i.test(line)) {
+      const matLines = [];
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j].trim();
+        if (/^(?:dimensions|dimension|size|bulb|light|ip|max|note|made to order|delivery)\b/i.test(nextLine)) {
+          break;
+        }
+        if (/^[a-z0-9\s]+:/i.test(nextLine)) {
+          break;
+        }
+        matLines.push(nextLine);
+      }
+      if (matLines.length > 0) {
+        return cleanField(matLines.join(', '));
+      }
+    }
+  }
+  return null;
+}
+
 async function run() {
   console.log(`Connecting to: ${connectionString.replace(/\/\/.*@/, '//***@')}`);
   const { rows } = await pool.query('SELECT id, title, description, dimensions, materials FROM products');
@@ -50,13 +119,8 @@ async function run() {
 
   let updatedCount = 0;
   for (const r of rows) {
-    const text = cleanHtml(r.description);
-    
-    const dimMatch = text.match(/(?:dimensions|dimension|size)\s*:\s*([^\n;]+)/i);
-    const matMatch = text.match(/(?:materials|material)\s*:\s*([^\n;]+)/i);
-    
-    const parsedDim = dimMatch ? cleanField(dimMatch[1]) : null;
-    const parsedMat = matMatch ? cleanField(matMatch[1]) : null;
+    const parsedDim = extractDimensionsFromDescription(r.description);
+    const parsedMat = extractMaterialsFromDescription(r.description);
     
     const newDim = (!r.dimensions || !r.dimensions.trim()) ? parsedDim : null;
     const newMat = (!r.materials || !r.materials.trim()) ? parsedMat : null;
@@ -66,8 +130,8 @@ async function run() {
       const finalMat = newMat || r.materials;
       
       await pool.query(
-        'UPDATE products SET dimensions = $1, materials = $2 WHERE id = $3',
-        [finalDim, finalMat, r.id]
+          'UPDATE products SET dimensions = $1, materials = $2 WHERE id = $3',
+          [finalDim, finalMat, r.id]
       );
       updatedCount++;
       if (updatedCount <= 10) {

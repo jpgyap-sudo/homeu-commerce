@@ -121,7 +121,19 @@ export default function EditQuotationPage() {
       key: item.id || `item-${Date.now()}-${Math.random()}`,
     })))
     setShippingCost(data.shippingCost || 0)
-    setValidUntil(data.validUntil ? data.validUntil.split('T')[0] : '')
+    let validUntilStr = ''
+    if (data.validUntil) {
+      if (typeof data.validUntil === 'string') {
+        validUntilStr = data.validUntil.split('T')[0]
+      } else {
+        try {
+          validUntilStr = new Date(data.validUntil).toISOString().split('T')[0]
+        } catch {
+          // ignore
+        }
+      }
+    }
+    setValidUntil(validUntilStr)
     setStatus(data.status || 'draft')
     setSentAt(data.sentAt || '')
     setSentVia(data.sentVia || '')

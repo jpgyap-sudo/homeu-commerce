@@ -117,16 +117,69 @@ export function cleanMetadataField(val: string | null | undefined): string {
  */
 export function extractDimensionsFromDescription(html: string | null | undefined): string {
   const text = cleanHtmlToText(html)
-  const match = text.match(/(?:dimensions|dimension|size)\s*:\s*([^\n;]+)/i)
-  return match ? cleanMetadataField(match[1]) : ''
+  const lines = text.split('\n')
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // 1. Colon pattern
+    const colonMatch = line.match(/^(?:dimensions|dimension|size)\s*:\s*(.+)$/i)
+    if (colonMatch) {
+      return cleanMetadataField(colonMatch[1])
+    }
+    
+    // 2. Line label-only pattern
+    if (/^(?:dimensions|dimension|size)$/i.test(line)) {
+      const dimLines = []
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j].trim()
+        // Break conditions
+        if (/^(?:materials|material|bulb|light|ip|max|note|made to order|delivery)\b/i.test(nextLine)) {
+          break
+        }
+        if (/^[a-z0-9\s]+:/i.test(nextLine) && !nextLine.match(/^(?:small|large|medium|W\d+|L\d+|H\d+|D\d+|dia|ø|diameter|width|height|depth)/i)) {
+          break
+        }
+        dimLines.push(nextLine)
+      }
+      if (dimLines.length > 0) {
+        return cleanMetadataField(dimLines.join(', '))
+      }
+    }
+  }
+  return ''
 }
 
-/**
- * Fallback parser to extract materials from a product description HTML
- */
 export function extractMaterialsFromDescription(html: string | null | undefined): string {
   const text = cleanHtmlToText(html)
-  const match = text.match(/(?:materials|material)\s*:\s*([^\n;]+)/i)
-  return match ? cleanMetadataField(match[1]) : ''
+  const lines = text.split('\n')
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // 1. Colon pattern
+    const colonMatch = line.match(/^(?:materials|material)\s*:\s*(.+)$/i)
+    if (colonMatch) {
+      return cleanMetadataField(colonMatch[1])
+    }
+    
+    // 2. Line label-only pattern
+    if (/^(?:materials|material)$/i.test(line)) {
+      const matLines = []
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j].trim()
+        if (/^(?:dimensions|dimension|size|bulb|light|ip|max|note|made to order|delivery)\b/i.test(nextLine)) {
+          break
+        }
+        if (/^[a-z0-9\s]+:/i.test(nextLine)) {
+          break
+        }
+        matLines.push(nextLine)
+      }
+      if (matLines.length > 0) {
+        return cleanMetadataField(matLines.join(', '))
+      }
+    }
+  }
+  return ''
 }
-
