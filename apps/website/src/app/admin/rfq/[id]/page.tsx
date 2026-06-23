@@ -135,7 +135,7 @@ export default function RFQDetailPage() {
         <span style={{ color: '#999', margin: '0 8px' }}>/</span>
         <Link href="/admin/rfq" style={{ color: '#666' }}>RFQs</Link>
         <span style={{ color: '#999', margin: '0 8px' }}>/</span>
-        <span style={{ color: '#222', fontWeight: 600 }}>{rfq.id?.substring(0, 8)}...</span>
+        <span style={{ color: '#222', fontWeight: 600 }}>#{String(rfq.id)}</span>
       </div>
 
       {/* Header */}

@@ -468,11 +468,10 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Uint8Ar
 
   y += Math.max(termsH + 6, 32)
 
-  // 7. Policy Blocks (Refund, Cancellation, Return)
   const policyBlocks: [string, string][] = [
-    ['Cancellation Policy', data.termsCancellationPolicy || 'Orders cannot be cancelled once production has started or materials have been acquired.'],
-    ['Return Policy', data.termsReturnPolicy || 'Returns are only accepted for manufacturing defects reported within 7 days of delivery.'],
-    ['Rejection of Items', data.termsRejectionOfItems || 'Client must inspect and confirm items upon delivery. Signatures on the delivery receipt denote final acceptance.'],
+    ['Cancellation Policy', data.termsCancellationPolicy || 'Customers are free to cancel the confirmed preorder with us within 3 days during placement of order thru written notice and mutual confirmation. Upon cancellation confirmation, a 5% cancellation fee will apply. If a customer’s situation changes, the delivery date may be rescheduled to an earlier or later date. An additional charge will apply if a customer requests a delivery date to be earlier than its original date.'],
+    ['Return Policy', data.termsReturnPolicy || '• In case of dispute such as wrong item delivered, you may return the goods or deliver them to our specified address without undue delay and in any case within 7 days from the date on which you communicated the request of return.\n• You are responsible for the return\'s delivery charge and decrease in the value of the goods resulting from the handling of the goods other than that necessary to establish the nature, characteristics and functioning of the goods.\n• The returned goods must be returned in resalable conditions.\n• Please note, in the case of non-resalability, the amount equivalent to the decrease in the value of the asset can always be withheld.'],
+    ['Rejection of Items', data.termsRejectionOfItems || 'In the event that items delivered are rejected by the client, the client shall be responsible for the delivery and handling fees for both the outbound and return trips. This includes all costs associated with the transportation, packaging, and handling of the items.'],
     ['Refund Policy', data.termsRefundPolicy || 'Refunds will be processed in accordance with the cancellation policy, subject to administrative fees.'],
   ].filter((row): row is [string, string] => clean(row[1]).length > 0)
 

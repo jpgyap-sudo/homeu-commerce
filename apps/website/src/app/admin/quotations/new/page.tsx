@@ -62,11 +62,11 @@ const DEFAULT_TERMS = {
   bankDetails:
     'Bank: Eastwest Bank\nAccount Name: Home Atelier\nAccount Number: (set BANK_DETAILS in .env)',
   cancellationPolicy:
-    'Cancellations made within 24 hours of order confirmation are fully refundable. After 24 hours, a cancellation fee may apply.',
+    'Customers are free to cancel the confirmed preorder with us within 3 days during placement of order thru written notice and mutual confirmation. Upon cancellation confirmation, a 5% cancellation fee will apply. If a customer’s situation changes, the delivery date may be rescheduled to an earlier or later date. An additional charge will apply if a customer requests a delivery date to be earlier than its original date.',
   returnPolicy:
-    'Items may be returned within 7 days of delivery subject to inspection and approval.',
+    '• In case of dispute such as wrong item delivered, you may return the goods or deliver them to our specified address without undue delay and in any case within 7 days from the date on which you communicated the request of return.\n• You are responsible for the return\'s delivery charge and decrease in the value of the goods resulting from the handling of the goods other than that necessary to establish the nature, characteristics and functioning of the goods.\n• The returned goods must be returned in resalable conditions.\n• Please note, in the case of non-resalability, the amount equivalent to the decrease in the value of the asset can always be withheld.',
   rejectionOfItems:
-    'Any damage or discrepancy must be reported within 24 hours of delivery. Photos may be required for assessment.',
+    'In the event that items delivered are rejected by the client, the client shall be responsible for the delivery and handling fees for both the outbound and return trips. This includes all costs associated with the transportation, packaging, and handling of the items.',
   refundPolicy:
     'Refunds will be processed within 14 business days after item(s) are returned and inspected.',
 }
