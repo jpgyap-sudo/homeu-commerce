@@ -72,9 +72,16 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
+    const id = searchParams.get('id') || ''
 
     let result
-    if (search) {
+    if (id) {
+      result = await query(
+        `SELECT id, name, email, phone, company FROM customers
+         WHERE id = $1`,
+        [parseInt(id, 10)]
+      )
+    } else if (search) {
       result = await query(
         `SELECT id, name, email, phone, company FROM customers
          WHERE name ILIKE $1 OR email ILIKE $1 OR COALESCE(phone, '') ILIKE $1

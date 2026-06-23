@@ -203,6 +203,53 @@ export async function GET(
       console.warn('[timeline-api] custom events error:', e.message)
     }
 
+    // 6. Designer Club Applications
+    try {
+      const dcRes = await query(
+        `SELECT id, company_name, status, created_at, position
+         FROM designer_club_applications
+         WHERE customer_id = $1`,
+        [custId]
+      )
+      for (const row of dcRes.rows) {
+        timelineEvents.push({
+          id: `designer-club-${row.id}`,
+          timestamp: row.created_at,
+          eventType: 'designer_club_application',
+          title: '🎨 Designer Club Application',
+          description: `Applied to Designer Club as B2B partner (${row.position} at ${row.company_name}). Status: ${row.status}`,
+          notes: '',
+          href: `/admin/designer-club`
+        })
+      }
+    } catch (e: any) {
+      console.warn('[timeline-api] designer club error:', e.message)
+    }
+
+    // 7. Product Reviews
+    try {
+      const reviewRes = await query(
+        `SELECT r.id, r.rating, r.title, r.body, r.status, r.review_date, r.created_at, p.title as product_title
+         FROM reviews r
+         JOIN products p ON p.id = r.product_id
+         WHERE r.customer_id = $1`,
+        [custId]
+      )
+      for (const row of reviewRes.rows) {
+        timelineEvents.push({
+          id: `review-${row.id}`,
+          timestamp: row.review_date || row.created_at,
+          eventType: 'product_review',
+          title: `⭐ Product Review (${row.rating}/5)`,
+          description: `Submitted review for "${row.product_title}" (Status: ${row.status})`,
+          notes: row.body ? `"${row.title ? row.title + ': ' : ''}${row.body}"` : '',
+          href: `/admin/reviews`
+        })
+      }
+    } catch (e: any) {
+      console.warn('[timeline-api] reviews error:', e.message)
+    }
+
     // Sort all events chronologically (newest first)
     timelineEvents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 

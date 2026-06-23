@@ -170,12 +170,13 @@ export async function GET(request: NextRequest) {
       let customEvents: any[] = []
       try {
         const customCalendarResult = await query(`
-          SELECT id, event_type, title, description, 
-                 TO_CHAR(event_date, 'YYYY-MM-DD') as event_date, 
-                 event_time
-          FROM sales_calendar_events
-          WHERE event_date >= CURRENT_DATE - INTERVAL '60 days'
-            AND event_date <= CURRENT_DATE + INTERVAL '60 days'
+          SELECT e.id, e.event_type, e.title, e.description, 
+                 TO_CHAR(e.event_date, 'YYYY-MM-DD') as event_date, 
+                 e.event_time, e.customer_id, c.name as customer_name, c.email, c.phone
+          FROM sales_calendar_events e
+          LEFT JOIN customers c ON e.customer_id = c.id
+          WHERE e.event_date >= CURRENT_DATE - INTERVAL '60 days'
+            AND e.event_date <= CURRENT_DATE + INTERVAL '60 days'
         `)
         customEvents = customCalendarResult.rows.map((row: any) => {
           let color = '#4b5563' // Gray for default task
@@ -194,7 +195,13 @@ export async function GET(request: NextRequest) {
             time: row.event_time || '',
             status: 'pending',
             color,
-            href: '/admin/sales-calendar'
+            href: row.customer_id ? `/admin/sales-calendar?customerId=${row.customer_id}` : '/admin/sales-calendar',
+            customer: row.customer_id ? {
+              id: row.customer_id,
+              name: row.customer_name || '',
+              email: row.email || '',
+              phone: row.phone || ''
+            } : null
           }
         })
       } catch (e) {

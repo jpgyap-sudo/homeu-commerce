@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 interface CalendarEvent {
   id: string
@@ -53,12 +54,32 @@ function formatSelectedDayHeader(dateStr: string): string {
   return dateObj.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 }
 
-export default function SalesCalendarPage() {
+function SalesCalendarContent() {
+  const searchParams = useSearchParams()
+  const customerIdParam = searchParams.get('customerId')
+
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<string>(getLocalYYYYMMDD())
   const [showAddModal, setShowAddModal] = useState(false)
+
+  // Listen to customerIdParam changes to load context from query params
+  useEffect(() => {
+    if (customerIdParam) {
+      const cid = parseInt(customerIdParam, 10)
+      if (!isNaN(cid)) {
+        fetch(`/api/admin/customers?id=${cid}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.customers && data.customers.length > 0) {
+              setTimelineCust(data.customers[0])
+            }
+          })
+          .catch(err => console.error('Failed to auto-select customer from query param:', err))
+      }
+    }
+  }, [customerIdParam])
 
   // Filters state
   const [filterTypes, setFilterTypes] = useState({
@@ -560,28 +581,35 @@ export default function SalesCalendarPage() {
                       <span style={{ color: '#64748b' }}>
                         {evt.time ? `⏰ ${evt.time}` : '—'}
                       </span>
-                      {evt.type !== 'custom' ? (
-                        <Link href={evt.href} style={{ color: '#10b981', fontWeight: 600, textDecoration: 'none' }}>
-                          Open &rarr;
-                        </Link>
-                      ) : evt.customer ? (
-                        <button
-                          type="button"
-                          onClick={() => setTimelineCust(evt.customer ? {
-                            id: evt.customer.id || 0,
-                            name: evt.customer.name,
-                            email: evt.customer.email || '',
-                            phone: evt.customer.phone || null,
-                            company: null
-                          } : null)}
-                          style={{
-                            background: 'none', border: 'none', padding: 0, color: '#6366f1',
-                            fontWeight: 600, fontSize: 11, cursor: 'pointer'
-                          }}
-                        >
-                          View Timeline &rarr;
-                        </button>
-                      ) : null}
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        {evt.customer && evt.customer.id && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (evt.customer && evt.customer.id) {
+                                setTimelineCust({
+                                  id: evt.customer.id,
+                                  name: evt.customer.name,
+                                  email: evt.customer.email || '',
+                                  phone: evt.customer.phone || null,
+                                  company: null
+                                })
+                              }
+                            }}
+                            style={{
+                              background: 'none', border: 'none', padding: 0, color: '#6366f1',
+                              fontWeight: 600, fontSize: 11, cursor: 'pointer'
+                            }}
+                          >
+                            View Timeline
+                          </button>
+                        )}
+                        {evt.type !== 'custom' && (
+                          <Link href={evt.href} style={{ color: '#10b981', fontWeight: 600, textDecoration: 'none' }}>
+                            Open &rarr;
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -895,4 +923,16 @@ const navBtnStyle: React.CSSProperties = {
   fontWeight: 'bold',
   fontSize: 14,
   outline: 'none',
+}
+
+export default function SalesCalendarPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ maxWidth: 1200, margin: '30px auto', padding: '0 24px', color: '#64748b' }}>
+        Loading Sales Calendar...
+      </div>
+    }>
+      <SalesCalendarContent />
+    </Suspense>
+  )
 }
