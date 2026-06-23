@@ -72,6 +72,8 @@ export interface SettingDefinition {
   maxItems?: number
   /** Unit suffix for display */
   unit?: string
+  /** For color type: quick-pick swatches shown above the picker */
+  presets?: string[]
 }
 
 // ── Global Theme Settings ─────────────────────────────────────────────────
@@ -666,6 +668,11 @@ const COLLECTION_HEADER_SETTINGS: SettingDefinition[] = [
   { key: 'showDescription', label: 'Show Description', type: 'checkbox', default: true, group: 'Content' },
   { key: 'showBanner', label: 'Show Banner Image', type: 'checkbox', default: true, group: 'Banner' },
   { key: 'bannerHeight', label: 'Banner Height', type: 'range', default: 260, min: 150, max: 600, step: 10, unit: 'px', group: 'Banner' },
+  {
+    key: 'backgroundColor', label: 'Banner Background Color', type: 'color', default: '#c3bcbc', group: 'Banner',
+    hint: 'Shown behind categories with no banner image, and briefly while an image loads. Matches the neutral grey used across the live site by default.',
+    presets: ['#c3bcbc', '#f4f2ee', '#151a17', '#1a6d3e', '#b88935'],
+  },
   { key: 'overlayOpacity', label: 'Banner Overlay Darkening', type: 'range', default: 30, min: 0, max: 90, step: 10, unit: '%', group: 'Banner' },
   { key: 'textColor', label: 'Banner Text Color', type: 'color', default: '#ffffff', group: 'Banner' },
   { key: 'spacingTop',    label: 'Spacing Top',    type: 'range', default: 16, min: 0, max: 160, step: 4, unit: 'px', group: 'Spacing' },

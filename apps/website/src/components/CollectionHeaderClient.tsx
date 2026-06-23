@@ -21,6 +21,7 @@ export default function CollectionHeaderClient({ category, config = {} }: { cate
   const showDescription = config.showDescription !== false
   const showBanner = config.showBanner !== false
   const bannerHeight = config.bannerHeight || 260
+  const backgroundColor = config.backgroundColor || '#c3bcbc'
   const overlayOpacity = config.overlayOpacity !== undefined ? config.overlayOpacity : 30
   const textColor = config.textColor || '#ffffff'
   const spacingTop = config.spacingTop !== undefined ? config.spacingTop : 16
@@ -52,6 +53,7 @@ export default function CollectionHeaderClient({ category, config = {} }: { cate
         <section
           className="collection-banner"
           style={{
+            backgroundColor,
             backgroundImage: `url(${bannerImage})`,
             backgroundPosition: `${focalX}% ${focalY}%`,
             backgroundSize: imageScale === 100 ? 'cover' : `${imageScale}% auto`,
@@ -65,7 +67,7 @@ export default function CollectionHeaderClient({ category, config = {} }: { cate
           <h1 className="collection-banner__title" style={{ color: textColor }}>{collectionTitle}</h1>
         </section>
       ) : (
-        <section className="collection-banner collection-banner--plain" style={{ height: 120, minHeight: 120 }}>
+        <section className="collection-banner collection-banner--plain" style={{ height: 120, minHeight: 120, backgroundColor }}>
           <h1 className="collection-banner__title">{collectionTitle}</h1>
         </section>
       )}

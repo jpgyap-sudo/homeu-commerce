@@ -24,6 +24,11 @@ const inputBase: React.CSSProperties = {
   background: '#fbfcfa', color: '#151a17', outline: 'none',
   boxSizing: 'border-box',
 }
+const stepperBtnStyle: React.CSSProperties = {
+  width: 22, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  fontSize: 8, lineHeight: 1, border: '1px solid #d9e0d7', background: '#fbfcfa',
+  color: '#3a4339', cursor: 'pointer', borderRadius: 4, padding: 0,
+}
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 12, fontWeight: 600,
   color: '#3a4339', marginBottom: 5,
@@ -101,20 +106,39 @@ function ColorField({ setting, value, onChange }: {
   setting: SettingDefinition; value: string; onChange: (v: string) => void
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <input
-        type="color"
-        value={value || '#000000'}
-        onChange={e => onChange(e.target.value)}
-        style={{ width: 40, height: 40, padding: 2, border: '1.5px solid #d9e0d7', borderRadius: 8, cursor: 'pointer', background: 'none' }}
-      />
-      <input
-        style={{ ...inputBase, flex: 1 }}
-        type="text"
-        value={value ?? ''}
-        onChange={e => onChange(e.target.value)}
-        placeholder={setting.placeholder || '#hex'}
-      />
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input
+          type="color"
+          value={value || '#000000'}
+          onChange={e => onChange(e.target.value)}
+          style={{ width: 40, height: 40, padding: 2, border: '1.5px solid #d9e0d7', borderRadius: 8, cursor: 'pointer', background: 'none' }}
+        />
+        <input
+          style={{ ...inputBase, flex: 1 }}
+          type="text"
+          value={value ?? ''}
+          onChange={e => onChange(e.target.value)}
+          placeholder={setting.placeholder || '#hex'}
+        />
+      </div>
+      {setting.presets && setting.presets.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          {setting.presets.map(swatch => (
+            <button
+              key={swatch}
+              type="button"
+              title={swatch}
+              onClick={() => onChange(swatch)}
+              style={{
+                width: 24, height: 24, borderRadius: '50%', background: swatch,
+                border: value?.toLowerCase() === swatch.toLowerCase() ? '2px solid #1a6d3e' : '1.5px solid #d9e0d7',
+                cursor: 'pointer', padding: 0,
+              }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -126,6 +150,10 @@ function RangeField({ setting, value, onChange }: {
   const max = setting.max ?? 100
   const step = setting.step ?? 1
   const num = Number(value) ?? Number(setting.default) ?? 0
+  function nudge(delta: number) {
+    const next = Math.min(max, Math.max(min, num + delta))
+    onChange(next)
+  }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <input
@@ -135,8 +163,25 @@ function RangeField({ setting, value, onChange }: {
         step={step}
         value={num}
         onChange={e => onChange(parseInt(e.target.value, 10))}
-        style={{ flex: 1, accentColor: '#1a6d3e' }}
+        style={{ flex: 1, accentColor: '#1a6d3e', height: 20 }}
+        className="theme-range-input"
       />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <button
+          type="button"
+          aria-label={`Increase ${setting.label}`}
+          onClick={() => nudge(step)}
+          disabled={num >= max}
+          style={stepperBtnStyle}
+        >▲</button>
+        <button
+          type="button"
+          aria-label={`Decrease ${setting.label}`}
+          onClick={() => nudge(-step)}
+          disabled={num <= min}
+          style={stepperBtnStyle}
+        >▼</button>
+      </div>
       <span style={{ fontSize: 13, fontWeight: 700, color: '#151a17', minWidth: 48, textAlign: 'right', whiteSpace: 'nowrap' }}>
         {num}{setting.unit || ''}
       </span>
