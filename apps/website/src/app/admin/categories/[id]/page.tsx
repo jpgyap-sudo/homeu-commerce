@@ -14,6 +14,13 @@ import { ImagePickerField } from '@/components/admin/ImagePickerField'
 
 // ── Types ────────────────────────────────────────────────────────────
 
+interface LinkedProduct {
+  id: number
+  title: string
+  slug: string
+  image_url: string | null
+}
+
 interface CategoryData {
   id: number
   title: string
@@ -22,7 +29,7 @@ interface CategoryData {
   imageUrl: string | null
   parentId: number | null
   productCount: number
-  products: Array<{ id: number; title: string; slug: string }>
+  products: LinkedProduct[]
   createdAt: string
   updatedAt: string
 }
@@ -65,7 +72,7 @@ export default function EditCategoryPage() {
   const [imageUrl, setImageUrl] = useState('')
   const [parentId, setParentId] = useState('')
   const [productCount, setProductCount] = useState(0)
-  const [linkedProducts, setLinkedProducts] = useState<Array<{ id: number; title: string; slug: string }>>([])
+  const [linkedProducts, setLinkedProducts] = useState<LinkedProduct[]>([])
 
   // ── Load data ─────────────────────────────────────────────────
   useEffect(() => {

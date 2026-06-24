@@ -77,6 +77,43 @@ export async function PATCH(request: NextRequest) {
       values.push(body.notes)
       updates.push(`notes = $${values.length}`)
     }
+    if (body.firstName !== undefined) {
+      values.push(body.firstName)
+      updates.push(`first_name = $${values.length}`)
+    }
+    if (body.lastName !== undefined) {
+      values.push(body.lastName)
+      updates.push(`last_name = $${values.length}`)
+    }
+    if (body.position !== undefined) {
+      values.push(body.position)
+      updates.push(`position = $${values.length}`)
+    }
+    if (body.email !== undefined) {
+      values.push(body.email)
+      updates.push(`email = $${values.length}`)
+    }
+    if (body.companyName !== undefined) {
+      values.push(body.companyName)
+      updates.push(`company_name = $${values.length}`)
+    }
+    if (body.companyAddress !== undefined) {
+      values.push(body.companyAddress)
+      updates.push(`company_address = $${values.length}`)
+    }
+    if (body.contactNumber !== undefined) {
+      values.push(body.contactNumber)
+      updates.push(`contact_number = $${values.length}`)
+    }
+    if (body.companySocials !== undefined) {
+      values.push(body.companySocials)
+      updates.push(`company_socials = $${values.length}`)
+    }
+    if (body.customerId !== undefined) {
+      values.push(body.customerId ? Number(body.customerId) : null)
+      updates.push(`customer_id = $${values.length}`)
+    }
+
     if (updates.length === 0) return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
     updates.push('updated_at = NOW()')
 
@@ -92,3 +129,23 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  const session = await getSession()
+  if (!session || session.role === 'customer') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'id query param is required' }, { status: 400 })
+
+    const result = await query('DELETE FROM designer_club_applications WHERE id = $1 RETURNING id', [parseInt(id)])
+    if (result.rowCount === 0) return NextResponse.json({ error: 'Application not found' }, { status: 404 })
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    console.error('[admin/designer-club] DELETE error:', err.message)
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+

@@ -152,9 +152,68 @@ export async function PATCH(
       return NextResponse.json(snakeToCamel(result.rows[0]))
     }
 
+    // General update for admin/staff if no action is specified
+    if (!action) {
+      if (session.role === 'customer') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      
+      const fields = Object.keys(body).filter(k => k !== 'id' && k !== 'created_at' && k !== 'updated_at')
+      if (fields.length === 0) {
+        return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+      }
+
+      const camelToSnake = (str: string) => str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
+      const sets = fields.map((f, i) => {
+        const col = camelToSnake(f)
+        return `"${col}" = $${i + 1}`
+      }).join(', ')
+      
+      const values = fields.map((f) => body[f])
+      values.push(rfqId)
+
+      const result = await query(
+        `UPDATE rfq_requests SET ${sets}, updated_at = NOW() WHERE id = $${values.length} RETURNING *`,
+        values
+      )
+      if (result.rowCount === 0) {
+        return NextResponse.json({ error: 'RFQ not found' }, { status: 404 })
+      }
+      return NextResponse.json(snakeToCamel(result.rows[0]))
+    }
+
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
   } catch (error: any) {
     console.error('RFQ request PATCH error:', error)
     return NextResponse.json({ error: error.message || 'Failed to update RFQ request' }, { status: 500 })
+  }
+}
+
+/**
+ * DELETE /api/rfq-requests/[id]
+ *
+ * Deletes a single RFQ request (admin only).
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession()
+  if (!session || session.role === 'customer') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const { id } = await params
+    const rfqId = parseInt(id)
+    if (isNaN(rfqId)) {
+      return NextResponse.json({ error: 'Invalid RFQ ID' }, { status: 400 })
+    }
+
+    await query('DELETE FROM rfq_requests WHERE id = $1', [rfqId])
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    console.error('RFQ request DELETE error:', error)
+    return NextResponse.json({ error: error.message || 'Failed to delete RFQ request' }, { status: 500 })
   }
 }

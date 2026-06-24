@@ -62,6 +62,12 @@ export default function AdminQuotationsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [sendingId, setSendingId] = useState<string | null>(null)
 
+  // Selection states
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  // Editing states
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<Partial<Quotation>>({})
+
   useEffect(() => {
     loadQuotations()
   }, [statusFilter])
@@ -69,6 +75,7 @@ export default function AdminQuotationsPage() {
   async function loadQuotations() {
     setLoading(true)
     setError('')
+    setSelectedIds([])
     try {
       let url = '/api/quotations?limit=50'
       if (statusFilter) url += `&status=${statusFilter}`
@@ -96,8 +103,76 @@ export default function AdminQuotationsPage() {
       const res = await fetch(`/api/quotations/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed to delete')
       setQuotations(prev => prev.filter(q => q.id !== id))
+      setSelectedIds(prev => prev.filter(x => x !== id))
     } catch (err: any) {
       alert(err.message)
+    }
+  }
+
+  // Select all checkbox handler
+  function handleSelectAll(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.checked) {
+      setSelectedIds(quotations.map(q => q.id))
+    } else {
+      setSelectedIds([])
+    }
+  }
+
+  // Select row checkbox handler
+  function handleSelectRow(id: string, checked: boolean) {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id])
+    } else {
+      setSelectedIds(prev => prev.filter(x => x !== id))
+    }
+  }
+
+  // Bulk delete selected items
+  async function handleDeleteSelected() {
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} selected quotation(s)?`)) return
+    try {
+      await Promise.all(selectedIds.map(id => fetch(`/api/quotations/${id}`, { method: 'DELETE' })))
+      setQuotations(prev => prev.filter(q => !selectedIds.includes(q.id)))
+      setSelectedIds([])
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete selected items')
+    }
+  }
+
+  // Start inline editing
+  function startEdit(q: Quotation) {
+    setEditingId(q.id)
+    setEditForm({
+      customerName: q.customerName || '',
+      email: q.email || '',
+      phone: q.phone || '',
+      grandTotal: q.grandTotal || 0,
+      status: q.status || '',
+      validUntil: q.validUntil || '',
+    })
+  }
+
+  // Save inline edit changes
+  async function saveEdit(id: string) {
+    try {
+      const res = await fetch(`/api/quotations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: editForm.customerName,
+          email: editForm.email,
+          phone: editForm.phone,
+          grandTotal: editForm.grandTotal,
+          status: editForm.status,
+          validUntil: editForm.validUntil || null,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to update quotation')
+      const updated = await res.json()
+      setQuotations(prev => prev.map(q => q.id === id ? { ...q, ...updated } : q))
+      setEditingId(null)
+    } catch (err: any) {
+      alert(err.message || 'Failed to save changes')
     }
   }
 
@@ -209,8 +284,8 @@ Home Atelier Team`
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, alignItems: 'center' }}>
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, flex: 1 }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 280 }}>
           <input
             type="text"
             placeholder="Search by name, email, or quotation #..."
@@ -255,6 +330,24 @@ Home Atelier Team`
           <option value="accepted">Accepted</option>
           <option value="rejected">Rejected</option>
         </select>
+
+        {selectedIds.length > 0 && (
+          <button
+            onClick={handleDeleteSelected}
+            style={{
+              padding: '8px 16px',
+              background: '#dc2626',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            🗑️ Delete Selected ({selectedIds.length})
+          </button>
+        )}
       </div>
 
       {/* Error */}
@@ -271,6 +364,7 @@ Home Atelier Team`
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #ddd' }}>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', width: 40 }}><input type="checkbox" disabled /></th>
                   <th style={{ textAlign: 'left', padding: '10px 12px' }}>Quotation #</th>
                   <th style={{ textAlign: 'left', padding: '10px 12px' }}>Customer</th>
                   <th style={{ textAlign: 'left', padding: '10px 12px' }}>Contact</th>
@@ -283,6 +377,7 @@ Home Atelier Team`
               <tbody>
                 {[1, 2, 3, 4, 5].map((i) => (
                   <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: '10px 12px' }}><input type="checkbox" disabled /></td>
                     <td style={{ padding: '10px 12px' }}><div style={{ width: 100, height: 14, background: '#eee', borderRadius: 4 }} /></td>
                     <td style={{ padding: '10px 12px' }}><div style={{ width: 120, height: 14, background: '#eee', borderRadius: 4 }} /></td>
                     <td style={{ padding: '10px 12px' }}><div style={{ width: 150, height: 14, background: '#eee', borderRadius: 4 }} /></td>
@@ -334,6 +429,13 @@ Home Atelier Team`
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #ddd' }}>
+                <th style={{ textAlign: 'left', padding: '10px 12px', width: 40 }}>
+                  <input
+                    type="checkbox"
+                    checked={quotations.length > 0 && selectedIds.length === quotations.length}
+                    onChange={handleSelectAll}
+                  />
+                </th>
                 <th style={{ textAlign: 'left', padding: '10px 12px' }}>Quotation #</th>
                 <th style={{ textAlign: 'left', padding: '10px 12px' }}>Customer</th>
                 <th style={{ textAlign: 'left', padding: '10px 12px' }}>Contact</th>
@@ -345,9 +447,20 @@ Home Atelier Team`
             </thead>
             <tbody>
               {quotations.map(q => {
+                const isEditing = editingId === q.id
                 const statusInfo = STATUS_LABELS[q.status] || { label: q.status, color: '#999' }
                 return (
-                  <tr key={q.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <tr key={q.id} style={{ borderBottom: '1px solid #eee', background: isEditing ? '#f8fafc' : 'transparent' }}>
+                    {/* Checkbox */}
+                    <td style={{ padding: '10px 12px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(q.id)}
+                        onChange={(e) => handleSelectRow(q.id, e.target.checked)}
+                      />
+                    </td>
+
+                    {/* Quotation # */}
                     <td style={{ padding: '10px 12px', fontWeight: 600 }}>
                       <Link href={`/admin/quotations/${q.id}`} style={{ color: '#222', textDecoration: 'none' }}>
                         {q.quotationNumber}
@@ -360,87 +473,197 @@ Home Atelier Team`
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: '10px 12px' }}>{q.customerName}</td>
-                    <td style={{ padding: '10px 12px', color: '#666' }}>
-                      {q.email && <div>{q.email}</div>}
-                      <div>{q.phone}</div>
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>
-                      ₱{(q.grandTotal || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <span style={{
-                        background: statusInfo.color + '20',
-                        color: statusInfo.color,
-                        padding: '3px 10px',
-                        borderRadius: 12,
-                        fontSize: 12,
-                        fontWeight: 600,
-                      }}>
-                        {statusInfo.label}
-                      </span>
-                      {q.pending_revision && (
-                        <span style={{
-                          display: 'inline-block', marginLeft: 6,
-                          background: '#fff3cd', color: '#856404',
-                          padding: '2px 8px', borderRadius: 12,
-                          fontSize: 11, fontWeight: 700,
-                        }}>
-                          🔄 Revise
-                        </span>
+
+                    {/* Customer */}
+                    <td style={{ padding: '10px 12px' }}>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editForm.customerName || ''}
+                          onChange={e => setEditForm(prev => ({ ...prev, customerName: e.target.value }))}
+                          style={{ width: '100%', padding: '6px 8px', border: '1px solid #ccc', borderRadius: 6, fontSize: 13 }}
+                        />
+                      ) : (
+                        q.customerName
                       )}
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center', color: '#666' }}>
-                      {q.validUntil && !isNaN(new Date(q.validUntil).getTime())
-                        ? new Date(q.validUntil).toLocaleDateString('en-PH')
-                        : '—'}
+
+                    {/* Contact */}
+                    <td style={{ padding: '10px 12px', color: '#666' }}>
+                      {isEditing ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <input
+                            type="text"
+                            placeholder="Email"
+                            value={editForm.email || ''}
+                            onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                            style={{ width: '100%', padding: '4px 6px', border: '1px solid #ccc', borderRadius: 4, fontSize: 12 }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Phone"
+                            value={editForm.phone || ''}
+                            onChange={e => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                            style={{ width: '100%', padding: '4px 6px', border: '1px solid #ccc', borderRadius: 4, fontSize: 12 }}
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          {q.email && <div>{q.email}</div>}
+                          <div>{q.phone}</div>
+                        </>
+                      )}
                     </td>
+
+                    {/* Amount */}
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editForm.grandTotal || 0}
+                          onChange={e => setEditForm(prev => ({ ...prev, grandTotal: parseFloat(e.target.value) || 0 }))}
+                          style={{ width: 100, textAlign: 'right', padding: '6px 8px', border: '1px solid #ccc', borderRadius: 6, fontSize: 13 }}
+                        />
+                      ) : (
+                        `₱${(q.grandTotal || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
+                      )}
+                    </td>
+
+                    {/* Status */}
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
-                        {q.status === 'draft' && (
+                      {isEditing ? (
+                        <select
+                          value={editForm.status || ''}
+                          onChange={e => setEditForm(prev => ({ ...prev, status: e.target.value }))}
+                          style={{ padding: '6px 8px', border: '1px solid #ccc', borderRadius: 6, fontSize: 13 }}
+                        >
+                          <option value="draft">Draft</option>
+                          <option value="sent">Sent</option>
+                          <option value="accepted">Accepted</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+                      ) : (
+                        <>
+                          <span style={{
+                            background: statusInfo.color + '20',
+                            color: statusInfo.color,
+                            padding: '3px 10px',
+                            borderRadius: 12,
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}>
+                            {statusInfo.label}
+                          </span>
+                          {q.pending_revision && (
+                            <span style={{
+                              display: 'inline-block', marginLeft: 6,
+                              background: '#fff3cd', color: '#856404',
+                              padding: '2px 8px', borderRadius: 12,
+                              fontSize: 11, fontWeight: 700,
+                            }}>
+                              🔄 Revise
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </td>
+
+                    {/* Valid Until */}
+                    <td style={{ padding: '10px 12px', textAlign: 'center', color: '#666' }}>
+                      {isEditing ? (
+                        <input
+                          type="date"
+                          value={editForm.validUntil || ''}
+                          onChange={e => setEditForm(prev => ({ ...prev, validUntil: e.target.value }))}
+                          style={{ padding: '6px 8px', border: '1px solid #ccc', borderRadius: 6, fontSize: 13 }}
+                        />
+                      ) : (
+                        q.validUntil && !isNaN(new Date(q.validUntil).getTime())
+                          ? new Date(q.validUntil).toLocaleDateString('en-PH')
+                          : '—'
+                      )}
+                    </td>
+
+                    {/* Actions */}
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                      {isEditing ? (
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
                           <button
-                            onClick={() => handleQuickSend(q)}
-                            disabled={sendingId !== null}
+                            onClick={() => saveEdit(q.id)}
                             style={{
-                              color: '#0066cc',
+                              color: '#27ae60',
                               fontSize: 13,
                               background: 'none',
                               border: 'none',
-                              cursor: sendingId !== null ? 'not-allowed' : 'pointer',
+                              cursor: 'pointer',
                               padding: 0,
                               fontWeight: 600,
                             }}
                           >
-                            {sendingId === q.id ? 'Sending...' : 'Send'}
+                            Save
                           </button>
-                        )}
-                        <Link
-                          href={`/admin/quotations/${q.id}`}
-                          style={{ color: '#222', fontSize: 13 }}
-                        >
-                          Edit
-                        </Link>
-                        <Link
-                          href={quotationPublicUrl(q.id, q.guestToken)}
-                          style={{ color: '#0066cc', fontSize: 13 }}
-                          target="_blank"
-                        >
-                          View
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(q.id)}
-                          style={{
-                            color: '#c00',
-                            fontSize: 13,
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: 0,
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            style={{
+                              color: '#666',
+                              fontSize: 13,
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: 0,
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
+                          {q.status === 'draft' && (
+                            <button
+                              onClick={() => handleQuickSend(q)}
+                              disabled={sendingId !== null}
+                              style={{
+                                color: '#0066cc',
+                                fontSize: 13,
+                                background: 'none',
+                                border: 'none',
+                                cursor: sendingId !== null ? 'not-allowed' : 'pointer',
+                                padding: 0,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {sendingId === q.id ? 'Sending...' : 'Send'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => startEdit(q)}
+                            style={{ color: '#222', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 500 }}
+                          >
+                            Edit
+                          </button>
+                          <Link
+                            href={quotationPublicUrl(q.id, q.guestToken)}
+                            style={{ color: '#0066cc', fontSize: 13 }}
+                            target="_blank"
+                          >
+                            View
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(q.id)}
+                            style={{
+                              color: '#c00',
+                              fontSize: 13,
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: 0,
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )

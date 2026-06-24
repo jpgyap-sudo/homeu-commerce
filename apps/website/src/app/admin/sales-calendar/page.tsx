@@ -116,6 +116,17 @@ function SalesCalendarContent() {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const timelineDropdownRef = useRef<HTMLDivElement>(null)
 
+  // Selection & Editing states
+  const [selectedEventIds, setSelectedEventIds] = useState<string[]>([])
+  const [editingEventId, setEditingEventId] = useState<string | null>(null)
+  const [editEventForm, setEditEventForm] = useState<Partial<CalendarEvent>>({})
+
+  // Clear states on selectedDate change
+  useEffect(() => {
+    setSelectedEventIds([])
+    setEditingEventId(null)
+  }, [selectedDate])
+
   // Fetch all events on mount & changes
   useEffect(() => {
     loadEvents()
@@ -350,6 +361,71 @@ function SalesCalendarContent() {
     }
   }
 
+  // Bulk delete selected events from selected date
+  async function handleDeleteSelectedEvents() {
+    if (!confirm(`Are you sure you want to delete ${selectedEventIds.length} selected event(s)?`)) return
+    try {
+      const toDelete = selectedDayEvents.filter(evt => selectedEventIds.includes(evt.id))
+      await Promise.all(toDelete.map(async (evt) => {
+        let endpoint = ''
+        if (evt.type === 'custom') {
+          endpoint = `/api/admin/sales-calendar/${evt.dbId}`
+        } else if (evt.type === 'appointment') {
+          endpoint = `/api/appointments/${evt.dbId}`
+        } else if (evt.type === 'quotation') {
+          endpoint = `/api/quotations/${evt.dbId}`
+        } else if (evt.type === 'rfq') {
+          endpoint = `/api/rfq-requests/${evt.dbId}`
+        }
+        if (endpoint) {
+          await fetch(endpoint, { method: 'DELETE' })
+        }
+      }))
+      // Reload events
+      loadEvents()
+      setSelectedEventIds([])
+      if (timelineCust) {
+        setTimelineCust({ ...timelineCust })
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete some selected events')
+    }
+  }
+
+  // Start inline editing for custom calendar event
+  function startEventEdit(evt: CalendarEvent) {
+    setEditingEventId(evt.id)
+    setEditEventForm({
+      eventType: evt.eventType || 'task',
+      title: evt.title,
+      description: evt.description || '',
+      date: evt.date,
+      time: evt.time || '',
+    })
+  }
+
+  // Save inline edit for custom calendar event
+  async function saveEventEdit(dbId: number | string) {
+    try {
+      const res = await fetch(`/api/admin/sales-calendar/${dbId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType: editEventForm.eventType,
+          title: editEventForm.title,
+          description: editEventForm.description,
+          eventDate: editEventForm.date,
+          eventTime: editEventForm.time,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to update event')
+      setEditingEventId(null)
+      loadEvents()
+    } catch (err: any) {
+      alert(err.message || 'Failed to save changes')
+    }
+  }
+
   return (
     <main style={{ maxWidth: 1200, margin: '30px auto', padding: '0 24px' }}>
       {/* Header */}
@@ -548,71 +624,210 @@ function SalesCalendarContent() {
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {selectedDayEvents.map((evt) => (
-                  <div
-                    key={evt.id}
-                    style={{
-                      padding: 10, background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8,
-                      display: 'flex', flexDirection: 'column', gap: 4, position: 'relative'
-                    }}
-                  >
-                    {evt.type === 'custom' && (
-                      <button
-                        onClick={() => handleDeleteEvent(evt.id, evt.dbId)}
-                        style={{
-                          position: 'absolute', top: 6, right: 6, background: 'none', border: 'none',
-                          color: '#ef4444', fontSize: 13, cursor: 'pointer', padding: 0
+                {/* Select All and Delete Selected controls */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0 10px', padding: '0 2px' }}>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedDayEvents.length > 0 && selectedEventIds.length === selectedDayEvents.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedEventIds(selectedDayEvents.map(evt => evt.id))
+                        } else {
+                          setSelectedEventIds([])
+                        }
+                      }}
+                    />
+                    Select All
+                  </label>
+                  {selectedEventIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteSelectedEvents}
+                      style={{
+                        padding: '4px 8px', background: '#ef4444', color: '#fff', border: 'none',
+                        borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer'
+                      }}
+                    >
+                      Delete Selected ({selectedEventIds.length})
+                    </button>
+                  )}
+                </div>
+
+                {selectedDayEvents.map((evt) => {
+                  const isEditing = editingEventId === evt.id
+                  return (
+                    <div
+                      key={evt.id}
+                      style={{
+                        padding: 10, background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8,
+                        display: 'flex', gap: 10, alignItems: 'flex-start', position: 'relative'
+                      }}
+                    >
+                      {/* Checkbox for selection */}
+                      <input
+                        type="checkbox"
+                        checked={selectedEventIds.includes(evt.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedEventIds(prev => [...prev, evt.id])
+                          } else {
+                            setSelectedEventIds(prev => prev.filter(x => x !== evt.id))
+                          }
                         }}
-                        title="Delete custom event"
-                      >
-                        ✕
-                      </button>
-                    )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{
-                        display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: evt.color
-                      }} />
-                      <strong style={{ fontSize: 12, color: '#1e293b' }}>{evt.title}</strong>
-                    </div>
-                    {evt.description && (
-                      <p style={{ margin: '2px 0 0', fontSize: 11, color: '#475569', lineBreak: 'anywhere' }}>{evt.description}</p>
-                    )}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, fontSize: 11 }}>
-                      <span style={{ color: '#64748b' }}>
-                        {evt.time ? `⏰ ${evt.time}` : '—'}
-                      </span>
-                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                        {evt.customer && evt.customer.id && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (evt.customer && evt.customer.id) {
-                                setTimelineCust({
-                                  id: evt.customer.id,
-                                  name: evt.customer.name,
-                                  email: evt.customer.email || '',
-                                  phone: evt.customer.phone || null,
-                                  company: null
-                                })
-                              }
-                            }}
-                            style={{
-                              background: 'none', border: 'none', padding: 0, color: '#6366f1',
-                              fontWeight: 600, fontSize: 11, cursor: 'pointer'
-                            }}
-                          >
-                            View Timeline
-                          </button>
-                        )}
-                        {evt.type !== 'custom' && (
-                          <Link href={evt.href} style={{ color: '#10b981', fontWeight: 600, textDecoration: 'none' }}>
-                            Open &rarr;
-                          </Link>
+                        style={{ marginTop: 3 }}
+                      />
+
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {isEditing ? (
+                          // Inline edit form
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+                            <div>
+                              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#475569', marginBottom: 2 }}>Event Type</label>
+                              <select
+                                value={editEventForm.eventType || 'task'}
+                                onChange={e => setEditEventForm(p => ({ ...p, eventType: e.target.value as any }))}
+                                style={{ width: '100%', padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12 }}
+                              >
+                                <option value="task">✅ Task / To-Do</option>
+                                <option value="site_visit">🏠 Site Visit</option>
+                                <option value="appointment">📅 Showroom Visit</option>
+                                <option value="meeting">💼 Meeting</option>
+                                <option value="presentation">📊 Presentation</option>
+                                <option value="note">📝 Note / Reminder</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#475569', marginBottom: 2 }}>Title</label>
+                              <input
+                                type="text"
+                                value={editEventForm.title || ''}
+                                onChange={e => setEditEventForm(p => ({ ...p, title: e.target.value }))}
+                                style={{ width: '100%', padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12 }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#475569', marginBottom: 2 }}>Description</label>
+                              <textarea
+                                value={editEventForm.description || ''}
+                                onChange={e => setEditEventForm(p => ({ ...p, description: e.target.value }))}
+                                rows={2}
+                                style={{ width: '100%', padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12, resize: 'vertical' }}
+                              />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                              <div>
+                                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#475569', marginBottom: 2 }}>Date</label>
+                                <input
+                                  type="date"
+                                  value={editEventForm.date || ''}
+                                  onChange={e => setEditEventForm(p => ({ ...p, date: e.target.value }))}
+                                  style={{ width: '100%', padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12 }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#475569', marginBottom: 2 }}>Time</label>
+                                <input
+                                  type="text"
+                                  placeholder="Time e.g. 10:00 AM"
+                                  value={editEventForm.time || ''}
+                                  onChange={e => setEditEventForm(p => ({ ...p, time: e.target.value }))}
+                                  style={{ width: '100%', padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12 }}
+                                />
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 4 }}>
+                              <button
+                                type="button"
+                                onClick={() => saveEventEdit(evt.dbId)}
+                                style={{ padding: '4px 10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingEventId(null)}
+                                style={{ padding: '4px 10px', background: '#94a3b8', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          // Normal display card
+                          <>
+                            {evt.type === 'custom' && (
+                              <button
+                                onClick={() => handleDeleteEvent(evt.id, evt.dbId)}
+                                style={{
+                                  position: 'absolute', top: 6, right: 6, background: 'none', border: 'none',
+                                  color: '#ef4444', fontSize: 13, cursor: 'pointer', padding: 0
+                                }}
+                                title="Delete custom event"
+                              >
+                                ✕
+                              </button>
+                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{
+                                display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: evt.color
+                              }} />
+                              <strong style={{ fontSize: 12, color: '#1e293b' }}>{evt.title}</strong>
+                            </div>
+                            {evt.description && (
+                              <p style={{ margin: '2px 0 0', fontSize: 11, color: '#475569', lineBreak: 'anywhere' }}>{evt.description}</p>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, fontSize: 11 }}>
+                              <span style={{ color: '#64748b' }}>
+                                {evt.time ? `⏰ ${evt.time}` : '—'}
+                              </span>
+                              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                {evt.customer && evt.customer.id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (evt.customer && evt.customer.id) {
+                                        setTimelineCust({
+                                          id: evt.customer.id,
+                                          name: evt.customer.name,
+                                          email: evt.customer.email || '',
+                                          phone: evt.customer.phone || null,
+                                          company: null
+                                        })
+                                      }
+                                    }}
+                                    style={{
+                                      background: 'none', border: 'none', padding: 0, color: '#6366f1',
+                                      fontWeight: 600, fontSize: 11, cursor: 'pointer'
+                                    }}
+                                  >
+                                    View Timeline
+                                  </button>
+                                )}
+                                {evt.type === 'custom' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => startEventEdit(evt)}
+                                    style={{
+                                      background: 'none', border: 'none', padding: 0, color: '#10b981',
+                                      fontWeight: 600, fontSize: 11, cursor: 'pointer'
+                                    }}
+                                  >
+                                    Edit
+                                  </button>
+                                ) : (
+                                  <Link href={evt.href} style={{ color: '#10b981', fontWeight: 600, textDecoration: 'none' }}>
+                                    Open &rarr;
+                                  </Link>
+                                )}
+                              </div>
+                            </div>
+                          </>
                         )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

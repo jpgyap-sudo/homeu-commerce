@@ -24,12 +24,7 @@ export async function GET(
     const { id } = await params
 
     const result = await query(
-      `SELECT c.*,
-              (SELECT json_agg(json_build_object('id', p.id, 'title', p.title, 'slug', p.slug))
-               FROM products p WHERE p.category_id = c.id LIMIT 50) as products
-       FROM categories c
-       WHERE c.id::text = $1 OR c.slug = $1
-       LIMIT 1`,
+      `SELECT c.* FROM categories c WHERE c.id::text = $1 OR c.slug = $1 LIMIT 1`,
       [id]
     )
 
@@ -39,6 +34,20 @@ export async function GET(
 
     const cat = result.rows[0]
 
+    // Linked products come from collection_products — the many-to-many
+    // table that mirrors Shopify's real collection membership (a product
+    // can belong to several categories at once). products.category_id is
+    // kept only as a "primary category" convenience field.
+    const productsRes = await query(
+      `SELECT p.id, p.title, p.slug,
+              (SELECT pi.url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1) AS image_url
+       FROM collection_products cp
+       JOIN products p ON p.id = cp.product_id
+       WHERE cp.collection_id = $1
+       ORDER BY cp.position ASC, p.title ASC`,
+      [cat.id]
+    )
+
     return NextResponse.json({
       id: cat.id,
       title: cat.title,
@@ -46,8 +55,9 @@ export async function GET(
       description: cat.description,
       imageUrl: cat.image_url || null,
       parentId: cat.parent_id || null,
-      productCount: cat.product_count || 0,
-      products: cat.products || [],
+      collectionType: cat.collection_type,
+      productCount: productsRes.rowCount,
+      products: productsRes.rows,
       createdAt: cat.created_at,
       updatedAt: cat.updated_at,
     })

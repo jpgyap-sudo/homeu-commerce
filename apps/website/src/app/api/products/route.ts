@@ -53,10 +53,19 @@ export async function GET(request: NextRequest) {
         paramIndex += params.length
       } else {
         paramIndex++
-        // Match by the product's assigned category (slug or legacy title)…
+        // Match by the product's primary category (slug or legacy title)…
         const categoryChecks = [
           `EXISTS (SELECT 1 FROM categories c WHERE c.id = p.category_id AND (LOWER(c.slug) = LOWER($${paramIndex}) OR LOWER(c.title) = LOWER($${paramIndex})))`,
         ]
+        values.push(category)
+        // …OR by collection_products (many-to-many — the real Shopify-import
+        // membership; a product can be in several collections at once, e.g.
+        // both "Dining Chair" and "48 Hour Dispatch").
+        paramIndex++
+        categoryChecks.push(
+          `EXISTS (SELECT 1 FROM collection_products cp JOIN categories c2 ON c2.id = cp.collection_id
+            WHERE cp.product_id = p.id AND (LOWER(c2.slug) = LOWER($${paramIndex}) OR LOWER(c2.title) = LOWER($${paramIndex})))`
+        )
         values.push(category)
         // …OR by the Shopify smart-collection TAG rule for this handle, so the
         // granular nav dropdowns (sofa, pendant-light, rugs, …) resolve.
@@ -86,7 +95,7 @@ export async function GET(request: NextRequest) {
             conditions.push(`(p.price IS NULL OR p.price = 0)`)
             break
           case 'category':
-            conditions.push(`p.category_id IS NULL`)
+            conditions.push(`p.category_id IS NULL AND NOT EXISTS (SELECT 1 FROM collection_products cp WHERE cp.product_id = p.id)`)
             break
           case 'description':
             conditions.push(`(p.description IS NULL OR p.description::text = '' OR p.description::text = '{}')`)
