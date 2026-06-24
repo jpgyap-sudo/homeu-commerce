@@ -39,7 +39,8 @@ export async function getTemplateSections(template: string, includeDisabled = fa
   let isPreview = false
   try {
     const { headers } = require('next/headers')
-    isPreview = headers().get('x-theme-preview') === '1'
+    const h = await headers()
+    isPreview = h.get('x-theme-preview') === '1'
   } catch {}
 
   if (isPreview) {
@@ -83,7 +84,8 @@ export async function getFooterSections(): Promise<HomepageSection[]> {
   let isPreview = false
   try {
     const { headers } = require('next/headers')
-    isPreview = headers().get('x-theme-preview') === '1'
+    const h = await headers()
+    isPreview = h.get('x-theme-preview') === '1'
   } catch {}
 
   if (isPreview) {
@@ -120,7 +122,8 @@ export async function getCustomCss(): Promise<string> {
   let isPreview = false
   try {
     const { headers } = require('next/headers')
-    isPreview = headers().get('x-theme-preview') === '1'
+    const h = await headers()
+    isPreview = h.get('x-theme-preview') === '1'
   } catch {}
 
   if (isPreview) {
@@ -183,7 +186,8 @@ export async function getHeaderSettings(): Promise<HeaderSettings> {
   let isPreview = false
   try {
     const { headers } = require('next/headers')
-    isPreview = headers().get('x-theme-preview') === '1'
+    const h = await headers()
+    isPreview = h.get('x-theme-preview') === '1'
   } catch {}
 
   if (isPreview) {
@@ -224,7 +228,8 @@ export async function getThemePalette(): Promise<ThemePalette> {
   let isPreview = false
   try {
     const { headers } = require('next/headers')
-    isPreview = headers().get('x-theme-preview') === '1'
+    const h = await headers()
+    isPreview = h.get('x-theme-preview') === '1'
   } catch {}
 
   if (isPreview) {
