@@ -212,6 +212,16 @@ export async function POST(request: NextRequest) {
 
     const product = result.rows[0]
 
+    // Sync to collection_products if a category was assigned
+    if (product.category_id) {
+      await query(
+        `INSERT INTO collection_products (collection_id, product_id, position, source)
+         VALUES ($1, $2, 0, 'auto')
+         ON CONFLICT (collection_id, product_id) DO NOTHING`,
+        [product.category_id, product.id]
+      )
+    }
+
     return NextResponse.json({
       message: 'Product created successfully',
       product: {

@@ -138,6 +138,19 @@ export async function PATCH(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
 
+    // Sync to collection_products if category_id changed
+    if (body.category_id != null) {
+      const catId = parseInt(body.category_id, 10)
+      if (!isNaN(catId)) {
+        await query(
+          `INSERT INTO collection_products (collection_id, product_id, position, source)
+           VALUES ($1, $2, 0, 'auto')
+           ON CONFLICT (collection_id, product_id) DO NOTHING`,
+          [catId, result.rows[0].id]
+        )
+      }
+    }
+
     return NextResponse.json({
       message: 'Product updated successfully',
       product: result.rows[0],
@@ -169,6 +182,9 @@ export async function DELETE(
 
     // Delete related product_images first
     await query('DELETE FROM product_images WHERE product_id = $1', [id])
+
+    // Delete collection_products entries
+    await query('DELETE FROM collection_products WHERE product_id = $1', [id])
 
     // Delete product_rels entries
     await query('DELETE FROM products_rels WHERE parent_id = $1', [id])

@@ -125,7 +125,7 @@ export default async function AdminProductsListPage({ searchParams }: ListPagePr
 
   if (categorySlug) {
     idx++
-    conditions.push(`EXISTS (SELECT 1 FROM categories c WHERE c.id = p.category_id AND LOWER(c.slug) = LOWER($${idx}))`)
+    conditions.push(`(EXISTS (SELECT 1 FROM categories c WHERE c.id = p.category_id AND LOWER(c.slug) = LOWER($${idx})) OR EXISTS (SELECT 1 FROM collection_products cp JOIN categories c2 ON c2.id = cp.collection_id WHERE cp.product_id = p.id AND LOWER(c2.slug) = LOWER($${idx})))`)
     values.push(categorySlug)
   }
 

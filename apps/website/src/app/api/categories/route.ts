@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const [result, countResult] = await Promise.all([
       query(
         `SELECT c.*, COALESCE(m.url, c.image_url) as image_url,
-                (SELECT COUNT(*)::int FROM products p WHERE p.category_id = c.id) AS product_count
+                (SELECT COUNT(*)::int FROM collection_products cp WHERE cp.collection_id = c.id) AS product_count
          FROM categories c
          LEFT JOIN media m ON c.image_id = m.id
          ORDER BY c.title ASC

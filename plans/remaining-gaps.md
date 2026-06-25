@@ -1,7 +1,7 @@
 # Remaining Gaps — HomeU Commerce
 
-> **Updated:** 2026-06-22
-> **Status:** 54 active + 48 resolved = 102 total
+> **Updated:** 2026-06-24
+> **Status:** 53 active + 49 resolved = 102 total
 > **Canonical source:** [`docs/GAP_LOG.md`](docs/GAP_LOG.md) (single source of truth)
 > **Feature log:** [`docs/FEATURE_LOG.md`](docs/FEATURE_LOG.md) (all implemented features)
 
@@ -94,6 +94,8 @@
 All 48 resolved gaps documented in [`docs/GAP_LOG.md`](docs/GAP_LOG.md) with full details.
 Implemented features listed in [`docs/FEATURE_LOG.md`](docs/FEATURE_LOG.md).
 
+**Recent resolutions (2026-06-24):**
+- HIGH-023 (Categories↔Products dual-track sync) — All 8 sub-gaps fixed: count queries, API sync, DELETE cleanup, ProductPicker filters, and category edit UI. TypeScript clean.
 **Recent resolutions (2026-06-22):**
 - CRIT-004 (OTP security) — was already fixed in code, gap log was stale
 - HIGH-010 (JWT fallback) — was already fixed in code, gap log was stale

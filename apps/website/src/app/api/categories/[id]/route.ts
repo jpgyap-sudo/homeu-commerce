@@ -145,6 +145,9 @@ export async function DELETE(
     // Unlink products that reference this category
     await query('UPDATE products SET category_id = NULL WHERE category_id = $1', [id])
 
+    // Clean up collection_products M2M entries
+    await query('DELETE FROM collection_products WHERE collection_id = $1', [id])
+
     // Delete the category
     await query('DELETE FROM categories WHERE id = $1', [id])
 

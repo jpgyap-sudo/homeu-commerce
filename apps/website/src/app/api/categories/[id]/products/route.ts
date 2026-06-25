@@ -49,6 +49,12 @@ export async function POST(
       [categoryId, productId, position]
     )
 
+    // Sync products.category_id — set as primary category if not already set
+    await query(
+      `UPDATE products SET category_id = $1 WHERE id = $2 AND category_id IS NULL`,
+      [categoryId, productId]
+    )
+
     return NextResponse.json({ ok: true }, { status: 201 })
   } catch (err: any) {
     console.error('[api/categories/:id/products] POST error:', err.message)

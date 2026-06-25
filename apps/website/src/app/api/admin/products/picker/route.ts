@@ -19,12 +19,15 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get('category_id') || ''
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100)
 
-    // ── Fetch distinct categories that have active products ────────────
+    // ── Fetch distinct categories that have active products (including M2M) ──
     const catRes = await query(
       `SELECT DISTINCT c.id, c.title, c.slug
        FROM categories c
-       JOIN products p ON p.category_id = c.id
-       WHERE p.status = 'active'
+       WHERE EXISTS (
+         SELECT 1 FROM products p WHERE p.category_id = c.id AND p.status = 'active'
+         UNION
+         SELECT 1 FROM collection_products cp JOIN products p2 ON p2.id = cp.product_id WHERE cp.collection_id = c.id AND p2.status = 'active'
+       )
        ORDER BY c.title ASC`,
       []
     )
@@ -43,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     if (categoryId) {
       paramIdx++
-      conditions.push(`p.category_id = $${paramIdx}`)
+      conditions.push(`(p.category_id = $${paramIdx} OR EXISTS (SELECT 1 FROM collection_products cp WHERE cp.collection_id = $${paramIdx} AND cp.product_id = p.id))`)
       values.push(parseInt(categoryId, 10))
     }
 

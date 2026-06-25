@@ -98,7 +98,7 @@ export default async function AdminCategoriesListPage({ searchParams }: ListPage
   try {
     const catRes = await query(
       `SELECT c.*, 
-              (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) as product_count,
+              (SELECT COUNT(*) FROM collection_products cp WHERE cp.collection_id = c.id) as product_count,
               (SELECT c2.title FROM categories c2 WHERE c2.id = c.parent_id) as parent_title
        FROM categories c ${whereSQL} 
        ORDER BY c.title ASC 

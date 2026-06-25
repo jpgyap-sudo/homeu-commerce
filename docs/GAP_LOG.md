@@ -3,7 +3,7 @@
 > **Purpose:** Single source of truth for known gaps, missing features, and technical debt across the DaVinciOS system.
 > **Scope:** Covers the DaVinciOS CMS backend, chatbot concierge, API routes, admin panel, frontend components, collections, deployment pipeline, and agent definitions.
 > **Status:** Active — gaps are logged for tracking by all Kilo Code extensions and agents.
-> **Last Updated:** 2026-06-23 08:30:00+08:00
+> **Last Updated:** 2026-06-24 21:15:00+08:00
 
 ---
 
@@ -353,6 +353,19 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 | **Description** | The interface is presented as a theme/website builder, but its section model is attached only to `homepage_sections`. Product, collection, search, blog, article, standard page, customer, RFQ, and quotation templates have no visual layout or block editor. |
 | **Impact** | A non-technical user cannot build or brand the complete website without code; most customer-facing page types remain fixed templates. |
 | **Fix Guidance** | Introduce template assignments and reusable sections for homepage, product, collection, page, blog/article, search, customer, and quotation surfaces. Start with global design tokens plus product and collection templates. Provide safe locked commerce blocks and editable surrounding content so critical data and actions cannot be accidentally removed. |
+
+### GAP-HIGH-023: Categories↔Products Dual-Track Sync Gap — `products.category_id` and `collection_products` Never Synced
+
+| Field | Value |
+|-------|-------|
+| **File(s)** | [`apps/website/src/app/admin/categories/page.tsx`](apps/website/src/app/admin/categories/page.tsx:101), [`apps/website/src/app/api/categories/route.ts`](apps/website/src/app/api/categories/route.ts:23), [`apps/website/src/app/api/categories/[id]/products/route.ts`](apps/website/src/app/api/categories/[id]/products/route.ts), [`apps/website/src/app/api/products/[id]/route.ts`](apps/website/src/app/api/products/[id]/route.ts), [`apps/website/src/app/api/categories/[id]/route.ts`](apps/website/src/app/api/categories/[id]/route.ts), [`apps/website/src/app/api/admin/products/picker/route.ts`](apps/website/src/app/api/admin/products/picker/route.ts), [`apps/website/src/app/admin/products/page.tsx`](apps/website/src/app/admin/products/page.tsx:128), [`apps/website/src/app/admin/categories/[id]/page.tsx`](apps/website/src/app/admin/categories/[id]/page.tsx) |
+| **Type** | Wiring gap / data integrity — 8 sub-gaps |
+| **Status** | ✅ Resolved |
+| **Description** | The project maintains **two** independent product↔category relationships: (1) `products.category_id` (single "primary category" column), and (2) `collection_products` many-to-many join table. These two tracks were **never wired together** — writing to one does not update the other. Specific gaps: **(a)** Admin categories list "Products" column counted from `products.category_id` but products are linked via `collection_products` → always showed 0. **(b)** `POST /api/categories/[id]/products` inserted into `collection_products` only, never set `products.category_id`. **(c)** Product PATCH changed `category_id` without syncing to `collection_products`. **(d)** Product DELETE cleaned `product_images` + `products_rels` but not `collection_products` → orphaned rows. **(e)** Category DELETE set `products.category_id = NULL` but did not delete `collection_products` rows → orphaned M2M entries. **(f)** ProductPicker filtered by `p.category_id` only, missing M2M-linked products. **(g)** Admin product list category filter used `p.category_id` only, ignoring M2M links. **(h)** Category edit page had no UI to add/remove products. |
+| **Impact** | The "Products" column in the admin categories table was always 0 or stale. Products linked via one mechanism were invisible to all consumers of the other mechanism. Deleting products/categories left orphaned rows in `collection_products`. |
+| **Root Cause** | The `collection_products` M2M table was added to mirror Shopify's real collection membership (products can belong to multiple categories), but `products.category_id` (the legacy single-category column) was never retired or synchronized with the M2M table. Consumers were split across both tracks with no bridge. |
+| **Fix Guidance** | (a) Change count subqueries to use `collection_products`. (b) When adding to `collection_products`, also SET `products.category_id` if NULL. (c) When product PATCH changes `category_id`, UPSERT into `collection_products`. (d-e) DELETE handlers must clean up `collection_products`. (f-g) Category-filter queries must OR-check both `category_id` and `collection_products`. (h) Add ProductPicker + remove buttons to category edit page. |
+| **ResolvedBy** | Kilo (thinker) on 2026-06-24 — All 8 sub-gaps fixed across 7 files, TypeScript compilation clean (0 errors). |
 
 ## 🟡 Medium Severity Gaps
 

@@ -7,10 +7,11 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ImagePickerField } from '@/components/admin/ImagePickerField'
+import { ProductPicker } from '@/components/admin/ProductPicker'
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -73,6 +74,10 @@ export default function EditCategoryPage() {
   const [parentId, setParentId] = useState('')
   const [productCount, setProductCount] = useState(0)
   const [linkedProducts, setLinkedProducts] = useState<LinkedProduct[]>([])
+
+  // Product picker
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   // ── Load data ─────────────────────────────────────────────────
   useEffect(() => {
@@ -178,6 +183,52 @@ export default function EditCategoryPage() {
     } catch (err: any) {
       setError(err.message || 'Failed to delete')
       setDeleting(false)
+    }
+  }
+
+  // ── Product picker handlers ───────────────────────────────────
+  async function handleAddProducts(productIds: number[]) {
+    setError('')
+    setRefreshing(true)
+    try {
+      const id = params?.id as string
+      for (const productId of productIds) {
+        await fetch(`/api/categories/${id}/products`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId }),
+        })
+      }
+      // Reload to get updated linked products
+      const res = await fetch(`/api/categories/${id}`, { credentials: 'include' })
+      if (res.ok) {
+        const data: CategoryData = await res.json()
+        populateForm(data)
+      }
+      setPickerOpen(false)
+    } catch (err: any) {
+      setError(err.message || 'Failed to add products')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  async function handleRemoveProduct(productId: number) {
+    setError('')
+    setRefreshing(true)
+    try {
+      const id = params?.id as string
+      await fetch(`/api/categories/${id}/products/${productId}`, { method: 'DELETE' })
+      // Reload to get updated linked products
+      const res = await fetch(`/api/categories/${id}`, { credentials: 'include' })
+      if (res.ok) {
+        const data: CategoryData = await res.json()
+        populateForm(data)
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to remove product')
+    } finally {
+      setRefreshing(false)
     }
   }
 
@@ -302,33 +353,84 @@ export default function EditCategoryPage() {
         </Section>
 
         {/* ── Section: Linked Products ── */}
-        {linkedProducts.length > 0 && (
-          <Section title={`Linked Products (${linkedProducts.length})`}>
+        <Section title={`Linked Products (${linkedProducts.length})`}>
+          <div style={{ marginBottom: 12 }}>
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              disabled={refreshing}
+              style={{
+                padding: '8px 18px',
+                background: refreshing ? '#999' : '#fff',
+                color: '#1a6d3e',
+                border: '1.5px solid #1a6d3e',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: refreshing ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {refreshing ? 'Working...' : '+ Add Products'}
+            </button>
+          </div>
+          {linkedProducts.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {linkedProducts.map(p => (
-                <Link
-                  key={p.id}
-                  href={`/admin/products/${p.id}`}
-                  style={{
-                    color: '#1a6d3e',
-                    textDecoration: 'none',
-                    fontSize: 14,
-                    padding: '8px 12px',
-                    background: '#fff',
-                    border: '1px solid #eef1ed',
-                    borderRadius: 8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}
-                >
-                  <span style={{ fontWeight: 500 }}>{p.title}</span>
-                  <span style={{ color: '#667168', fontSize: 12 }}>({p.slug})</span>
-                </Link>
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Link
+                    href={`/admin/products/${p.id}`}
+                    style={{
+                      flex: 1,
+                      color: '#1a6d3e',
+                      textDecoration: 'none',
+                      fontSize: 14,
+                      padding: '8px 12px',
+                      background: '#fff',
+                      border: '1px solid #eef1ed',
+                      borderRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <span style={{ fontWeight: 500 }}>{p.title}</span>
+                    <span style={{ color: '#667168', fontSize: 12 }}>({p.slug})</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveProduct(p.id)}
+                    disabled={refreshing}
+                    style={{
+                      padding: '6px 12px',
+                      background: '#fff',
+                      color: '#b42318',
+                      border: '1px solid #fecaca',
+                      borderRadius: 6,
+                      fontSize: 12,
+                      cursor: refreshing ? 'not-allowed' : 'pointer',
+                    }}
+                    title="Remove from category"
+                  >
+                    ✕
+                  </button>
+                </div>
               ))}
             </div>
-          </Section>
-        )}
+          ) : (
+            <p style={{ color: '#667168', fontSize: 13, margin: 0 }}>
+              No products linked yet. Click "Add Products" to link products to this category.
+            </p>
+          )}
+        </Section>
+
+        {/* ── Product Picker Modal ── */}
+        <ProductPicker
+          open={pickerOpen}
+          selectedIds={linkedProducts.map(p => p.id)}
+          multiSelect={true}
+          onSelect={handleAddProducts}
+          onClose={() => setPickerOpen(false)}
+        />
 
         {/* ── Actions ── */}
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 32, paddingBottom: 40 }}>
