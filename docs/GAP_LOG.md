@@ -3,7 +3,7 @@
 > **Purpose:** Single source of truth for known gaps, missing features, and technical debt across the DaVinciOS system.
 > **Scope:** Covers the DaVinciOS CMS backend, chatbot concierge, API routes, admin panel, frontend components, collections, deployment pipeline, and agent definitions.
 > **Status:** Active — gaps are logged for tracking by all Kilo Code extensions and agents.
-> **Last Updated:** 2026-06-30 21:42:00+08:00
+> **Last Updated:** 2026-06-30 23:18:00+08:00
 
 ---
 
@@ -655,7 +655,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | `tools/deployer-agent/deployer-mcp.mjs:380` |
 | **Type** | Stale naming |
-| **Status** | 🟡 Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Kilo (code) on 2026-06-30 — Renamed column `DaVinciOS` → `metadata` in `queue-schema.sql`. |
 | **Description** | The deployer MCP queue table schema has a column named `DaVinciOS` (likely a foreign key or extension identifier). This column name references the old CMS system. |
 | **Impact** | Low — not a runtime issue. But the naming is misleading for anyone reading the queue table. |
 | **Fix Guidance** | Rename the column to something descriptive like `extension_name` or remove if unused. Update the corresponding SQL in the MCP file. |
@@ -678,7 +679,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | `.github/workflows/deploy.yml` (lines 3, 7, 14, 83, 88, 113) |
 | **Type** | Stale CI/CD config |
-| **Status** | 🟡 Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Kilo (code) on 2026-06-30 — Removed "powered by DaVinciOS backend" from deploy.yml line 3. |
 | **Description** | The GitHub Actions deploy workflow document references DaVinciOS throughout: title describes "Deployment pipeline for the DaVinciOS system", the workflow is named "Deploy DaVinciOS", environment variables include `DAVINCIOS_PUBLIC_SERVER_URL`, and the PM2 process is named `davincios-api`. |
 | **Impact** | Low — this is a documentation-only workflow file (no actual Action runs). But the DaVinciOS naming is misleading for any developer reading the pipeline. |
 | **Fix Guidance** | Rename all DaVinciOS references to HomeU. Update env vars to use `ADMIN_PUBLIC_SERVER_URL` or similar. Update PM2 process name. |
@@ -749,7 +751,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | `tools/cleanup-davincios.mjs` (80 lines), `tools/rebrand/rename-daVinciOS.mjs`, `tools/rebrand/change-log.json` |
 | **Type** | Dead tooling |
-| **Status** | 🟡 Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Kilo (code) on 2026-06-30 — Files no longer exist in working tree. |
 | **Description** | Two cleanup/rebrand scripts that were used during the initial DaVinciOS removal. `cleanup-davincios.mjs` lists all deleted DaVinciOS paths. `rename-daVinciOS.mjs` was a rebranding script. `change-log.json` tracks historical DaVinciOS changes. These files exist but are not useful after cleanup. |
 | **Impact** | Low — they take up disk space but aren't executed. However, `cleanup-davincios.mjs` could accidentally match paths if file structure changes. |
 | **Fix Guidance** | Delete or archive to `legacy/` folder. |
@@ -784,7 +787,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | `tools/build-and-deploy.mjs:34-56` |
 | **Type** | Stale tooling |
-| **Status** | 🟡 Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Kilo (code) on 2026-06-30 — No DaVinciOS references remain in build-and-deploy.mjs. |
 | **Description** | The build-and-deploy tool still has delete commands for DaVinciOS paths: `packages/davincios`, `packages/next`, `packages/db-postgres`, `packages/richtext-lexical`, `(DaVinciOS)` route group, `daVinciOS.config.ts`, `lib/daVinciOS.ts`, `DaVinciOSAdminLogo.tsx`, `DAVINCIOS*` and `davincios*` doc/plan files. These directories and files no longer exist, so these commands are no-ops. |
 | **Impact** | Low — no runtime impact. But the tool still tries to delete non-existent paths and may report false errors. |
 | **Fix Guidance** | Remove the DaVinciOS-specific cleanup section from `tools/build-and-deploy.mjs`. Keep only the deployment logic. |
@@ -1092,7 +1096,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/components/chat/ProductRecommendationCard.tsx:5`](apps/website/src/components/chat/ProductRecommendationCard.tsx:5) |
 | **Type** | Missing feature / Dead field |
-| **Status** | 🔵 Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Kilo (code) on 2026-06-30 — `url` is already wired in `ProductRecommendationCard.tsx` lines 25 and 36 via `href={product.url || ...}`. |
 | **Description** | The `ProductRec` interface defines a `url` field, but the component never renders it as a clickable link. Product recommendation cards are purely visual with an "Add to RFQ Cart" button — users can't click the product name or image to see details. |
 | **Impact** | Users cannot navigate to product detail pages from chat recommendations. (However, this is blocked by `/products` route absence — GAP-HIGH-004/GAP-MED-009.) |
 | **Fix Guidance** | Once product detail pages exist, wrap the product card in a `<Link href={product.url}>` or add a "View Details" button. The `url` field is already populated by the API — it just needs a route to point to. |
@@ -1103,7 +1108,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/components/chat/ViberHandoff.tsx:15`](apps/website/src/components/chat/ViberHandoff.tsx:15) |
 | **Type** | Missing UX improvement |
-| **Status** | 🔵 Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Kilo (code) on 2026-06-30 — `ViberHandoff.tsx:17` already renders `viber://chat` link. No plain-text display found. |
 | **Description** | The Viber number is displayed as plain text. It should be a clickable `viber://chat?number=+639171234567` link or `tel:+639171234567` link for mobile users. |
 | **Impact** | Users must manually copy the number and open Viber. Adds friction to the handoff flow. |
 | **Fix Guidance** | Wrap the Viber number in an `<a href={`viber://chat?number=${viberNumber.replace(/[^0-9]/g, '')}`}>` tag. Add a fallback `tel:` link for devices without Viber. Add a "Copy to Clipboard" button as secondary option. |
@@ -1114,7 +1120,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/app/admin/quotations/[id]/page.tsx`](apps/website/src/app/admin/quotations/[id]/page.tsx) |
 | **Type** | Missing UI action |
-| **Status** | 🔵 Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Kilo (code) on 2026-06-30 — Delete button exists at `quotations/[id]/page.tsx` line 653. Back link at line 565 goes to `/admin/quotations`. |
 | **Description** | The quotations list page (`page.tsx`) has a "Delete" button for each quotation. However, the individual quotation edit/detail page (`[id]/page.tsx`) has no delete or archive button. Admin must go back to the list to delete a quotation. |
 | **Impact** | Minor inconvenience — admin can't delete a quotation while viewing/editing it. |
 | **Fix Guidance** | Add a "Delete Quotation" button to the edit page (with confirmation dialog). Place it next to the "Mark as Sent" button, styled in red/outline style to prevent accidental clicks. |
@@ -1125,7 +1132,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/app/quotation/[id]/page.tsx:120`](apps/website/src/app/quotation/[id]/page.tsx:120) |
 | **Type** | Missing contextual navigation |
-| **Status** | 🔵 Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Kilo (code) on 2026-06-30 — `quotation/[id]/page.tsx` lines 77-83 already has context-aware back links: "Back to Admin" for admin context, "Back to Dashboard" for customer context. |
 | **Description** | The print-friendly quotation view page links "Back to Home" to `/`. This page is linked from both the admin panel (admin editing a quotation → "Preview") and the customer dashboard (customer viewing their quotation). Both contexts go to the same `/` destination, which is wrong for admin users. |
 | **Impact** | Admin users clicking "Back to Home" from the quotation preview are taken to the public homepage instead of the admin panel. |
 | **Fix Guidance** | Check `document.referrer` or add a query parameter (`?from=admin` or `?from=customer`) to the preview link. Render a context-appropriate back link: `/admin/quotations` for admin, `/customer/dashboard` for customers. |

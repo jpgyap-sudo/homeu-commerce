@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS deployer_queue (
   status VARCHAR(20) DEFAULT 'queued',     -- queued, running, completed, failed, cancelled
   requested_by VARCHAR(100),               -- which coding extension
   request_id VARCHAR(100) UNIQUE,          -- idempotency key
-  DaVinciOS JSONB,                           -- task parameters
+  metadata JSONB,                           -- task parameters
   result JSONB,                            -- task output
   error TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
