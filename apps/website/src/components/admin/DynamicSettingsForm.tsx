@@ -48,6 +48,7 @@ interface DynamicSettingsFormProps {
   settings: SettingDefinition[]
   config: Record<string, any>
   onChange: (key: string, value: any) => void
+  viewport?: 'desktop' | 'tablet' | 'mobile'
   /** Optional media picker opener: returns a promise that resolves to URL */
   onOpenMediaPicker?: (currentUrl: string) => Promise<string | null>
   /** Optional product picker */

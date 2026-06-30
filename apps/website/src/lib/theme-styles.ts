@@ -42,8 +42,11 @@ export function generateSectionStyles(
   }
 
   // ── Visibility ─────────────────────────────────────────────────────
-  if (cfg.hideMobile) {
+  if (cfg.hideMobile || cfg.hidden_mobile) {
     styles.push(`@media (max-width: 768px) { ${sel} { display: none !important; } }`)
+  }
+  if (cfg.hidden_tablet) {
+    styles.push(`@media (min-width: 769px) and (max-width: 1024px) { ${sel} { display: none !important; } }`)
   }
   if (cfg.hideDesktop) {
     styles.push(`@media (min-width: 769px) { ${sel} { display: none !important; } }`)

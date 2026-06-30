@@ -43,6 +43,9 @@ interface Section {
   position: number
   enabled: boolean
   config: Record<string, any>
+  hiddenMobile?: boolean
+  hiddenTablet?: boolean
+  isSticky?: boolean
 }
 
 // The theme editor is served on the admin domain (admin.homeatelier.ph), which
@@ -197,6 +200,24 @@ export default function ThemeEditor({
 
   // ── Preview viewport ──────────────────────────────────────────────
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>(initialViewport)
+
+  /** Return effective section config, merging viewport-specific overrides */
+  function viewportConfig(sec: Section): Record<string, any> {
+    if (viewport === 'desktop') return sec.config
+    const suffix = viewport === 'mobile' ? '_mobile' : '_tablet'
+    const ov: Record<string, any> = {}
+    for (const [k, v] of Object.entries(sec.config)) {
+      if (k.endsWith(suffix)) ov[k.replace(suffix, '')] = v
+    }
+    return { ...sec.config, ...ov }
+  }
+
+  /** Set a config value, writing to viewport-specific key when in tablet/mobile */
+  function setResponsiveConfig(sec: Section, key: string, value: any): Record<string, any> {
+    if (viewport === 'desktop') return { ...sec.config, [key]: value }
+    const suffix = viewport === 'mobile' ? '_mobile' : '_tablet'
+    return { ...sec.config, [`${key}${suffix}`]: value }
+  }
 
   // ── Undo/redo history ─────────────────────────────────────────────
   const [history, setHistory] = useState<string[]>(() => [JSON.stringify(initial)])
@@ -1871,6 +1892,17 @@ async function patchSection(id: number, body: any) {
                     <div style={{ fontWeight: 700, fontSize: 15, color: '#151a17' }}>{meta?.label || sec.type}</div>
                     <div style={{ fontSize: 12, color: '#9aa69c' }}>{meta?.description}</div>
                   </div>
+                  {viewport !== 'desktop' && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#667168', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      <input type="checkbox" checked={!sec.config?.[`hidden_${viewport}`]} onChange={() => {
+                        const key = `hidden_${viewport}`
+                        const newSec = { ...sec, config: { ...sec.config, [key]: sec.config?.[key] ? undefined : true } }
+                        setSections(s => s.map(x => x.id === sec.id ? newSec : x))
+                        patchSection(sec.id, { config: newSec.config }).catch(console.warn)
+                      }} />
+                      {viewport === 'mobile' ? 'Hide mobile' : 'Hide tablet'}
+                    </label>
+                  )}
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#667168', cursor: 'pointer' }}>
                     <input type="checkbox" checked={sec.enabled} onChange={() => toggleEnabled(sec)} />
                     {sec.enabled ? 'Shown' : 'Hidden'}
@@ -1899,8 +1931,13 @@ async function patchSection(id: number, body: any) {
                         ? <p style={{ color: '#9aa69c', fontSize: 13 }}>This section has no editable fields. Use “Edit as code”.</p>
                         : <DynamicSettingsForm
                             settings={schema}
-                            config={sec.config}
-                            onChange={(key, value) => setConfig(sec.id, key, value)}
+                            config={viewportConfig(sec)}
+                            viewport={viewport}
+                            onChange={(key, value) => {
+                              const newConfig = setResponsiveConfig(sec, key, value)
+                              setSections(s => s.map(x => x.id === sec.id ? { ...x, config: newConfig } : x))
+                              fetch(`/api/theme/sections/${sec.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ config: newConfig }) }).catch(() => {})
+                            }}
                             onOpenMediaPicker={(url) => new Promise(resolve => {
                               setMediaCurrentUrl(url)
                               mediaResolveRef.current = resolve

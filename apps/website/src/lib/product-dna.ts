@@ -83,11 +83,14 @@ function scoreProduct(r: any): DNAProduct {
   const rfqs = Number(r.rfq_count) || 0
   const quotes = Number(r.quote_count) || 0
 
-  // Visual (30) — increased from 25 since we removed dimensions/materials
+  // Visual (30) — image count + quality heuristics
   let visualScore = 0
-  if (imageCount >= 3) visualScore = 30
-  else if (imageCount === 2) visualScore = 22
-  else if (imageCount === 1) visualScore = 12
+  if (imageCount >= 5) visualScore = 30
+  else if (imageCount >= 3) visualScore = 25
+  else if (imageCount === 2) visualScore = 18
+  else if (imageCount === 1) visualScore = 10
+  // Future: when product-image-studio is secured, query AI for background
+  // consistency score and adjust visualScore +/- 5 accordingly.
   const visualDetail = imageCount === 0 ? 'No photos' : imageCount >= 3 ? `${imageCount} photos` : `${imageCount} photo — add more`
 
   // Descriptive (15) — reduced from 25 (removed dimensions + materials scoring)
