@@ -46,11 +46,17 @@ interface ProductData {
 interface ProductVariant {
   id: number
   title: string
-  sku?: string | null
+  sku?: string
   price: number
-  salePrice?: number | null
-  inventoryQuantity?: number | null
+  salePrice: number | null
+  inventoryQuantity: number
   isDefault?: boolean
+  option1Title?: string
+  option1Value?: string
+  option2Title?: string
+  option2Value?: string
+  option3Title?: string
+  option3Value?: string
 }
 
 interface ProductBundle {
@@ -622,8 +628,10 @@ function VariantsEditor({ productId, variants, onChange }: {
   onChange: (variants: ProductVariant[]) => void
 }) {
   const [busyId, setBusyId] = useState<number | 'new' | null>(null)
-  const [draft, setDraft] = useState({ title: '', sku: '', price: '', salePrice: '', inventoryQuantity: '' })
+  const [draft, setDraft] = useState({ title: '', sku: '', price: '', salePrice: '', inventoryQuantity: '', option1Title: '', option1Value: '', option2Title: '', option2Value: '', option3Title: '', option3Value: '' })
   const [rowError, setRowError] = useState('')
+  const [showOptions, setShowOptions] = useState(false)
+  const [optionsGenerator, setOptionsGenerator] = useState<{ option1: string; option2: string; option3: string }>({ option1: '', option2: '', option3: '' })
 
   async function addVariant() {
     if (!draft.title.trim() || !draft.price) { setRowError('Title and price are required'); return }
@@ -637,6 +645,9 @@ function VariantsEditor({ productId, variants, onChange }: {
         body: JSON.stringify({
           title: draft.title, sku: draft.sku || null, price: draft.price,
           salePrice: draft.salePrice || null, inventoryQuantity: draft.inventoryQuantity || 0,
+          option1Title: draft.option1Title || undefined, option1Value: draft.option1Value || undefined,
+          option2Title: draft.option2Title || undefined, option2Value: draft.option2Value || undefined,
+          option3Title: draft.option3Title || undefined, option3Value: draft.option3Value || undefined,
         }),
       })
       const data = await res.json()
@@ -645,13 +656,69 @@ function VariantsEditor({ productId, variants, onChange }: {
         id: data.variant.id, title: data.variant.title, sku: data.variant.sku,
         price: parseFloat(data.variant.price), salePrice: data.variant.sale_price ? parseFloat(data.variant.sale_price) : null,
         inventoryQuantity: data.variant.inventory_quantity, isDefault: data.variant.is_default,
+        option1Title: data.variant.option1_title, option1Value: data.variant.option1_value,
+        option2Title: data.variant.option2_title, option2Value: data.variant.option2_value,
+        option3Title: data.variant.option3_title, option3Value: data.variant.option3_value,
       } : draft as any])
-      setDraft({ title: '', sku: '', price: '', salePrice: '', inventoryQuantity: '' })
+      setDraft({ title: '', sku: '', price: '', salePrice: '', inventoryQuantity: '', option1Title: '', option1Value: '', option2Title: '', option2Value: '', option3Title: '', option3Value: '' })
     } catch (err: any) {
       setRowError(err.message)
     } finally {
       setBusyId(null)
     }
+  }
+
+  function generateCombinations() {
+    const opt1 = optionsGenerator.option1.split(',').map(s => s.trim()).filter(Boolean)
+    const opt2 = optionsGenerator.option2.split(',').map(s => s.trim()).filter(Boolean)
+    const opt3 = optionsGenerator.option3.split(',').map(s => s.trim()).filter(Boolean)
+    if (opt1.length === 0 && opt2.length === 0 && opt3.length === 0) {
+      setRowError('Enter at least one option set')
+      return
+    }
+    const combos: Array<{ title: string; o1t: string; o1v: string; o2t: string; o2v: string; o3t: string; o3v: string }> = []
+    const o1t = opt1.length > 1 ? 'Color' : ''
+    const o2t = opt2.length > 1 ? 'Size' : ''
+    const o3t = opt3.length > 1 ? 'Material' : ''
+    for (const v1 of opt1.length > 0 ? opt1 : ['']) {
+      for (const v2 of opt2.length > 0 ? opt2 : ['']) {
+        for (const v3 of opt3.length > 0 ? opt3 : ['']) {
+          const parts = [v1, v2, v3].filter(Boolean)
+          combos.push({
+            title: parts.join(' / '),
+            o1t: o1t, o1v: v1,
+            o2t: o2t, o2v: v2,
+            o3t: o3t, o3v: v3,
+          })
+        }
+      }
+    }
+    ;(async () => {
+      setBusyId('new')
+      try {
+        for (const combo of combos) {
+          const res = await fetch(`/api/admin/products/${productId}/variants`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ title: combo.title, price: 0, sku: null, option1Title: combo.o1t || undefined, option1Value: combo.o1v || undefined, option2Title: combo.o2t || undefined, option2Value: combo.o2v || undefined, option3Title: combo.o3t || undefined, option3Value: combo.o3v || undefined }),
+          })
+          if (res.ok) {
+            const data = await res.json()
+            onChange(prev => [...prev, {
+              id: data.variant.id, title: data.variant.title, sku: data.variant.sku,
+              price: parseFloat(data.variant.price), salePrice: data.variant.sale_price ? parseFloat(data.variant.sale_price) : null,
+              inventoryQuantity: data.variant.inventory_quantity,
+              option1Title: data.variant.option1_title, option1Value: data.variant.option1_value,
+              option2Title: data.variant.option2_title, option2Value: data.variant.option2_value,
+              option3Title: data.variant.option3_title, option3Value: data.variant.option3_value,
+            }])
+          }
+        }
+        setOptionsGenerator({ option1: '', option2: '', option3: '' })
+        setShowOptions(false)
+      } finally { setBusyId(null) }
+    })()
   }
 
   async function updateVariant(id: number, patch: Partial<ProductVariant>) {
@@ -692,14 +759,53 @@ function VariantsEditor({ productId, variants, onChange }: {
     }
   }
 
+  function optInput(v: ProductVariant, field: 'option1Value' | 'option2Value' | 'option3Value', label: string) {
+    return (
+      <input defaultValue={v[field] || ''} style={{ ...cellInputStyle, maxWidth: 100, fontSize: 12 }}
+        placeholder={label}
+        onBlur={e => e.target.value !== (v[field] || '') && updateVariant(v.id, { [field]: e.target.value })} />
+    )
+  }
+
   return (
     <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <button type="button" onClick={() => setShowOptions(!showOptions)}
+          style={{ padding: '6px 14px', background: '#fff', border: '1px solid #c2cdbe', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          {showOptions ? 'Hide options' : 'Multi-option (Color / Size / Material)'}
+        </button>
+        {showOptions && (
+          <button type="button" onClick={generateCombinations} disabled={busyId === 'new'}
+            style={{ padding: '6px 14px', background: '#1a6d3e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: busyId === 'new' ? 'not-allowed' : 'pointer' }}>
+            {busyId === 'new' ? 'Generating…' : 'Generate combinations'}
+          </button>
+        )}
+      </div>
+
+      {showOptions && (
+        <div style={{ background: '#f6f7f4', border: '1px solid #eef1ed', borderRadius: 8, padding: 12, marginBottom: 14 }}>
+          <p style={{ fontSize: 12, color: '#667168', margin: '0 0 8px' }}>Enter comma-separated option values per set. All combinations will be created as individual variants.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            {['option1', 'option2', 'option3'].map(opt => (
+              <label key={opt} style={{ fontSize: 11, fontWeight: 600, color: '#3a4339' }}>
+                {opt === 'option1' ? 'Option Set 1 (e.g. Black, White, Gray)' : opt === 'option2' ? 'Option Set 2 (e.g. 50cm, 75cm, 100cm)' : 'Option Set 3 (e.g. Velvet, Linen, Leather)'}
+                <input value={(optionsGenerator as any)[opt]} onChange={e => setOptionsGenerator({ ...optionsGenerator, [opt]: e.target.value })}
+                  style={{ width: '100%', padding: '6px 8px', border: '1px solid #d9e0d7', borderRadius: 6, fontSize: 12, marginTop: 4, boxSizing: 'border-box' }} />
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
       {variants.length > 0 && (
         <div style={{ overflowX: 'auto', marginBottom: 14 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ textAlign: 'left', color: '#667168' }}>
                 <th style={{ padding: '4px 8px' }}>Model / Option</th>
+                <th style={{ padding: '4px 8px' }}>Option 1</th>
+                <th style={{ padding: '4px 8px' }}>Option 2</th>
+                <th style={{ padding: '4px 8px' }}>Option 3</th>
                 <th style={{ padding: '4px 8px' }}>SKU</th>
                 <th style={{ padding: '4px 8px' }}>Price</th>
                 <th style={{ padding: '4px 8px' }}>Sale Price</th>
@@ -714,6 +820,9 @@ function VariantsEditor({ productId, variants, onChange }: {
                     <input defaultValue={v.title} style={cellInputStyle}
                       onBlur={e => e.target.value !== v.title && updateVariant(v.id, { title: e.target.value })} />
                   </td>
+                  <td style={{ padding: '4px 8px' }}>{optInput(v, 'option1Value', v.option1Title || 'Opt 1')}</td>
+                  <td style={{ padding: '4px 8px' }}>{optInput(v, 'option2Value', v.option2Title || 'Opt 2')}</td>
+                  <td style={{ padding: '4px 8px' }}>{optInput(v, 'option3Value', v.option3Title || 'Opt 3')}</td>
                   <td style={{ padding: '4px 8px' }}>
                     <input defaultValue={v.sku || ''} style={cellInputStyle}
                       onBlur={e => e.target.value !== (v.sku || '') && updateVariant(v.id, { sku: e.target.value })} />
@@ -743,10 +852,19 @@ function VariantsEditor({ productId, variants, onChange }: {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 80px 80px 80px 1fr 1fr 1fr 1fr auto', gap: 6, alignItems: 'end' }}>
         <Field label="Model / Option">
           <input value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })}
             placeholder="e.g. Two-seater 1650x900x820mm" style={cellInputStyle} />
+        </Field>
+        <Field label="Opt 1">
+          <input value={draft.option1Value} onChange={e => setDraft({ ...draft, option1Value: e.target.value })} style={cellInputStyle} placeholder="Value" />
+        </Field>
+        <Field label="Opt 2">
+          <input value={draft.option2Value} onChange={e => setDraft({ ...draft, option2Value: e.target.value })} style={cellInputStyle} placeholder="Value" />
+        </Field>
+        <Field label="Opt 3">
+          <input value={draft.option3Value} onChange={e => setDraft({ ...draft, option3Value: e.target.value })} style={cellInputStyle} placeholder="Value" />
         </Field>
         <Field label="SKU">
           <input value={draft.sku} onChange={e => setDraft({ ...draft, sku: e.target.value })} style={cellInputStyle} />
@@ -754,7 +872,7 @@ function VariantsEditor({ productId, variants, onChange }: {
         <Field label="Price">
           <input type="number" min={0} step={0.01} value={draft.price} onChange={e => setDraft({ ...draft, price: e.target.value })} style={cellInputStyle} />
         </Field>
-        <Field label="Sale Price">
+        <Field label="Sale">
           <input type="number" min={0} step={0.01} value={draft.salePrice} onChange={e => setDraft({ ...draft, salePrice: e.target.value })} style={cellInputStyle} />
         </Field>
         <Field label="Stock">
@@ -764,9 +882,9 @@ function VariantsEditor({ productId, variants, onChange }: {
           style={{
             padding: '8px 16px', background: '#1a6d3e', color: '#fff', border: 'none',
             borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: busyId === 'new' ? 'not-allowed' : 'pointer',
-            height: 38,
+            height: 38, whiteSpace: 'nowrap',
           }}>
-          {busyId === 'new' ? 'Adding…' : '+ Add Model'}
+          {busyId === 'new' ? 'Adding…' : '+ Add'}
         </button>
       </div>
       {rowError && <p style={{ color: '#b42318', fontSize: 12, marginTop: 8 }}>{rowError}</p>}

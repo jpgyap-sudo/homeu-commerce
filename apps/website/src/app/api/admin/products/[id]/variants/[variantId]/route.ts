@@ -25,6 +25,9 @@ export async function PATCH(
     const fieldMap: Record<string, string> = {
       title: 'title', sku: 'sku', price: 'price', salePrice: 'sale_price',
       inventoryQuantity: 'inventory_quantity', sortOrder: 'sort_order',
+      option1Title: 'option1_title', option1Value: 'option1_value',
+      option2Title: 'option2_title', option2Value: 'option2_value',
+      option3Title: 'option3_title', option3Value: 'option3_value',
     }
     for (const [key, column] of Object.entries(fieldMap)) {
       if (body[key] !== undefined) {

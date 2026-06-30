@@ -67,6 +67,41 @@ export default function ProductDetailClient({ product, config = {} }: { product:
   const defaultVariant = product.variants && product.variants.length > 0
     ? product.variants.find(v => v.isDefault) || product.variants[0]
     : null
+  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(defaultVariant?.id ?? null)
+  const hasVariants = Boolean(product.variants && product.variants.length > 1)
+  const selectedVariant = hasVariants
+    ? product.variants!.find(v => v.id === selectedVariantId) || product.variants![0]
+    : null
+
+  // Multi-option support: extract unique option types and values
+  const variantOpts = product.variants || []
+  const optionTypes = new Set<string>()
+  const optionValues: Record<string, string[]> = {}
+  for (const v of variantOpts) {
+    if (v.option1Title && v.option1Value) { optionTypes.add(v.option1Title); if (!optionValues[v.option1Title]) optionValues[v.option1Title] = []; if (!optionValues[v.option1Title].includes(v.option1Value)) optionValues[v.option1Title].push(v.option1Value) }
+    if (v.option2Title && v.option2Value) { optionTypes.add(v.option2Title); if (!optionValues[v.option2Title]) optionValues[v.option2Title] = []; if (!optionValues[v.option2Title].includes(v.option2Value)) optionValues[v.option2Title].push(v.option2Value) }
+    if (v.option3Title && v.option3Value) { optionTypes.add(v.option3Title); if (!optionValues[v.option3Title]) optionValues[v.option3Title] = []; if (!optionValues[v.option3Title].includes(v.option3Value)) optionValues[v.option3Title].push(v.option3Value) }
+  }
+  const hasOptions = optionTypes.size > 0
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
+    if (!defaultVariant || !hasOptions) return {}
+    const out: Record<string, string> = {}
+    if (defaultVariant.option1Title && defaultVariant.option1Value) out[defaultVariant.option1Title] = defaultVariant.option1Value
+    if (defaultVariant.option2Title && defaultVariant.option2Value) out[defaultVariant.option2Title] = defaultVariant.option2Value
+    if (defaultVariant.option3Title && defaultVariant.option3Value) out[defaultVariant.option3Title] = defaultVariant.option3Value
+    return out
+  })
+
+  // When multi-option selections change, find matching variant
+  useEffect(() => {
+    if (!hasOptions || !product.variants) return
+    const match = product.variants.find(v =>
+      (!v.option1Value || selectedOptions[v.option1Title || ''] === v.option1Value) &&
+      (!v.option2Value || selectedOptions[v.option2Title || ''] === v.option2Value) &&
+      (!v.option3Value || selectedOptions[v.option3Title || ''] === v.option3Value)
+    )
+    if (match) setSelectedVariantId(match.id)
+  }, [selectedOptions, hasOptions, product.variants])
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(defaultVariant ? defaultVariant.id : null)
 
   const images: ProductImage[] = product.images?.length
@@ -246,7 +281,7 @@ export default function ProductDetailClient({ product, config = {} }: { product:
           )}
 
           {/* Model / variant selector */}
-          {hasVariants && (
+          {hasVariants && !hasOptions && (
             <div className="product-detail__variants">
               <label className="product-detail__variants-label" htmlFor="variant-select">Model</label>
               <select
@@ -263,6 +298,21 @@ export default function ProductDetailClient({ product, config = {} }: { product:
               </select>
             </div>
           )}
+          {hasOptions && [...optionTypes].map(opt => (
+            <div key={opt} className="product-detail__variants" style={{ marginBottom: 12 }}>
+              <label className="product-detail__variants-label">{opt}</label>
+              <select
+                className="product-detail__variants-select"
+                value={selectedOptions[opt] || ''}
+                onChange={e => setSelectedOptions({ ...selectedOptions, [opt]: e.target.value })}
+              >
+                <option value="">Select {opt}</option>
+                {(optionValues[opt] || []).map(val => (
+                  <option key={val} value={val}>{val}</option>
+                ))}
+              </select>
+            </div>
+          ))}
           {product.priceNote && (
             <p className="product-detail__price-note">{product.priceNote}</p>
           )}

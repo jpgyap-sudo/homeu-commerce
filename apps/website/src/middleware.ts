@@ -24,6 +24,24 @@ const ALWAYS_ALLOWED = new Set([
   '/robots.txt', '/sitemap.xml', '/manifest.json', '/sw.js', '/favicon.ico',
 ])
 
+const ALLOWED_ORIGINS = new Set([
+  'https://admin.homeatelier.ph',
+  'https://store.homeatelier.ph',
+  'http://localhost:3000',
+])
+
+const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
+
+function addSecurityHeaders(headers: Headers): void {
+  headers.set('X-Content-Type-Options', 'nosniff')
+  headers.set('X-Frame-Options', 'DENY')
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  if (process.env.NODE_ENV === 'production') {
+    headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
+  }
+}
+
 /**
  * Middleware: (1) keeps the admin domain and storefront domain from leaking
  * into each other, then (2) protects all /admin/* routes except /admin/login.
@@ -38,11 +56,35 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const host = (request.headers.get('host') || '').split(':')[0].toLowerCase()
 
+  // ── Security headers on ALL responses ──────────────────────
+  // Applied early; response headers will be merged by NextResponse
+  const respHeaders = new Headers()
+  addSecurityHeaders(respHeaders)
+
+  // ── CSRF check for admin mutation routes ───────────────────
+  if (
+    pathname.startsWith('/api/admin/') &&
+    MUTATION_METHODS.has(request.method) &&
+    !pathname.startsWith('/api/admin/login') &&
+    !pathname.startsWith('/api/admin/auth')
+  ) {
+    const origin = request.headers.get('origin')
+    const referer = request.headers.get('referer')
+    const valid = origin
+      ? ALLOWED_ORIGINS.has(origin)
+      : referer
+        ? [...ALLOWED_ORIGINS].some(o => referer.startsWith(o))
+        : false
+    if (!valid) {
+      return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403, headers: respHeaders })
+    }
+  }
+
   if (host === STORE_HOST && pathname.startsWith('/admin')) {
-    return NextResponse.redirect(`https://${ADMIN_HOST}${pathname}${request.nextUrl.search}`)
+    return NextResponse.redirect(`https://${ADMIN_HOST}${pathname}${request.nextUrl.search}`, { headers: respHeaders })
   }
   if (host === ADMIN_HOST && !pathname.startsWith('/admin') && !pathname.startsWith('/api/') && !ALWAYS_ALLOWED.has(pathname)) {
-    return NextResponse.redirect(new URL('/admin/login', request.url))
+    return NextResponse.redirect(new URL('/admin/login', request.url), { headers: respHeaders })
   }
 
   // Everything below only applies to /admin/* routes — leave storefront
@@ -51,9 +93,9 @@ export async function middleware(request: NextRequest) {
     const requestHeaders = new Headers(request.headers)
     if (request.nextUrl.searchParams.has('preview')) {
       requestHeaders.set('x-theme-preview', '1')
-      return NextResponse.next({ request: { headers: requestHeaders } })
+      return NextResponse.next({ request: { headers: requestHeaders }, headers: respHeaders })
     }
-    return NextResponse.next()
+    return NextResponse.next({ headers: respHeaders })
   }
 
   // All /admin/* requests get an internal header so the root layout
@@ -68,7 +110,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/api/') // API routes handle their own auth
   ) {
-    return NextResponse.next({ request: { headers: requestHeaders } })
+    return NextResponse.next({ request: { headers: requestHeaders }, headers: respHeaders })
   }
 
   // Also allow static assets and public files
@@ -76,7 +118,7 @@ export async function middleware(request: NextRequest) {
     pathname.match(/\.(ico|png|svg|jpg|jpeg|webp|css|js|woff2?)$/) ||
     pathname.startsWith('/admin/login')
   ) {
-    return NextResponse.next({ request: { headers: requestHeaders } })
+    return NextResponse.next({ request: { headers: requestHeaders }, headers: respHeaders })
   }
 
   // Check for session cookie
@@ -85,7 +127,7 @@ export async function middleware(request: NextRequest) {
   if (!token) {
     const loginUrl = new URL('/admin/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(loginUrl)
+    return NextResponse.redirect(loginUrl, { headers: respHeaders })
   }
 
   // Verify JWT
@@ -93,14 +135,14 @@ export async function middleware(request: NextRequest) {
     const { payload } = await jwtVerify(token, getJwtSecret())
     if (payload.role === 'customer') {
       if (host === ADMIN_HOST) {
-        return NextResponse.redirect(`https://${STORE_HOST}/customer/dashboard`)
+        return NextResponse.redirect(`https://${STORE_HOST}/customer/dashboard`, { headers: respHeaders })
       }
-      return NextResponse.redirect(new URL('/customer/dashboard', request.url))
+      return NextResponse.redirect(new URL('/customer/dashboard', request.url), { headers: respHeaders })
     }
-    return NextResponse.next({ request: { headers: requestHeaders } })
+    return NextResponse.next({ request: { headers: requestHeaders }, headers: respHeaders })
   } catch {
     // Token invalid or expired — clear it and redirect
-    const response = NextResponse.redirect(new URL('/admin/login', request.url))
+    const response = NextResponse.redirect(new URL('/admin/login', request.url), { headers: respHeaders })
     response.cookies.delete(COOKIE_NAME)
     return response
   }

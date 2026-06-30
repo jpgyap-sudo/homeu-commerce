@@ -37,13 +37,16 @@ export async function POST(
     const sortOrder = sortRes.rows[0].next
 
     const result = await query(
-      `INSERT INTO product_variants (product_id, title, sku, price, sale_price, inventory_quantity, sort_order, is_default)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      `INSERT INTO product_variants (product_id, title, sku, price, sale_price, inventory_quantity, sort_order, is_default, option1_title, option1_value, option2_title, option2_value, option3_title, option3_value)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
       [
         productId, body.title.trim(), body.sku || null, price,
         body.salePrice != null && body.salePrice !== '' ? parseFloat(body.salePrice) : null,
         body.inventoryQuantity != null ? parseInt(body.inventoryQuantity, 10) : 0,
         sortOrder, Boolean(body.isDefault),
+        body.option1Title || '', body.option1Value || '',
+        body.option2Title || '', body.option2Value || '',
+        body.option3Title || '', body.option3Value || '',
       ]
     )
 

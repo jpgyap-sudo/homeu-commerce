@@ -46,6 +46,12 @@ export async function GET(
       salePrice: v.sale_price ? parseFloat(v.sale_price) : null,
       inventoryQuantity: v.inventory_quantity,
       isDefault: v.is_default,
+      option1Title: v.option1_title || '',
+      option1Value: v.option1_value || '',
+      option2Title: v.option2_title || '',
+      option2Value: v.option2_value || '',
+      option3Title: v.option3_title || '',
+      option3Value: v.option3_value || '',
     }))
 
     return NextResponse.json({
