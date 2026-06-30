@@ -7,9 +7,15 @@ import ThemeEditor from './ThemeEditor'
 export const metadata = { title: 'Theme — DaVinciOS' }
 export const dynamic = 'force-dynamic'
 
-export default async function ThemePage() {
+export default async function ThemePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ viewport?: string }>
+}) {
   const session = await getSession()
   if (!session) redirect('/admin/login')
+  const sp = await searchParams
+  const initialViewport = sp.viewport === 'mobile' || sp.viewport === 'tablet' ? sp.viewport : 'desktop'
 
   let sections: any[] = []
   try {
@@ -22,5 +28,5 @@ export default async function ThemePage() {
 
   const [customCss, header] = await Promise.all([getCustomCss(), getHeaderSettings()])
 
-  return <ThemeEditor initial={sections} initialCss={customCss} initialHeader={header} />
+  return <ThemeEditor initial={sections} initialCss={customCss} initialHeader={header} initialViewport={initialViewport} />
 }

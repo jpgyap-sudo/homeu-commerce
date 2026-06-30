@@ -69,7 +69,17 @@ const HEADER_FONT_OPTIONS: { label: string; stack: string }[] = [
   { label: 'Helvetica (web-safe)', stack: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
 ]
 
-export default function ThemeEditor({ initial, initialCss, initialHeader }: { initial: Section[]; initialCss: string; initialHeader: HeaderSettings }) {
+export default function ThemeEditor({
+  initial,
+  initialCss,
+  initialHeader,
+  initialViewport = 'desktop',
+}: {
+  initial: Section[]
+  initialCss: string
+  initialHeader: HeaderSettings
+  initialViewport?: 'desktop' | 'tablet' | 'mobile'
+}) {
   const [sections, setSections] = useState<Section[]>(initial)
   const [currentTemplate, setCurrentTemplate] = useState<'index' | 'product' | 'collection'>('index')
   const [previewProductSlug, setPreviewProductSlug] = useState('outline-chaise-sofa')
@@ -162,7 +172,7 @@ export default function ThemeEditor({ initial, initialCss, initialHeader }: { in
   const [allCollapsed, setAllCollapsed] = useState(false)
 
   // ── Preview viewport ──────────────────────────────────────────────
-  const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
+  const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>(initialViewport)
 
   // ── Undo/redo history ─────────────────────────────────────────────
   const [history, setHistory] = useState<string[]>(() => [JSON.stringify(initial)])
@@ -868,7 +878,7 @@ async function patchSection(id: number, body: any) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sections, header, css, palette }),
-      }).then(() => loadBackups()).catch(() => {})
+      }).then(() => loadBackups()).catch(err => console.warn('[ThemeEditor] Backup save failed:', err))
 
       flash('All changes saved'); refreshPreview()
     } catch (err: any) {
@@ -929,7 +939,7 @@ async function patchSection(id: number, body: any) {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ order: sections.map(s => s.id === fromId ? toId : s.id === toId ? fromId : s.id) }),
-    })
+    }).then(r => { if (!r.ok) console.error('[ThemeEditor] Move reorder failed:', r.status) }).catch(err => console.error('[ThemeEditor] Move reorder error:', err))
     refreshPreview()
     flash('Section moved')
     setPendingMove(null)
@@ -1074,7 +1084,8 @@ async function patchSection(id: number, body: any) {
         const currentSections: Section[] = fresh.sections || []
         for (const sec of currentSections) {
           if (!newSections.some(ns => ns.id === sec.id)) {
-            await fetch(`/api/theme/sections/${sec.id}`, { method: 'DELETE' })
+            const delRes = await fetch(`/api/theme/sections/${sec.id}`, { method: 'DELETE' })
+            if (!delRes.ok) console.warn(`[ThemeEditor] Delete old section ${sec.id} failed: ${delRes.status}`)
           }
         }
 
@@ -1893,10 +1904,10 @@ async function patchSection(id: number, body: any) {
             key={previewKey}
             src={
               currentTemplate === 'product'
-                ? `${STOREFRONT_BASE_URL}/products/${previewProductSlug}?preview=${previewKey}`
+                ? `${STOREFRONT_BASE_URL}/products/${previewProductSlug}?preview=${previewKey}&suppressChat=1`
                 : currentTemplate === 'collection'
-                ? `${STOREFRONT_BASE_URL}/products?preview=${previewKey}`
-                : `${STOREFRONT_BASE_URL}/?preview=${previewKey}`
+                ? `${STOREFRONT_BASE_URL}/products?preview=${previewKey}&suppressChat=1`
+                : `${STOREFRONT_BASE_URL}/?preview=${previewKey}&suppressChat=1`
             }
             title="Storefront preview"
             style={{

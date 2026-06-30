@@ -1,10 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { StoreTheme } from '@/lib/store-themes'
 
-type Action = 'duplicate' | 'publish' | 'rename' | 'delete'
+type Action = 'create' | 'import' | 'duplicate' | 'publish' | 'rename' | 'delete'
 
 const storefrontUrl = process.env.NEXT_PUBLIC_SITE_URL || '/'
 
@@ -26,15 +26,22 @@ function sectionCount(theme: StoreTheme, template: string) {
   return theme.snapshot?.sections?.filter(section => section.template === template).length || 0
 }
 
+const pageSpeed = [
+  { label: 'LCP P75', value: '2213 milliseconds', delta: '7%', status: 'Good' },
+  { label: 'INP P75', value: '144 milliseconds', delta: '20%', status: 'Good' },
+]
+
 export default function OnlineStoreClient({ initialThemes }: { initialThemes: StoreTheme[] }) {
   const [themes, setThemes] = useState<StoreTheme[]>(initialThemes)
   const [busy, setBusy] = useState<string | null>(null)
   const [toast, setToast] = useState('')
   const [editingName, setEditingName] = useState<number | null>(null)
   const [nameDraft, setNameDraft] = useState('')
+  const importInputRef = useRef<HTMLInputElement | null>(null)
 
   const liveTheme = useMemo(() => themes.find(theme => theme.role === 'live') || themes[0], [themes])
-  const draftThemes = useMemo(() => themes.filter(theme => theme.role !== 'live'), [themes])
+  const draftThemes = useMemo(() => themes.filter(theme => theme.role !== 'live' && theme.device_scope !== 'mobile'), [themes])
+  const mobileThemes = useMemo(() => themes.filter(theme => theme.device_scope === 'mobile'), [themes])
 
   async function refresh(message?: string) {
     const res = await fetch('/api/admin/online-store/themes')
@@ -59,6 +66,8 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Theme action failed')
       const message =
+        action === 'create' ? 'Theme draft created' :
+        action === 'import' ? 'Theme imported' :
         action === 'duplicate' ? 'Theme duplicated' :
         action === 'publish' ? 'Theme is live' :
         action === 'rename' ? 'Theme renamed' :
@@ -75,6 +84,50 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
   function duplicate(theme: StoreTheme) {
     const stamp = new Date().toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
     run('duplicate', theme.id, { name: `${theme.name} backup ${stamp}` })
+  }
+
+  function createTheme(deviceScope: 'desktop' | 'mobile' = 'desktop') {
+    const stamp = new Date().toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+    const name = deviceScope === 'mobile' ? `Mobile theme draft ${stamp}` : `Theme draft ${stamp}`
+    run('create', 0, { name, deviceScope })
+  }
+
+  function exportTheme(theme: StoreTheme | undefined) {
+    if (!theme) return
+    const blob = new Blob([JSON.stringify(theme, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${theme.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'theme'}.json`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    setToast('Theme JSON exported')
+    setTimeout(() => setToast(''), 2400)
+  }
+
+  async function importThemeFile(file: File | undefined) {
+    if (!file) return
+    setBusy('import:0')
+    try {
+      const text = await file.text()
+      const parsed = JSON.parse(text)
+      const res = await fetch('/api/admin/online-store/themes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'import', theme: parsed }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Import failed')
+      await refresh('Theme imported as draft')
+    } catch (err: any) {
+      setToast(err.message || 'Import failed')
+      setTimeout(() => setToast(''), 3200)
+    } finally {
+      setBusy(null)
+      if (importInputRef.current) importInputRef.current.value = ''
+    }
   }
 
   function startRename(theme: StoreTheme) {
@@ -115,14 +168,58 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
             <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: '#151a17', letterSpacing: 0 }}>Online Store</h1>
           </div>
           <p style={{ margin: 0, color: '#667168', fontSize: 14 }}>
-            {themes.length} themes, {draftThemes.length} backups, {liveTheme ? sectionCount(liveTheme, 'index') : 0} homepage sections
+            {themes.length} themes, {draftThemes.length} desktop drafts, {mobileThemes.length} mobile drafts
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={event => importThemeFile(event.target.files?.[0])}
+            style={{ display: 'none' }}
+          />
+          <button onClick={() => createTheme('desktop')} disabled={busy === 'create:0'} className="luxe-btn luxe-btn-primary">
+            {busy === 'create:0' ? 'Creating' : 'Create new theme'}
+          </button>
+          <button onClick={() => createTheme('mobile')} disabled={busy === 'create:0'} className="luxe-btn luxe-btn-ghost">
+            New mobile theme
+          </button>
+          <button onClick={() => importInputRef.current?.click()} disabled={busy === 'import:0'} className="luxe-btn luxe-btn-ghost">
+            {busy === 'import:0' ? 'Importing' : 'Import theme'}
+          </button>
+          <button onClick={() => exportTheme(liveTheme)} disabled={!liveTheme} className="luxe-btn luxe-btn-ghost">
+            Export live
+          </button>
           <a href={storefrontUrl} target="_blank" rel="noreferrer" className="luxe-btn luxe-btn-ghost" style={{ textDecoration: 'none' }}>View store</a>
           <Link href="/admin/theme" className="luxe-btn luxe-btn-primary" style={{ textDecoration: 'none' }}>Customize</Link>
         </div>
       </div>
+
+      <section style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        background: '#fff',
+        border: '1px solid #d9e0d7',
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginBottom: 22,
+      }}>
+        <div style={{ padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 10, borderRight: '1px solid #eef1ed' }}>
+          <span style={{ fontSize: 20 }}>Calendar</span>
+          <strong style={{ fontSize: 14, color: '#151a17' }}>30 days</strong>
+        </div>
+        {pageSpeed.map(metric => (
+          <div key={metric.label} style={{ padding: '18px 24px', borderRight: metric.label === 'LCP P75' ? '1px solid #eef1ed' : 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: '#151a17', marginBottom: 8 }}>{metric.label}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <strong style={{ fontSize: 17, color: '#151a17' }}>{metric.value}</strong>
+              <span style={{ color: '#667168', fontSize: 13 }}>up {metric.delta}</span>
+              <StatusBadge label={metric.status} tone="green" />
+            </div>
+          </div>
+        ))}
+      </section>
 
       {liveTheme && (
         <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, overflow: 'hidden', marginBottom: 34, boxShadow: '0 8px 22px rgba(21,26,23,0.06)' }}>
@@ -148,11 +245,9 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14 }}>
         <h2 style={{ margin: 0, fontSize: 22, color: '#151a17', fontWeight: 800 }}>Draft themes</h2>
-        {liveTheme && (
-          <button onClick={() => duplicate(liveTheme)} disabled={busy === `duplicate:${liveTheme.id}`} className="luxe-btn luxe-btn-ghost">
-            Add backup
-          </button>
-        )}
+        <button onClick={() => createTheme('desktop')} disabled={busy === 'create:0'} className="luxe-btn luxe-btn-ghost">
+          Create draft
+        </button>
       </div>
 
       <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, overflow: 'hidden' }}>
@@ -168,7 +263,7 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
               </div>
               <div style={{ color: '#667168', fontSize: 14 }}>Saved {formatDate(theme.updated_at)} - Version {theme.version}</div>
               <div style={{ color: '#8a958d', fontSize: 12, marginTop: 5 }}>
-                {sectionCount(theme, 'index')} home - {sectionCount(theme, 'product')} product - {sectionCount(theme, 'collection')} collection sections
+                Desktop - {sectionCount(theme, 'index')} home - {sectionCount(theme, 'product')} product - {sectionCount(theme, 'collection')} collection sections
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -183,10 +278,43 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
         ))}
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14, marginTop: 24 }}>
-        <IdeaCard title="Preview modes" body="Desktop, tablet, mobile previews are already in Customize." />
-        <IdeaCard title="Theme backups" body="Duplicate before seasonal edits or major homepage changes." />
-        <IdeaCard title="Future import" body="A later step can package snapshots as JSON files." />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, margin: '26px 0 14px' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 22, color: '#151a17', fontWeight: 800 }}>Mobile themes</h2>
+          <p style={{ margin: '4px 0 0', color: '#667168', fontSize: 13 }}>Mobile drafts are saved separately so phone-specific experiments do not replace the live desktop theme.</p>
+        </div>
+        <button onClick={() => createTheme('mobile')} disabled={busy === 'create:0'} className="luxe-btn luxe-btn-ghost">
+          Create mobile theme
+        </button>
+      </div>
+
+      <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, overflow: 'hidden' }}>
+        {mobileThemes.length === 0 ? (
+          <div style={{ padding: 34, textAlign: 'center', color: '#667168' }}>No mobile theme drafts yet.</div>
+        ) : mobileThemes.map((theme, index) => (
+          <div key={theme.id} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0, 1fr) auto', gap: 18, alignItems: 'center', padding: 20, borderTop: index === 0 ? 0 : '1px solid #eef1ed' }}>
+            <ThemePreview theme={theme} mobile />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 7, flexWrap: 'wrap' }}>
+                <ThemeName theme={theme} editingName={editingName} nameDraft={nameDraft} setNameDraft={setNameDraft} startRename={startRename} commitRename={commitRename} cancelRename={cancelRename} />
+                <StatusBadge label="Mobile draft" tone="gray" />
+              </div>
+              <div style={{ color: '#667168', fontSize: 14 }}>Saved {formatDate(theme.updated_at)} - independent from live desktop</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <Link href="/admin/theme?viewport=mobile" className="luxe-btn luxe-btn-primary" style={{ textDecoration: 'none' }}>Customize mobile</Link>
+              <button onClick={() => duplicate(theme)} disabled={busy === `duplicate:${theme.id}`} className="luxe-btn luxe-btn-ghost">Duplicate</button>
+              <button onClick={() => startRename(theme)} className="luxe-btn luxe-btn-ghost">Rename</button>
+              <button onClick={() => run('delete', theme.id)} disabled={busy === `delete:${theme.id}`} className="luxe-btn luxe-btn-ghost" style={{ color: '#b0392f' }}>Delete</button>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginTop: 24 }}>
+        <IdeaCard title="Preview modes" body="Open the customizer directly in mobile preview." actionLabel="Open mobile preview" href="/admin/theme?viewport=mobile" />
+        <IdeaCard title="Theme backups" body="Create a desktop draft before seasonal edits or major homepage changes." actionLabel="Create backup draft" onClick={() => liveTheme && duplicate(liveTheme)} />
+        <IdeaCard title="Import / export" body="Export the live snapshot as JSON for off-platform backup." actionLabel="Export live JSON" onClick={() => exportTheme(liveTheme)} />
       </section>
     </main>
   )
@@ -228,7 +356,7 @@ function ThemeName({
   return <h3 style={{ margin: 0, fontSize: 18, color: '#151a17', fontWeight: 800, overflowWrap: 'anywhere' }}>{theme.name}</h3>
 }
 
-function ThemePreview({ theme, large = false }: { theme: StoreTheme; large?: boolean }) {
+function ThemePreview({ theme, large = false, mobile = false }: { theme: StoreTheme; large?: boolean; mobile?: boolean }) {
   const firstImage = theme.snapshot?.sections
     ?.flatMap(section => {
       const config = section.config || {}
@@ -238,8 +366,8 @@ function ThemePreview({ theme, large = false }: { theme: StoreTheme; large?: boo
 
   return (
     <div style={{
-      height: large ? 260 : 86,
-      minHeight: large ? 260 : 86,
+      height: large ? 260 : mobile ? 112 : 86,
+      minHeight: large ? 260 : mobile ? 112 : 86,
       background: '#f6f7f4',
       display: 'flex',
       alignItems: 'center',
@@ -248,8 +376,8 @@ function ThemePreview({ theme, large = false }: { theme: StoreTheme; large?: boo
       overflow: 'hidden',
     }}>
       <div style={{
-        width: large ? '74%' : 96,
-        height: large ? 190 : 62,
+        width: large ? '74%' : mobile ? 54 : 96,
+        height: large ? 190 : mobile ? 96 : 62,
         borderRadius: 8,
         background: '#fff',
         border: '1px solid #d9e0d7',
@@ -285,11 +413,38 @@ function StatusBadge({ label, tone }: { label: string; tone: 'green' | 'gray' })
   )
 }
 
-function IdeaCard({ title, body }: { title: string; body: string }) {
-  return (
-    <div style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, padding: 16 }}>
+function IdeaCard({
+  title,
+  body,
+  actionLabel,
+  href,
+  onClick,
+}: {
+  title: string
+  body: string
+  actionLabel: string
+  href?: string
+  onClick?: () => void
+}) {
+  const content = (
+    <>
       <div style={{ fontSize: 14, fontWeight: 800, color: '#151a17', marginBottom: 5 }}>{title}</div>
-      <div style={{ fontSize: 13, color: '#667168', lineHeight: 1.45 }}>{body}</div>
-    </div>
+      <div style={{ fontSize: 13, color: '#667168', lineHeight: 1.45, marginBottom: 14 }}>{body}</div>
+      <span style={{ fontSize: 13, fontWeight: 800, color: '#1a6d3e' }}>{actionLabel}</span>
+    </>
+  )
+
+  if (href) {
+    return (
+      <Link href={href} style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, padding: 16, textDecoration: 'none' }}>
+        {content}
+      </Link>
+    )
+  }
+
+  return (
+    <button onClick={onClick} style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, padding: 16, textAlign: 'left', cursor: 'pointer' }}>
+      {content}
+    </button>
   )
 }

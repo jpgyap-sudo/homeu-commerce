@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import {
+  createStoreTheme,
   deleteStoreTheme,
   duplicateStoreTheme,
+  importStoreTheme,
   listStoreThemes,
   publishStoreTheme,
   renameStoreTheme,
@@ -38,6 +40,17 @@ export async function POST(request: NextRequest) {
     const action = body?.action
     const id = Number(body?.id)
 
+    if (action === 'create') {
+      const deviceScope = body?.deviceScope === 'mobile' ? 'mobile' : 'desktop'
+      const theme = await createStoreTheme(body?.name, deviceScope)
+      return NextResponse.json({ theme }, { status: 201 })
+    }
+
+    if (action === 'import') {
+      const theme = await importStoreTheme(body)
+      return NextResponse.json({ theme }, { status: 201 })
+    }
+
     if (action === 'duplicate') {
       if (!Number.isFinite(id)) return NextResponse.json({ error: 'Theme id is required' }, { status: 400 })
       const theme = await duplicateStoreTheme(id, body?.name)
@@ -65,6 +78,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
   } catch (err: any) {
     console.error('[api/admin/online-store/themes] POST error:', err)
-    return NextResponse.json({ error: err.message || 'Failed to update theme' }, { status: 500 })
+    const message = err.message || 'Failed to update theme'
+    const status = /required|invalid|missing|mobile themes/i.test(message) ? 400 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

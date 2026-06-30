@@ -29,15 +29,45 @@ export interface StoreTheme {
   id: number
   name: string
   role: 'live' | 'unpublished'
+  device_scope: 'desktop' | 'mobile'
   version: string
   source_theme_id: number | null
   snapshot: StoreThemeSnapshot
+  performance_metrics: Record<string, any>
   notes: string | null
   is_system: boolean
   created_at: string
   updated_at: string
   published_at: string | null
   duplicated_at: string | null
+}
+
+function assertSnapshot(input: any): StoreThemeSnapshot {
+  if (!input || typeof input !== 'object') throw new Error('Theme snapshot is required')
+  if (!Array.isArray(input.sections)) throw new Error('Theme snapshot sections are required')
+
+  const sections = input.sections.map((section: any, index: number) => {
+    if (!section || typeof section !== 'object') throw new Error(`Section ${index + 1} is invalid`)
+    if (typeof section.type !== 'string' || !section.type.trim()) throw new Error(`Section ${index + 1} is missing a type`)
+    const position = Number(section.position)
+    return {
+      type: section.type.trim(),
+      position: Number.isFinite(position) ? position : (index + 1) * 10,
+      enabled: section.enabled !== false,
+      config: section.config && typeof section.config === 'object' && !Array.isArray(section.config) ? section.config : {},
+      template: typeof section.template === 'string' && section.template.trim() ? section.template.trim() : 'index',
+    }
+  })
+
+  const settings = input.settings && typeof input.settings === 'object' && !Array.isArray(input.settings)
+    ? input.settings
+    : {}
+
+  return {
+    capturedAt: typeof input.capturedAt === 'string' ? input.capturedAt : new Date().toISOString(),
+    sections,
+    settings,
+  }
 }
 
 function normalizeTheme(row: any): StoreTheme {
@@ -47,6 +77,8 @@ function normalizeTheme(row: any): StoreTheme {
     updated_at: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
     published_at: row.published_at instanceof Date ? row.published_at.toISOString() : row.published_at,
     duplicated_at: row.duplicated_at instanceof Date ? row.duplicated_at.toISOString() : row.duplicated_at,
+    device_scope: row.device_scope || 'desktop',
+    performance_metrics: row.performance_metrics || {},
   } as StoreTheme
 }
 
@@ -83,8 +115,8 @@ export async function ensureStoreThemes(): Promise<void> {
 
   const snapshot = await captureCurrentThemeSnapshot()
   await query(
-    `INSERT INTO store_themes (name, role, version, snapshot, notes, is_system, published_at)
-     VALUES ($1, 'live', '1.0.0', $2::jsonb, $3, true, NOW())`,
+    `INSERT INTO store_themes (name, role, device_scope, version, snapshot, notes, is_system, published_at)
+     VALUES ($1, 'live', 'desktop', '1.0.0', $2::jsonb, $3, true, NOW())`,
     ['Current HomeU Theme', JSON.stringify(snapshot), 'Initial live theme captured from the current storefront.']
   )
 }
@@ -105,10 +137,11 @@ export async function listStoreThemes(): Promise<StoreTheme[]> {
   await syncLiveStoreThemeSnapshot()
 
   const res = await query(
-    `SELECT id, name, role, version, source_theme_id, snapshot, notes, is_system,
+    `SELECT id, name, role, device_scope, version, source_theme_id, snapshot, performance_metrics, notes, is_system,
             created_at, updated_at, published_at, duplicated_at
      FROM store_themes
      ORDER BY CASE WHEN role = 'live' THEN 0 ELSE 1 END,
+              CASE WHEN device_scope = 'desktop' THEN 0 ELSE 1 END,
               updated_at DESC,
               id DESC`,
     []
@@ -124,16 +157,70 @@ export async function duplicateStoreTheme(id: number, name?: string): Promise<St
 
   const duplicateName = name?.trim() || `${source.name} backup`
   const res = await query(
-    `INSERT INTO store_themes (name, role, version, source_theme_id, snapshot, notes, duplicated_at)
-     VALUES ($1, 'unpublished', $2, $3, $4::jsonb, $5, NOW())
-     RETURNING id, name, role, version, source_theme_id, snapshot, notes, is_system,
+    `INSERT INTO store_themes (name, role, device_scope, version, source_theme_id, snapshot, performance_metrics, notes, duplicated_at)
+     VALUES ($1, 'unpublished', $2, $3, $4, $5::jsonb, $6::jsonb, $7, NOW())
+     RETURNING id, name, role, device_scope, version, source_theme_id, snapshot, performance_metrics, notes, is_system,
                created_at, updated_at, published_at, duplicated_at`,
     [
       duplicateName,
+      source.device_scope || 'desktop',
       source.version || '1.0.0',
       source.id,
       JSON.stringify(source.snapshot || {}),
+      JSON.stringify(source.performance_metrics || {}),
       `Duplicated from ${source.name}.`,
+    ]
+  )
+  return normalizeTheme(res.rows[0])
+}
+
+export async function createStoreTheme(
+  name?: string,
+  deviceScope: 'desktop' | 'mobile' = 'desktop'
+): Promise<StoreTheme> {
+  await ensureStoreThemes()
+  const snapshot = await captureCurrentThemeSnapshot()
+  const defaultName = deviceScope === 'mobile' ? 'Mobile theme draft' : 'New theme draft'
+
+  const res = await query(
+    `INSERT INTO store_themes (name, role, device_scope, version, snapshot, notes)
+     VALUES ($1, 'unpublished', $2, '1.0.0', $3::jsonb, $4)
+     RETURNING id, name, role, device_scope, version, source_theme_id, snapshot, performance_metrics, notes, is_system,
+               created_at, updated_at, published_at, duplicated_at`,
+    [
+      name?.trim() || defaultName,
+      deviceScope,
+      JSON.stringify(snapshot),
+      deviceScope === 'mobile'
+        ? 'Mobile-scoped draft. Use the mobile customizer before publishing desktop changes.'
+        : 'Draft captured from the current live storefront.',
+    ]
+  )
+  return normalizeTheme(res.rows[0])
+}
+
+export async function importStoreTheme(payload: any): Promise<StoreTheme> {
+  await ensureStoreThemes()
+
+  const incoming = payload?.theme && typeof payload.theme === 'object' ? payload.theme : payload
+  const snapshot = assertSnapshot(incoming?.snapshot || incoming)
+  const rawScope = incoming?.device_scope || incoming?.deviceScope || payload?.deviceScope
+  const deviceScope: 'desktop' | 'mobile' = rawScope === 'mobile' ? 'mobile' : 'desktop'
+  const name = String(payload?.name || incoming?.name || (deviceScope === 'mobile' ? 'Imported mobile theme' : 'Imported theme')).trim()
+  const version = String(incoming?.version || '1.0.0').trim() || '1.0.0'
+
+  const res = await query(
+    `INSERT INTO store_themes (name, role, device_scope, version, snapshot, performance_metrics, notes)
+     VALUES ($1, 'unpublished', $2, $3, $4::jsonb, $5::jsonb, $6)
+     RETURNING id, name, role, device_scope, version, source_theme_id, snapshot, performance_metrics, notes, is_system,
+               created_at, updated_at, published_at, duplicated_at`,
+    [
+      name,
+      deviceScope,
+      version,
+      JSON.stringify(snapshot),
+      JSON.stringify(incoming?.performance_metrics || {}),
+      'Imported from Online Store theme JSON.',
     ]
   )
   return normalizeTheme(res.rows[0])
@@ -159,9 +246,12 @@ export async function deleteStoreTheme(id: number): Promise<void> {
 
 export async function publishStoreTheme(id: number): Promise<void> {
   await ensureStoreThemes()
-  const themeRes = await query(`SELECT id, snapshot FROM store_themes WHERE id = $1`, [id])
+  const themeRes = await query(`SELECT id, snapshot, device_scope FROM store_themes WHERE id = $1`, [id])
   const theme = themeRes.rows[0]
   if (!theme) throw new Error('Theme not found')
+  if ((theme.device_scope || 'desktop') !== 'desktop') {
+    throw new Error('Mobile themes are saved as independent drafts and cannot replace the desktop live theme yet')
+  }
 
   const snapshot = theme.snapshot as StoreThemeSnapshot
   if (!snapshot || !Array.isArray(snapshot.sections)) throw new Error('Theme snapshot is invalid')
