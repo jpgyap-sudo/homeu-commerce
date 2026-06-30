@@ -75,7 +75,7 @@ function deploy() {
 
   // 3. Rebuild + recreate only the website container (postgres/ollama untouched).
   console.log('  🐳 Rebuild + restart website container (this is the actual deploy)...')
-  remote(`cd ${VPS_REPO} && docker compose up -d --build website 2>&1 | tail -8`, 600000)
+  remote(`set -o pipefail; cd ${VPS_REPO} && docker compose up -d --no-deps --build website 2>&1 | tail -20`, 600000)
 
   // 4. Public smoke test (from this machine).
   console.log('  🔍 Smoke test...')
