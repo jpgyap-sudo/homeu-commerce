@@ -90,10 +90,13 @@ export function HomepageSlideshow({
 
   const alignment = alignStyles[contentAlign] || alignStyles.center
 
+  const heightNum = Number(height)
+  const minHeightNum = Number(minHeight)
+  const maxHeightNum = Number(maxHeight)
   const slideshowStyle: React.CSSProperties = {
-    height: height ? `${height}vh` : '80vh',
-    minHeight: minHeight ? `${minHeight}px` : undefined,
-    maxHeight: maxHeight ? `${maxHeight}px` : undefined,
+    height: Number.isFinite(heightNum) && heightNum > 0 ? `${heightNum}vh` : '80vh',
+    minHeight: Number.isFinite(minHeightNum) && minHeightNum > 0 ? `${minHeightNum}px` : undefined,
+    maxHeight: Number.isFinite(maxHeightNum) && maxHeightNum > 0 ? `${maxHeightNum}px` : undefined,
   }
 
   return (

@@ -203,7 +203,7 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
       const priority = sectionPriority[section.type] ?? 500
       const mobileConfig =
         section.type === 'slideshow'
-          ? { ...section.config, autoRotate: true, rotateInterval: 3, height: 'adapt', contentPosition: 'bottom', showDots: true, showArrows: false }
+          ? { ...section.config, autoRotate: true, rotateInterval: 3, height: 70, contentPosition: 'bottom', showDots: true, showArrows: false }
           : section.type === 'category_carousel'
           ? { ...section.config, source: section.config?.source || 'featured', limit: section.config?.limit || 12 }
           : section.type === 'collection_grid'
