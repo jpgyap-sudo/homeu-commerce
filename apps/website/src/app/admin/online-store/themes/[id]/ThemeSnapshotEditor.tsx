@@ -315,14 +315,17 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
         <div style={{ flex: 1, minWidth: 0 }}>
           <input value={name} onChange={event => setName(event.target.value)} style={{ ...inputStyle, maxWidth: 460, fontWeight: 850, fontSize: 16 }} />
         </div>
-        <button onClick={applyShopifyMobileFormat} className="luxe-btn luxe-btn-ghost">Use Shopify mobile format</button>
-        <button onClick={duplicateBackup} disabled={saving} className="luxe-btn luxe-btn-ghost">Duplicate backup</button>
-        {theme.device_scope === 'mobile' && theme.role !== 'mobile_live' && (
-          <button onClick={publishMobile} disabled={saving} className="luxe-btn luxe-btn-primary">Make mobile live</button>
-        )}
-        <button onClick={saveTheme} disabled={saving} className="luxe-btn luxe-btn-primary">
-          {saving ? 'Saving' : 'Save theme'}
-        </button>
+          {theme.device_scope !== 'mobile' && (
+            <Link href={`/admin/theme?themeId=${theme.id}`} className="luxe-btn luxe-btn-primary" style={{ textDecoration: 'none' }}>Open in Theme Builder</Link>
+          )}
+          <button onClick={applyShopifyMobileFormat} className="luxe-btn luxe-btn-ghost">Use Shopify mobile format</button>
+          <button onClick={duplicateBackup} disabled={saving} className="luxe-btn luxe-btn-ghost">Duplicate backup</button>
+          {theme.device_scope === 'mobile' && theme.role !== 'mobile_live' && (
+            <button onClick={publishMobile} disabled={saving} className="luxe-btn luxe-btn-primary">Make mobile live</button>
+          )}
+          <button onClick={saveTheme} disabled={saving} className="luxe-btn luxe-btn-primary">
+            {saving ? 'Saving' : 'Save theme'}
+          </button>
       </div>
 
       <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(360px, 520px) minmax(420px, 1fr)', overflow: 'hidden' }}>

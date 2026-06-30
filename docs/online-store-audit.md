@@ -29,17 +29,17 @@ Last audited: 2026-06-30
 - Wired mobile runtime selection so phone user agents render the live mobile snapshot while desktop visitors keep using the desktop live tables.
 - Fixed a chat-widget SSR crash caused by reading `window.location.search` during server render.
 
+## Fixed In Theme Sync Bridge (2026-06-30)
+
+- **`/admin/theme?themeId=N`** — visual Theme Builder now loads from and saves to any `store_themes` snapshot, not just live tables. Only `homepage_sections` edits were possible before.
+- **Draft-aware editor** — when `themeId` is set, the "Publish to Live" button appears, calling `publishStoreTheme()` to publish the draft. The "Save Theme" button saves back to the snapshot JSONB instead of `homepage_sections`.
+- **`POST /api/theme/sync-snapshot`** — background endpoint that calls `syncLiveStoreThemeSnapshot()` after every live save, keeping the live `store_themes` row always synced.
+- **"Open in Theme Builder" button** — desktop drafts in OnlineStoreClient + ThemeSnapshotEditor now have a direct link to `/admin/theme?themeId=N`.
+- **Visual diff** — each desktop draft row has a "Show changes" button that computes a `computeThemeDiff(liveSnapshot, draftSnapshot)` and displays added/removed/changed sections with a collapsible details list. Helps prevent blind publish.
+- **Section type validation** — `importStoreTheme()` now validates every section type against `SECTION_TYPES` before accepting an import, matching the Theme Builder's import validation.
+
 ## Remaining Feature Gaps
 
-- Draft-specific editing now has a JSON snapshot editor, but it is not yet the full visual drag/drop Theme Editor experience.
-- Desktop draft editing still needs the same visual editor bridge that mobile now has at the snapshot level.
 - Page-speed cards currently show the manually provided LCP/INP values. A future pass should ingest real rolling metrics from `performance_metrics` or CrUX/PageSpeed.
-- Import has validation for shape, but it does not yet whitelist section types against `SECTION_TYPES`.
-- There is no visual diff between a draft and the live theme before publishing.
-
-## Recommended Next Build
-
-- Add `/admin/theme?themeId=...` draft editing that reads/writes `store_themes.snapshot`.
-- Add a draft preview route that renders a snapshot without mutating live tables.
-- Add visual controls on top of the snapshot editor for common mobile edits: header logo sizing, hero image, menu density, and sticky CTA behavior.
+- Draft preview route that renders a snapshot without publishing (mobile drafts already work; desktop drafts would need a similar dedicated route).
 - Replace manual LCP/INP values with a scheduled metrics collector.

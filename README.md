@@ -2,6 +2,25 @@
 
 A custom e-commerce platform for HomeU furniture — built on Next.js 16 with direct PostgreSQL integration, JWT-based admin authentication, and an AI-powered concierge chatbot.
 
+## Git Workflow
+
+The canonical repository is hosted on **GitHub** (`origin`). Multiple developers work on this project across different laptops — always treat GitHub as the single source of truth.
+
+**Before making any changes:**
+```bash
+git pull origin master   # or your current branch
+```
+
+**Before committing:**
+```bash
+git pull origin master   # rebase on latest to avoid conflicts
+git add <files>
+git commit -m "description"
+git push origin master
+```
+
+If you have uncommitted work that conflicts with upstream, `git stash`, pull, then `git stash pop` and resolve conflicts locally. Never force-push to `master`.
+
 ## Stack
 
 - **Frontend:** Next.js 16 (App Router), React 19, CSS Modules

@@ -2,7 +2,8 @@
 
 import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import type { StoreTheme } from '@/lib/store-themes'
+import type { StoreTheme, ThemeDiffEntry } from '@/lib/store-themes'
+import { computeThemeDiff } from '@/lib/store-themes'
 
 type Action = 'create' | 'import' | 'duplicate' | 'publish' | 'publish_mobile' | 'rename' | 'delete'
 
@@ -37,6 +38,7 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
   const [toast, setToast] = useState('')
   const [editingName, setEditingName] = useState<number | null>(null)
   const [nameDraft, setNameDraft] = useState('')
+  const [showDiffId, setShowDiffId] = useState<number | null>(null)
   const importInputRef = useRef<HTMLInputElement | null>(null)
 
   const liveTheme = useMemo(() => themes.find(theme => theme.role === 'live') || themes[0], [themes])
@@ -286,11 +288,18 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
               <div style={{ color: '#8a958d', fontSize: 12, marginTop: 5 }}>
                 Desktop - {sectionCount(theme, 'index')} home - {sectionCount(theme, 'product')} product - {sectionCount(theme, 'collection')} collection sections
               </div>
+              {showDiffId === theme.id && liveTheme && (
+                <ThemeDiffView diff={computeThemeDiff(liveTheme.snapshot, theme.snapshot)} />
+              )}
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowDiffId(showDiffId === theme.id ? null : theme.id)} className="luxe-btn luxe-btn-ghost">
+                {showDiffId === theme.id ? 'Hide changes' : 'Show changes'}
+              </button>
               <button onClick={() => run('publish', theme.id)} disabled={busy === `publish:${theme.id}`} className="luxe-btn luxe-btn-primary">
                 {busy === `publish:${theme.id}` ? 'Publishing' : 'Publish'}
               </button>
+              <Link href={`/admin/theme?themeId=${theme.id}`} className="luxe-btn luxe-btn-ghost" style={{ textDecoration: 'none' }}>Customize</Link>
               <button onClick={() => duplicate(theme)} disabled={busy === `duplicate:${theme.id}`} className="luxe-btn luxe-btn-ghost">Duplicate</button>
               <button onClick={() => startRename(theme)} className="luxe-btn luxe-btn-ghost">Rename</button>
               <button onClick={() => run('delete', theme.id)} disabled={busy === `delete:${theme.id}`} className="luxe-btn luxe-btn-ghost" style={{ color: '#b0392f' }}>Delete</button>
@@ -485,5 +494,29 @@ function IdeaCard({
     <button onClick={onClick} style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, padding: 16, textAlign: 'left', cursor: 'pointer' }}>
       {content}
     </button>
+  )
+}
+
+function ThemeDiffView({ diff }: { diff: ThemeDiffEntry[] }) {
+  if (diff.length === 0) {
+    return <div style={{ color: '#667168', fontSize: 12, marginTop: 6 }}>No changes from live theme.</div>
+  }
+  const added = diff.filter(d => d.type === 'added')
+  const removed = diff.filter(d => d.type === 'removed')
+  const changed = diff.filter(d => d.type === 'changed')
+  return (
+    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {added.length > 0 && <div style={{ fontSize: 12, color: '#126b39' }}>+ {added.length} section(s) added</div>}
+      {removed.length > 0 && <div style={{ fontSize: 12, color: '#b0392f' }}>- {removed.length} section(s) removed</div>}
+      {changed.length > 0 && <div style={{ fontSize: 12, color: '#b88935' }}>~ {changed.length} section(s) modified</div>}
+      <details style={{ marginTop: 4 }}>
+        <summary style={{ fontSize: 11, color: '#8a958d', cursor: 'pointer' }}>Details</summary>
+        <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 160, overflowY: 'auto' }}>
+          {added.map((d, i) => <span key={`a-${i}`} style={{ fontSize: 11, color: '#126b39' }}>+ [{d.template}] {d.sectionType} — {d.detail}</span>)}
+          {removed.map((d, i) => <span key={`r-${i}`} style={{ fontSize: 11, color: '#b0392f' }}>− [{d.template}] {d.sectionType} — {d.detail}</span>)}
+          {changed.map((d, i) => <span key={`c-${i}`} style={{ fontSize: 11, color: '#b88935' }}>~ [{d.template}] {d.sectionType} — {d.detail}</span>)}
+        </div>
+      </details>
+    </div>
   )
 }

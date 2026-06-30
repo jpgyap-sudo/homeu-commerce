@@ -1,4 +1,5 @@
 import { query, transaction } from '@/lib/db'
+import { SECTION_TYPES } from '@/lib/theme-types'
 
 export const THEME_SETTING_KEYS = [
   'custom_css',
@@ -50,6 +51,7 @@ function assertSnapshot(input: any): StoreThemeSnapshot {
   const sections = input.sections.map((section: any, index: number) => {
     if (!section || typeof section !== 'object') throw new Error(`Section ${index + 1} is invalid`)
     if (typeof section.type !== 'string' || !section.type.trim()) throw new Error(`Section ${index + 1} is missing a type`)
+    if (!SECTION_TYPES.includes(section.type.trim() as any)) throw new Error(`Section ${index + 1}: unknown type "${section.type}"`)
     const position = Number(section.position)
     return {
       type: section.type.trim(),
@@ -372,6 +374,43 @@ export async function updateStoreThemeSnapshot(
     [nextName, JSON.stringify(snapshot), JSON.stringify(performanceMetrics || {}), id]
   )
   return normalizeTheme(res.rows[0])
+}
+
+export interface ThemeDiffEntry {
+  type: 'added' | 'removed' | 'changed'
+  sectionType: string
+  template: string
+  detail: string
+}
+
+export function computeThemeDiff(live: StoreThemeSnapshot, draft: StoreThemeSnapshot): ThemeDiffEntry[] {
+  const diff: ThemeDiffEntry[] = []
+  const liveMap = new Map(live.sections.map((s, i) => [`${s.template || 'index'}-${s.type}-${i}`, s]))
+  const draftMap = new Map<string, typeof draft.sections[number]>()
+
+  draft.sections.forEach((s, i) => {
+    const key = `${s.template || 'index'}-${s.type}-${i}`
+    draftMap.set(key, s)
+  })
+
+  // Find removed and changed
+  for (const [key, liveSec] of liveMap) {
+    const draftSec = draftMap.get(key)
+    if (!draftSec) {
+      diff.push({ type: 'removed', sectionType: liveSec.type, template: liveSec.template || 'index', detail: `Position ${liveSec.position}` })
+    } else if (JSON.stringify(liveSec.config) !== JSON.stringify(draftSec.config)) {
+      diff.push({ type: 'changed', sectionType: liveSec.type, template: liveSec.template || 'index', detail: 'Config modified' })
+    }
+  }
+
+  // Find added
+  for (const [key, draftSec] of draftMap) {
+    if (!liveMap.has(key)) {
+      diff.push({ type: 'added', sectionType: draftSec.type, template: draftSec.template || 'index', detail: `Position ${draftSec.position}` })
+    }
+  }
+
+  return diff
 }
 
 export async function getMobileLiveThemeSnapshot(): Promise<StoreThemeSnapshot | null> {

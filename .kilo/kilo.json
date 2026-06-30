@@ -99,6 +99,10 @@
       "description": "Migrate Shopify mega menu navigation to Next.js",
       "file": ".kilo/skill/navigation-migration/SKILL.md"
     },
+    "theme-builder": {
+      "description": "DaVinciOS visual no-code theme editor: settings schema, style engine, renderers, template system, mutation integrity",
+      "file": ".kilo/skill/theme-builder/SKILL.md"
+    },
     "theme-migration": {
       "description": "Convert Shopify Liquid to Next.js components with visual verification",
       "file": ".kilo/skill/theme-migration/SKILL.md"
@@ -249,5 +253,6 @@
       "description": "📱 Build PWA support: generate icons, create manifest, service worker, register in layout, deploy to production",
       "prompt": "Load the pwa-mobile skill. Invoke the pwa agent to build PWA support: 1) Generate icons from favicon via sharp, 2) Create manifest.json, 3) Create service worker with offline support, 4) Register in root layout with meta tags, 5) Create InstallPrompt component, 6) Create offline fallback page, 7) Deploy to production."
     }
-  }
+  },
+  "snapshot": false
 }

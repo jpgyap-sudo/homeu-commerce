@@ -320,10 +320,10 @@ async function renderSection(section: HomepageSection, context?: any) {
             {cfg.heading && <div className="section-header text-center">
               <h2 className="section-header__title h2" data-edit="heading">{cfg.heading}</h2>
             </div>}
-            <ul className="homeu-collection-grid" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 30 }}>
+            <ul className="homeu-collection-grid" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: `repeat(${cfg.columnsDesktop || 3}, minmax(0, 1fr))`, gap: cfg.gap || 30 }}>
               {cols.map((c, index) => (
                 <li key={c.id} className="homeu-collection-grid__cell" data-collection-index={index} style={{ display: 'block', width: '100%', minWidth: 0, margin: 0, padding: 0 }}>
-                  <div className="homeu-collection-card" style={{ position: 'relative', width: '100%', aspectRatio: '1', overflow: 'hidden' }}>
+                  <div className="homeu-collection-card" style={{ position: 'relative', width: '100%', aspectRatio: cfg.aspectRatio || '1', overflow: 'hidden' }}>
                   <Link href={`/products?category=${c.slug}`} className="homeu-collection-card__link" aria-label={`Browse ${c.title}`} style={{ position: 'absolute', inset: 0, display: 'block', color: '#fff', textDecoration: 'none' }}>
                     <div className="homeu-collection-card__media" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
                       {c.image_url
@@ -353,7 +353,7 @@ async function renderSection(section: HomepageSection, context?: any) {
             </div>
             <div className="homepage-image-text__content">
               <h2 className="homepage-image-text__title h2" data-edit="title">{cfg.title}</h2>
-              <p className="homepage-image-text__text" data-edit="text">{cfg.text}</p>
+              <p className="homepage-image-text__text" data-edit="text" style={cfg.textColor ? { color: cfg.textColor } : undefined}>{cfg.text}</p>
               {cfg.buttonText && cfg.buttonLink && (
                 <Link href={cfg.buttonLink} className="btn btn--primary" data-edit="buttonText">{cfg.buttonText}</Link>
               )}
@@ -409,7 +409,7 @@ async function renderSection(section: HomepageSection, context?: any) {
             <div className="section-header text-center">
               <h2 className="section-header__title h2" data-edit="heading">{cfg.heading || 'More Featured Pieces'}</h2>
             </div>
-            <ul className="homeu-featured-grid product-grid" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '36px 24px' }}>
+            <ul className="homeu-featured-grid product-grid" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: `repeat(${cfg.columnsDesktop || 4}, minmax(0, 1fr))`, gap: `${cfg.gap || 36}px ${cfg.gap || 24}px` }}>
               {products.map((p, pIndex) => (
                 <li key={p.id} className="homeu-featured-grid__cell" style={{ display: 'block', width: '100%', minWidth: 0, margin: 0, padding: 0 }}>
                   <div className="grid-product">
@@ -452,9 +452,11 @@ async function renderSection(section: HomepageSection, context?: any) {
                 </li>
               ))}
             </ul>
-            <div className="text-center homepage-featured-products__more">
-              <Link href={viewAllHref} className="btn btn--secondary">View all</Link>
-            </div>
+            {cfg.showViewAll !== false && (
+              <div className="text-center homepage-featured-products__more">
+                <Link href={viewAllHref} className="btn btn--secondary">{cfg.viewAllText || 'View all'}</Link>
+              </div>
+            )}
           </div>
         </section>
       )
@@ -580,10 +582,10 @@ async function renderSection(section: HomepageSection, context?: any) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
               {items.map((t, i) => (
                 <div key={i} style={{ background: '#ffffff', border: '1px solid #eef1ed', borderRadius: 12, padding: 28, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {t.avatar ? (
+                  {cfg.showAvatar !== false && (t.avatar ? (
                     <Image src={t.avatar} data-edit-image={`testimonials.${i}.avatar`} alt={t.author} width={48} height={48} style={{ borderRadius: '50%', objectFit: 'cover' }} unoptimized />
-                  ) : <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#eef1ed' }} />}
-                  <p style={{ fontSize: 15, lineHeight: 1.6, color: '#3a4339', fontStyle: 'italic', margin: 0 }} data-edit={`testimonials.${i}.quote`}>
+                  ) : <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#eef1ed' }} />)}
+                  <p style={{ fontSize: 15, lineHeight: 1.6, color: '#3a4339', fontStyle: cfg.quoteStyle === 'normal' ? 'normal' : cfg.quoteStyle === 'bold' ? 'normal' : 'italic', fontWeight: cfg.quoteStyle === 'bold' ? 700 : 400, margin: 0 }} data-edit={`testimonials.${i}.quote`}>
                     &ldquo;{t.quote}&rdquo;
                   </p>
                   <div>
@@ -610,7 +612,7 @@ async function renderSection(section: HomepageSection, context?: any) {
                 <div key={i}>
                   {s.prefix && <span style={{ fontSize: 32, display: 'block', marginBottom: 4 }}>{s.prefix}</span>}
                   <div style={{ fontSize: 36, fontWeight: 800, lineHeight: 1.1 }} data-edit={`stats.${i}.number`}>{s.number}</div>
-                  <div style={{ fontSize: 14, opacity: 0.6, marginTop: 4 }} data-edit={`stats.${i}.label`}>{s.label}</div>
+                  <div style={{ fontSize: 14, opacity: 0.6, marginTop: 4 }} data-edit={`stats.${i}.label`}>{s.label}{s.suffix ? <span data-edit={`stats.${i}.suffix`}> {s.suffix}</span> : ''}</div>
                 </div>
               ))}
             </div>
@@ -639,19 +641,24 @@ async function renderSection(section: HomepageSection, context?: any) {
             <div className={isList ? '' : `grid grid--uniform`} style={isList ? { display: 'flex', flexDirection: 'column', gap: 24 } : {}}>
               {articles.map((a: any) => (
                 <div key={a.id} className={isList ? '' : 'grid__item medium-up--one-quarter small--one-half'}
-                  style={isList ? { display: 'flex', gap: 20, alignItems: 'center', padding: 16, border: '1px solid #eef1ed', borderRadius: 12 } : {}}>
-                  <Link href={`/blog/${a.handle}`} style={isList ? { flexShrink: 0, width: 160, height: 120 } : { display: 'block' }}>
+                  style={isList ? { display: 'flex', gap: 20, alignItems: 'center', padding: 16, border: '1px solid #eef1ed', borderRadius: Number(cfg.imageRadius) || 8 } : {}}>
+                  <Link href={`/blog/${a.handle}`} style={isList ? { flexShrink: 0, width: 160, height: Number(cfg.imageHeight) || 120 } : { display: 'block' }}>
                     {a.image_url
-                      ? <Image src={a.image_url} alt={a.title} width={isList ? 160 : 400} height={isList ? 120 : 300} style={{ objectFit: 'cover', width: '100%', borderRadius: 8 }} data-section-image unoptimized />
-                      : <div style={{ width: '100%', height: isList ? 120 : 200, background: '#eef1ed', borderRadius: 8 }} />}
+                      ? <Image src={a.image_url} alt={a.title} width={isList ? 160 : 400} height={isList ? Number(cfg.imageHeight) || 120 : Number(cfg.imageHeight) || 300} style={{ objectFit: 'cover', width: '100%', borderRadius: Number(cfg.imageRadius) || 8 }} data-section-image unoptimized />
+                      : <div style={{ width: '100%', height: isList ? Number(cfg.imageHeight) || 120 : Number(cfg.imageHeight) || 200, background: '#eef1ed', borderRadius: Number(cfg.imageRadius) || 8 }} />}
                   </Link>
                   <div style={{ flex: 1 }}>
                     <Link href={`/blog/${a.handle}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                       <h3 className="h4" style={{ margin: '0 0 4px' }}>{a.title}</h3>
                     </Link>
-                    <p style={{ fontSize: 12, color: '#9aa69c', marginTop: 6 }}>
-                      {new Date(a.published_at).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
-                    </p>
+                    {cfg.showCategory !== false && a.blog_title && (
+                      <p className="blog-post__category" style={{ fontSize: 11, color: '#9aa69c', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>{a.blog_title}</p>
+                    )}
+                    {cfg.showDate !== false && (
+                      <p className="blog-post__date" style={{ fontSize: 12, color: '#9aa69c', marginTop: cfg.showCategory !== false && a.blog_title ? 2 : 6 }}>
+                        {new Date(a.published_at).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -665,11 +672,18 @@ async function renderSection(section: HomepageSection, context?: any) {
       return (
         <div style={{
           background: cfg.bgColor || '#151a17', color: cfg.textColor || '#fff',
-          textAlign: 'center', padding: '10px 16px', fontSize: 14, fontWeight: 600,
+          textAlign: 'center', padding: '10px 16px', fontSize: Number(cfg.fontSize) || 14, fontWeight: 600,
+          position: cfg.sticky ? 'sticky' : undefined, top: 0, zIndex: cfg.sticky ? 100 : undefined,
         }}>
           {cfg.link
             ? <a href={cfg.link} style={{ color: 'inherit', textDecoration: 'none' }} data-edit="text">{cfg.text}</a>
             : <span data-edit="text">{cfg.text}</span>}
+          {cfg.dismissible && (
+            <button type="button" className="promo-dismiss" onClick="this.parentElement.style.display='none'"
+              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', marginLeft: 12, fontSize: 16, verticalAlign: 'middle' }}>
+              ✕
+            </button>
+          )}
         </div>
       )
 
@@ -677,7 +691,7 @@ async function renderSection(section: HomepageSection, context?: any) {
       return (
         <section className="index-section homepage-video-hero" style={{ position: 'relative', width: '100%', height: '90vh', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {cfg.videoUrl && (
-            <video autoPlay muted loop playsInline
+            <video autoPlay {...(cfg.muted !== false ? { muted: true } : {})} {...(cfg.loop !== false ? { loop: true } : {})} playsInline
               poster={cfg.posterImage || undefined}
               data-section-media="true"
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}>
@@ -704,7 +718,7 @@ async function renderSection(section: HomepageSection, context?: any) {
         <section className="index-section homepage-lookbook">
           <div className="page-width">
             {cfg.heading && <div className="section-header text-center"><h2 className="section-header__title h2" data-edit="heading">{cfg.heading}</h2></div>}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, gridAutoRows: 'minmax(240px, auto)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cfg.columns || 3}, 1fr)`, gap: cfg.gap || 8, gridAutoRows: 'minmax(240px, auto)' }}>
               {items.map((item, i) => (
                 <div key={i} style={{
                   gridColumn: `span ${Math.min(Number(item.colSpan) || 1, 3)}`,
@@ -717,7 +731,7 @@ async function renderSection(section: HomepageSection, context?: any) {
                       </Link>
                     : <Image src={item.image} data-edit-image={`items.${i}.image`} alt={item.title || ''} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 33vw" unoptimized />)
                   : <div style={{ width: '100%', height: '100%', minHeight: 240, background: '#eef1ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9aa69c' }}>Click to add image</div>}
-                  {item.title && (
+                  {item.title && cfg.showTitle !== false && (
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, background: 'linear-gradient(transparent, rgba(0,0,0,0.6))' }}>
                       <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }} data-edit={`items.${i}.title`}>{item.title}</span>
                     </div>

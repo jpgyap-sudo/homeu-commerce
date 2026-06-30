@@ -74,11 +74,15 @@ export default function ThemeEditor({
   initialCss,
   initialHeader,
   initialViewport = 'desktop',
+  themeId = null,
+  themeName = '',
 }: {
   initial: Section[]
   initialCss: string
   initialHeader: HeaderSettings
   initialViewport?: 'desktop' | 'tablet' | 'mobile'
+  themeId?: number | null
+  themeName?: string
 }) {
   const [sections, setSections] = useState<Section[]>(initial)
   const [currentTemplate, setCurrentTemplate] = useState<'index' | 'product' | 'collection'>('index')
@@ -107,12 +111,31 @@ export default function ThemeEditor({
     }
     fetch(`/api/theme/sections?template=${currentTemplate}`)
       .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data.sections)) {
+      .then(async (data) => {
+        if (!Array.isArray(data.sections)) return
+        if (data.sections.length > 0) {
           setSections(data.sections)
           setOpenedSectionConfig(null)
           setOpenId(null)
+          return
         }
+        // No sections yet — create defaults for this template
+        const defaultTypes = currentTemplate === 'product'
+          ? ['product_details' as const]
+          : ['collection_header' as const, 'product_grid' as const]
+        const created: Section[] = []
+        for (const type of defaultTypes) {
+          try {
+            const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, template: currentTemplate }) })
+            if (res.ok) {
+              const { id } = await res.json()
+              created.push({ id, type, position: (created.length + 1) * 10, enabled: true, config: {} })
+            }
+          } catch {}
+        }
+        setSections(created)
+        setOpenedSectionConfig(null)
+        setOpenId(null)
       })
       .catch(() => {})
   }, [currentTemplate])
@@ -325,7 +348,8 @@ export default function ThemeEditor({
   async function saveNav() {
     setNavSaving(true)
     try {
-      await fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'nav_main', value: navItems }) })
+      const res = await fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'nav_main', value: navItems }) })
+      if (!res.ok) { flash(`Nav save failed (${res.status})`); return }
       setNavDirty(false)
       flash('Navigation saved'); refreshPreview()
     } finally { setNavSaving(false) }
@@ -457,7 +481,7 @@ export default function ThemeEditor({
 
     const timer = setTimeout(async () => {
       try {
-        await fetch('/api/theme/preview-draft', {
+        const res = await fetch('/api/theme/preview-draft', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -468,9 +492,10 @@ export default function ThemeEditor({
             palette,
           }),
         })
-        refreshPreview()
+        if (!res.ok) console.warn('[ThemeEditor] Preview draft save returned', res.status)
+        else refreshPreview()
       } catch (err) {
-        console.error('Failed to save preview draft:', err)
+        console.error('[ThemeEditor] Failed to save preview draft:', err)
       }
     }, 500)
 
@@ -814,10 +839,50 @@ async function patchSection(id: number, body: any) {
   }
 
   // ── Save all sections and CSS ────────────────────────────────────
+  async function saveToSnapshot() {
+    // Build the snapshot payload from current editor state
+    const settings: Record<string, any> = {}
+    settings.custom_css = css
+    settings.header_settings = header
+    Object.entries(palette).forEach(([key, value]) => { settings[`theme_${key}`] = value })
+    if (favicon) settings.favicon = favicon
+
+    const snapshot = {
+      capturedAt: new Date().toISOString(),
+      sections: sections.map(s => ({
+        type: s.type,
+        position: s.position,
+        enabled: s.enabled,
+        config: s.config,
+        template: 'index',
+      })),
+      settings,
+    }
+
+    const res = await fetch(`/api/admin/online-store/themes/${themeId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ snapshot }),
+    })
+    if (!res.ok) throw new Error(`Snapshot save failed (${res.status})`)
+  }
+
   async function saveAll() {
     setIsSavingAll(true)
     try {
-      const promises: Promise<void>[] = []
+      if (themeId) {
+        // Save to store_themes snapshot instead of live tables
+        await saveToSnapshot()
+        setDirty(false)
+        setCssDirty(false)
+        setPaletteDirty(false)
+        setFaviconDirty(false)
+        fetch('/api/theme/sync-snapshot').catch(() => {})
+        flash('Draft saved to snapshot')
+        return
+      }
+
+      const promises: Promise<{ name: string; ok: boolean }>[] = []
 
       // Save each section
       for (const sec of sections) {
@@ -835,66 +900,74 @@ async function patchSection(id: number, body: any) {
         }
         promises.push(
           patchSection(sec.id, { config, enabled: sec.enabled })
-            .then(() => {})
+            .then(() => ({ name: `Section ${sec.id}`, ok: true }))
+            .catch(err => ({ name: `Section ${sec.id}`, ok: false }))
         )
       }
 
       // Save CSS if dirty
       if (cssDirty) {
-        promises.push(
-          fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'custom_css', value: css }) })
-            .then(() => {})
-        )
+        const p = fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'custom_css', value: css }) })
+          .then(r => ({ name: 'Custom CSS', ok: r.ok }))
+        promises.push(p)
       }
 
       // Save palette if dirty
       if (paletteDirty) {
         Object.entries(palette).forEach(([key, value]) => {
-          promises.push(
-            fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: `theme_${key}`, value }) })
-              .then(() => {})
-          )
+          const p = fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: `theme_${key}`, value }) })
+            .then(r => ({ name: `Palette ${key}`, ok: r.ok }))
+          promises.push(p)
         })
       }
 
       // Save favicon if dirty
       if (faviconDirty && favicon) {
-        promises.push(
-          fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'favicon', value: favicon }) })
-            .then(() => {})
-        )
+        const p = fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'favicon', value: favicon }) })
+          .then(r => ({ name: 'Favicon', ok: r.ok }))
+        promises.push(p)
       }
 
-      // Save header if dirty (tracked by its own save, but included for completeness)
+      // Save header
       promises.push(
         fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'header_settings', value: header }) })
-          .then(r => { if (!r.ok) throw new Error(`Header save failed (${r.status})`) })
+          .then(r => ({ name: 'Header', ok: r.ok }))
       )
 
-      await Promise.all(promises)
+      const results = await Promise.allSettled(promises)
+      const failures = results.filter(r => r.status === 'fulfilled' && !r.value.ok).map(r => (r as PromiseFulfilledResult<{ name: string; ok: boolean }>).value.name)
 
-      // Persist section order (config/enabled saved above; order saved here)
-      const orderRes = await fetch('/api/theme/sections', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: sections.map(s => s.id) }) })
-      if (!orderRes.ok) throw new Error(`Order save failed (${orderRes.status})`)
-      setDirty(false)
-      setCssDirty(false)
-      setPaletteDirty(false)
-      setFaviconDirty(false)
-      if (openId !== null) {
-        const currentSec = sections.find(x => x.id === openId)
-        if (currentSec) {
-          setOpenedSectionConfig({ id: openId, config: JSON.parse(JSON.stringify(currentSec.config)) })
-        }
+      // Persist section order (only if all section patches succeeded)
+      if (failures.length === 0) {
+        const orderRes = await fetch('/api/theme/sections', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: sections.map(s => s.id) }) })
+        if (!orderRes.ok) failures.push(`Order save (${orderRes.status})`)
+      } else {
+        console.warn('[ThemeEditor] Skipping order save due to section save failures')
       }
-      
-      // Save backup snapshot
-      fetch('/api/theme/backups', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sections, header, css, palette }),
-      }).then(() => loadBackups()).catch(err => console.warn('[ThemeEditor] Backup save failed:', err))
 
-      flash('All changes saved'); refreshPreview()
+      if (failures.length === 0) {
+        setDirty(false)
+        setCssDirty(false)
+        setPaletteDirty(false)
+        setFaviconDirty(false)
+        if (openId !== null) {
+          const currentSec = sections.find(x => x.id === openId)
+          if (currentSec) {
+            setOpenedSectionConfig({ id: openId, config: JSON.parse(JSON.stringify(currentSec.config)) })
+          }
+        }
+        // Sync the live store_themes snapshot
+        fetch('/api/theme/sync-snapshot').catch(() => {})
+        // Save backup snapshot
+        fetch('/api/theme/backups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sections, header, css, palette }),
+        }).then(() => loadBackups()).catch(err => console.warn('[ThemeEditor] Backup save failed:', err))
+        flash('All changes saved'); refreshPreview()
+      } else {
+        flash(`Saved with ${failures.length} error(s): ${failures.join(', ')}`)
+      }
     } catch (err: any) {
       flash('Error: ' + (err.message || 'Failed to save all'))
     } finally { setIsSavingAll(false) }
@@ -921,7 +994,7 @@ async function patchSection(id: number, body: any) {
     const enabled = !sec.enabled
     setSectionsWithHistory(s => s.map(x => x.id === sec.id ? { ...x, enabled } : x))
     setDirty(true)
-    patchSection(sec.id, { enabled }) // immediate so the iframe preview reflects it
+    patchSection(sec.id, { enabled }).catch(err => console.warn('[ThemeEditor] Toggle failed:', err)) // immediate so the iframe preview reflects it
     refreshPreview()
   }
 
@@ -1032,7 +1105,8 @@ async function patchSection(id: number, body: any) {
   async function saveHeader() {
     setHeaderSaving(true)
     try {
-      await fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'header_settings', value: header }) })
+      const res = await fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'header_settings', value: header }) })
+      if (!res.ok) { flash(`Header save failed (${res.status})`); return }
       flash('Header saved'); refreshPreview()
     } finally { setHeaderSaving(false) }
   }
@@ -1040,16 +1114,21 @@ async function patchSection(id: number, body: any) {
   async function saveCss() {
     setCssSaving(true)
     try {
-      await fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'custom_css', value: css }) })
+      const res = await fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'custom_css', value: css }) })
+      if (!res.ok) { flash(`CSS save failed (${res.status})`); return }
       flash('CSS saved'); refreshPreview()
     } finally { setCssSaving(false) }
   }
 
   async function savePalette() {
-    const entries = Object.entries(palette).map(([key, value]) =>
-      fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: `theme_${key}`, value }) })
+    const results = await Promise.allSettled(
+      Object.entries(palette).map(([key, value]) =>
+        fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: `theme_${key}`, value }) })
+          .then(r => r.ok ? Promise.resolve() : Promise.reject(new Error(`${key} failed (${r.status})`)))
+      )
     )
-    await Promise.all(entries)
+    const failures = results.filter(r => r.status === 'rejected').map(r => (r as PromiseRejectedResult).reason.message)
+    if (failures.length > 0) { flash(`Palette save errors: ${failures.join(', ')}`); return }
     setPaletteDirty(false)
     flash('Theme colors saved'); refreshPreview()
   }
@@ -1071,6 +1150,7 @@ async function patchSection(id: number, body: any) {
     input.onchange = async (e: any) => {
       const file = e.target.files?.[0]
       if (!file) return
+      const createdIds: number[] = []
       try {
         const text = await file.text()
         const data = JSON.parse(text)
@@ -1090,6 +1170,7 @@ async function patchSection(id: number, body: any) {
           const res = await fetch('/api/theme/sections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: s.type, config: s.config || {}, enabled: s.enabled !== false, template: currentTemplate }) })
           if (!res.ok) throw new Error(`Failed to create section "${s.type}" (${res.status})`)
           const { id } = await res.json()
+          createdIds.push(id)
           newSections.push({ ...s, id, position: (newSections.length + 1) * 10 })
         }
 
@@ -1109,7 +1190,13 @@ async function patchSection(id: number, body: any) {
         if (data.header) setHeader(data.header)
         setDirty(true)
         flash('Theme imported — review and save')
-      } catch { flash('Failed to import theme') }
+      } catch (err: any) {
+        // Rollback: delete any sections we created before the failure
+        for (const id of createdIds) {
+          fetch(`/api/theme/sections/${id}`, { method: 'DELETE' }).catch(() => {})
+        }
+        flash(err?.message || 'Failed to import theme')
+      }
     }
     input.click()
   }
@@ -1280,6 +1367,7 @@ async function patchSection(id: number, body: any) {
           <div>
             <Link href="/admin/dashboard" style={{ color: '#667168', fontSize: 12, textDecoration: 'none', display: 'inline-block', marginBottom: 6 }}>← Dashboard</Link>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {themeId && <span style={{ fontSize: 10, fontWeight: 700, color: '#b88935', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Editing draft: {themeName || `#${themeId}`}</span>}
               <span style={{ fontSize: 10, fontWeight: 700, color: '#667168', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Page Template</span>
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <select
@@ -1403,6 +1491,26 @@ async function patchSection(id: number, body: any) {
               }}>
               {isSavingAll ? 'Saving…' : (dirty || cssDirty || paletteDirty) ? '★ Save Theme' : '★ Theme Saved'}
             </button>
+            {themeId && (
+              <button onClick={async () => {
+                await saveToSnapshot()
+                const res = await fetch('/api/admin/online-store/themes', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'publish', id: themeId }),
+                })
+                if (!res.ok) { const d = await res.json().catch(() => ({})); flash(d?.error || 'Publish failed'); return }
+                flash('Draft published to live!')
+                window.location.href = '/admin/theme'
+              }} disabled={isSavingAll}
+                style={{
+                  padding: '9px 22px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  border: 'none', background: 'linear-gradient(180deg, #d4a853, #b88935)',
+                  color: '#fff', transition: 'all 150ms ease',
+                }}>
+                {isSavingAll ? 'Publishing…' : '★ Publish to Live'}
+              </button>
+            )}
           </div>
         </div>
 

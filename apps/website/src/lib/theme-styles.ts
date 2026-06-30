@@ -132,6 +132,12 @@ export function generateSectionStyles(
       const [w, h] = cfg.aspectRatio.split(':').map(Number)
       if (w && h) styles.push(`${sel} .homeu-collection-card { aspect-ratio: ${w}/${h} !important; }`)
     }
+    if (cfg.overlayColor) {
+      styles.push(`${sel} .homeu-collection-card__media::after { content: ''; position: absolute; inset: 0; background: ${cfg.overlayColor}; z-index: 1; }`)
+    }
+    if (cfg.hoverEffect === 'scale' || cfg.hoverEffect === 'both') {
+      styles.push(`${sel} .homeu-collection-card__link:hover .homeu-collection-card__image { transform: scale(1.06); transition: transform 0.4s ease; }`)
+    }
     if (cfg.hoverEffect === 'darken' || cfg.hoverEffect === 'both') {
       styles.push(`${sel} .homeu-collection-card__link:hover .homeu-collection-card__media::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.3); z-index: 1; }`)
     }
@@ -190,6 +196,28 @@ export function generateSectionStyles(
       styles.push(`${sel} .grid-product__link:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.12); }`)
     } else if (cfg.hoverEffect === 'none') {
       styles.push(`${sel} .grid-product__link:hover .grid-product__image { transform: none; }`)
+    }
+  }
+
+  // Instagram
+  if (type === 'instagram') {
+    if (cfg.columnsDesktop && cfg.columnsDesktop !== 6) {
+      styles.push(`${sel} .homepage-instagram__grid { grid-template-columns: repeat(${cfg.columnsDesktop}, 1fr) !important; }`)
+    }
+    if (cfg.columnsTablet && cfg.columnsTablet !== 3) {
+      styles.push(`@media (max-width: 900px) { ${sel} .homepage-instagram__grid { grid-template-columns: repeat(${cfg.columnsTablet}, 1fr) !important; } }`)
+    }
+    if (cfg.columnsMobile && cfg.columnsMobile !== 2) {
+      styles.push(`@media (max-width: 600px) { ${sel} .homepage-instagram__grid { grid-template-columns: repeat(${cfg.columnsMobile}, 1fr) !important; } }`)
+    }
+    if (cfg.gap != null && cfg.gap !== 4) {
+      styles.push(`${sel} .homepage-instagram__grid { gap: ${cfg.gap}px !important; }`)
+    }
+    if (cfg.tileRadius && cfg.tileRadius > 0) {
+      styles.push(`${sel} .homepage-instagram__tile { border-radius: ${cfg.tileRadius}px !important; }`)
+    }
+    if (cfg.showProfileLink === false) {
+      styles.push(`${sel} .homepage-instagram__profile-link { display: none; }`)
     }
   }
 
@@ -266,6 +294,7 @@ export function generateSectionStyles(
     if (cfg.contentMaxWidth) styles.push(`${sel} .homepage-video-hero > div { max-width: ${cfg.contentMaxWidth}px; }`)
     if (cfg.height) styles.push(`${sel} .homepage-video-hero { height: ${cfg.height}vh !important; }`)
     if (cfg.overlayColor) styles.push(`${sel} .homepage-video-hero > div + div { background: ${cfg.overlayColor}; }`)
+    // Note: muted/loop are HTML attributes on <video>, handled in HomeSections.tsx renderer
   }
 
   // Image Bar
@@ -273,6 +302,9 @@ export function generateSectionStyles(
     if (cfg.height) styles.push(`${sel} .homepage-image-bar { height: ${cfg.height}px !important; }`)
     if (cfg.mobileHeight) styles.push(`@media (max-width: 600px) { ${sel} .homepage-image-bar { height: ${cfg.mobileHeight}px !important; } }`)
     if (cfg.gap) styles.push(`${sel} .homepage-image-bar { gap: ${cfg.gap}px; }`)
+    if (cfg.columns) styles.push(`${sel} .homepage-image-bar { grid-template-columns: repeat(${cfg.columns}, 1fr); }`)
+    if (cfg.hoverZoom !== false) styles.push(`${sel} .homepage-image-bar__item:hover img { transform: scale(1.08); transition: transform 0.4s ease; }`)
+    if (cfg.hoverZoom === false) styles.push(`${sel} .homepage-image-bar__item img { transform: none !important; }`)
   }
 
   // Image with Text
@@ -285,6 +317,7 @@ export function generateSectionStyles(
       styles.push(`${sel} .homepage-image-text__content { padding: ${cfg.contentPadding}px ${Math.min(cfg.contentPadding + 8, 120)}px; }`)
     }
     if (cfg.contentBg) styles.push(`${sel} .homepage-image-text__content { background: ${cfg.contentBg} !important; }`)
+    if (cfg.textColor) styles.push(`${sel} [data-edit="text"], ${sel} .homepage-image-text__text { color: ${cfg.textColor} !important; }`)
     if (cfg.textSize) styles.push(`${sel} [data-edit="text"] { font-size: ${cfg.textSize}px !important; }`)
     if (cfg.imagePosition && cfg.imagePosition !== 'left') {
       styles.push(`${sel} .homepage-image-text__inner { flex-direction: row-reverse !important; }`)
