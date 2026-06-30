@@ -47,8 +47,6 @@ export default function MobileHomepageEnhancer() {
     return () => window.removeEventListener('resize', handler)
   }, [])
 
-  if (!isMobile || !isHome) return null
-
   // Save current product page to recently viewed when on product page
   useEffect(() => {
     const path = window.location.pathname
@@ -64,6 +62,8 @@ export default function MobileHomepageEnhancer() {
       localStorage.setItem('homeu-recent-products', JSON.stringify(filtered.slice(0, 20)))
     } catch { /* noop */ }
   }, [])
+
+  if (!isMobile || !isHome) return null
 
   if (!isMobile) return null
 
