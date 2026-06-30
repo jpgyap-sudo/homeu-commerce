@@ -244,11 +244,16 @@ export function headerFontGoogleQuery(stack: string): string | null {
 }
 
 /**
- * Mobile nav style, editable per mobile-theme draft in Mobile Theme Studio
- * ("Mobile navigation" select). Only takes effect for actual mobile UAs —
- * desktop visitors always get the standard header/drawer nav.
- * - 'tabs'  = bottom 5-tab bar (Home/Products/RFQ/Account/Menu) over the Debut-style drawer
- * - 'debut' = 1:1 clone of homeu.ph's Shopify Debut mobile nav (hamburger -> drawer only)
+ * Mobile homepage style, editable per mobile-theme draft in Mobile Theme
+ * Studio ("Mobile navigation" select). Only takes effect for actual mobile
+ * UAs — desktop visitors are unaffected.
+ * - 'tabs'  = today's custom mobile UX: "Modern Interior" welcome hero + quick-action
+ *             pills + category chips (MobileHomepageEnhancer) layered above the real
+ *             homepage sections, plus the bottom 5-tab bar (Home/Products/RFQ/Account/Menu)
+ * - 'debut' = 1:1 clone of homeu.ph's Shopify Debut mobile experience: real homepage
+ *             sections only (slideshow, brand text, collection grid, etc. — same
+ *             content as the live theme snapshot), hamburger -> drawer nav, no
+ *             bottom bar and no synthetic welcome/quick-actions overlay
  */
 export async function getMobileNavStyle(): Promise<'tabs' | 'debut'> {
   const mobileSnapshot = await getMobileSnapshotIfNeeded()

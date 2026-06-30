@@ -118,7 +118,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <ServiceWorkerRegister />
         <SiteHeader nav={mainNav} header={header} logoUrl={header.logoUrl || undefined} />
         <main id="MainContent" className="content-for-layout" role="main" tabIndex={-1}>
-          <MobileHomepageEnhancer />
+          <MobileHomepageEnhancer navStyle={mobileNavStyle} />
           {children}
         </main>
         <SiteFooter />

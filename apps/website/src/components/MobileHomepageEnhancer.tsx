@@ -26,7 +26,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   'Office': '💼',
 }
 
-export default function MobileHomepageEnhancer() {
+export default function MobileHomepageEnhancer({ navStyle = 'tabs' }: { navStyle?: 'tabs' | 'debut' }) {
   const [isMobile, setIsMobile] = useState(true) // assume mobile initially to avoid flash
   const [isHome, setIsHome] = useState(false)
   const [recentViews, setRecentViews] = useState<Array<{title: string; url: string; image?: string}>>([])
@@ -65,7 +65,10 @@ export default function MobileHomepageEnhancer() {
 
   if (!isMobile || !isHome) return null
 
-  if (!isMobile) return null
+  // Debut clone: real homepage sections only (slideshow, brand text, collection
+  // grid, etc., same content as the live mobile theme snapshot) — no synthetic
+  // welcome hero/quick-actions overlay on top of them.
+  if (navStyle === 'debut') return null
 
   const navItems: NavItem[] = (navigation as any).main || []
   // Flatten top-level nav items + their children into category chips

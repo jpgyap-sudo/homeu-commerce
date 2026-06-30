@@ -391,8 +391,8 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
                   onChange={event => updateSettings(current => ({ ...current, mobile_nav_style: event.target.value }))}
                   style={inputStyle}
                 >
-                  <option value="tabs">Bottom tabs (Home / Products / RFQ / Account / Menu)</option>
-                  <option value="debut">Debut drawer only (homeu.ph 1:1 clone, no bottom bar)</option>
+                  <option value="tabs">Custom mobile UX (welcome hero + quick-action pills + bottom tabs)</option>
+                  <option value="debut">Debut clone (homeu.ph 1:1 — real sections only, drawer nav, no bottom bar)</option>
                 </select>
               </label>
             </div>
