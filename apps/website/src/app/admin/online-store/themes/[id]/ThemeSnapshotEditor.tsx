@@ -126,6 +126,7 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
             header: nextSettings.header_settings || null,
             css: typeof nextSettings.custom_css === 'string' ? nextSettings.custom_css : '',
             palette: paletteFromSettings(nextSettings),
+            mobileNavStyle: nextSettings.mobile_nav_style === 'debut' ? 'debut' : 'tabs',
           }),
         })
         if (!cancelled && res.ok) setPreviewKey(key => key + 1)
