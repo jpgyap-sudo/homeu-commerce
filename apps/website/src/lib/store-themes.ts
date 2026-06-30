@@ -376,42 +376,10 @@ export async function updateStoreThemeSnapshot(
   return normalizeTheme(res.rows[0])
 }
 
-export interface ThemeDiffEntry {
-  type: 'added' | 'removed' | 'changed'
-  sectionType: string
-  template: string
-  detail: string
-}
-
-export function computeThemeDiff(live: StoreThemeSnapshot, draft: StoreThemeSnapshot): ThemeDiffEntry[] {
-  const diff: ThemeDiffEntry[] = []
-  const liveMap = new Map(live.sections.map((s, i) => [`${s.template || 'index'}-${s.type}-${i}`, s]))
-  const draftMap = new Map<string, typeof draft.sections[number]>()
-
-  draft.sections.forEach((s, i) => {
-    const key = `${s.template || 'index'}-${s.type}-${i}`
-    draftMap.set(key, s)
-  })
-
-  // Find removed and changed
-  for (const [key, liveSec] of liveMap) {
-    const draftSec = draftMap.get(key)
-    if (!draftSec) {
-      diff.push({ type: 'removed', sectionType: liveSec.type, template: liveSec.template || 'index', detail: `Position ${liveSec.position}` })
-    } else if (JSON.stringify(liveSec.config) !== JSON.stringify(draftSec.config)) {
-      diff.push({ type: 'changed', sectionType: liveSec.type, template: liveSec.template || 'index', detail: 'Config modified' })
-    }
-  }
-
-  // Find added
-  for (const [key, draftSec] of draftMap) {
-    if (!liveMap.has(key)) {
-      diff.push({ type: 'added', sectionType: draftSec.type, template: draftSec.template || 'index', detail: `Position ${draftSec.position}` })
-    }
-  }
-
-  return diff
-}
+// Moved to lib/theme-diff.ts (pure, no `pg`/db import) so client components can
+// import it without pulling the database client into the browser bundle.
+export type { ThemeDiffEntry } from '@/lib/theme-diff'
+export { computeThemeDiff } from '@/lib/theme-diff'
 
 export async function getMobileLiveThemeSnapshot(): Promise<StoreThemeSnapshot | null> {
   await ensureStoreThemes()

@@ -2,8 +2,9 @@
 
 import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import type { StoreTheme, ThemeDiffEntry } from '@/lib/store-themes'
-import { computeThemeDiff } from '@/lib/store-themes'
+import type { StoreTheme } from '@/lib/store-themes'
+import type { ThemeDiffEntry } from '@/lib/theme-diff'
+import { computeThemeDiff } from '@/lib/theme-diff'
 
 type Action = 'create' | 'import' | 'duplicate' | 'publish' | 'publish_mobile' | 'rename' | 'delete'
 
