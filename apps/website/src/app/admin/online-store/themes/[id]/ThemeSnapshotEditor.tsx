@@ -384,6 +384,17 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
                 <input type="checkbox" checked={settings.header_settings?.sticky !== false} onChange={event => updateHeader('sticky', event.target.checked)} />
                 Sticky header
               </label>
+              <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
+                Mobile navigation
+                <select
+                  value={settings.mobile_nav_style || 'tabs'}
+                  onChange={event => updateSettings(current => ({ ...current, mobile_nav_style: event.target.value }))}
+                  style={inputStyle}
+                >
+                  <option value="tabs">Bottom tabs (Home / Products / RFQ / Account / Menu)</option>
+                  <option value="debut">Debut drawer only (homeu.ph 1:1 clone, no bottom bar)</option>
+                </select>
+              </label>
             </div>
           </section>
 

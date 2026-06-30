@@ -243,6 +243,19 @@ export function headerFontGoogleQuery(stack: string): string | null {
   return HEADER_FONTS.find(f => f.stack === stack)?.google || null
 }
 
+/**
+ * Mobile nav style, editable per mobile-theme draft in Mobile Theme Studio
+ * ("Mobile navigation" select). Only takes effect for actual mobile UAs —
+ * desktop visitors always get the standard header/drawer nav.
+ * - 'tabs'  = bottom 5-tab bar (Home/Products/RFQ/Account/Menu) over the Debut-style drawer
+ * - 'debut' = 1:1 clone of homeu.ph's Shopify Debut mobile nav (hamburger -> drawer only)
+ */
+export async function getMobileNavStyle(): Promise<'tabs' | 'debut'> {
+  const mobileSnapshot = await getMobileSnapshotIfNeeded()
+  const value = mobileSnapshot?.settings?.mobile_nav_style
+  return value === 'debut' ? 'debut' : 'tabs'
+}
+
 /** Header appearance settings, editable in Theme → Header. */
 export async function getHeaderSettings(): Promise<HeaderSettings> {
   let isPreview = false

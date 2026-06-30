@@ -10,9 +10,15 @@ import { QuoteCartBadge } from '@/components/QuoteCart'
  *
  * 5 tabs: Home, Products, RFQ (with badge), Account, Menu
  * Inspired by IKEA and West Elm mobile patterns.
+ *
+ * Hidden entirely when the live mobile theme's "Mobile navigation" setting
+ * is 'debut' (1:1 homeu.ph Shopify Debut clone — hamburger drawer only, no
+ * bottom bar). Controlled per-draft in Mobile Theme Studio, not hardcoded.
  */
-export default function MobileBottomNav() {
+export default function MobileBottomNav({ navStyle = 'tabs' }: { navStyle?: 'tabs' | 'debut' }) {
   const pathname = usePathname()
+
+  if (navStyle === 'debut') return null
 
   // Don't show on admin pages
   if (typeof window !== 'undefined' && window.location.hostname.startsWith('admin.')) return null

@@ -14,7 +14,7 @@ import WebVitalsTracker from '@/components/WebVitalsTracker'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { getMainNav } from '@/lib/navigation'
-import { getCustomCss, getHeaderSettings, getThemePalette, headerFontGoogleQuery, getSiteFavicon } from '@/lib/theme'
+import { getCustomCss, getHeaderSettings, getThemePalette, headerFontGoogleQuery, getSiteFavicon, getMobileNavStyle } from '@/lib/theme'
 import siteConfig from '@/data/site-config.json'
 
 export const metadata = {
@@ -61,7 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   // Storefront: full Debut-themed layout
-  const [mainNav, customCss, header, palette, favicon] = await Promise.all([getMainNav(), getCustomCss(), getHeaderSettings(), getThemePalette(), getSiteFavicon()])
+  const [mainNav, customCss, header, palette, favicon, mobileNavStyle] = await Promise.all([getMainNav(), getCustomCss(), getHeaderSettings(), getThemePalette(), getSiteFavicon(), getMobileNavStyle()])
   const announcement = header.announcement?.enabled ? header.announcement : null
   const headerCss = `:root{--debut-header-bg:${header.bgColor};--debut-header-text:${header.textColor};}`
     + `.site-header{position:${header.sticky ? 'sticky' : 'static'};${header.fontFamily ? `font-family:${header.fontFamily};` : ''}}`
@@ -122,7 +122,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {children}
         </main>
         <SiteFooter />
-        <MobileBottomNav />
+        <MobileBottomNav navStyle={mobileNavStyle} />
         <MobileDrawer />
         <ChatWidget />
         <WebVitalsTracker />
