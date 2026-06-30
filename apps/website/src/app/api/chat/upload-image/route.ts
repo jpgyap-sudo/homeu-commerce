@@ -45,12 +45,12 @@ export async function POST(request: NextRequest) {
     const ext = image.name.split('.').pop() || 'jpg'
     const key = `uploads/chat/${imageId}.${ext}`
     const bytes = await image.arrayBuffer()
-    const cdnUrl = await uploadBufferToSpaces(key, Buffer.from(bytes), image.type)
+    const cdnUrl = await uploadBufferToSpaces(Buffer.from(bytes), key, image.type)
     const imageUrl = cdnUrl || `${request.nextUrl.origin}/uploads/chat/${imageId}.${ext}`
 
     console.log(`[chatbot] Image uploaded:`, {
       imageId,
-      fileName,
+      fileName: image.name,
       fileSize: image.size,
       mimeType: image.type,
       imageUrl,
