@@ -24,7 +24,7 @@ export const metadata = {
   },
   description: siteConfig.tagline,
   metadataBase: new URL(`https://${siteConfig.domain}`),
-  icons: { icon: siteConfig.favicon.shopifyUrl, shortcut: siteConfig.favicon.shopifyUrl, apple: '/icons/icon-192x192.png' },
+  icons: { apple: '/icons/icon-192x192.png' },
   manifest: '/manifest.json',
   other: {
     'mobile-web-app-capable': 'yes',
@@ -94,9 +94,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-        {/* Dynamic favicon from Theme settings — overrides the static metadata.icons fallback */}
-        {favicon ? <link rel="icon" type="image/png" href={favicon} /> : null}
-        {favicon ? <link rel="shortcut icon" type="image/png" href={favicon} /> : null}
+        {/* Dynamic favicon from Theme settings — falls back to site-config.json if not set in DB */}
+        <link rel="icon" type="image/png" href={favicon || siteConfig.favicon.shopifyUrl} />
+        <link rel="shortcut icon" type="image/png" href={favicon || siteConfig.favicon.shopifyUrl} />
         {/* RSS autodiscovery */}
         <link rel="alternate" type="application/rss+xml" title="Home Atelier Journal" href="/feed.xml" />
         {/* Judge.me review widgets — add PUBLIC_TOKEN from judge.me dashboard → Settings → API */}
