@@ -138,7 +138,7 @@ if (full) {
     srcFiles = readdirSync(resolve(WEBSITE, "src"), { recursive: true, encoding: "utf-8" }).filter((f) => exts.test(f));
   } catch { srcFiles = []; }
   const consumerSet = new Set();
-  const apiRe = /['"`]\/api\/([A-Za-z0-9._\-/]+)/g;
+  const apiRe = /\b(?:fetch|axios\.(?:get|post|put|patch|delete)|request)\s*\(\s*['"`]\/api\/([A-Za-z0-9._\-/]+)/g;
   for (const rel of srcFiles) {
     let txt = "";
     try { txt = readFileSync(resolve(WEBSITE, "src", rel), "utf-8"); } catch { continue; }

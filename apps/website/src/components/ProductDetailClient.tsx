@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { renderLexical } from '@/lib/renderLexical'
@@ -25,6 +25,12 @@ interface ProductVariant {
   salePrice?: number | null
   inventoryQuantity?: number
   isDefault?: boolean
+  option1Title?: string | null
+  option1Value?: string | null
+  option2Title?: string | null
+  option2Value?: string | null
+  option3Title?: string | null
+  option3Value?: string | null
 }
 
 interface Product {
@@ -102,7 +108,6 @@ export default function ProductDetailClient({ product, config = {} }: { product:
     )
     if (match) setSelectedVariantId(match.id)
   }, [selectedOptions, hasOptions, product.variants])
-  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(defaultVariant ? defaultVariant.id : null)
 
   const images: ProductImage[] = product.images?.length
     ? product.images
@@ -111,10 +116,6 @@ export default function ProductDetailClient({ product, config = {} }: { product:
 
   const badges = getProductBadges(product)
 
-  const hasVariants = Boolean(product.variants && product.variants.length > 1)
-  const selectedVariant = hasVariants
-    ? product.variants!.find(v => v.id === selectedVariantId) || product.variants![0]
-    : null
   const displayPrice = selectedVariant ? (selectedVariant.salePrice || selectedVariant.price) : product.price
   const displayOriginalPrice = selectedVariant ? selectedVariant.price : product.originalPrice
 

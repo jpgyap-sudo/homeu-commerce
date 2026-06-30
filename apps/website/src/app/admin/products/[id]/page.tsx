@@ -8,6 +8,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { RichTextEditor } from '@/components/admin/RichTextEditor'
@@ -625,7 +626,7 @@ const cellInputStyle: React.CSSProperties = { ...inputStyle, padding: '8px 10px'
 function VariantsEditor({ productId, variants, onChange }: {
   productId: number
   variants: ProductVariant[]
-  onChange: (variants: ProductVariant[]) => void
+  onChange: Dispatch<SetStateAction<ProductVariant[]>>
 }) {
   const [busyId, setBusyId] = useState<number | 'new' | null>(null)
   const [draft, setDraft] = useState({ title: '', sku: '', price: '', salePrice: '', inventoryQuantity: '', option1Title: '', option1Value: '', option2Title: '', option2Value: '', option3Title: '', option3Value: '' })
