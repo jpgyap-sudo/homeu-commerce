@@ -87,7 +87,12 @@ export async function find(
     }).join(' AND ')
     sql += ` WHERE ${conditions}`
   }
-  if (opts.orderBy) sql += ` ORDER BY ${opts.orderBy}`
+  if (opts.orderBy) {
+    // Only allow alphanumeric, dots (for table.col), underscores, and spaces
+    const safe = opts.orderBy.replace(/[^a-zA-Z0-9_\s.,]/g, '')
+    if (safe !== opts.orderBy) console.warn('[db] orderBy sanitized:', opts.orderBy, '→', safe)
+    sql += ` ORDER BY ${safe}`
+  }
   if (opts.limit) sql += ` LIMIT ${opts.limit}`
   if (opts.offset) sql += ` OFFSET ${opts.offset}`
   const { rows } = await query(sql, values)

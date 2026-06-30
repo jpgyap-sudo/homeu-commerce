@@ -1,6 +1,6 @@
 # HomeU Commerce
 
-A custom e-commerce platform for HomeU furniture — built on Next.js 16 with direct PostgreSQL integration, JWT-based admin authentication, and an AI-powered concierge chatbot.
+A custom e-commerce platform for HomeU furniture — built on Next.js 15 with direct PostgreSQL integration, JWT-based admin authentication, and an AI-powered concierge chatbot.
 
 ## Git Workflow
 
@@ -23,7 +23,7 @@ If you have uncommitted work that conflicts with upstream, `git stash`, pull, th
 
 ## Stack
 
-- **Frontend:** Next.js 16 (App Router), React 19, CSS Modules
+- **Frontend:** Next.js 15 (App Router), React 19, CSS Modules
 - **Backend:** Next.js API routes with PostgreSQL (`pg` package)
 - **Auth:** JWT-based admin/customer authentication via `jose`, bcrypt password hashing
 - **AI Chatbot:** Google Gemini / OpenAI / Ollama-powered concierge

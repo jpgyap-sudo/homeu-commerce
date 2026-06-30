@@ -24,9 +24,8 @@ const ADMIN_ROLES = new Set(['admin', 'superadmin', 'editor', 'sales'])
 // ============================================================
 
 export async function hashPassword(password: string): Promise<string> {
-  // Use bcryptjs (pure JS implementation available in Docker)
   const bcrypt = await import('bcryptjs')
-  return bcrypt.hashSync(password, 10)
+  return bcrypt.hash(password, 10)
 }
 
 export async function verifyPassword(
@@ -35,7 +34,7 @@ export async function verifyPassword(
 ): Promise<boolean> {
   try {
     const bcrypt = await import('bcryptjs')
-    return bcrypt.compareSync(password, hash)
+    return bcrypt.compare(password, hash)
   } catch {
     return false
   }

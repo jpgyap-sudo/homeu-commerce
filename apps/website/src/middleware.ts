@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET
-)
-if (!process.env.JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET environment variable is required. Set a secure random value (min 32 chars).')
-  throw new Error('JWT_SECRET is not configured. Server cannot start safely.')
-}
 const COOKIE_NAME = 'homeu_admin_session'
+
+function getJwtSecret(): Uint8Array {
+  if (!process.env.JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET environment variable is required. Set a secure random value (min 32 chars).')
+    throw new Error('JWT_SECRET is not configured. Server cannot start safely.')
+  }
+  return new TextEncoder().encode(process.env.JWT_SECRET)
+}
 
 // admin.homeatelier.ph (DaVinciOS backend) and store.homeatelier.ph
 // (HomeU.PH storefront) are two DNS names pointing at the SAME app/container
@@ -89,7 +90,7 @@ export async function middleware(request: NextRequest) {
 
   // Verify JWT
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET)
+    const { payload } = await jwtVerify(token, getJwtSecret())
     if (payload.role === 'customer') {
       if (host === ADMIN_HOST) {
         return NextResponse.redirect(`https://${STORE_HOST}/customer/dashboard`)

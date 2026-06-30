@@ -19,6 +19,9 @@ const REQUIRED_VARS: { key: string; fatal: boolean; devOnly?: boolean; validate?
   { key: 'AI_PROVIDER',        fatal: false },
   { key: 'VIBER_NUMBER',       fatal: false },
   { key: 'TELEGRAM_BOT_TOKEN', fatal: false },
+  { key: 'SMTP_HOST', fatal: false },
+  { key: 'SMTP_USER', fatal: false },
+  { key: 'SMTP_PASS', fatal: false },
 ]
 
 export interface EnvValidationResult {
