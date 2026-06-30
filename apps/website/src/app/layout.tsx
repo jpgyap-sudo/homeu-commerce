@@ -14,7 +14,7 @@ import WebVitalsTracker from '@/components/WebVitalsTracker'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { getMainNav } from '@/lib/navigation'
-import { getCustomCss, getHeaderSettings, getThemePalette, headerFontGoogleQuery } from '@/lib/theme'
+import { getCustomCss, getHeaderSettings, getThemePalette, headerFontGoogleQuery, getSiteFavicon } from '@/lib/theme'
 import siteConfig from '@/data/site-config.json'
 
 export const metadata = {
@@ -61,7 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   // Storefront: full Debut-themed layout
-  const [mainNav, customCss, header, palette] = await Promise.all([getMainNav(), getCustomCss(), getHeaderSettings(), getThemePalette()])
+  const [mainNav, customCss, header, palette, favicon] = await Promise.all([getMainNav(), getCustomCss(), getHeaderSettings(), getThemePalette(), getSiteFavicon()])
   const announcement = header.announcement?.enabled ? header.announcement : null
   const headerCss = `:root{--debut-header-bg:${header.bgColor};--debut-header-text:${header.textColor};}`
     + `.site-header{position:${header.sticky ? 'sticky' : 'static'};${header.fontFamily ? `font-family:${header.fontFamily};` : ''}}`
@@ -94,6 +94,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        {/* Dynamic favicon from Theme settings — overrides the static metadata.icons fallback */}
+        {favicon ? <link rel="icon" type="image/png" href={favicon} /> : null}
+        {favicon ? <link rel="shortcut icon" type="image/png" href={favicon} /> : null}
         {/* RSS autodiscovery */}
         <link rel="alternate" type="application/rss+xml" title="Home Atelier Journal" href="/feed.xml" />
         {/* Judge.me review widgets — add PUBLIC_TOKEN from judge.me dashboard → Settings → API */}

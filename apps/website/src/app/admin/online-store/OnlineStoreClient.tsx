@@ -88,10 +88,29 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
     run('duplicate', theme.id, { name: `${theme.name} backup ${stamp}` })
   }
 
-  function createTheme(deviceScope: 'desktop' | 'mobile' = 'desktop') {
+  async function createTheme(deviceScope: 'desktop' | 'mobile' = 'desktop') {
     const stamp = new Date().toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
     const name = deviceScope === 'mobile' ? `Mobile theme draft ${stamp}` : `Theme draft ${stamp}`
-    run('create', 0, { name, deviceScope })
+    setBusy('create:0')
+    try {
+      const res = await fetch('/api/admin/online-store/themes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', name, deviceScope }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Theme creation failed')
+      if (deviceScope === 'mobile' && data.theme?.id) {
+        window.location.href = `/admin/online-store/themes/${data.theme.id}`
+        return
+      }
+      await refresh('Theme draft created')
+    } catch (err: any) {
+      setToast(err.message || 'Theme creation failed')
+      setTimeout(() => setToast(''), 3200)
+    } finally {
+      setBusy(null)
+    }
   }
 
   function exportTheme(theme: StoreTheme | undefined) {

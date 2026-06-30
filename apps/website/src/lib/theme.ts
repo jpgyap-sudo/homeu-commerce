@@ -190,6 +190,20 @@ export async function getCustomCss(): Promise<string> {
   }
 }
 
+/**
+ * Fetch the site favicon URL from site_settings (editable via Theme → SEO).
+ * Falls back to the hardcoded site-config.json value if not yet set in DB.
+ */
+export async function getSiteFavicon(): Promise<string> {
+  try {
+    const res = await query(`SELECT value FROM site_settings WHERE key = 'favicon'`, [])
+    const v = res.rows[0]?.value
+    return typeof v === 'string' ? v : ''
+  } catch {
+    return ''
+  }
+}
+
 export interface HeaderSettings {
   logoUrl: string
   logoMaxWidth: number

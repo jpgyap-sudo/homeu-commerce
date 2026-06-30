@@ -9,6 +9,7 @@ export const THEME_SETTING_KEYS = [
   'theme_headingFont',
   'theme_bodyFont',
   'theme_buttonRadius',
+  'favicon',
   'nav_main',
   'nav_footer',
 ] as const

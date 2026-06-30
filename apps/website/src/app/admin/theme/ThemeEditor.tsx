@@ -187,7 +187,7 @@ export default function ThemeEditor({
   const [paletteDirty, setPaletteDirty] = useState(false)
   const [paletteLoaded, setPaletteLoaded] = useState(false)
 
-  // Load palette from DB on mount
+  // Load palette and favicon from DB on mount
   useEffect(() => {
     fetch('/api/theme/settings')
       .then(r => r.json())
@@ -202,6 +202,9 @@ export default function ThemeEditor({
             bodyFont: s.theme_bodyFont || defaultPalette.bodyFont,
             buttonRadius: s.theme_buttonRadius ? Number(s.theme_buttonRadius) : defaultPalette.buttonRadius,
           })
+        }
+        if (typeof s.favicon === 'string' && s.favicon) {
+          setFavicon(s.favicon)
         }
       })
       .catch(() => {})
@@ -251,6 +254,8 @@ export default function ThemeEditor({
   const [cssDirty, setCssDirty] = useState(false)
   const [cssOpen, setCssOpen] = useState(false)
   const [cssSaving, setCssSaving] = useState(false)
+  const [favicon, setFavicon] = useState('')
+  const [faviconDirty, setFaviconDirty] = useState(false)
   const [footerOpen, setFooterOpen] = useState(false)
   const FOOTER_SECTION_TYPES = new Set<string>(['footer_brand', 'footer_quick_links', 'footer_newsletter', 'footer_social'])
 
@@ -852,6 +857,14 @@ async function patchSection(id: number, body: any) {
         })
       }
 
+      // Save favicon if dirty
+      if (faviconDirty && favicon) {
+        promises.push(
+          fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'favicon', value: favicon }) })
+            .then(() => {})
+        )
+      }
+
       // Save header if dirty (tracked by its own save, but included for completeness)
       promises.push(
         fetch('/api/theme/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'header_settings', value: header }) })
@@ -866,6 +879,7 @@ async function patchSection(id: number, body: any) {
       setDirty(false)
       setCssDirty(false)
       setPaletteDirty(false)
+      setFaviconDirty(false)
       if (openId !== null) {
         const currentSec = sections.find(x => x.id === openId)
         if (currentSec) {
@@ -1433,8 +1447,8 @@ async function patchSection(id: number, body: any) {
           <button onClick={() => setHeaderOpen(o => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
             <span style={{ fontSize: 18 }}>🧭</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#151a17' }}>Header</div>
-              <div style={{ fontSize: 12, color: '#9aa69c' }}>Logo, colors & sticky behaviour (menu links live in Navigation)</div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#151a17' }}>Header & Favicon</div>
+              <div style={{ fontSize: 12, color: '#9aa69c' }}>Logo, favicon, colors & sticky behaviour (menu links live in Navigation)</div>
             </div>
             <span style={{ color: '#9aa69c' }}>{headerOpen ? '▲' : '▼'}</span>
           </button>
@@ -1442,6 +1456,9 @@ async function patchSection(id: number, body: any) {
             <div style={{ padding: '0 16px 16px', borderTop: '1px solid #eef1ed' }}>
               <div style={{ marginTop: 12 }}>
                 <ImageField label="Logo" value={header.logoUrl} onChange={v => setHeader(h => ({ ...h, logoUrl: v }))} />
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <ImageField label="Favicon" value={favicon} onChange={v => { setFavicon(v); setFaviconDirty(true) }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
                 <div>
