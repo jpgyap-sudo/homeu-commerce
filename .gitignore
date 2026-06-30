@@ -68,3 +68,5 @@ memory/
 # â”€â”€â”€ Temporary / Scratch files â”€â”€â”€
 inspect-exports.mjs
 k.toLowerCase().includes(init)
+# ÄÄÄ Temp files (live preview) ÄÄÄ  
+tmp-* 
