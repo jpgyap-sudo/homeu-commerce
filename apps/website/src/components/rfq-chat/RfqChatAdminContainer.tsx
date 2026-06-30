@@ -25,7 +25,9 @@ export default function RfqChatAdminContainer({ rfqId, customerEmail }: RfqChatA
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
+  const messagesScrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const shouldScrollMessagesRef = useRef(false)
 
   // Selection / deletion state
   const [selectMode, setSelectMode] = useState(false)
@@ -60,7 +62,15 @@ export default function RfqChatAdminContainer({ rfqId, customerEmail }: RfqChatA
   }, [fetchMessages])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (!shouldScrollMessagesRef.current) return
+    shouldScrollMessagesRef.current = false
+
+    const scrollEl = messagesScrollRef.current
+    if (!scrollEl) return
+
+    requestAnimationFrame(() => {
+      scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' })
+    })
   }, [messages])
 
   async function handleSendMessage(content: string) {
@@ -75,6 +85,7 @@ export default function RfqChatAdminContainer({ rfqId, customerEmail }: RfqChatA
       })
       if (!res.ok) throw new Error('Failed to send')
       const newMsg = await res.json()
+      shouldScrollMessagesRef.current = true
       setMessages((prev) => [...prev, newMsg])
     } catch (err: any) {
       setError(err.message)
@@ -108,6 +119,7 @@ export default function RfqChatAdminContainer({ rfqId, customerEmail }: RfqChatA
       })
       if (!res.ok) throw new Error('Failed to send')
       const newMsg = await res.json()
+      shouldScrollMessagesRef.current = true
       setMessages(prev => [...prev, newMsg])
       setProductSearchOpen(false)
     } catch (err: any) {
@@ -126,6 +138,7 @@ export default function RfqChatAdminContainer({ rfqId, customerEmail }: RfqChatA
         body: JSON.stringify({ leadId: 'admin', productId, quantity: 1 }),
       })
       if (!res.ok) throw new Error('Failed to add')
+      shouldScrollMessagesRef.current = true
       // Insert system event
       await fetch(`/api/admin/rfq-chat/${rfqId}/messages`, {
         method: 'POST',
@@ -314,7 +327,7 @@ export default function RfqChatAdminContainer({ rfqId, customerEmail }: RfqChatA
       />
 
       {/* Messages */}
-      <div style={{ maxHeight: 400, overflowY: 'auto', padding: '12px 16px' }}>
+      <div ref={messagesScrollRef} style={{ maxHeight: 400, overflowY: 'auto', padding: '12px 16px' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>Loading messages...</div>
         ) : messages.length === 0 ? (

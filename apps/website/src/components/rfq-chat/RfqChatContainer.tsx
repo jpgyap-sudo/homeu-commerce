@@ -25,7 +25,9 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
   const [sending, setSending] = useState(false)
   const [productSearchOpen, setProductSearchOpen] = useState(false)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
+  const messagesScrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const shouldScrollMessagesRef = useRef(false)
 
   const messagesEndpoint = isAdmin
     ? `/api/admin/rfq-chat/${rfqId}/messages`
@@ -52,7 +54,15 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
   }, [fetchMessages])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (!shouldScrollMessagesRef.current) return
+    shouldScrollMessagesRef.current = false
+
+    const scrollEl = messagesScrollRef.current
+    if (!scrollEl) return
+
+    requestAnimationFrame(() => {
+      scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' })
+    })
   }, [messages])
 
   async function handleSendMessage(content: string) {
@@ -68,6 +78,7 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to send') }
       const newMsg = await res.json()
+      shouldScrollMessagesRef.current = true
       setMessages(prev => [...prev, newMsg])
     } catch (err: any) {
       setSendError(err.message)
@@ -101,6 +112,7 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to send') }
       const newMsg = await res.json()
+      shouldScrollMessagesRef.current = true
       setMessages(prev => [...prev, newMsg])
       setProductSearchOpen(false)
     } catch (err: any) {
@@ -130,6 +142,7 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
       }
       // Show brief success via a quick message
       setSendError('')
+      shouldScrollMessagesRef.current = true
       // Optional: post a system message
       await fetch(messagesEndpoint, {
         method: 'POST',
@@ -265,7 +278,7 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
       {hasBackfillNotice && <RfqChatBackfillNotice />}
 
       {/* Messages area */}
-      <div style={{ maxHeight: 420, overflowY: 'auto', padding: '16px 16px 8px' }}>
+      <div ref={messagesScrollRef} style={{ maxHeight: 420, overflowY: 'auto', padding: '16px 16px 8px' }}>
         {messages.length === 0 ? (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
