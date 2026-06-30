@@ -679,10 +679,11 @@ async function renderSection(section: HomepageSection, context?: any) {
             ? <a href={cfg.link} style={{ color: 'inherit', textDecoration: 'none' }} data-edit="text">{cfg.text}</a>
             : <span data-edit="text">{cfg.text}</span>}
           {cfg.dismissible && (
-            <button type="button" className="promo-dismiss" onClick="this.parentElement.style.display='none'"
-              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', marginLeft: 12, fontSize: 16, verticalAlign: 'middle' }}>
-              ✕
-            </button>
+            <span
+              dangerouslySetInnerHTML={{
+                __html: `<button type="button" class="promo-dismiss" onclick="this.parentElement.style.display='none'" style="background:none;border:none;color:inherit;cursor:pointer;margin-left:12px;font-size:16px;vertical-align:middle;">✕</button>`,
+              }}
+            />
           )}
         </div>
       )
