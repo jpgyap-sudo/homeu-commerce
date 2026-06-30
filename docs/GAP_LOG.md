@@ -259,7 +259,7 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/components/ProductDNACard.tsx`](apps/website/src/components/ProductDNACard.tsx), [`apps/website/src/app/products/[slug]/page.tsx`](apps/website/src/app/products/[slug]/page.tsx), [`apps/website/src/components/QuoteCart.tsx`](apps/website/src/components/QuoteCart.tsx) |
 | **Type** | Missing furniture-domain intelligence |
-| **Status** | Active |
+| **Status** | 📋 Pipeline |
 | **Description** | Product dimensions and materials are displayed, but the system cannot check room dimensions, clearances, product combinations, doorway/elevator access, finish compatibility, budget, or availability before RFQ submission. |
 | **Impact** | Customers and sales staff can build attractive but infeasible proposals, creating quote rework, delivery surprises, lower confidence, and lost sales. |
 | **Fix Guidance** | Normalize dimensions and variants, collect room and access measurements, implement deterministic fit and budget rules with explainable warnings, and allow staff overrides with recorded reasons. AI can assist extraction, but feasibility decisions must remain rule-backed. |
