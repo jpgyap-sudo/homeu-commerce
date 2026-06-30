@@ -13,8 +13,8 @@ import { getAIProvider } from '@/lib/chatbot/ai-provider'
 import { searchByAttributes } from '@/lib/chatbot/product-search'
 import { imageUploadReply, productRecommendationReply } from '@/lib/chatbot/prompts'
 import { createSignal } from '@/lib/chatbot/lead-scorer'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
+import { uploadBufferToSpaces } from '@/lib/do-spaces'
+import crypto from 'crypto'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
@@ -40,20 +40,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Image must be under 10 MB' }, { status: 400 })
     }
 
-    // Persist the uploaded file to disk so AI providers can fetch it
+    // Upload to DO Spaces CDN so AI providers can fetch the URL
     const imageId = crypto.randomUUID?.() || `img-${Date.now()}`
     const ext = image.name.split('.').pop() || 'jpg'
-    const fileName = `${imageId}.${ext}`
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'chat')
-    const filePath = path.join(uploadDir, fileName)
-
-    await mkdir(uploadDir, { recursive: true })
+    const key = `uploads/chat/${imageId}.${ext}`
     const bytes = await image.arrayBuffer()
-    await writeFile(filePath, Buffer.from(bytes))
-
-    // Build an absolute URL the AI provider can reach
-    const origin = request.nextUrl.origin
-    const imageUrl = `${origin}/uploads/chat/${fileName}`
+    const cdnUrl = await uploadBufferToSpaces(key, Buffer.from(bytes), image.type)
+    const imageUrl = cdnUrl || `${request.nextUrl.origin}/uploads/chat/${imageId}.${ext}`
 
     console.log(`[chatbot] Image uploaded:`, {
       imageId,

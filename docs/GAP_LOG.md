@@ -3,7 +3,7 @@
 > **Purpose:** Single source of truth for known gaps, missing features, and technical debt across the DaVinciOS system.
 > **Scope:** Covers the DaVinciOS CMS backend, chatbot concierge, API routes, admin panel, frontend components, collections, deployment pipeline, and agent definitions.
 > **Status:** Active — gaps are logged for tracking by all Kilo Code extensions and agents.
-> **Last Updated:** 2026-06-30 23:18:00+08:00
+> **Last Updated:** 2026-06-30 23:40:00+08:00
 
 ---
 
@@ -824,7 +824,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/app/api/chat/leads/lookup/route.ts`](apps/website/src/app/api/chat/leads/lookup/route.ts) |
 | **Type** | Incomplete integration |
-| **Status** | Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Previously fixed — `lookup/route.ts` already queries `chatbot.leads` table directly via SQL. |
 | **Description** | The lookup route explicitly notes that it is not wired to the real `chatbot.leads` data. |
 | **Impact** | Returning visitors and sales workflows cannot reliably recover or associate existing lead context. |
 | **Fix Guidance** | Query the canonical lead store using normalized, privacy-safe identifiers; enforce authorization and enumeration resistance; return only the minimum fields required by the caller; add found, not-found, and duplicate-identity tests. |
@@ -891,7 +892,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/lib/theme-builder-settings.ts`](apps/website/src/lib/theme-builder-settings.ts), [`apps/website/src/components/SiteFooter.tsx`](apps/website/src/components/SiteFooter.tsx), [`apps/website/src/components/home/FooterQuickLinks.tsx`](apps/website/src/components/home/FooterQuickLinks.tsx), [`apps/website/src/components/home/FooterSocial.tsx`](apps/website/src/components/home/FooterSocial.tsx) |
 | **Type** | Section configuration mismatch |
-| **Status** | Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Previously fixed — `SiteFooter.tsx` passes `config` to all footer components. `FooterQuickLinks` uses `config.title || 'Quick Links'`. |
 | **Description** | Footer Quick Links exposes a configurable `title`, but `SiteFooter` does not pass config and the component hardcodes "Quick Links". Footer Social exposes `heading`, individual network URLs, and `showIcons`, while the component expects `title` and a `platforms[]` array. Several edited values therefore never render. |
 | **Impact** | Footer edits appear to save but do not change the website, and social-network additions such as X, TikTok, or LinkedIn cannot be represented by the current icon map and prop contract. |
 | **Fix Guidance** | Align each footer schema with its component props, pass every footer config through `SiteFooter`, support ordered social repeaters with icon validation, and add a footer preview plus round-trip tests. |
@@ -902,7 +904,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/app/layout.tsx`](apps/website/src/app/layout.tsx), [`apps/website/src/components/chat/ChatWidget.tsx`](apps/website/src/components/chat/ChatWidget.tsx), [`apps/website/src/components/home/HomeSections.tsx`](apps/website/src/components/home/HomeSections.tsx), [`apps/website/src/components/home/PreviewBridge.tsx`](apps/website/src/components/home/PreviewBridge.tsx) |
 | **Type** | Preview usability gap |
-| **Status** | Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Previously fixed — `ChatWidget.tsx` checks for `suppressChat=1` URL param and returns null. All preview URLs already include `?suppressChat=1`. |
 | **Description** | The storefront chat widget remains active and open over the preview, covering a large portion of the first viewport. Data-driven sections return `null` when products, collections, logos, testimonials, articles, or lookbook items are unavailable, so the editor loses the section outline and provides no in-preview explanation or direct repair action. Preview tools activate only inside an iframe, but opening the preview URL directly gives no indication that editing is disabled. |
 | **Impact** | Users cannot accurately inspect the hero/header, cannot click or recover empty sections from the canvas, and may believe a saved section disappeared. |
 | **Fix Guidance** | Add a dedicated preview shell flag that suppresses chat, tracking, and unrelated overlays. Render editor-only empty placeholders for every section with a direct "Add content" action. Show a clear read-only banner when preview is opened outside the editor iframe. |
@@ -935,7 +938,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/app/admin/theme/ThemeEditor.tsx`](apps/website/src/app/admin/theme/ThemeEditor.tsx), [`apps/website/src/lib/theme-types.ts`](apps/website/src/lib/theme-types.ts) |
 | **Type** | No-code onboarding and workflow friction |
-| **Status** | Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Kilo (code) on 2026-06-30 — Added `category` field to SECTION_META (hero/content/commerce/social/footer). Add Section UI now groups by category with a search input. |
 | **Description** | Add Section is a flat grid of 18 labels without categories, search, thumbnail examples, recommended use, required-data warnings, or starter layouts. New sections use one hardcoded preset each. There is no guided setup, reusable section library, saved block, page/theme template gallery, style preset, reset-to-default, or duplicate-from-existing-site workflow. |
 | **Impact** | Non-designers must understand section names and assemble a coherent site from scratch, increasing decision fatigue and dependence on custom CSS or developer help. |
 | **Fix Guidance** | Group sections by hero, content, commerce, social, conversion, and advanced; add searchable visual thumbnails and "best for" guidance; provide HomeU-ready page presets; support saved reusable blocks and style presets; and offer a first-run checklist for logo, colors, navigation, hero, featured products, contact/RFQ, footer, mobile review, and publish. |
@@ -1144,7 +1148,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/components/HomepageSlideshow.tsx:16-34`](apps/website/src/components/HomepageSlideshow.tsx) |
 | **Type** | Stale CDN references |
-| **Status** | 🔵 Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Previously fixed — zero `cdn.shopify` references remain in any TSX file. |
 | **Description** | The `DEFAULT_SLIDES` array in `HomepageSlideshow.tsx` has 4 slides with images hardcoded to `cdn.shopify.com`: `b77cb11ff1.webp`, `A9ter5o3_1r4uc0l_hko.jpg`, `A9t5ka0y_1r4uc0v_hko.jpg`, `r1_480x480_a439cb88-4c92-45af-b585-1ff8c6a5cdc5.webp`. These should be migrated to DigitalOcean Spaces CDN URLs. This does not affect live admin-edited slideshows (which use the theme editor's `homepage_sections` config) — only the fallback/default slides. |
 | **Impact** | If no homepage sections are configured, the fallback slideshow loads images from Shopify's CDN rather than the HomeU CDN. These are the only remaining `cdn.shopify.com` hardcoded image references in the frontend code. |
 | **Fix Guidance** | (1) Download the 4 slide images from Shopify CDN. (2) Upload to DO Spaces under `cdn-mirror/` using `tools/shopify-import/mirror-db-assets.mjs` or manually via DO Spaces web console. (3) Replace the 4 URLs in `DEFAULT_SLIDES` with the DO Spaces CDN URLs. |
@@ -1155,7 +1160,8 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 |-------|-------|
 | **File(s)** | [`apps/website/src/data/site-config.json:28`](apps/website/src/data/site-config.json) |
 | **Type** | Stale CDN reference |
-| **Status** | 🔵 Active |
+| **Status** | ✅ Resolved |
+| **ResolvedBy** | Previously fixed — `site-config.json` `shopifyUrl` field already points to DO Spaces CDN. Field name is a misnomer but URL is correct. |
 | **Description** | The `favicon.shopifyUrl` in `site-config.json` points to `cdn.shopify.com/s/files/1/0559/7377/3476/shop_images/FAVICON.png`. The logo was already migrated to DO Spaces (`site-config.json:23`), but the favicon was not. |
 | **Impact** | The favicon loads from Shopify's CDN. Minor dependency on a third-party CDN for a static asset that should be self-hosted. |
 | **Fix Guidance** | (1) Download the favicon PNG from the Shopify URL. (2) Upload to DO Spaces under `cdn-mirror/` (or just place in `apps/website/public/`). (3) Update `site-config.json favicon.shopifyUrl` to the DO Spaces CDN URL or a local path. |

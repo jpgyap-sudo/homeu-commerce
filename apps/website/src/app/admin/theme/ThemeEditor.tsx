@@ -148,6 +148,7 @@ export default function ThemeEditor({
   const [codeErr, setCodeErr] = useState<Record<number, string>>({})
   const [savingId, setSavingId] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
+  const [sectionSearch, setSectionSearch] = useState('')
   const [toast, setToast] = useState('')
   const [previewKey, setPreviewKey] = useState(0)
   const sectionsRef = useRef<Section[]>(initial)
@@ -1951,25 +1952,39 @@ async function patchSection(id: number, body: any) {
         <div style={{ position: 'relative' }}>
           <button onClick={() => setAdding(!adding)} style={{ width: '100%', padding: '14px', background: '#fff', border: '2px dashed #c2cdbe', color: '#1e7a47', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Add section</button>
           {adding && (
-            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 8, background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, padding: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, zIndex: 20 }}>
-              {SECTION_TYPES.filter(t => {
-                if (FOOTER_SECTION_TYPES.has(t)) return false
-                if (currentTemplate === 'index') {
-                  return t !== 'product_details' && t !== 'collection_header' && t !== 'product_grid'
-                }
-                if (currentTemplate === 'product') {
-                  return t !== 'collection_header' && t !== 'product_grid'
-                }
-                if (currentTemplate === 'collection') {
-                  return t !== 'product_details'
-                }
-                return true
-              }).map(t => (
-                <button key={t} onClick={() => addSection(t)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', border: '1px solid #eef1ed', borderRadius: 8, background: '#fafbf9', cursor: 'pointer', textAlign: 'left' }}>
-                  <span style={{ fontSize: 16 }}>{SECTION_META[t].icon}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#151a17' }}>{SECTION_META[t].label}</span>
-                </button>
-              ))}
+            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 8, background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, padding: 12, boxShadow: '0 10px 30px rgba(0,0,0,0.12)', maxHeight: 440, overflowY: 'auto', zIndex: 20 }}>
+              <input
+                autoFocus
+                placeholder="Search sections..."
+                value={sectionSearch}
+                onChange={e => setSectionSearch(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d9e0d7', borderRadius: 8, fontSize: 13, marginBottom: 8, boxSizing: 'border-box' }}
+              />
+              {(['hero', 'content', 'commerce', 'social'] as const).map(category => {
+                const types = SECTION_TYPES.filter(t => {
+                  if (FOOTER_SECTION_TYPES.has(t)) return false
+                  if (SECTION_META[t].category !== category) return false
+                  if (sectionSearch && !SECTION_META[t].label.toLowerCase().includes(sectionSearch.toLowerCase())) return false
+                  if (currentTemplate === 'index') return t !== 'product_details' && t !== 'collection_header' && t !== 'product_grid'
+                  if (currentTemplate === 'product') return t !== 'collection_header' && t !== 'product_grid'
+                  if (currentTemplate === 'collection') return t !== 'product_details'
+                  return true
+                })
+                if (types.length === 0) return null
+                return (
+                  <div key={category} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#8a958d', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, padding: '0 4px' }}>{category}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                      {types.map(t => (
+                        <button key={t} onClick={() => { addSection(t); setSectionSearch('') }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: '1px solid #eef1ed', borderRadius: 8, background: '#fafbf9', cursor: 'pointer', textAlign: 'left' }}>
+                          <span style={{ fontSize: 14 }}>{SECTION_META[t].icon}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#151a17' }}>{SECTION_META[t].label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
