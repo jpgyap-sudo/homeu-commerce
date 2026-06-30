@@ -8,6 +8,7 @@ const SETTINGS_TABS = [
   { href: '/admin/settings/social',        label: 'Social Channels', icon: '🌐' },
   { href: '/admin/settings/email',         label: 'Email / SMTP',   icon: '📧' },
   { href: '/admin/settings/ai',            label: 'AI / Chatbot',    icon: '🤖' },
+  { href: '/admin/settings/automation',    label: 'CRM Automation',   icon: '⚙️' },
   { href: '/admin/settings/notifications', label: 'Notifications',   icon: '🔔' },
   { href: '/admin/settings/cdn',           label: 'CDN / Storage',   icon: '☁️' },
   { href: '/admin/settings/urls',          label: 'Site URLs',       icon: '🔗' },
