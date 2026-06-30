@@ -256,6 +256,20 @@ export function headerFontGoogleQuery(stack: string): string | null {
  *             bottom bar and no synthetic welcome/quick-actions overlay
  */
 export async function getMobileNavStyle(): Promise<'tabs' | 'debut'> {
+  let isPreview = false
+  try {
+    const { headers } = require('next/headers')
+    const h = await headers()
+    isPreview = h.get('x-theme-preview') === '1'
+  } catch {}
+
+  if (isPreview) {
+    const draft = await getPreviewDraft()
+    if (draft && typeof (draft as any).mobileNavStyle === 'string') {
+      return (draft as any).mobileNavStyle === 'debut' ? 'debut' : 'tabs'
+    }
+  }
+
   const mobileSnapshot = await getMobileSnapshotIfNeeded()
   const value = mobileSnapshot?.settings?.mobile_nav_style
   return value === 'debut' ? 'debut' : 'tabs'
