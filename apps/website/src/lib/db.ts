@@ -1,4 +1,4 @@
-import { Pool, QueryResult } from 'pg'
+import { Pool, PoolClient, QueryResult } from 'pg'
 
 // Singleton PostgreSQL connection pool
 let pool: Pool | null = null
@@ -27,6 +27,23 @@ function getPool(): Pool {
  */
 export async function query(sql: string, params?: any[]): Promise<QueryResult> {
   return getPool().query(sql, params)
+}
+
+export async function transaction<T>(
+  fn: (client: Pick<PoolClient, 'query'>) => Promise<T>
+): Promise<T> {
+  const client = await getPool().connect()
+  try {
+    await client.query('BEGIN')
+    const result = await fn(client)
+    await client.query('COMMIT')
+    return result
+  } catch (err) {
+    await client.query('ROLLBACK')
+    throw err
+  } finally {
+    client.release()
+  }
 }
 
 /**

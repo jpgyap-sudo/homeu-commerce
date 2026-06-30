@@ -49,6 +49,7 @@ const SECTIONS: SidebarSection[] = [
   {
     id: 'content', label: 'Content', icon: '⬖',
     links: [
+      { href: '/admin/online-store', icon: 'OS', label: 'Online Store' },
       { href: '/admin/theme', icon: '◭', label: 'Theme' },
       { href: '/admin/blogs', icon: '✎', label: 'Blogs' },
       { href: '/admin/navigation', icon: '☰', label: 'Navigation' },

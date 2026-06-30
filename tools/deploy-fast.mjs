@@ -61,6 +61,13 @@ function deploy() {
   console.log('  📡 Sync VPS working tree to origin/master...')
   remote(`cd ${VPS_REPO} && git fetch origin -q && git reset --hard origin/master && echo "VPS now at $(git rev-parse --short HEAD)"`, 60000)
 
+  // 1.5. Apply pending database migrations before schema-dependent app code runs.
+  // Run through Compose so DATABASE_URI=...@postgres resolves on the Docker
+  // network, while mounting the host checkout because the production image is
+  // standalone and does not include tools/migrate.
+  console.log('  Apply pending database migrations...')
+  remote(`cd ${VPS_REPO} && docker compose run --rm --no-deps -v ${VPS_REPO}:${VPS_REPO} -w ${VPS_REPO} --entrypoint node website tools/migrate/migrate.mjs`, 180000)
+
   // 2. Keep the tracked nginx config as the production source of truth. Test
   //    before reload and restore the previous config if validation fails.
   console.log('  Sync + validate nginx config...')
