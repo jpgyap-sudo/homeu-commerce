@@ -583,7 +583,9 @@ export function ChatWidget() {
   const showBubble = true // Always show bubble
 
   // Admin can disable the widget entirely (Settings → Notifications)
-  if (widgetConfigLoaded && !widgetConfig.enableChat) return null
+  // Also suppress in theme editor preview iframe (ThemeEditor adds ?suppressChat=1)
+  const suppressChatPreview = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('suppressChat')
+  if ((widgetConfigLoaded && !widgetConfig.enableChat) || suppressChatPreview) return null
 
   return (
     <>

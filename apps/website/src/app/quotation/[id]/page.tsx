@@ -66,8 +66,23 @@ export default function QuotationViewPage() {
   const [showRevise, setShowRevise] = useState(false)
   const [reviseText, setReviseText] = useState('')
   const [showBankModal, setShowBankModal] = useState(false)
+  const [returnPath, setReturnPath] = useState('/')
+  const [returnLabel, setReturnLabel] = useState('Back to Home')
 
   useEffect(() => {
+    // Set context-aware back link based on ?from= query param or referrer
+    const from = new URLSearchParams(window.location.search).get('from')
+    if (from === 'admin') {
+      setReturnPath('/admin/quotations')
+      setReturnLabel('Back to Admin')
+    } else if (from === 'customer') {
+      setReturnPath('/customer/dashboard')
+      setReturnLabel('Back to Dashboard')
+    } else if (document.referrer?.includes('/admin/')) {
+      setReturnPath('/admin/quotations')
+      setReturnLabel('Back to Admin')
+    }
+
     async function loadQuotation() {
       try {
         const id = params?.id
@@ -165,7 +180,7 @@ export default function QuotationViewPage() {
           {error || 'Quotation not found'}
         </div>
         <p style={{ marginTop: 16, textAlign: 'center' }}>
-          <Link href="/" style={{ color: '#666' }}>&larr; Back to Home</Link>
+          <Link href={returnPath} style={{ color: '#666' }}>&larr; {returnLabel}</Link>
         </p>
       </main>
     )
@@ -185,8 +200,8 @@ export default function QuotationViewPage() {
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
-        <Link href="/" style={{ color: '#666', fontSize: 14, textDecoration: 'none' }}>
-          &larr; Back to Home
+        <Link href={returnPath} style={{ color: '#666', fontSize: 14, textDecoration: 'none' }}>
+          &larr; {returnLabel}
         </Link>
         <div style={{ display: 'flex', gap: 8 }}>
           <button

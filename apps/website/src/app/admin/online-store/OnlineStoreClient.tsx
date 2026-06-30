@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { StoreTheme } from '@/lib/store-themes'
 
-type Action = 'create' | 'import' | 'duplicate' | 'publish' | 'rename' | 'delete'
+type Action = 'create' | 'import' | 'duplicate' | 'publish' | 'publish_mobile' | 'rename' | 'delete'
 
 const storefrontUrl = process.env.NEXT_PUBLIC_SITE_URL || '/'
 
@@ -41,7 +41,8 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
 
   const liveTheme = useMemo(() => themes.find(theme => theme.role === 'live') || themes[0], [themes])
   const draftThemes = useMemo(() => themes.filter(theme => theme.role !== 'live' && theme.device_scope !== 'mobile'), [themes])
-  const mobileThemes = useMemo(() => themes.filter(theme => theme.device_scope === 'mobile'), [themes])
+  const mobileLiveTheme = useMemo(() => themes.find(theme => theme.role === 'mobile_live'), [themes])
+  const mobileThemes = useMemo(() => themes.filter(theme => theme.device_scope === 'mobile' && theme.role !== 'mobile_live'), [themes])
 
   async function refresh(message?: string) {
     const res = await fetch('/api/admin/online-store/themes')
@@ -70,6 +71,7 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
         action === 'import' ? 'Theme imported' :
         action === 'duplicate' ? 'Theme duplicated' :
         action === 'publish' ? 'Theme is live' :
+        action === 'publish_mobile' ? 'Mobile theme is live' :
         action === 'rename' ? 'Theme renamed' :
         'Theme deleted'
       await refresh(message)
@@ -280,8 +282,8 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, margin: '26px 0 14px' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 22, color: '#151a17', fontWeight: 800 }}>Mobile themes</h2>
-          <p style={{ margin: '4px 0 0', color: '#667168', fontSize: 13 }}>Mobile drafts are saved separately so phone-specific experiments do not replace the live desktop theme.</p>
+          <h2 style={{ margin: 0, fontSize: 22, color: '#151a17', fontWeight: 800 }}>Live mobile theme</h2>
+          <p style={{ margin: '4px 0 0', color: '#667168', fontSize: 13 }}>Phone visitors use this mobile theme snapshot. Edit it without touching the desktop live theme.</p>
         </div>
         <button onClick={() => createTheme('mobile')} disabled={busy === 'create:0'} className="luxe-btn luxe-btn-ghost">
           Create mobile theme
@@ -289,10 +291,27 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
       </div>
 
       <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, overflow: 'hidden' }}>
+        {mobileLiveTheme && (
+          <div style={{ display: 'grid', gridTemplateColumns: '92px minmax(0, 1fr) auto', gap: 18, alignItems: 'center', padding: 20, borderBottom: '1px solid #eef1ed' }}>
+            <ThemePreview theme={mobileLiveTheme} mobile />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 7, flexWrap: 'wrap' }}>
+                <ThemeName theme={mobileLiveTheme} editingName={editingName} nameDraft={nameDraft} setNameDraft={setNameDraft} startRename={startRename} commitRename={commitRename} cancelRename={cancelRename} />
+                <StatusBadge label="Mobile live" tone="green" />
+              </div>
+              <div style={{ color: '#667168', fontSize: 14 }}>Active for mobile visitors - {sectionCount(mobileLiveTheme, 'index')} home sections</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <Link href={`/admin/online-store/themes/${mobileLiveTheme.id}`} className="luxe-btn luxe-btn-primary" style={{ textDecoration: 'none' }}>Edit mobile theme</Link>
+              <button onClick={() => duplicate(mobileLiveTheme)} disabled={busy === `duplicate:${mobileLiveTheme.id}`} className="luxe-btn luxe-btn-ghost">Duplicate</button>
+              <button onClick={() => exportTheme(mobileLiveTheme)} className="luxe-btn luxe-btn-ghost">Export</button>
+            </div>
+          </div>
+        )}
         {mobileThemes.length === 0 ? (
-          <div style={{ padding: 34, textAlign: 'center', color: '#667168' }}>No mobile theme drafts yet.</div>
+          <div style={{ padding: 34, textAlign: 'center', color: '#667168' }}>No extra mobile draft themes yet.</div>
         ) : mobileThemes.map((theme, index) => (
-          <div key={theme.id} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0, 1fr) auto', gap: 18, alignItems: 'center', padding: 20, borderTop: index === 0 ? 0 : '1px solid #eef1ed' }}>
+          <div key={theme.id} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0, 1fr) auto', gap: 18, alignItems: 'center', padding: 20, borderTop: index === 0 && !mobileLiveTheme ? 0 : '1px solid #eef1ed' }}>
             <ThemePreview theme={theme} mobile />
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 7, flexWrap: 'wrap' }}>
@@ -302,7 +321,8 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
               <div style={{ color: '#667168', fontSize: 14 }}>Saved {formatDate(theme.updated_at)} - independent from live desktop</div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <Link href="/admin/theme?viewport=mobile" className="luxe-btn luxe-btn-primary" style={{ textDecoration: 'none' }}>Customize mobile</Link>
+              <Link href={`/admin/online-store/themes/${theme.id}`} className="luxe-btn luxe-btn-primary" style={{ textDecoration: 'none' }}>Edit draft</Link>
+              <button onClick={() => run('publish_mobile', theme.id)} disabled={busy === `publish_mobile:${theme.id}`} className="luxe-btn luxe-btn-ghost">Make mobile live</button>
               <button onClick={() => duplicate(theme)} disabled={busy === `duplicate:${theme.id}`} className="luxe-btn luxe-btn-ghost">Duplicate</button>
               <button onClick={() => startRename(theme)} className="luxe-btn luxe-btn-ghost">Rename</button>
               <button onClick={() => run('delete', theme.id)} disabled={busy === `delete:${theme.id}`} className="luxe-btn luxe-btn-ghost" style={{ color: '#b0392f' }}>Delete</button>

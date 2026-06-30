@@ -28,7 +28,7 @@ export interface StoreThemeSnapshot {
 export interface StoreTheme {
   id: number
   name: string
-  role: 'live' | 'unpublished'
+  role: 'live' | 'mobile_live' | 'unpublished'
   device_scope: 'desktop' | 'mobile'
   version: string
   source_theme_id: number | null
@@ -121,6 +121,27 @@ export async function ensureStoreThemes(): Promise<void> {
   )
 }
 
+export async function ensureMobileLiveTheme(): Promise<void> {
+  await ensureStoreThemes()
+  const existing = await query(`SELECT id FROM store_themes WHERE role = 'mobile_live' LIMIT 1`, [])
+  if (existing.rows.length > 0) return
+
+  const live = await query(`SELECT id, snapshot, version, performance_metrics FROM store_themes WHERE role = 'live' ORDER BY id DESC LIMIT 1`, [])
+  const snapshot = live.rows[0]?.snapshot || await captureCurrentThemeSnapshot()
+  await query(
+    `INSERT INTO store_themes (name, role, device_scope, version, source_theme_id, snapshot, performance_metrics, notes, is_system, published_at)
+     VALUES ($1, 'mobile_live', 'mobile', $2, $3, $4::jsonb, $5::jsonb, $6, true, NOW())`,
+    [
+      'Current live mobile theme',
+      live.rows[0]?.version || '1.0.0',
+      live.rows[0]?.id || null,
+      JSON.stringify(snapshot),
+      JSON.stringify(live.rows[0]?.performance_metrics || {}),
+      'Active mobile storefront theme, initially copied from the desktop live theme.',
+    ]
+  )
+}
+
 export async function syncLiveStoreThemeSnapshot(): Promise<void> {
   const live = await query(`SELECT id FROM store_themes WHERE role = 'live' ORDER BY published_at DESC NULLS LAST, id DESC LIMIT 1`, [])
   if (!live.rows[0]?.id) return
@@ -134,13 +155,14 @@ export async function syncLiveStoreThemeSnapshot(): Promise<void> {
 
 export async function listStoreThemes(): Promise<StoreTheme[]> {
   await ensureStoreThemes()
+  await ensureMobileLiveTheme()
   await syncLiveStoreThemeSnapshot()
 
   const res = await query(
     `SELECT id, name, role, device_scope, version, source_theme_id, snapshot, performance_metrics, notes, is_system,
             created_at, updated_at, published_at, duplicated_at
      FROM store_themes
-     ORDER BY CASE WHEN role = 'live' THEN 0 ELSE 1 END,
+     ORDER BY CASE WHEN role = 'live' THEN 0 WHEN role = 'mobile_live' THEN 1 ELSE 2 END,
               CASE WHEN device_scope = 'desktop' THEN 0 ELSE 1 END,
               updated_at DESC,
               id DESC`,
@@ -151,6 +173,7 @@ export async function listStoreThemes(): Promise<StoreTheme[]> {
 
 export async function duplicateStoreTheme(id: number, name?: string): Promise<StoreTheme> {
   await ensureStoreThemes()
+  await ensureMobileLiveTheme()
   const sourceRes = await query(`SELECT * FROM store_themes WHERE id = $1`, [id])
   const source = sourceRes.rows[0]
   if (!source) throw new Error('Theme not found')
@@ -179,6 +202,7 @@ export async function createStoreTheme(
   deviceScope: 'desktop' | 'mobile' = 'desktop'
 ): Promise<StoreTheme> {
   await ensureStoreThemes()
+  await ensureMobileLiveTheme()
   const snapshot = await captureCurrentThemeSnapshot()
   const defaultName = deviceScope === 'mobile' ? 'Mobile theme draft' : 'New theme draft'
 
@@ -201,6 +225,7 @@ export async function createStoreTheme(
 
 export async function importStoreTheme(payload: any): Promise<StoreTheme> {
   await ensureStoreThemes()
+  await ensureMobileLiveTheme()
 
   const incoming = payload?.theme && typeof payload.theme === 'object' ? payload.theme : payload
   const snapshot = assertSnapshot(incoming?.snapshot || incoming)
@@ -238,7 +263,7 @@ export async function renameStoreTheme(id: number, name: string): Promise<void> 
 
 export async function deleteStoreTheme(id: number): Promise<void> {
   const res = await query(
-    `DELETE FROM store_themes WHERE id = $1 AND role <> 'live'`,
+    `DELETE FROM store_themes WHERE id = $1 AND role NOT IN ('live', 'mobile_live')`,
     [id]
   )
   if (res.rowCount === 0) throw new Error('Only unpublished themes can be deleted')
@@ -290,4 +315,67 @@ export async function publishStoreTheme(id: number): Promise<void> {
       [id]
     )
   })
+}
+
+export async function publishMobileStoreTheme(id: number): Promise<void> {
+  await ensureStoreThemes()
+  await ensureMobileLiveTheme()
+  const themeRes = await query(`SELECT id, snapshot, device_scope FROM store_themes WHERE id = $1`, [id])
+  const theme = themeRes.rows[0]
+  if (!theme) throw new Error('Theme not found')
+  if ((theme.device_scope || 'desktop') !== 'mobile') throw new Error('Only mobile themes can replace the live mobile theme')
+  const snapshot = assertSnapshot(theme.snapshot)
+
+  await transaction(async (client) => {
+    await client.query(`UPDATE store_themes SET role = 'unpublished' WHERE role = 'mobile_live'`, [])
+    await client.query(
+      `UPDATE store_themes
+       SET role = 'mobile_live', device_scope = 'mobile', snapshot = $1::jsonb, published_at = NOW(), updated_at = NOW()
+       WHERE id = $2`,
+      [JSON.stringify(snapshot), id]
+    )
+  })
+}
+
+export async function getStoreThemeById(id: number): Promise<StoreTheme | null> {
+  await ensureStoreThemes()
+  await ensureMobileLiveTheme()
+  const res = await query(
+    `SELECT id, name, role, device_scope, version, source_theme_id, snapshot, performance_metrics, notes, is_system,
+            created_at, updated_at, published_at, duplicated_at
+     FROM store_themes WHERE id = $1 LIMIT 1`,
+    [id]
+  )
+  return res.rows[0] ? normalizeTheme(res.rows[0]) : null
+}
+
+export async function updateStoreThemeSnapshot(
+  id: number,
+  patch: { name?: string; snapshot?: any; performanceMetrics?: Record<string, any> }
+): Promise<StoreTheme> {
+  await ensureStoreThemes()
+  await ensureMobileLiveTheme()
+  const current = await getStoreThemeById(id)
+  if (!current) throw new Error('Theme not found')
+  const nextName = patch.name !== undefined ? String(patch.name).trim() : current.name
+  if (!nextName) throw new Error('Theme name is required')
+  const snapshot = patch.snapshot !== undefined ? assertSnapshot(patch.snapshot) : current.snapshot
+  const performanceMetrics = patch.performanceMetrics !== undefined ? patch.performanceMetrics : current.performance_metrics
+
+  const res = await query(
+    `UPDATE store_themes
+     SET name = $1, snapshot = $2::jsonb, performance_metrics = $3::jsonb, updated_at = NOW()
+     WHERE id = $4
+     RETURNING id, name, role, device_scope, version, source_theme_id, snapshot, performance_metrics, notes, is_system,
+               created_at, updated_at, published_at, duplicated_at`,
+    [nextName, JSON.stringify(snapshot), JSON.stringify(performanceMetrics || {}), id]
+  )
+  return normalizeTheme(res.rows[0])
+}
+
+export async function getMobileLiveThemeSnapshot(): Promise<StoreThemeSnapshot | null> {
+  await ensureStoreThemes()
+  await ensureMobileLiveTheme()
+  const res = await query(`SELECT snapshot FROM store_themes WHERE role = 'mobile_live' LIMIT 1`, [])
+  return res.rows[0]?.snapshot || null
 }

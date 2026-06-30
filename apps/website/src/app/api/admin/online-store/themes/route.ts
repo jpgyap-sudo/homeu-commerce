@@ -6,6 +6,7 @@ import {
   duplicateStoreTheme,
   importStoreTheme,
   listStoreThemes,
+  publishMobileStoreTheme,
   publishStoreTheme,
   renameStoreTheme,
 } from '@/lib/store-themes'
@@ -60,6 +61,12 @@ export async function POST(request: NextRequest) {
     if (action === 'publish') {
       if (!Number.isFinite(id)) return NextResponse.json({ error: 'Theme id is required' }, { status: 400 })
       await publishStoreTheme(id)
+      return NextResponse.json({ ok: true })
+    }
+
+    if (action === 'publish_mobile') {
+      if (!Number.isFinite(id)) return NextResponse.json({ error: 'Theme id is required' }, { status: 400 })
+      await publishMobileStoreTheme(id)
       return NextResponse.json({ ok: true })
     }
 

@@ -4,12 +4,43 @@
  */
 
 import { query } from '@/lib/db'
+import { getMobileLiveThemeSnapshot, type StoreThemeSnapshot } from '@/lib/store-themes'
 import type { HomepageSection } from '@/lib/theme-types'
 
 export type { SectionType, HomepageSection } from '@/lib/theme-types'
 export { SECTION_META, SECTION_TYPES } from '@/lib/theme-types'
 
 const FOOTER_TYPES = ['footer_brand', 'footer_quick_links', 'footer_newsletter', 'footer_social']
+
+async function isMobileRequest(): Promise<boolean> {
+  try {
+    const { headers } = require('next/headers')
+    const h = await headers()
+    if (h.get('x-theme-preview') === '1') return false
+    const ua = String(h.get('user-agent') || '').toLowerCase()
+    return /mobile|iphone|android|ipod|blackberry|iemobile|opera mini/.test(ua)
+  } catch {
+    return false
+  }
+}
+
+async function getMobileSnapshotIfNeeded(): Promise<StoreThemeSnapshot | null> {
+  if (!(await isMobileRequest())) return null
+  return getMobileLiveThemeSnapshot().catch(() => null)
+}
+
+function sectionsFromSnapshot(snapshot: StoreThemeSnapshot, template: string, includeDisabled = false): HomepageSection[] {
+  return (snapshot.sections || [])
+    .filter((s: any) => (s.template || 'index') === template)
+    .filter((s: any) => includeDisabled || s.enabled !== false)
+    .map((s: any, index: number) => ({
+      id: index + 1,
+      type: s.type,
+      position: s.position || (index + 1) * 10,
+      enabled: s.enabled !== false,
+      config: s.config || {},
+    }))
+}
 
 /**
  * Fetch homepage BODY sections in display order (enabled only by default).
@@ -50,6 +81,12 @@ export async function getTemplateSections(template: string, includeDisabled = fa
         .filter((s: any) => !FOOTER_TYPES.includes(s.type))
         .filter((s: any) => includeDisabled || s.enabled)
     }
+  }
+
+  const mobileSnapshot = await getMobileSnapshotIfNeeded()
+  if (mobileSnapshot) {
+    return sectionsFromSnapshot(mobileSnapshot, template, includeDisabled)
+      .filter((s: any) => !FOOTER_TYPES.includes(s.type))
   }
 
   try {
@@ -97,6 +134,12 @@ export async function getFooterSections(): Promise<HomepageSection[]> {
     }
   }
 
+  const mobileSnapshot = await getMobileSnapshotIfNeeded()
+  if (mobileSnapshot) {
+    return sectionsFromSnapshot(mobileSnapshot, 'index', false)
+      .filter((s: any) => FOOTER_TYPES.includes(s.type))
+  }
+
   try {
     const res = await query(
       `SELECT id, type, position, enabled, config
@@ -131,6 +174,11 @@ export async function getCustomCss(): Promise<string> {
     if (draft && typeof draft.css === 'string') {
       return draft.css
     }
+  }
+
+  const mobileSnapshot = await getMobileSnapshotIfNeeded()
+  if (mobileSnapshot && typeof mobileSnapshot.settings?.custom_css === 'string') {
+    return mobileSnapshot.settings.custom_css
   }
 
   try {
@@ -197,6 +245,11 @@ export async function getHeaderSettings(): Promise<HeaderSettings> {
     }
   }
 
+  const mobileSnapshot = await getMobileSnapshotIfNeeded()
+  if (mobileSnapshot?.settings?.header_settings && typeof mobileSnapshot.settings.header_settings === 'object') {
+    return { ...DEFAULT_HEADER, ...mobileSnapshot.settings.header_settings }
+  }
+
   try {
     const res = await query(`SELECT value FROM site_settings WHERE key = 'header_settings'`, [])
     const v = res.rows[0]?.value
@@ -237,6 +290,19 @@ export async function getThemePalette(): Promise<ThemePalette> {
     if (draft && draft.palette) {
       return { ...defaults, ...draft.palette }
     }
+  }
+
+  const mobileSnapshot = await getMobileSnapshotIfNeeded()
+  if (mobileSnapshot?.settings) {
+    const mobileDefaults = { ...defaults }
+    for (const [key, value] of Object.entries(mobileSnapshot.settings)) {
+      if (!key.startsWith('theme_')) continue
+      const k = key.replace('theme_', '')
+      if (k in mobileDefaults && value != null) {
+        ;(mobileDefaults as any)[k] = k === 'buttonRadius' ? Number(value) : String(value)
+      }
+    }
+    return mobileDefaults
   }
 
   try {
