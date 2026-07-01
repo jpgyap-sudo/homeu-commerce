@@ -44,6 +44,13 @@ interface NoCodeThemeStudioProps {
   preview: PreviewKind
   previewLabel: string
   presets?: ThemePreset[]
+  /** When set, the preview panel renders the real generated PDF (via this
+   *  endpoint) instead of the client-side mock preview. POST body is the
+   *  current (possibly unsaved) settings; response is the PDF binary. */
+  pdfPreviewEndpoint?: string
+  /** When set, shows a "Send test to my email" button that POSTs the
+   *  current settings to this endpoint, which emails a test PDF. */
+  testEmailEndpoint?: string
 }
 
 const shell: CSSProperties = {
@@ -96,12 +103,18 @@ export default function NoCodeThemeStudio({
   preview,
   previewLabel,
   presets = [],
+  pdfPreviewEndpoint,
+  testEmailEndpoint,
 }: NoCodeThemeStudioProps) {
   const [settings, setSettings] = useState<Record<string, any>>(defaults)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState('')
   const [activeSection, setActiveSection] = useState(sections[0]?.title || '')
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [pdfLoading, setPdfLoading] = useState(false)
+  const [sendingTest, setSendingTest] = useState(false)
+  const [testStatus, setTestStatus] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -121,6 +134,54 @@ export default function NoCodeThemeStudio({
       })
     return () => { cancelled = true }
   }, [defaults, endpoint])
+
+  // Real-PDF live preview: debounced re-render of the actual PDF whenever
+  // settings change, instead of the hand-built mock preview.
+  useEffect(() => {
+    if (!pdfPreviewEndpoint || loading) return
+    let cancelled = false
+    setPdfLoading(true)
+    const timer = setTimeout(() => {
+      fetch(pdfPreviewEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(settings),
+      })
+        .then(res => { if (!res.ok) throw new Error('Preview failed'); return res.blob() })
+        .then(blob => {
+          if (cancelled) return
+          const url = URL.createObjectURL(blob)
+          setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url })
+        })
+        .catch(() => {})
+        .finally(() => { if (!cancelled) setPdfLoading(false) })
+    }, 600)
+    return () => { cancelled = true; clearTimeout(timer) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings, pdfPreviewEndpoint, loading])
+
+  async function sendTest() {
+    if (!testEmailEndpoint) return
+    setSendingTest(true)
+    setTestStatus('')
+    try {
+      const res = await fetch(testEmailEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(settings),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Failed to send test email')
+      setTestStatus(`Sent to ${data.sentTo || 'your email'}`)
+    } catch (err: any) {
+      setTestStatus(err.message || 'Failed to send test email')
+    } finally {
+      setSendingTest(false)
+      setTimeout(() => setTestStatus(''), 4500)
+    }
+  }
 
   const active = useMemo(
     () => sections.find(section => section.title === activeSection) || sections[0],
@@ -255,7 +316,15 @@ export default function NoCodeThemeStudio({
                     key={field.key}
                     field={field}
                     value={settings[field.key]}
+                    customPresets={settings[`${field.key}__presets`] || []}
                     onChange={value => update(field.key, value)}
+                    onSaveCustomPreset={label => update(`${field.key}__presets`, [
+                      ...((settings[`${field.key}__presets`] as any[]) || []),
+                      { label, value: settings[field.key] },
+                    ])}
+                    onDeleteCustomPreset={index => update(`${field.key}__presets`, (
+                      (settings[`${field.key}__presets`] as any[]) || []
+                    ).filter((_, i) => i !== index))}
                   />
                 ))}
               </div>
@@ -264,18 +333,38 @@ export default function NoCodeThemeStudio({
         </aside>
 
         <section style={{ position: 'sticky', top: 118, display: 'grid', gap: 10 }}>
-          <div style={{ ...panel, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ ...panel, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <strong style={{ fontSize: 13, color: '#151a17' }}>{previewLabel}</strong>
-            <span style={{ color: '#667168', fontSize: 12 }}>Live mock preview</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {testStatus && <span style={{ fontSize: 11, color: testStatus.startsWith('Sent') ? '#17693a' : '#8a5a00', fontWeight: 700 }}>{testStatus}</span>}
+              {testEmailEndpoint && (
+                <button type="button" onClick={sendTest} disabled={sendingTest} className="luxe-btn luxe-btn-ghost" style={{ fontSize: 12, padding: '6px 10px' }}>
+                  {sendingTest ? 'Sending…' : 'Send test to my email'}
+                </button>
+              )}
+              <span style={{ color: '#667168', fontSize: 12 }}>{pdfPreviewEndpoint ? 'Live PDF preview' : 'Live mock preview'}</span>
+            </div>
           </div>
-          <PreviewFrame kind={preview} settings={settings} />
+          <PreviewFrame kind={preview} settings={settings} pdfPreviewEndpoint={pdfPreviewEndpoint} pdfUrl={pdfUrl} pdfLoading={pdfLoading} />
         </section>
       </div>
     </div>
   )
 }
 
-function FieldControl({ field, value, onChange }: { field: ThemeField; value: any; onChange: (value: any) => void }) {
+function FieldControl({
+  field, value, customPresets = [], onChange, onSaveCustomPreset, onDeleteCustomPreset,
+}: {
+  field: ThemeField
+  value: any
+  customPresets?: Array<{ label: string; value: string }>
+  onChange: (value: any) => void
+  onSaveCustomPreset?: (label: string) => void
+  onDeleteCustomPreset?: (index: number) => void
+}) {
+  const [savingPreset, setSavingPreset] = useState(false)
+  const [presetLabel, setPresetLabel] = useState('')
+
   if (field.type === 'toggle') {
     const checked = Boolean(value)
     return (
@@ -368,12 +457,13 @@ function FieldControl({ field, value, onChange }: { field: ThemeField; value: an
   }
 
   if (field.type === 'textarea') {
+    const hasPresets = (field.textPresets && field.textPresets.length > 0) || customPresets.length > 0
     return (
       <div>
         <label style={smallLabel}>{field.label}</label>
-        {field.textPresets && field.textPresets.length > 0 && (
+        {hasPresets && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 7 }}>
-            {field.textPresets.map(preset => (
+            {(field.textPresets || []).map(preset => (
               <button
                 key={preset.label}
                 type="button"
@@ -393,9 +483,81 @@ function FieldControl({ field, value, onChange }: { field: ThemeField; value: an
                 {preset.label}
               </button>
             ))}
+            {customPresets.map((preset, index) => (
+              <span
+                key={`custom-${index}-${preset.label}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  border: value === preset.value ? '1px solid #8a5a00' : '1px solid #efd48c',
+                  background: value === preset.value ? '#fff2cf' : '#fff9ec',
+                  borderRadius: 999,
+                  paddingRight: 3,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => onChange(preset.value)}
+                  title={preset.value}
+                  style={{ border: 0, background: 'transparent', color: '#8a5a00', fontSize: 11, fontWeight: 800, cursor: 'pointer', padding: '5px 4px 5px 11px' }}
+                >
+                  {preset.label}
+                </button>
+                {onDeleteCustomPreset && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteCustomPreset(index)}
+                    aria-label={`Remove preset ${preset.label}`}
+                    style={{ border: 0, background: 'transparent', color: '#8a5a00', fontSize: 13, fontWeight: 900, cursor: 'pointer', padding: '2px 6px', lineHeight: 1 }}
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
+            ))}
           </div>
         )}
         <textarea value={String(value || '')} rows={field.rows || 4} placeholder={field.placeholder} onChange={event => onChange(event.target.value)} style={{ ...input, minHeight: 92, resize: 'vertical', lineHeight: 1.45 }} />
+        {onSaveCustomPreset && (
+          savingPreset ? (
+            <div style={{ display: 'flex', gap: 6, marginTop: 7 }}>
+              <input
+                autoFocus
+                value={presetLabel}
+                onChange={event => setPresetLabel(event.target.value)}
+                placeholder="Preset name"
+                style={{ ...input, flex: 1, padding: '6px 9px', fontSize: 12 }}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' && presetLabel.trim()) {
+                    onSaveCustomPreset(presetLabel.trim())
+                    setPresetLabel('')
+                    setSavingPreset(false)
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => { if (presetLabel.trim()) { onSaveCustomPreset(presetLabel.trim()); setPresetLabel(''); setSavingPreset(false) } }}
+                className="luxe-btn luxe-btn-primary"
+                style={{ fontSize: 11, padding: '6px 10px' }}
+              >
+                Save
+              </button>
+              <button type="button" onClick={() => { setSavingPreset(false); setPresetLabel('') }} className="luxe-btn luxe-btn-ghost" style={{ fontSize: 11, padding: '6px 10px' }}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSavingPreset(true)}
+              style={{ marginTop: 7, border: '1px dashed #b9c3ba', background: 'transparent', color: '#5a655c', borderRadius: 6, padding: '5px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+            >
+              + Save current text as a preset
+            </button>
+          )
+        )}
         {field.help && <p style={{ margin: '5px 0 0', color: '#7a857d', fontSize: 11 }}>{field.help}</p>}
       </div>
     )
@@ -410,7 +572,32 @@ function FieldControl({ field, value, onChange }: { field: ThemeField; value: an
   )
 }
 
-function PreviewFrame({ kind, settings }: { kind: PreviewKind; settings: Record<string, any> }) {
+function PreviewFrame({
+  kind, settings, pdfPreviewEndpoint, pdfUrl, pdfLoading,
+}: {
+  kind: PreviewKind
+  settings: Record<string, any>
+  pdfPreviewEndpoint?: string
+  pdfUrl?: string | null
+  pdfLoading?: boolean
+}) {
+  if (pdfPreviewEndpoint) {
+    return (
+      <div style={{ ...panel, background: '#f5f7f4', padding: 0, minHeight: 780, position: 'relative' }}>
+        {pdfLoading && (
+          <div style={{ position: 'absolute', top: 10, right: 10, fontSize: 11, fontWeight: 700, color: '#667168', background: '#fff', padding: '4px 9px', borderRadius: 999, border: '1px solid #dfe6df', zIndex: 1 }}>
+            Updating preview…
+          </div>
+        )}
+        {pdfUrl ? (
+          <iframe src={pdfUrl} title="PDF preview" style={{ width: '100%', height: 780, border: 0, display: 'block' }} />
+        ) : (
+          <div style={{ padding: 60, textAlign: 'center', color: '#7a857d', fontSize: 13 }}>Generating preview…</div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div style={{ ...panel, background: '#f5f7f4', padding: 18, minHeight: 560 }}>
       {kind === 'product' && <ProductPreview settings={settings} />}

@@ -24,7 +24,7 @@ export default function InlineProductBrowser({ onAdd }: Props) {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [category, setCategory] = useState('')
-  const [categories, setCategories] = useState<{ id: number; title: string }[]>([])
+  const [categories, setCategories] = useState<{ id: number; title: string; slug: string }[]>([])
   const [added, setAdded] = useState<Set<string>>(new Set())
 
   // Debounce search input — 300ms
@@ -97,9 +97,9 @@ export default function InlineProductBrowser({ onAdd }: Props) {
               border: 'none', transition: 'all 0.1s',
             }}>All</button>
             {categories.map(c => (
-              <button key={c.id} onClick={() => setCategory(category === String(c.id) ? '' : String(c.id))} style={{
+              <button key={c.id} onClick={() => setCategory(category === c.slug ? '' : c.slug)} style={{
                 padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                background: category === String(c.id) ? '#151a17' : '#f4f6f2', color: category === String(c.id) ? '#fff' : '#667168',
+                background: category === c.slug ? '#151a17' : '#f4f6f2', color: category === c.slug ? '#fff' : '#667168',
                 border: 'none', transition: 'all 0.1s',
               }}>{c.title}</button>
             ))}

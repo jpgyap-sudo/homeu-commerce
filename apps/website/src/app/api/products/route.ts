@@ -34,13 +34,16 @@ export async function GET(request: NextRequest) {
     }
 
     if (category) {
+      const isNumericId = /^\d+$/.test(category)
+      const numericId = isNumericId ? parseInt(category, 10) : -1
+
       // Smart collections (e.g. "Limited-Time Collection Offer") aren't tied
       // to a product's single category_id — they're a dynamic rule (like
       // SALE_PRICE > 0) evaluated across the whole catalog. Check for one
       // before falling back to the normal category_id/tag matching.
       const smartResult = await query(
-        `SELECT rules, rules_match FROM categories WHERE LOWER(slug) = LOWER($1) AND collection_type = 'smart' LIMIT 1`,
-        [category]
+        `SELECT rules, rules_match FROM categories WHERE (LOWER(slug) = LOWER($1) OR (id = $2::int AND collection_type = 'smart')) LIMIT 1`,
+        [category, numericId]
       )
       if (smartResult.rowCount && smartResult.rowCount > 0) {
         const { where, params } = compileRules(
@@ -53,22 +56,33 @@ export async function GET(request: NextRequest) {
         paramIndex += params.length
       } else {
         paramIndex++
-        // Match by the product's primary category (slug or legacy title)…
-        const categoryChecks = [
-          `EXISTS (SELECT 1 FROM categories c WHERE c.id = p.category_id AND (LOWER(c.slug) = LOWER($${paramIndex}) OR LOWER(c.title) = LOWER($${paramIndex})))`,
-        ]
+        const slugParam = paramIndex
         values.push(category)
-        // …OR by collection_products (many-to-many — the real Shopify-import
-        // membership; a product can be in several collections at once, e.g.
-        // both "Dining Chair" and "48 Hour Dispatch").
+
         paramIndex++
+        const idParam = paramIndex
+        values.push(numericId)
+
+        // Match by the product's primary category (slug, legacy title, or ID)…
+        const categoryChecks = [
+          `EXISTS (SELECT 1 FROM categories c WHERE c.id = p.category_id AND (LOWER(c.slug) = LOWER($${slugParam}) OR LOWER(c.title) = LOWER($${slugParam}) OR c.id = $${idParam}::int))`,
+        ]
+
+        // …OR by collection_products (many-to-many)
+        paramIndex++
+        const slugParam2 = paramIndex
+        values.push(category)
+
+        paramIndex++
+        const idParam2 = paramIndex
+        values.push(numericId)
+
         categoryChecks.push(
           `EXISTS (SELECT 1 FROM collection_products cp JOIN categories c2 ON c2.id = cp.collection_id
-            WHERE cp.product_id = p.id AND (LOWER(c2.slug) = LOWER($${paramIndex}) OR LOWER(c2.title) = LOWER($${paramIndex})))`
+            WHERE cp.product_id = p.id AND (LOWER(c2.slug) = LOWER($${slugParam2}) OR LOWER(c2.title) = LOWER($${slugParam2}) OR c2.id = $${idParam2}::int))`
         )
-        values.push(category)
-        // …OR by the Shopify smart-collection TAG rule for this handle, so the
-        // granular nav dropdowns (sofa, pendant-light, rugs, …) resolve.
+
+        // …OR by the Shopify smart-collection TAG rule for this handle
         const tagCond = buildCategoryTagCondition(category, paramIndex + 1)
         if (tagCond) {
           categoryChecks.push(tagCond.sql)

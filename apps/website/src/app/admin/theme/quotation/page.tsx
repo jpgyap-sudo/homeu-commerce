@@ -89,7 +89,16 @@ const sections: ThemeFieldSection[] = [
           },
         ],
       },
-      { key: 'footerText', label: 'Footer text', type: 'text' },
+      {
+        key: 'footerText',
+        label: 'Footer text',
+        type: 'textarea',
+        rows: 2,
+        textPresets: [
+          { label: 'Default thank-you', value: 'Thank you for choosing Home Atelier' },
+          { label: 'Contact prompt', value: 'If you have any questions about this quotation, please contact sales@homeu.ph' },
+        ],
+      },
       { key: 'showPageNumbers', label: 'Show page numbers', type: 'toggle' },
     ],
   },
@@ -119,6 +128,8 @@ export default function QuotationThemePage() {
       preview="quotation"
       previewLabel="Quotation PDF preview"
       presets={presets}
+      pdfPreviewEndpoint="/api/admin/theme/quotation/preview-pdf"
+      testEmailEndpoint="/api/admin/theme/quotation/send-test"
     />
   )
 }

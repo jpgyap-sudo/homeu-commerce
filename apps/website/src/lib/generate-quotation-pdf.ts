@@ -62,7 +62,7 @@ interface QuotationItem {
   totalPrice?: number
 }
 
-interface QuotationData {
+export interface QuotationData {
   id: number
   quotationNumber?: string
   title?: string
