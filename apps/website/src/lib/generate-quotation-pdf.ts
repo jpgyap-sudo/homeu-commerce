@@ -231,7 +231,7 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Uint8Ar
   const logoBase64 = await getLogoBase64()
   if (logoBase64) {
     try {
-      doc.addImage(logoBase64, 'PNG', M, 13, 52, 18)
+      doc.addImage(logoBase64, 'PNG', M, 10, 65, 22.5)
     } catch (err) {
       console.error('Error adding brand logo to PDF:', err)
       doc.setFont('times', 'bold')
@@ -255,8 +255,8 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Uint8Ar
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(6.5)
   doc.setTextColor(...INK)
-  doc.text('Phone: +63 2 8703 1996', M, 36)
-  doc.text('Email: sales@homeu.ph', M, 39.5)
+  doc.text('Phone: +63 2 8703 1996', M, 37.5)
+  doc.text('Email: sales@homeu.ph', M, 41)
 
   // 2. Order details (Right block)
   doc.setFont('helvetica', 'bold')

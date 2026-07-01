@@ -89,6 +89,11 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [userTabs, setUserTabs] = useState<string[]>(['*'])
+  const [counts, setCounts] = useState<{ quotations: number; rfqs: number; appointments: number }>({
+    quotations: 0,
+    rfqs: 0,
+    appointments: 0,
+  })
 
   useEffect(() => {
     if (isLogin) return
@@ -96,6 +101,22 @@ export default function AdminShell({ children }: { children: ReactNode }) {
       const tabs = d.user?.tabs
       if (Array.isArray(tabs) && tabs.length > 0) setUserTabs(tabs)
     }).catch(() => {})
+  }, [isLogin])
+
+  useEffect(() => {
+    if (isLogin) return
+    async function loadCounts() {
+      try {
+        const res = await fetch('/api/admin/sidebar-counts')
+        if (res.ok) {
+          const data = await res.json()
+          setCounts(data)
+        }
+      } catch {}
+    }
+    loadCounts()
+    const interval = setInterval(loadCounts, 30000)
+    return () => clearInterval(interval)
   }, [isLogin])
 
   const canSeeSection = (id: string) => userTabs.includes('*') || userTabs.includes(id)
@@ -207,19 +228,29 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                   className={`sidebar-section-links ${isExpanded ? 'expanded' : 'collapsed'}`}
                   style={{ maxHeight: isExpanded ? `${section.links.length * 40 + 20}px` : '0px' }}
                 >
-                  {section.links.map(link => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={`luxe-sidebar-link ${isActive(link.href) ? 'active' : ''}`}
-                    >
-                      <span className="luxe-sidebar-icon">{link.icon}</span>
-                      {link.label}
-                      {link.badge && (
-                        <span className="luxe-sidebar-badge">{link.badge}</span>
-                      )}
-                    </Link>
-                  ))}
+                  {section.links.map(link => {
+                    const getBadge = (href: string) => {
+                      if (href === '/admin/quotations' && counts.quotations > 0) return String(counts.quotations)
+                      if (href === '/admin/rfq' && counts.rfqs > 0) return String(counts.rfqs)
+                      if (href === '/admin/collections/appointments' && counts.appointments > 0) return String(counts.appointments)
+                      return null
+                    }
+                    const badge = link.badge || getBadge(link.href)
+
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className={`luxe-sidebar-link ${isActive(link.href) ? 'active' : ''}`}
+                      >
+                        <span className="luxe-sidebar-icon">{link.icon}</span>
+                        {link.label}
+                        {badge && (
+                          <span className="luxe-sidebar-badge">{badge}</span>
+                        )}
+                      </Link>
+                    )
+                  })}
                 </div>
               </div>
             )
