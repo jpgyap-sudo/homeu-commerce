@@ -1,178 +1,86 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { getGlobalSettings } from '@/lib/theme-builder-settings'
-import DynamicSettingsForm from '@/components/admin/DynamicSettingsForm'
+import NoCodeThemeStudio, { type ThemeFieldSection, type ThemePreset } from '../NoCodeThemeStudio'
 
-const card: React.CSSProperties = {
-  background: '#fff',
-  border: '1px solid #d9e0d7',
-  borderRadius: 12,
-  marginBottom: 14,
-  overflow: 'hidden',
+const defaults = {
+  primaryColor: '#1a6d3e',
+  secondaryColor: '#151a17',
+  accentColor: '#b88935',
+  bodyBg: '#f7f4ee',
+  textColor: '#151a17',
+  mutedColor: '#667168',
+  borderColor: '#d9e0d7',
+  headingFont: 'Crimson Text, Georgia, serif',
+  bodyFont: 'Inter, sans-serif',
+  buttonRadius: 8,
+  buttonStyle: 'filled',
+  buttonUppercase: false,
+  layoutMaxWidth: 1200,
+  sectionGap: 48,
+  customCss: '',
 }
 
-const sectionTitle: React.CSSProperties = {
-  padding: '16px 20px',
-  fontSize: 14,
-  fontWeight: 700,
-  color: '#151a17',
-  borderBottom: '1px solid #d9e0d7',
-  background: '#fafbf9',
-}
+const sections: ThemeFieldSection[] = [
+  {
+    title: 'Brand colors',
+    description: 'Site-wide color tokens',
+    fields: [
+      { key: 'primaryColor', label: 'Primary color', type: 'color' },
+      { key: 'secondaryColor', label: 'Secondary color', type: 'color' },
+      { key: 'accentColor', label: 'Accent color', type: 'color' },
+      { key: 'bodyBg', label: 'Page background', type: 'color' },
+      { key: 'textColor', label: 'Text color', type: 'color' },
+      { key: 'mutedColor', label: 'Muted text', type: 'color' },
+      { key: 'borderColor', label: 'Border color', type: 'color' },
+    ],
+  },
+  {
+    title: 'Typography',
+    description: 'Readable brand type without code',
+    fields: [
+      { key: 'headingFont', label: 'Heading font stack', type: 'text' },
+      { key: 'bodyFont', label: 'Body font stack', type: 'text' },
+    ],
+  },
+  {
+    title: 'Buttons and spacing',
+    description: 'Reusable storefront rhythm',
+    fields: [
+      { key: 'buttonRadius', label: 'Button radius', type: 'range', min: 0, max: 24, step: 2, unit: 'px' },
+      { key: 'buttonStyle', label: 'Button style', type: 'select', options: [
+        { value: 'filled', label: 'Filled' },
+        { value: 'outline', label: 'Outline' },
+      ] },
+      { key: 'buttonUppercase', label: 'Uppercase button labels', type: 'toggle' },
+      { key: 'layoutMaxWidth', label: 'Content max width', type: 'range', min: 960, max: 1440, step: 40, unit: 'px' },
+      { key: 'sectionGap', label: 'Section gap', type: 'range', min: 20, max: 96, step: 4, unit: 'px' },
+    ],
+  },
+  {
+    title: 'Advanced CSS',
+    description: 'Fallback only for edge cases',
+    fields: [
+      { key: 'customCss', label: 'Custom CSS', type: 'textarea', rows: 10, placeholder: '/* Optional CSS */' },
+    ],
+  },
+]
+
+const presets: ThemePreset[] = [
+  { label: 'HomeU balanced', description: 'Warm neutral canvas with green and gold accents.', values: defaults },
+  { label: 'Sharper operations', description: 'Cleaner contrast for admin-like utility pages.', values: { bodyBg: '#f5f6f4', textColor: '#101713', borderColor: '#cfd8cc', buttonRadius: 4, sectionGap: 36 } },
+]
 
 export default function GlobalThemePage() {
-  const [settings, setSettings] = useState<Record<string, any>>({})
-  const [customCss, setCustomCss] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-
-  const globalSettingsDefs = getGlobalSettings()
-
-  useEffect(() => {
-    fetch('/api/admin/theme/global')
-      .then(r => r.json())
-      .then(data => {
-        if (data && typeof data === 'object') {
-          // Extract customCss from the settings object
-          if (data.customCss !== undefined) {
-            setCustomCss(typeof data.customCss === 'string' ? data.customCss : '')
-            delete data.customCss
-          }
-          setSettings(data)
-        }
-      })
-      .catch(() => {})
-  }, [])
-
-  async function handleSave() {
-    setSaving(true)
-    try {
-      const res = await fetch('/api/admin/theme/global', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...settings, customCss }),
-      })
-      if (res.ok) {
-        setSaved(true)
-        setTimeout(() => setSaved(false), 2000)
-      }
-    } catch {}
-    setSaving(false)
-  }
-
-  function update(key: string, value: any) {
-    setSettings(prev => ({ ...prev, [key]: value }))
-  }
-
   return (
-    <div style={{ maxWidth: 800 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--luxe-navy-900)' }}>🎨 Global Theme Settings</h2>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--luxe-slate-400)' }}>
-            Colors, typography, button styles, layout, and custom CSS that apply site-wide
-          </p>
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="luxe-btn luxe-btn-primary"
-          style={{ textDecoration: 'none', opacity: saving ? 0.6 : 1 }}
-        >
-          {saving ? 'Saving...' : saved ? '✅ Saved!' : 'Save Settings'}
-        </button>
-      </div>
-
-      {/* ── Palette ──────────────────────────────────────────────────── */}
-      <div style={card}>
-        <div style={sectionTitle}>🎨 Color Palette</div>
-        <div style={{ padding: 20 }}>
-          <DynamicSettingsForm
-            settings={globalSettingsDefs.filter(s => s.group === 'Palette')}
-            config={settings}
-            onChange={update}
-          />
-        </div>
-      </div>
-
-      {/* ── Typography ────────────────────────────────────────────────── */}
-      <div style={card}>
-        <div style={sectionTitle}>🔤 Typography</div>
-        <div style={{ padding: 20 }}>
-          <DynamicSettingsForm
-            settings={globalSettingsDefs.filter(s => s.group === 'Typography')}
-            config={settings}
-            onChange={update}
-          />
-        </div>
-      </div>
-
-      {/* ── Buttons ──────────────────────────────────────────────────── */}
-      <div style={card}>
-        <div style={sectionTitle}>🔘 Buttons</div>
-        <div style={{ padding: 20 }}>
-          <DynamicSettingsForm
-            settings={globalSettingsDefs.filter(s => s.group === 'Buttons')}
-            config={settings}
-            onChange={update}
-          />
-        </div>
-      </div>
-
-      {/* ── Layout ────────────────────────────────────────────────────── */}
-      <div style={card}>
-        <div style={sectionTitle}>📐 Layout</div>
-        <div style={{ padding: 20 }}>
-          <DynamicSettingsForm
-            settings={globalSettingsDefs.filter(s => s.group === 'Layout')}
-            config={settings}
-            onChange={update}
-          />
-        </div>
-      </div>
-
-      {/* ── SEO ───────────────────────────────────────────────────────── */}
-      <div style={card}>
-        <div style={sectionTitle}>🔍 SEO</div>
-        <div style={{ padding: 20 }}>
-          <DynamicSettingsForm
-            settings={globalSettingsDefs.filter(s => s.group === 'SEO')}
-            config={settings}
-            onChange={update}
-          />
-        </div>
-      </div>
-
-      {/* ── Custom CSS ────────────────────────────────────────────────── */}
-      <div style={card}>
-        <div style={sectionTitle}>⚙️ Custom CSS</div>
-        <div style={{ padding: 20 }}>
-          <label style={{ display: 'block', fontSize: 12, color: '#667168', marginBottom: 8 }}>
-            Advanced: inject custom CSS rules that apply site-wide. Use with caution.
-          </label>
-          <textarea
-            value={customCss}
-            onChange={e => setCustomCss(e.target.value)}
-            rows={12}
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1.5px solid #d9e0d7',
-              borderRadius: 8,
-              fontSize: 13,
-              fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-              background: '#1a1a2e',
-              color: '#e4e4e4',
-              outline: 'none',
-              resize: 'vertical',
-              boxSizing: 'border-box',
-              lineHeight: 1.6,
-            }}
-            placeholder="/* Add custom CSS rules here */"
-          />
-        </div>
-      </div>
-    </div>
+    <NoCodeThemeStudio
+      title="Global Theme Builder"
+      description="Control the shared brand system: colors, type, buttons, spacing, and safe advanced CSS."
+      endpoint="/api/admin/theme/global"
+      defaults={defaults}
+      sections={sections}
+      preview="global"
+      previewLabel="Global style preview"
+      presets={presets}
+    />
   )
 }

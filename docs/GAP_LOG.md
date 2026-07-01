@@ -3,7 +3,7 @@
 > **Purpose:** Single source of truth for known gaps, missing features, and technical debt across the DaVinciOS system.
 > **Scope:** Covers the DaVinciOS CMS backend, chatbot concierge, API routes, admin panel, frontend components, collections, deployment pipeline, and agent definitions.
 > **Status:** Active — gaps are logged for tracking by all Kilo Code extensions and agents.
-> **Last Updated:** 2026-07-01 00:15:00+08:00
+> **Last Updated:** 2026-07-01 16:20:00+08:00
 
 ---
 
@@ -849,9 +849,9 @@ gate** before any build/deploy (see root `CLAUDE.md`). When it reports a
 | **File(s)** | [`apps/website/src/app/admin/quotations/`](apps/website/src/app/admin/quotations/), [`apps/website/src/app/quotation/[id]/page.tsx`](apps/website/src/app/quotation/[id]/page.tsx), [`apps/website/src/app/customer/quotation/[id]/page.tsx`](apps/website/src/app/customer/quotation/[id]/page.tsx) |
 | **Type** | Missing sales workflow |
 | **Status** | Active |
-| **Description** | Formal quotation creation and PDF output exist, but there is no immutable revision history, structured customer approval/rejection, item-level change request, expiry acceptance, e-signature, or deposit/payment milestone. |
-| **Impact** | Agreement and changes move into email or chat, weakening auditability and making quotation-to-close conversion difficult to measure. |
-| **Fix Guidance** | Add quotation revisions and snapshots, secure approval links, expiry and terms acknowledgement, comments/change requests, staff countersignature where needed, and provider-neutral deposit records before adding payment execution. |
+| **Description** | Formal quotation creation and PDF output exist, but the customer revision flow is still too free-text driven. There is no line-item change request UI, revision summary tray, smart parsing of typed requests, side-by-side quote version compare, quote-scoped revision chat, one-tap accept after revision, expiry acceptance, e-signature, or deposit/payment milestone. |
+| **Impact** | Customers must type vague requests such as "remove augustin pouf", which pushes interpretation into manual admin work, creates back-and-forth, weakens auditability, and makes quotation-to-close conversion difficult to measure. |
+| **Fix Guidance** | Build a frictionless revision workspace: add per-line item actions (`Remove`, `Change quantity`, `Change finish/color`, `Swap product`, `Ask for lower price`, `Need lead time`), a visible revision summary tray before submit, a smart text parser that converts free text into confirmable structured changes, side-by-side original vs revised comparison with changed lines highlighted, quote-scoped revision chat/events, `Accept Revised Quote` / `Request One More Change` actions, and an admin revision task view that opens with affected items preselected. Keep quotation revisions/snapshots immutable, include secure approval links, expiry and terms acknowledgement, staff countersignature where needed, and provider-neutral deposit records before adding payment execution. |
 
 ### GAP-MED-039: Product Completeness and Image Quality Are Not Enforced
 
@@ -1531,6 +1531,7 @@ The existing Playwright audit reported 113 passes, one timeout, and five warning
 
 | Date | Gap ID | Discovered By | Notes |
 |------|--------|---------------|-------|
+| 2026-07-01 | GAP-MED-038 | Codex / owner feedback | Expanded quotation lifecycle gap with frictionless revision UX: line-item revision buttons, revision summary tray, smart free-text parser, side-by-side version compare, quote-scoped revision chat, one-tap accept after revision, and admin revision workspace. |
 | 2026-06-20 | GAP-HIGH-019 through GAP-HIGH-022 | Codex theme-builder audit | Typed form is bypassed, mutations/import are unsafe, many settings are inert, and editing scope stops at homepage/header/footer |
 | 2026-06-20 | GAP-MED-041 through GAP-MED-046 | Codex theme-builder audit | Global/footer contracts, preview usability, asset health, responsive controls, and onboarding gaps |
 | 2026-06-20 | GAP-CRIT-004 | Codex comprehensive feature audit | Admin OTP generation returns the OTP to the requester and logs it |

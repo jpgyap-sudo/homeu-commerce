@@ -1,0 +1,563 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
+
+type FieldType = 'toggle' | 'select' | 'range' | 'text' | 'textarea' | 'color'
+
+export interface ThemeField {
+  key: string
+  label: string
+  type: FieldType
+  help?: string
+  min?: number
+  max?: number
+  step?: number
+  unit?: string
+  placeholder?: string
+  rows?: number
+  options?: Array<{ value: string; label: string; help?: string }>
+}
+
+export interface ThemeFieldSection {
+  title: string
+  description?: string
+  fields: ThemeField[]
+}
+
+export interface ThemePreset {
+  label: string
+  description: string
+  values: Record<string, any>
+}
+
+type PreviewKind = 'product' | 'account' | 'mobile' | 'global' | 'quotation'
+
+interface NoCodeThemeStudioProps {
+  title: string
+  description: string
+  endpoint: string
+  defaults: Record<string, any>
+  sections: ThemeFieldSection[]
+  preview: PreviewKind
+  previewLabel: string
+  presets?: ThemePreset[]
+}
+
+const shell: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))',
+  gap: 18,
+  alignItems: 'start',
+}
+
+const panel: CSSProperties = {
+  background: '#fff',
+  border: '1px solid #d9e0d7',
+  borderRadius: 8,
+  overflow: 'hidden',
+}
+
+const input: CSSProperties = {
+  width: '100%',
+  boxSizing: 'border-box',
+  border: '1px solid #ccd6cf',
+  borderRadius: 6,
+  background: '#fff',
+  color: '#17211b',
+  font: 'inherit',
+  fontSize: 13,
+  padding: '9px 11px',
+  outline: 'none',
+}
+
+const smallLabel: CSSProperties = {
+  display: 'block',
+  color: '#3a4339',
+  fontSize: 12,
+  fontWeight: 800,
+  marginBottom: 6,
+}
+
+function mergeDefaults(defaults: Record<string, any>, data: any) {
+  return data && typeof data === 'object' && !Array.isArray(data)
+    ? { ...defaults, ...data }
+    : { ...defaults }
+}
+
+export default function NoCodeThemeStudio({
+  title,
+  description,
+  endpoint,
+  defaults,
+  sections,
+  preview,
+  previewLabel,
+  presets = [],
+}: NoCodeThemeStudioProps) {
+  const [settings, setSettings] = useState<Record<string, any>>(defaults)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState('')
+  const [activeSection, setActiveSection] = useState(sections[0]?.title || '')
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(endpoint, { credentials: 'include' })
+      .then(async res => {
+        if (!res.ok) throw new Error('Could not load theme settings')
+        return res.json()
+      })
+      .then(data => {
+        if (!cancelled) setSettings(mergeDefaults(defaults, data))
+      })
+      .catch(err => {
+        if (!cancelled) setStatus(err.message || 'Could not load theme settings')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [defaults, endpoint])
+
+  const active = useMemo(
+    () => sections.find(section => section.title === activeSection) || sections[0],
+    [activeSection, sections]
+  )
+
+  function update(key: string, value: any) {
+    setSettings(prev => ({ ...prev, [key]: value }))
+    setStatus('')
+  }
+
+  async function save() {
+    setSaving(true)
+    setStatus('')
+    try {
+      const res = await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(settings),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Save failed')
+      setStatus('Saved')
+      setTimeout(() => setStatus(''), 2200)
+    } catch (err: any) {
+      setStatus(err.message || 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function applyPreset(values: Record<string, any>) {
+    setSettings(prev => ({ ...prev, ...values }))
+    setStatus('Preset applied. Save to publish it.')
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'flex-start' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 850, color: '#151a17', letterSpacing: 0 }}>{title}</h2>
+          <p style={{ margin: '5px 0 0', color: '#667168', fontSize: 13, maxWidth: 720 }}>{description}</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {status && (
+            <span style={{
+              color: status === 'Saved' ? '#17693a' : '#8a5a00',
+              background: status === 'Saved' ? '#e8f3ec' : '#fff6df',
+              border: `1px solid ${status === 'Saved' ? '#b7d4c2' : '#efd48c'}`,
+              borderRadius: 999,
+              padding: '7px 10px',
+              fontSize: 12,
+              fontWeight: 800,
+            }}>
+              {status}
+            </span>
+          )}
+          <button type="button" onClick={() => setSettings({ ...defaults })} className="luxe-btn luxe-btn-ghost">Reset</button>
+          <button type="button" onClick={save} disabled={saving || loading} className="luxe-btn luxe-btn-primary">
+            {saving ? 'Saving' : 'Save'}
+          </button>
+        </div>
+      </div>
+
+      <div style={shell}>
+        <aside style={{ display: 'grid', gap: 12 }}>
+          {presets.length > 0 && (
+            <section style={panel}>
+              <div style={{ padding: '13px 15px', borderBottom: '1px solid #eef1ed' }}>
+                <strong style={{ fontSize: 13, color: '#151a17' }}>Starter presets</strong>
+              </div>
+              <div style={{ padding: 12, display: 'grid', gap: 8 }}>
+                {presets.map(preset => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => applyPreset(preset.values)}
+                    style={{
+                      textAlign: 'left',
+                      border: '1px solid #dfe6df',
+                      background: '#fbfcfa',
+                      borderRadius: 6,
+                      padding: 11,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{ display: 'block', color: '#151a17', fontSize: 13, fontWeight: 850 }}>{preset.label}</span>
+                    <span style={{ display: 'block', color: '#667168', fontSize: 11, marginTop: 3 }}>{preset.description}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <nav style={{ ...panel, padding: 8, display: 'grid', gap: 4 }}>
+            {sections.map(section => {
+              const selected = active?.title === section.title
+              return (
+                <button
+                  key={section.title}
+                  type="button"
+                  onClick={() => setActiveSection(section.title)}
+                  style={{
+                    border: selected ? '1px solid #a9c9b6' : '1px solid transparent',
+                    background: selected ? '#eef6f1' : 'transparent',
+                    color: selected ? '#145c35' : '#3a4339',
+                    borderRadius: 6,
+                    padding: '10px 11px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontSize: 13,
+                    fontWeight: 850,
+                  }}
+                >
+                  {section.title}
+                  {section.description && <span style={{ display: 'block', marginTop: 2, color: '#7a857d', fontSize: 11, fontWeight: 600 }}>{section.description}</span>}
+                </button>
+              )
+            })}
+          </nav>
+
+          {active && (
+            <section style={panel}>
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid #eef1ed' }}>
+                <strong style={{ color: '#151a17', fontSize: 14 }}>{active.title}</strong>
+                {active.description && <p style={{ margin: '4px 0 0', color: '#667168', fontSize: 12 }}>{active.description}</p>}
+              </div>
+              <div style={{ padding: 16, display: 'grid', gap: 16 }}>
+                {active.fields.map(field => (
+                  <FieldControl
+                    key={field.key}
+                    field={field}
+                    value={settings[field.key]}
+                    onChange={value => update(field.key, value)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </aside>
+
+        <section style={{ position: 'sticky', top: 118, display: 'grid', gap: 10 }}>
+          <div style={{ ...panel, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong style={{ fontSize: 13, color: '#151a17' }}>{previewLabel}</strong>
+            <span style={{ color: '#667168', fontSize: 12 }}>Live mock preview</span>
+          </div>
+          <PreviewFrame kind={preview} settings={settings} />
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function FieldControl({ field, value, onChange }: { field: ThemeField; value: any; onChange: (value: any) => void }) {
+  if (field.type === 'toggle') {
+    const checked = Boolean(value)
+    return (
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+        <div>
+          <label style={{ color: '#3a4339', fontSize: 13, fontWeight: 800 }}>{field.label}</label>
+          {field.help && <p style={{ margin: '3px 0 0', color: '#7a857d', fontSize: 11 }}>{field.help}</p>}
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(!checked)}
+          aria-pressed={checked}
+          style={{
+            width: 46,
+            height: 25,
+            border: 0,
+            borderRadius: 999,
+            background: checked ? '#1a6d3e' : '#cbd6ce',
+            position: 'relative',
+            cursor: 'pointer',
+            flex: '0 0 auto',
+          }}
+        >
+          <span style={{
+            position: 'absolute',
+            top: 3,
+            left: checked ? 24 : 3,
+            width: 19,
+            height: 19,
+            borderRadius: '50%',
+            background: '#fff',
+            transition: 'left 140ms ease',
+          }} />
+        </button>
+      </div>
+    )
+  }
+
+  if (field.type === 'select') {
+    return (
+      <div>
+        <label style={smallLabel}>{field.label}</label>
+        <select value={value ?? ''} onChange={event => onChange(event.target.value)} style={input}>
+          {(field.options || []).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+        {field.help && <p style={{ margin: '5px 0 0', color: '#7a857d', fontSize: 11 }}>{field.help}</p>}
+      </div>
+    )
+  }
+
+  if (field.type === 'range') {
+    const numeric = Number(value ?? field.min ?? 0)
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 5 }}>
+          <label style={{ color: '#3a4339', fontSize: 13, fontWeight: 800 }}>{field.label}</label>
+          <span style={{ fontSize: 12, color: '#151a17', fontWeight: 850 }}>{numeric}{field.unit || ''}</span>
+        </div>
+        <input
+          type="range"
+          min={field.min}
+          max={field.max}
+          step={field.step || 1}
+          value={numeric}
+          onChange={event => onChange(Number(event.target.value))}
+          style={{ width: '100%', accentColor: '#1a6d3e' }}
+        />
+        {field.help && <p style={{ margin: '5px 0 0', color: '#7a857d', fontSize: 11 }}>{field.help}</p>}
+      </div>
+    )
+  }
+
+  if (field.type === 'color') {
+    return (
+      <div>
+        <label style={smallLabel}>{field.label}</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '42px 1fr', gap: 8 }}>
+          <input type="color" value={String(value || '#000000')} onChange={event => onChange(event.target.value)} style={{ width: 42, height: 38, padding: 0, border: '1px solid #ccd6cf', borderRadius: 6, background: '#fff' }} />
+          <input value={String(value || '')} onChange={event => onChange(event.target.value)} style={{ ...input, fontFamily: 'Consolas, monospace' }} />
+        </div>
+        {field.help && <p style={{ margin: '5px 0 0', color: '#7a857d', fontSize: 11 }}>{field.help}</p>}
+      </div>
+    )
+  }
+
+  if (field.type === 'textarea') {
+    return (
+      <div>
+        <label style={smallLabel}>{field.label}</label>
+        <textarea value={String(value || '')} rows={field.rows || 4} placeholder={field.placeholder} onChange={event => onChange(event.target.value)} style={{ ...input, minHeight: 92, resize: 'vertical', lineHeight: 1.45 }} />
+        {field.help && <p style={{ margin: '5px 0 0', color: '#7a857d', fontSize: 11 }}>{field.help}</p>}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <label style={smallLabel}>{field.label}</label>
+      <input value={String(value || '')} placeholder={field.placeholder} onChange={event => onChange(event.target.value)} style={input} />
+      {field.help && <p style={{ margin: '5px 0 0', color: '#7a857d', fontSize: 11 }}>{field.help}</p>}
+    </div>
+  )
+}
+
+function PreviewFrame({ kind, settings }: { kind: PreviewKind; settings: Record<string, any> }) {
+  return (
+    <div style={{ ...panel, background: '#f5f7f4', padding: 18, minHeight: 560 }}>
+      {kind === 'product' && <ProductPreview settings={settings} />}
+      {kind === 'account' && <AccountPreview settings={settings} />}
+      {kind === 'mobile' && <MobilePreview settings={settings} />}
+      {kind === 'global' && <GlobalPreview settings={settings} />}
+      {kind === 'quotation' && <QuotationPreview settings={settings} />}
+    </div>
+  )
+}
+
+function ProductPreview({ settings }: { settings: Record<string, any> }) {
+  const accent = '#1a6d3e'
+  const gap = Number(settings.layoutGap || 40)
+  const columns = Number(settings.columns || 4)
+  return (
+    <div style={{ display: 'grid', gap: 18 }}>
+      <div style={{ background: '#fff', border: '1px solid #dde5dc', borderRadius: 8, padding: 18 }}>
+        {settings.showBreadcrumbs !== false && <div style={{ color: '#7b847d', fontSize: 12, marginBottom: 14 }}>Home / Sofas / Aalto Modern Sofa</div>}
+        <div style={{ display: 'grid', gridTemplateColumns: `${settings.galleryWidth || 50}% 1fr`, gap }}>
+          <div style={{ aspectRatio: '1/1', background: '#f1eee8', borderRadius: 8, display: 'grid', placeItems: 'center', color: '#8b8172', fontSize: 13 }}>Product gallery</div>
+          <div>
+            <h3 style={{ margin: 0, color: '#151a17', fontSize: 22 }}>Aalto Modern Sofa</h3>
+            {settings.showSku !== false && <p style={{ color: '#8a958d', fontSize: 12, margin: '6px 0' }}>SKU AAL-SOFA-001</p>}
+            <strong style={{ display: 'block', fontSize: 20, margin: '12px 0', color: '#151a17' }}>PHP 128,184</strong>
+            <button style={{ background: accent, color: '#fff', border: 0, borderRadius: 6, padding: '11px 16px', fontWeight: 850 }}>{settings.buttonText || 'Request Quote'}</button>
+            <div style={{ display: 'grid', gap: 7, marginTop: 18, color: '#4b554e', fontSize: 13 }}>
+              {settings.showMaterials !== false && <span>Materials: solid wood, linen blend</span>}
+              {settings.showDimensions !== false && <span>Dimensions: 220 x 92 x 78 cm</span>}
+              {settings.enableZoom !== false && <span>Gallery zoom enabled</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{ background: '#fff', border: '1px solid #dde5dc', borderRadius: 8, padding: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+          <strong style={{ fontSize: 13 }}>Collection grid</strong>
+          <span style={{ color: '#667168', fontSize: 12 }}>{settings.showFilters !== false ? 'Filters shown' : 'Filters hidden'} / {settings.showSort !== false ? 'Sort shown' : 'Sort hidden'}</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(2, Math.min(columns, 5))}, 1fr)`, gap: Math.min(Number(settings.gridGap || 24), 38) }}>
+          {[1, 2, 3, 4].map(index => (
+            <div key={index} style={{ border: '1px solid #edf0ec', borderRadius: 7, padding: 8 }}>
+              <div style={{ aspectRatio: '1/1', background: '#f2f0eb', borderRadius: 5 }} />
+              <div style={{ height: 8, background: '#d9ded8', borderRadius: 99, marginTop: 8 }} />
+              {settings.showRating !== false && <div style={{ color: '#b88935', fontSize: 10, marginTop: 5 }}>Rated 5.0</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AccountPreview({ settings }: { settings: Record<string, any> }) {
+  const radius = Number(settings.radius || 8)
+  const shadow = settings.cardStyle === 'flat' ? 'none' : '0 12px 26px rgba(21,26,23,0.08)'
+  const surface = settings.surfaceColor || '#f7f4ee'
+  const panelColor = settings.panelColor || '#fff'
+  const text = settings.textColor || '#151a17'
+  const muted = settings.mutedColor || '#6f766f'
+  const accent = settings.accentColor || '#1a6d3e'
+  return (
+    <div style={{ background: surface, borderRadius: radius + 6, border: `1px solid ${settings.borderColor || '#ddd7cb'}`, minHeight: 520, display: 'grid', gridTemplateColumns: settings.navStyle === 'tabs' ? '1fr' : '180px 1fr', overflow: 'hidden' }}>
+      {settings.navStyle !== 'tabs' && (
+        <aside style={{ background: panelColor, borderRight: `1px solid ${settings.borderColor || '#ddd7cb'}`, padding: 18 }}>
+          <strong style={{ color: accent, fontSize: 12 }}>{settings.welcomeLabel || 'My HomeU'}</strong>
+          {['Dashboard', 'RFQs', 'Quotations', 'Addresses'].map((item, index) => (
+            <div key={item} style={{ marginTop: 10, padding: 9, borderRadius: radius, color: index === 0 ? accent : muted, background: index === 0 ? surface : 'transparent', fontSize: 12, fontWeight: 750 }}>{item}</div>
+          ))}
+        </aside>
+      )}
+      <main style={{ padding: settings.density === 'compact' ? 18 : 26, color: text }}>
+        <span style={{ color: accent, fontSize: 11, fontWeight: 900, textTransform: 'uppercase' }}>{settings.welcomeLabel || 'My HomeU'}</span>
+        <h3 style={{ margin: '5px 0 18px', fontSize: 24 }}>Welcome back, Maria</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {['Active projects', 'Awaiting decision'].map((item, index) => (
+            <div key={item} style={{ background: panelColor, borderRadius: radius, boxShadow: shadow, border: `1px solid ${settings.borderColor || '#ddd7cb'}`, padding: 16 }}>
+              <strong style={{ display: 'block', color: text, fontSize: 24 }}>{index === 0 ? 3 : 1}</strong>
+              <span style={{ color: muted, fontSize: 11, textTransform: 'uppercase', fontWeight: 800 }}>{item}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 14, background: panelColor, borderRadius: radius, boxShadow: shadow, border: `1px solid ${settings.borderColor || '#ddd7cb'}`, padding: 16 }}>
+          <strong>RFQ #A18F2C</strong>
+          <p style={{ color: muted, margin: '5px 0 12px', fontSize: 13 }}>Dining room set updated 2h ago</p>
+          <button style={{ background: accent, color: '#fff', border: 0, borderRadius: radius, padding: '9px 13px', fontWeight: 800 }}>Open chat</button>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+function MobilePreview({ settings }: { settings: Record<string, any> }) {
+  const modern = settings.bottomBarStyle !== 'classic'
+  return (
+    <div style={{ width: 390, maxWidth: '100%', margin: '0 auto', background: '#111', borderRadius: 28, padding: 10, boxShadow: '0 22px 50px rgba(0,0,0,0.22)' }}>
+      <div style={{ minHeight: 650, background: '#fff', borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <header style={{ padding: 14, borderBottom: '1px solid #eee', position: settings.stickyHeader ? 'sticky' : 'static', top: 0, background: '#fff', zIndex: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 18, fontWeight: 900 }}>HomeU</span>
+            <span style={{ color: '#667168', fontSize: 12 }}>{settings.mobileNavStyle === 'debut' ? 'Menu' : 'Tabs'}</span>
+          </div>
+          {settings.showSearch && <div style={{ marginTop: 10, background: '#f4f6f2', borderRadius: 999, padding: '9px 12px', color: '#7a857d', fontSize: 12 }}>Search products, sofas, lighting</div>}
+        </header>
+        <main style={{ flex: 1, padding: 14, display: 'grid', gap: 14 }}>
+          {settings.mobileNavStyle === 'tabs' && settings.heroStyle !== 'minimal' && (
+            <section style={{ background: '#f7f4ee', borderRadius: 14, padding: 16 }}>
+              <strong style={{ fontSize: 20 }}>Modern interiors</strong>
+              <p style={{ color: '#667168', margin: '5px 0 0', fontSize: 13 }}>Browse curated furniture for your project.</p>
+            </section>
+          )}
+          {settings.quickActionPills && <div style={{ display: 'flex', gap: 8, overflow: 'hidden' }}>{['RFQ', 'Sofas', 'Dining'].map(item => <span key={item} style={{ background: '#151a17', color: '#fff', borderRadius: 999, padding: '8px 12px', fontSize: 12, fontWeight: 800 }}>{item}</span>)}</div>}
+          {settings.categoryChips && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>{['Living', 'Bedroom', 'Office', 'Lighting'].map(item => <div key={item} style={{ background: '#f6f7f5', border: '1px solid #edf0ec', borderRadius: 10, padding: 14, fontSize: 13, fontWeight: 800 }}>{item}</div>)}</div>}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>{[1, 2, 3, 4].map(item => <div key={item} style={{ border: '1px solid #edf0ec', borderRadius: 10, padding: 8 }}><div style={{ aspectRatio: '1/1', background: '#f1eee8', borderRadius: 8 }} /><div style={{ height: 8, background: '#d7ded7', borderRadius: 99, marginTop: 8 }} /></div>)}</div>
+        </main>
+        {settings.showBottomBar && settings.mobileNavStyle === 'tabs' && (
+          <nav style={{ margin: modern ? '0 14px 12px' : 0, borderRadius: modern ? 18 : 0, background: '#151a17', color: '#fff', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', padding: modern ? '8px 4px' : '10px 4px' }}>
+            {['Home', 'Shop', 'RFQ', 'Acct', 'Menu'].map(item => <span key={item} style={{ textAlign: 'center', fontSize: 10, fontWeight: 800 }}>{item}</span>)}
+          </nav>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function GlobalPreview({ settings }: { settings: Record<string, any> }) {
+  const primary = settings.primaryColor || '#1a6d3e'
+  const secondary = settings.secondaryColor || '#151a17'
+  const accent = settings.accentColor || '#b88935'
+  const bg = settings.bodyBg || '#f7f4ee'
+  const radius = Number(settings.buttonRadius || 8)
+  return (
+    <div style={{ background: bg, borderRadius: 8, padding: 22, color: settings.textColor || '#151a17', fontFamily: settings.bodyFont || 'Inter, sans-serif' }}>
+      <h3 style={{ margin: 0, fontFamily: settings.headingFont || 'Georgia, serif', fontSize: 28, color: secondary }}>Global storefront style</h3>
+      <p style={{ color: settings.mutedColor || '#667168', maxWidth: 520 }}>Colors, typography, buttons, and layout rhythm applied across the storefront.</p>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', margin: '16px 0' }}>
+        {[primary, secondary, accent, settings.borderColor || '#d9e0d7'].map(color => <span key={color} style={{ width: 48, height: 48, borderRadius: 8, background: color, border: '1px solid rgba(0,0,0,0.08)' }} />)}
+      </div>
+      <button style={{ background: primary, color: '#fff', border: 0, borderRadius: radius, padding: '11px 16px', fontWeight: 850, textTransform: settings.buttonUppercase ? 'uppercase' : 'none' }}>Primary button</button>
+      <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: Number(settings.sectionGap || 24) / 2 }}>
+        {[1, 2, 3].map(item => <div key={item} style={{ background: '#fff', border: `1px solid ${settings.borderColor || '#d9e0d7'}`, borderRadius: 8, padding: 14 }}><strong>Section {item}</strong><p style={{ color: '#667168', fontSize: 12 }}>Preview content</p></div>)}
+      </div>
+    </div>
+  )
+}
+
+function QuotationPreview({ settings }: { settings: Record<string, any> }) {
+  const brand = settings.brandColor || '#1a6d3e'
+  const accent = settings.accentColor || '#b88935'
+  return (
+    <div style={{ width: '100%', maxWidth: 720, margin: '0 auto', background: '#fff', border: '1px solid #d9e0d7', minHeight: 620, padding: 30, fontFamily: settings.fontFamily || 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      {settings.showWatermark && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: 'rgba(0,0,0,0.06)', fontSize: 72, fontWeight: 900, transform: 'rotate(-24deg)' }}>{settings.watermarkText || 'DRAFT'}</div>}
+      <div style={{ position: 'relative' }}>
+        {settings.template === 'modern' && <div style={{ height: 8, background: brand, borderRadius: 999, marginBottom: 20 }} />}
+        <header style={{ display: 'flex', justifyContent: 'space-between', gap: 18, borderBottom: '1px solid #e5e7e2', paddingBottom: 18 }}>
+          <div>
+            {settings.showHeaderLogo && <div style={{ width: 52, height: 52, borderRadius: 8, background: brand, marginBottom: 10 }} />}
+            {settings.showCompanyName && <strong style={{ color: '#151a17', fontSize: 18 }}>Home Atelier</strong>}
+            {settings.showAddress && <p style={{ color: '#667168', fontSize: 12, margin: '5px 0 0' }}>Makati, Metro Manila</p>}
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <h3 style={{ margin: 0, color: brand, fontSize: 24 }}>Quotation</h3>
+            <p style={{ margin: '6px 0 0', color: '#667168', fontSize: 12 }}>Q-2026-0148</p>
+          </div>
+        </header>
+        <section style={{ marginTop: 24 }}>
+          <strong>Prepared for Maria Santos</strong>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 18, fontSize: 12 }}>
+            <thead><tr style={{ background: settings.template === 'minimal' ? '#fff' : '#f7f4ee', color: '#3a4339' }}><th style={{ textAlign: 'left', padding: 10 }}>Item</th><th style={{ textAlign: 'right', padding: 10 }}>Total</th></tr></thead>
+            <tbody>{['Aalto Modern Sofa', 'Augustin Pouf', 'Delivery and handling'].map((item, index) => <tr key={item} style={{ borderBottom: '1px solid #edf0ec' }}><td style={{ padding: 10 }}>{item}</td><td style={{ padding: 10, textAlign: 'right' }}>PHP {[128184, 32000, 6500][index].toLocaleString('en-PH')}</td></tr>)}</tbody>
+          </table>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}><strong style={{ color: accent, fontSize: 18 }}>PHP 166,684</strong></div>
+        </section>
+        {settings.showTerms && <section style={{ marginTop: 26, background: '#fafbf9', border: '1px solid #edf0ec', borderRadius: 8, padding: 14, color: '#667168', fontSize: 11 }}>{settings.termsText}</section>}
+        <footer style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between', color: '#667168', fontSize: 11 }}>
+          <span>{settings.footerText || 'Thank you for choosing Home Atelier'}</span>
+          {settings.showPageNumbers && <span>Page 1</span>}
+        </footer>
+      </div>
+    </div>
+  )
+}
