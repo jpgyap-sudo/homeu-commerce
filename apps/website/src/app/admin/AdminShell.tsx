@@ -50,13 +50,23 @@ const SECTIONS: SidebarSection[] = [
     id: 'content', label: 'Content', icon: '⬖',
     links: [
       { href: '/admin/online-store', icon: 'OS', label: 'Online Store' },
-      { href: '/admin/theme', icon: '◭', label: 'Theme' },
       { href: '/admin/blogs', icon: '✎', label: 'Blogs' },
       { href: '/admin/navigation', icon: '☰', label: 'Navigation' },
       { href: '/admin/pages', icon: '◈', label: 'Pages' },
       { href: '/admin/media', icon: '◉', label: 'Media' },
       { href: '/admin/redirects', icon: '◐', label: 'Redirects' },
       { href: '/admin/reviews', icon: '⭐', label: 'Reviews' },
+    ],
+  },
+  {
+    id: 'theme', label: 'Theme', icon: '◭',
+    links: [
+      { href: '/admin/theme/homepage', icon: '🏠', label: 'Homepage' },
+      { href: '/admin/theme/product', icon: '📦', label: 'Product' },
+      { href: '/admin/theme/account', icon: '👤', label: 'Account' },
+      { href: '/admin/theme/mobile', icon: '📱', label: 'Mobile' },
+      { href: '/admin/theme/global', icon: '🎨', label: 'Global' },
+      { href: '/admin/theme/quotation', icon: '📄', label: 'Quotation' },
     ],
   },
   {
@@ -85,7 +95,7 @@ const SECTIONS: SidebarSection[] = [
 export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const isLogin = pathname === '/admin/login'
-  const isFullBleed = pathname === '/admin/theme' || pathname.startsWith('/admin/theme/')
+  const isFullBleed = pathname === '/admin/theme-old' || pathname.startsWith('/admin/theme-old/')
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [userTabs, setUserTabs] = useState<string[]>(['*'])
