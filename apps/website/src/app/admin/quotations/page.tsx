@@ -25,12 +25,24 @@ interface Quotation {
   status: string
   validUntil?: string
   createdAt: string
+  updatedAt?: string
   items?: QuotationItem[]
   rfq?: { id: string }
   rfqId?: string
   pending_revision?: boolean
   revision_request?: string
   guestToken?: string
+}
+
+/** Hours since a quotation's row was last touched — used as a proxy for how
+ *  long a pending revision has been sitting, since there's no dedicated
+ *  revision-requested-at column (updated_at is bumped by the same PATCH
+ *  that sets pending_revision = true, and again when it's resolved). */
+function hoursSinceUpdated(updatedAt?: string): number | null {
+  if (!updatedAt) return null
+  const ts = new Date(updatedAt).getTime()
+  if (Number.isNaN(ts)) return null
+  return (Date.now() - ts) / 36e5
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -336,6 +348,23 @@ Home Atelier Team`
           <option value="rejected">Rejected</option>
         </select>
 
+        <button
+          type="button"
+          onClick={() => setRevisionOnly(prev => !prev)}
+          style={{
+            padding: '8px 14px',
+            border: revisionOnly ? '1px solid #856404' : '1px solid #ccc',
+            background: revisionOnly ? '#fff3cd' : '#fff',
+            color: revisionOnly ? '#856404' : '#444',
+            borderRadius: 6,
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          🔄 Needs Revision
+        </button>
+
         {selectedIds.length > 0 && (
           <button
             onClick={handleDeleteSelected}
@@ -560,16 +589,39 @@ Home Atelier Team`
                           }}>
                             {statusInfo.label}
                           </span>
-                          {q.pending_revision && (
-                            <span style={{
-                              display: 'inline-block', marginLeft: 6,
-                              background: '#fff3cd', color: '#856404',
-                              padding: '2px 8px', borderRadius: 12,
-                              fontSize: 11, fontWeight: 700,
-                            }}>
-                              🔄 Revise
-                            </span>
-                          )}
+                          {q.pending_revision && (() => {
+                            const hours = hoursSinceUpdated(q.updatedAt)
+                            const urgent = hours !== null && hours > 24
+                            const colors = urgent
+                              ? { bg: '#fde2e1', fg: '#9c2b26' }
+                              : { bg: '#fff3cd', fg: '#856404' }
+                            return (
+                              <>
+                                <Link
+                                  href={`/admin/quotations/${q.id}?focus=revision`}
+                                  title={q.revision_request || 'View revision request'}
+                                  style={{
+                                    display: 'inline-block', marginLeft: 6,
+                                    background: colors.bg, color: colors.fg,
+                                    padding: '2px 8px', borderRadius: 12,
+                                    fontSize: 11, fontWeight: 700,
+                                    textDecoration: 'none', cursor: 'pointer',
+                                  }}
+                                >
+                                  🔄 Revise{urgent && hours !== null ? ` · ${Math.floor(hours)}h` : ''}
+                                </Link>
+                                {q.revision_request && (
+                                  <div style={{
+                                    marginTop: 4, fontSize: 11, color: '#777',
+                                    maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap', marginLeft: 'auto', marginRight: 'auto',
+                                  }} title={q.revision_request}>
+                                    “{q.revision_request}”
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
                         </>
                       )}
                     </td>
