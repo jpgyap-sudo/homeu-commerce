@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
           ROUND(AVG(lcp))::int AS avg_lcp,
           ROUND(AVG(fcp))::int AS avg_fcp,
           ROUND(AVG(ttfb))::int AS avg_ttfb,
-          ROUND(AVG(cls)::numeric, 3)::text AS avg_cls,
+          ROUND(AVG(cls::numeric), 3)::text AS avg_cls,
           ROUND(AVG(load_time))::int AS avg_load_time,
           ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY load_time))::int AS p50_load_time,
           ROUND(PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY load_time))::int AS p90_load_time

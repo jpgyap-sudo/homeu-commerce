@@ -19,6 +19,8 @@ export default function ReportsClient() {
     return `${API}?type=${type}&format=${format}&from=${encodeURIComponent(rangeFrom)}&to=${encodeURIComponent(rangeTo)}`
   }
 
+  const [sendingEmail, setSendingEmail] = useState(false)
+
   async function saveSettings() {
     setMessage('Saving…')
     const response = await fetch(API, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) })
@@ -26,11 +28,33 @@ export default function ReportsClient() {
     setMessage(response.ok ? 'Report preferences saved.' : data.error || 'Could not save report preferences.')
   }
 
+  async function sendEmailReport() {
+    if (!settings.recipient) {
+      setMessage('Please enter a recipient email address first.')
+      return
+    }
+    setSendingEmail(true)
+    setMessage('Sending email report…')
+    try {
+      const response = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to, recipient: settings.recipient }),
+      })
+      const data = await response.json()
+      setMessage(response.ok ? 'Email report sent successfully!' : data.error || 'Could not send email report.')
+    } catch {
+      setMessage('Failed to connect to reports API.')
+    } finally {
+      setSendingEmail(false)
+    }
+  }
+
   return (
     <div style={{ padding: 24, maxWidth: 1050 }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>📋 Reports & Exports</h1>
       <p style={{ color: '#667168', fontSize: 13, marginBottom: 24 }}>Generate authenticated CSV or JSON exports from live data.</p>
-      {message && <div role="status" style={{ padding: 10, marginBottom: 16, borderRadius: 8, background: '#f4f6f4' }}>{message}</div>}
+      {message && <div role="status" style={{ padding: 10, marginBottom: 16, borderRadius: 8, background: '#f4f6f4', fontSize: 13, fontWeight: 500 }}>{message}</div>}
 
       <Card title="Date range">
         <div style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap' }}>
@@ -45,6 +69,8 @@ export default function ReportsClient() {
           <a href={reportUrl('page_views')} style={buttonStyle}>Page views CSV</a>
           <a href={reportUrl('leads')} style={buttonStyle}>Leads CSV</a>
           <a href={reportUrl('rfq')} style={buttonStyle}>RFQ pipeline CSV</a>
+          <a href={reportUrl('quotations')} style={buttonStyle}>Quotations CSV</a>
+          <a href={reportUrl('appointments')} style={buttonStyle}>Appointments CSV</a>
           <a href={reportUrl('messages')} style={buttonStyle}>Messages CSV</a>
           <a href={reportUrl('all', 'json')} style={buttonStyle}>All data JSON</a>
         </div>
@@ -52,9 +78,14 @@ export default function ReportsClient() {
 
       <Card title="Saved report preferences">
         <p style={{ color: '#667168', fontSize: 12 }}>These preferences are saved for the reporting worker; saving them does not claim that an email has already been sent.</p>
-        <input type="email" placeholder="Recipient email" value={settings.recipient} onChange={event => setSettings({ ...settings, recipient: event.target.value })} style={{ padding: 9, minWidth: 280, border: '1px solid #d9e0d7', borderRadius: 8 }} />
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+          <input type="email" placeholder="Recipient email" value={settings.recipient} onChange={event => setSettings({ ...settings, recipient: event.target.value })} style={{ padding: 9, minWidth: 280, border: '1px solid #d9e0d7', borderRadius: 8, fontSize: 13 }} />
+          <button onClick={sendEmailReport} disabled={sendingEmail} style={{ ...buttonStyle, background: '#1a5bb5' }}>
+            {sendingEmail ? '✉️ Sending…' : '✉️ Email Current Report Now'}
+          </button>
+        </div>
         <div style={{ display: 'flex', gap: 16, margin: '14px 0' }}>
-          {(['daily', 'weekly', 'monthly'] as const).map(key => <label key={key}><input type="checkbox" checked={settings[key]} onChange={event => setSettings({ ...settings, [key]: event.target.checked })} /> {key}</label>)}
+          {(['daily', 'weekly', 'monthly'] as const).map(key => <label key={key} style={{ fontSize: 13, textTransform: 'capitalize', cursor: 'pointer' }}><input type="checkbox" checked={settings[key]} onChange={event => setSettings({ ...settings, [key]: event.target.checked })} /> {key}</label>)}
         </div>
         <button onClick={saveSettings} style={buttonStyle}>Save preferences</button>
       </Card>
