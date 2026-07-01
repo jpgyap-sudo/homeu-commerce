@@ -5,7 +5,7 @@ import { query } from '@/lib/db'
 const SETTINGS_KEY = 'theme_mobile'
 
 const DEFAULT_SETTINGS = {
-  mobileNavStyle: 'tabs',
+  mobileNavStyle: 'debut',
   showBottomBar: true,
   bottomBarStyle: 'modern',
   showSearch: true,

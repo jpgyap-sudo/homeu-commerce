@@ -26,7 +26,14 @@ const CATEGORY_ICONS: Record<string, string> = {
   'Office': '💼',
 }
 
-export default function MobileHomepageEnhancer({ navStyle = 'tabs' }: { navStyle?: 'tabs' | 'debut' }) {
+export default function MobileHomepageEnhancer({
+  navStyle = 'tabs', heroStyle = 'default', quickActionPills = true, categoryChips = true,
+}: {
+  navStyle?: 'tabs' | 'debut'
+  heroStyle?: 'default' | 'minimal'
+  quickActionPills?: boolean
+  categoryChips?: boolean
+}) {
   const [isMobile, setIsMobile] = useState(true) // assume mobile initially to avoid flash
   const [isHome, setIsHome] = useState(false)
   const [recentViews, setRecentViews] = useState<Array<{title: string; url: string; image?: string}>>([])
@@ -97,41 +104,47 @@ export default function MobileHomepageEnhancer({ navStyle = 'tabs' }: { navStyle
 
   return (
     <>
-      {/* Welcome section */}
-      <div className="homeu-mobile-welcome">
-        <h1>Modern Interior</h1>
-        <p>Contemporary furniture & bespoke designs for your space</p>
-      </div>
+      {/* Welcome section — omitted in 'minimal' hero style for a catalog-first feel */}
+      {heroStyle !== 'minimal' && (
+        <div className="homeu-mobile-welcome">
+          <h1>Modern Interior</h1>
+          <p>Contemporary furniture & bespoke designs for your space</p>
+        </div>
+      )}
 
       {/* Quick action bar */}
-      <div className="homeu-mobile-quick-actions">
-        <Link href="/products?sort=newest" className="homeu-mobile-quick-action">
-          <span className="homeu-mobile-quick-action__icon">✨</span>
-          <span className="homeu-mobile-quick-action__label">New Arrivals</span>
-        </Link>
-        <Link href="/products?sort=price-asc" className="homeu-mobile-quick-action">
-          <span className="homeu-mobile-quick-action__icon">🤑</span>
-          <span className="homeu-mobile-quick-action__label">Under ₱10K</span>
-        </Link>
-        <Link href="/products?category=fast-delivery" className="homeu-mobile-quick-action">
-          <span className="homeu-mobile-quick-action__icon">⚡</span>
-          <span className="homeu-mobile-quick-action__label">Quick Ship</span>
-        </Link>
-        <a href="tel:+63281234567" className="homeu-mobile-quick-action">
-          <span className="homeu-mobile-quick-action__icon">📞</span>
-          <span className="homeu-mobile-quick-action__label">Call Us</span>
-        </a>
-      </div>
+      {quickActionPills && (
+        <div className="homeu-mobile-quick-actions">
+          <Link href="/products?sort=newest" className="homeu-mobile-quick-action">
+            <span className="homeu-mobile-quick-action__icon">✨</span>
+            <span className="homeu-mobile-quick-action__label">New Arrivals</span>
+          </Link>
+          <Link href="/products?sort=price-asc" className="homeu-mobile-quick-action">
+            <span className="homeu-mobile-quick-action__icon">🤑</span>
+            <span className="homeu-mobile-quick-action__label">Under ₱10K</span>
+          </Link>
+          <Link href="/products?category=fast-delivery" className="homeu-mobile-quick-action">
+            <span className="homeu-mobile-quick-action__icon">⚡</span>
+            <span className="homeu-mobile-quick-action__label">Quick Ship</span>
+          </Link>
+          <a href="tel:+63281234567" className="homeu-mobile-quick-action">
+            <span className="homeu-mobile-quick-action__icon">📞</span>
+            <span className="homeu-mobile-quick-action__label">Call Us</span>
+          </a>
+        </div>
+      )}
 
       {/* Category chips — horizontal scroll */}
-      <div className="homeu-category-chips">
-        {chips.slice(0, 15).map((chip, i) => (
-          <Link key={i} href={chip.href} className="homeu-category-chip">
-            {chip.icon && <span>{chip.icon}</span>}
-            {chip.title}
-          </Link>
-        ))}
-      </div>
+      {categoryChips && (
+        <div className="homeu-category-chips">
+          {chips.slice(0, 15).map((chip, i) => (
+            <Link key={i} href={chip.href} className="homeu-category-chip">
+              {chip.icon && <span>{chip.icon}</span>}
+              {chip.title}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Recently viewed */}
       {recentViews.length > 0 && (

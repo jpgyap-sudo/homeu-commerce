@@ -17,7 +17,15 @@ interface HeaderSettings {
   announcement: { enabled: boolean; text: string; link: string; bgColor: string; textColor: string }
 }
 
-export function SiteHeader({ nav, logoUrl, header }: { nav?: NavItem[]; logoUrl?: string; header?: HeaderSettings }) {
+export function SiteHeader({
+  nav, logoUrl, header, mobileSticky = true, mobileShowSearch = true,
+}: {
+  nav?: NavItem[]
+  logoUrl?: string
+  header?: HeaderSettings
+  mobileSticky?: boolean
+  mobileShowSearch?: boolean
+}) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const navItems: NavItem[] = nav && nav.length > 0 ? nav : (navigation.main as NavItem[])
@@ -25,11 +33,13 @@ export function SiteHeader({ nav, logoUrl, header }: { nav?: NavItem[]; logoUrl?
   const hs = header || { layout: 'logo-center', iconsPosition: 'right', announcement: { enabled: false } } as HeaderSettings
   const announcement = hs.announcement?.enabled ? hs.announcement : null
 
-  const Icons = () => (
+  const Icons = ({ hideSearch = false }: { hideSearch?: boolean } = {}) => (
     <>
-      <Link href="/search" className="site-header__icon-btn" aria-label="Search">
-        <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M17 17l-4-4"/></svg>
-      </Link>
+      {!hideSearch && (
+        <Link href="/search" className="site-header__icon-btn" aria-label="Search">
+          <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M17 17l-4-4"/></svg>
+        </Link>
+      )}
       <Link href="/customer/dashboard" className="site-header__icon-btn site-header__login-btn" aria-label="Log in">
         <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="10" cy="6" r="3.5"/><path d="M3 18c0-3.87 3.13-7 7-7s7 3.13 7 7"/></svg>
         <span className="site-header__login-label">Log in</span>
@@ -129,7 +139,7 @@ export function SiteHeader({ nav, logoUrl, header }: { nav?: NavItem[]; logoUrl?
         </nav>
 
         {/* ── Mobile header bar ── */}
-        <div className="grid grid--no-gutters grid--table site-header__mobile-nav medium-up--hide">
+        <div className={`grid grid--no-gutters grid--table site-header__mobile-nav medium-up--hide${mobileSticky ? ' site-header__mobile-nav--sticky' : ''}`}>
           <div className="grid__item text-left site-header__mobile-logo">
             <Link href="/">
               <span className="site-header__logo-anim">
@@ -143,7 +153,7 @@ export function SiteHeader({ nav, logoUrl, header }: { nav?: NavItem[]; logoUrl?
             </Link>
           </div>
           <div className="grid__item site-header__icon site-header__mobile-icons">
-            <Icons />
+            <Icons hideSearch={!mobileShowSearch} />
             <button type="button" className="btn btn--link site-header__icon-btn site-header__menu-toggle__open"
               aria-controls="MobileNav" aria-expanded={mobileOpen ? 'true' : 'false'}
               onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">

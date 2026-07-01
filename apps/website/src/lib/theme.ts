@@ -302,18 +302,37 @@ export function headerFontGoogleQuery(stack: string): string | null {
 }
 
 /**
- * Mobile homepage style, editable per mobile-theme draft in Mobile Theme
- * Studio ("Mobile navigation" select). Only takes effect for actual mobile
- * UAs — desktop visitors are unaffected.
- * - 'tabs'  = today's custom mobile UX: "Modern Interior" welcome hero + quick-action
+ * Mobile experience settings, edited in the admin Mobile Theme Builder
+ * (/admin/theme/mobile → site_settings.theme_mobile). This is the single
+ * source of truth — an older, separate "Mobile navigation" control used to
+ * live in the Online Store Theme Snapshot editor (store_themes.mobile_live
+ * snapshot's settings.mobile_nav_style); that control has been retired in
+ * favor of this one so there's no longer two places claiming to set it.
+ *
+ * `mobileNavStyle`:
+ * - 'tabs'  = custom mobile UX: "Modern Interior" welcome hero + quick-action
  *             pills + category chips (MobileHomepageEnhancer) layered above the real
  *             homepage sections, plus the bottom 5-tab bar (Home/Products/RFQ/Account/Menu)
  * - 'debut' = 1:1 clone of homeu.ph's Shopify Debut mobile experience: real homepage
  *             sections only (slideshow, brand text, collection grid, etc. — same
  *             content as the live theme snapshot), hamburger -> drawer nav, no
- *             bottom bar and no synthetic welcome/quick-actions overlay
+ *             bottom bar and no synthetic welcome/quick-actions overlay. This is the
+ *             default/recommended mode since the site must match homeu.ph's mobile view.
  */
-export async function getMobileNavStyle(): Promise<'tabs' | 'debut'> {
+const DEFAULT_MOBILE_THEME = {
+  mobileNavStyle: 'debut' as 'tabs' | 'debut',
+  showBottomBar: true,
+  bottomBarStyle: 'modern' as 'modern' | 'classic',
+  showSearch: true,
+  heroStyle: 'default' as 'default' | 'minimal',
+  quickActionPills: true,
+  categoryChips: true,
+  stickyHeader: true,
+}
+
+export type MobileThemeSettings = typeof DEFAULT_MOBILE_THEME
+
+export async function getMobileThemeSettings(): Promise<MobileThemeSettings> {
   let isPreview = false
   try {
     const { headers } = require('next/headers')
@@ -323,14 +342,27 @@ export async function getMobileNavStyle(): Promise<'tabs' | 'debut'> {
 
   if (isPreview) {
     const draft = await getPreviewDraft()
+    if (draft && (draft as any).mobileTheme && typeof (draft as any).mobileTheme === 'object') {
+      return { ...DEFAULT_MOBILE_THEME, ...(draft as any).mobileTheme }
+    }
+    // Backward-compat: the desktop Theme Editor's own autosave still posts a
+    // bare mobileNavStyle string (no full mobileTheme object) to the same
+    // shared draft row — honor at least the nav style in that case.
     if (draft && typeof (draft as any).mobileNavStyle === 'string') {
-      return (draft as any).mobileNavStyle === 'debut' ? 'debut' : 'tabs'
+      return { ...DEFAULT_MOBILE_THEME, mobileNavStyle: (draft as any).mobileNavStyle === 'debut' ? 'debut' : 'tabs' }
     }
   }
 
-  const mobileSnapshot = await getMobileSnapshotIfNeeded()
-  const value = mobileSnapshot?.settings?.mobile_nav_style
-  return value === 'debut' ? 'debut' : 'tabs'
+  try {
+    const res = await query(`SELECT value FROM site_settings WHERE key = 'theme_mobile' LIMIT 1`)
+    return { ...DEFAULT_MOBILE_THEME, ...(res.rows[0]?.value || {}) }
+  } catch {
+    return DEFAULT_MOBILE_THEME
+  }
+}
+
+export async function getMobileNavStyle(): Promise<'tabs' | 'debut'> {
+  return (await getMobileThemeSettings()).mobileNavStyle
 }
 
 /** Header appearance settings, editable in Theme → Header. */

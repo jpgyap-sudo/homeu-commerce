@@ -51,6 +51,16 @@ interface NoCodeThemeStudioProps {
   /** When set, shows a "Send test to my email" button that POSTs the
    *  current settings to this endpoint, which emails a test PDF. */
   testEmailEndpoint?: string
+  /** When set, the preview panel renders the REAL live storefront (phone-
+   *  framed iframe + "Open in new tab") instead of the mock preview, reusing
+   *  the same draft-preview mechanism the Online Store Theme Editor already
+   *  uses (POST to theme_preview_draft, then load the storefront with
+   *  ?preview=N so it reads the draft instead of published settings). */
+  htmlPreviewConfig?: {
+    draftEndpoint: string
+    buildDraftPayload: (settings: Record<string, any>) => object
+    previewUrl: string
+  }
 }
 
 const shell: CSSProperties = {
@@ -105,6 +115,7 @@ export default function NoCodeThemeStudio({
   presets = [],
   pdfPreviewEndpoint,
   testEmailEndpoint,
+  htmlPreviewConfig,
 }: NoCodeThemeStudioProps) {
   const [settings, setSettings] = useState<Record<string, any>>(defaults)
   const [loading, setLoading] = useState(true)
@@ -113,6 +124,8 @@ export default function NoCodeThemeStudio({
   const [activeSection, setActiveSection] = useState(sections[0]?.title || '')
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [htmlPreviewKey, setHtmlPreviewKey] = useState(0)
+  const [htmlPreviewLoading, setHtmlPreviewLoading] = useState(false)
   const [sendingTest, setSendingTest] = useState(false)
   const [testStatus, setTestStatus] = useState('')
 
@@ -160,6 +173,28 @@ export default function NoCodeThemeStudio({
     return () => { cancelled = true; clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings, pdfPreviewEndpoint, loading])
+
+  // Real live preview: debounced push of current (unsaved) settings into the
+  // shared theme_preview_draft row, then bump the iframe key so it reloads
+  // with ?preview=N and picks up the draft via the x-theme-preview header.
+  useEffect(() => {
+    if (!htmlPreviewConfig || loading) return
+    let cancelled = false
+    setHtmlPreviewLoading(true)
+    const timer = setTimeout(() => {
+      fetch(htmlPreviewConfig.draftEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(htmlPreviewConfig.buildDraftPayload(settings)),
+      })
+        .then(() => { if (!cancelled) setHtmlPreviewKey(k => k + 1) })
+        .catch(() => {})
+        .finally(() => { if (!cancelled) setHtmlPreviewLoading(false) })
+    }, 600)
+    return () => { cancelled = true; clearTimeout(timer) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings, htmlPreviewConfig, loading])
 
   async function sendTest() {
     if (!testEmailEndpoint) return
@@ -342,10 +377,32 @@ export default function NoCodeThemeStudio({
                   {sendingTest ? 'Sending…' : 'Send test to my email'}
                 </button>
               )}
-              <span style={{ color: '#667168', fontSize: 12 }}>{pdfPreviewEndpoint ? 'Live PDF preview' : 'Live mock preview'}</span>
+              {htmlPreviewConfig && (
+                <a
+                  href={`${htmlPreviewConfig.previewUrl}${htmlPreviewConfig.previewUrl.includes('?') ? '&' : '?'}preview=${htmlPreviewKey}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="luxe-btn luxe-btn-ghost"
+                  style={{ fontSize: 12, padding: '6px 10px', textDecoration: 'none' }}
+                >
+                  Open in new tab
+                </a>
+              )}
+              <span style={{ color: '#667168', fontSize: 12 }}>
+                {pdfPreviewEndpoint ? 'Live PDF preview' : htmlPreviewConfig ? 'Live storefront preview' : 'Live mock preview'}
+              </span>
             </div>
           </div>
-          <PreviewFrame kind={preview} settings={settings} pdfPreviewEndpoint={pdfPreviewEndpoint} pdfUrl={pdfUrl} pdfLoading={pdfLoading} />
+          <PreviewFrame
+            kind={preview}
+            settings={settings}
+            pdfPreviewEndpoint={pdfPreviewEndpoint}
+            pdfUrl={pdfUrl}
+            pdfLoading={pdfLoading}
+            htmlPreviewConfig={htmlPreviewConfig}
+            htmlPreviewKey={htmlPreviewKey}
+            htmlPreviewLoading={htmlPreviewLoading}
+          />
         </section>
       </div>
     </div>
@@ -573,13 +630,16 @@ function FieldControl({
 }
 
 function PreviewFrame({
-  kind, settings, pdfPreviewEndpoint, pdfUrl, pdfLoading,
+  kind, settings, pdfPreviewEndpoint, pdfUrl, pdfLoading, htmlPreviewConfig, htmlPreviewKey, htmlPreviewLoading,
 }: {
   kind: PreviewKind
   settings: Record<string, any>
   pdfPreviewEndpoint?: string
   pdfUrl?: string | null
   pdfLoading?: boolean
+  htmlPreviewConfig?: { draftEndpoint: string; buildDraftPayload: (settings: Record<string, any>) => object; previewUrl: string }
+  htmlPreviewKey?: number
+  htmlPreviewLoading?: boolean
 }) {
   if (pdfPreviewEndpoint) {
     return (
@@ -594,6 +654,24 @@ function PreviewFrame({
         ) : (
           <div style={{ padding: 60, textAlign: 'center', color: '#7a857d', fontSize: 13 }}>Generating preview…</div>
         )}
+      </div>
+    )
+  }
+
+  if (htmlPreviewConfig) {
+    const src = `${htmlPreviewConfig.previewUrl}${htmlPreviewConfig.previewUrl.includes('?') ? '&' : '?'}preview=${htmlPreviewKey || 0}`
+    return (
+      <div style={{ ...panel, background: '#eef1ed', padding: 20, minHeight: 780, display: 'grid', placeItems: 'center', position: 'relative' }}>
+        {htmlPreviewLoading && (
+          <div style={{ position: 'absolute', top: 10, right: 10, fontSize: 11, fontWeight: 700, color: '#667168', background: '#fff', padding: '4px 9px', borderRadius: 999, border: '1px solid #dfe6df', zIndex: 1 }}>
+            Updating preview…
+          </div>
+        )}
+        <div style={{ width: 390, maxWidth: '100%', background: '#111', borderRadius: 28, padding: 10, boxShadow: '0 22px 50px rgba(0,0,0,0.22)' }}>
+          <div style={{ borderRadius: 20, overflow: 'hidden', background: '#fff' }}>
+            <iframe key={htmlPreviewKey} src={src} title="Live mobile storefront preview" style={{ width: '100%', height: 700, border: 0, display: 'block' }} />
+          </div>
+        </div>
       </div>
     )
   }

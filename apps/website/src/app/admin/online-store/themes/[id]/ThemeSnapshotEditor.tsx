@@ -133,7 +133,6 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
             css: typeof nextSettings.custom_css === 'string' ? nextSettings.custom_css : '',
             palette: paletteFromSettings(nextSettings),
             customerAccountTheme: normalizeCustomerAccountTheme(nextSettings.customer_account_theme),
-            mobileNavStyle: nextSettings.mobile_nav_style === 'debut' ? 'debut' : 'tabs',
           }),
         })
         if (!cancelled && res.ok) setPreviewKey(key => key + 1)
@@ -445,17 +444,10 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
                     <input type="checkbox" checked={settings.header_settings?.sticky !== false} onChange={event => updateHeader('sticky', event.target.checked)} />
                     Sticky header
                   </label>
-                  <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
-                    Mobile navigation
-                    <select
-                      value={settings.mobile_nav_style || 'tabs'}
-                      onChange={event => updateSettings(current => ({ ...current, mobile_nav_style: event.target.value }))}
-                      style={inputStyle}
-                    >
-                      <option value="tabs">Custom mobile UX (welcome hero + quick-action pills + bottom tabs)</option>
-                      <option value="debut">Debut clone (homeu.ph 1:1 — real sections only, drawer nav, no bottom bar)</option>
-                    </select>
-                  </label>
+                  <p style={{ gridColumn: '1 / -1', margin: 0, fontSize: 12, color: '#7a857d' }}>
+                    Mobile navigation (Debut vs. tabs, bottom bar, search, etc.) has moved to the{' '}
+                    <a href="/admin/theme/mobile" style={{ color: '#1a6d3e', fontWeight: 700 }}>Mobile Theme Builder</a> — edit it there.
+                  </p>
                 </div>
               </section>
 

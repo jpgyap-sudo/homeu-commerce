@@ -15,10 +15,17 @@ import { QuoteCartBadge } from '@/components/QuoteCart'
  * is 'debut' (1:1 homeu.ph Shopify Debut clone — hamburger drawer only, no
  * bottom bar). Controlled per-draft in Mobile Theme Studio, not hardcoded.
  */
-export default function MobileBottomNav({ navStyle = 'tabs' }: { navStyle?: 'tabs' | 'debut' }) {
+export default function MobileBottomNav({
+  navStyle = 'tabs', showBottomBar = true, bottomBarStyle = 'modern',
+}: {
+  navStyle?: 'tabs' | 'debut'
+  showBottomBar?: boolean
+  bottomBarStyle?: 'modern' | 'classic'
+}) {
   const pathname = usePathname()
 
   if (navStyle === 'debut') return null
+  if (!showBottomBar) return null
 
   // Don't show on admin pages
   if (typeof window !== 'undefined' && window.location.hostname.startsWith('admin.')) return null
@@ -91,7 +98,7 @@ export default function MobileBottomNav({ navStyle = 'tabs' }: { navStyle?: 'tab
   ]
 
   return (
-    <nav className="homeu-mobile-bottom-nav" aria-label="Mobile navigation">
+    <nav className={`homeu-mobile-bottom-nav${bottomBarStyle === 'classic' ? ' homeu-mobile-bottom-nav--classic' : ''}`} aria-label="Mobile navigation">
       {tabs.map((tab) => {
         const active = isActive(tab.href)
         const content = (

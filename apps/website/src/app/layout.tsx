@@ -14,7 +14,7 @@ import WebVitalsTracker from '@/components/WebVitalsTracker'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { getMainNav } from '@/lib/navigation'
-import { customerAccountThemeCss, getCustomCss, getCustomerAccountTheme, getHeaderSettings, getThemePalette, headerFontGoogleQuery, getSiteFavicon, getMobileNavStyle } from '@/lib/theme'
+import { customerAccountThemeCss, getCustomCss, getCustomerAccountTheme, getHeaderSettings, getThemePalette, headerFontGoogleQuery, getSiteFavicon, getMobileThemeSettings } from '@/lib/theme'
 import siteConfig from '@/data/site-config.json'
 
 export const metadata = {
@@ -61,7 +61,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   // Storefront: full Debut-themed layout
-  const [mainNav, customCss, header, palette, favicon, mobileNavStyle, accountTheme] = await Promise.all([getMainNav(), getCustomCss(), getHeaderSettings(), getThemePalette(), getSiteFavicon(), getMobileNavStyle(), getCustomerAccountTheme()])
+  const [mainNav, customCss, header, palette, favicon, mobileTheme, accountTheme] = await Promise.all([getMainNav(), getCustomCss(), getHeaderSettings(), getThemePalette(), getSiteFavicon(), getMobileThemeSettings(), getCustomerAccountTheme()])
+  const mobileNavStyle = mobileTheme.mobileNavStyle
   const announcement = header.announcement?.enabled ? header.announcement : null
   const headerCss = `:root{--debut-header-bg:${header.bgColor};--debut-header-text:${header.textColor};}`
     + `.site-header{position:${header.sticky ? 'sticky' : 'static'};${header.fontFamily ? `font-family:${header.fontFamily};` : ''}}`
@@ -117,13 +118,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <PageViewTracker />
         <LiveVisitorTracker />
         <ServiceWorkerRegister />
-        <SiteHeader nav={mainNav} header={header} logoUrl={header.logoUrl || undefined} />
+        <SiteHeader nav={mainNav} header={header} logoUrl={header.logoUrl || undefined} mobileSticky={mobileTheme.stickyHeader} mobileShowSearch={mobileTheme.showSearch} />
         <main id="MainContent" className="content-for-layout" role="main" tabIndex={-1}>
-          <MobileHomepageEnhancer navStyle={mobileNavStyle} />
+          <MobileHomepageEnhancer navStyle={mobileNavStyle} heroStyle={mobileTheme.heroStyle} quickActionPills={mobileTheme.quickActionPills} categoryChips={mobileTheme.categoryChips} />
           {children}
         </main>
         <SiteFooter />
-        <MobileBottomNav navStyle={mobileNavStyle} />
+        <MobileBottomNav navStyle={mobileNavStyle} showBottomBar={mobileTheme.showBottomBar} bottomBarStyle={mobileTheme.bottomBarStyle} />
         <MobileDrawer />
         <ChatWidget />
         <WebVitalsTracker />

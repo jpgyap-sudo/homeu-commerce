@@ -3,7 +3,7 @@
 import NoCodeThemeStudio, { type ThemeFieldSection, type ThemePreset } from '../NoCodeThemeStudio'
 
 const defaults = {
-  mobileNavStyle: 'tabs',
+  mobileNavStyle: 'debut',
   showBottomBar: true,
   bottomBarStyle: 'modern',
   showSearch: true,
@@ -18,9 +18,9 @@ const sections: ThemeFieldSection[] = [
     title: 'Navigation',
     description: 'Mobile header and primary navigation',
     fields: [
-      { key: 'mobileNavStyle', label: 'Mobile experience', type: 'select', options: [
-        { value: 'tabs', label: 'Modern tabs' },
-        { value: 'debut', label: 'Debut drawer' },
+      { key: 'mobileNavStyle', label: 'Mobile experience', type: 'select', help: 'Debut matches homeu.ph exactly — recommended unless you specifically want the tabs experiment.', options: [
+        { value: 'debut', label: 'Debut (matches homeu.ph)' },
+        { value: 'tabs', label: 'Modern tabs (experimental)' },
       ] },
       { key: 'stickyHeader', label: 'Sticky header', type: 'toggle' },
       { key: 'showSearch', label: 'Show search bar', type: 'toggle' },
@@ -28,7 +28,7 @@ const sections: ThemeFieldSection[] = [
   },
   {
     title: 'Bottom tabs',
-    description: 'Phone navigation for repeat shoppers',
+    description: 'Only applies in "Modern tabs" mode — Debut mode has no bottom bar, matching homeu.ph',
     fields: [
       { key: 'showBottomBar', label: 'Show bottom tab bar', type: 'toggle' },
       { key: 'bottomBarStyle', label: 'Bottom bar style', type: 'select', options: [
@@ -39,7 +39,7 @@ const sections: ThemeFieldSection[] = [
   },
   {
     title: 'Mobile homepage',
-    description: 'First screen for phone visitors',
+    description: 'Only applies in "Modern tabs" mode — Debut mode shows the real homepage sections, matching homeu.ph',
     fields: [
       { key: 'heroStyle', label: 'Hero style', type: 'select', options: [
         { value: 'default', label: 'Hero with quick actions' },
@@ -52,21 +52,28 @@ const sections: ThemeFieldSection[] = [
 ]
 
 const presets: ThemePreset[] = [
-  { label: 'Frictionless mobile', description: 'Search, quick actions, categories, and bottom tabs.', values: { mobileNavStyle: 'tabs', showBottomBar: true, bottomBarStyle: 'modern', showSearch: true, quickActionPills: true, categoryChips: true } },
-  { label: 'Shopify Debut style', description: 'Classic drawer navigation with real homepage sections.', values: { mobileNavStyle: 'debut', showBottomBar: false, showSearch: true, heroStyle: 'minimal' } },
+  { label: 'Matches homeu.ph (recommended)', description: 'Debut drawer navigation with the real homepage sections — identical to homeu.ph.', values: { mobileNavStyle: 'debut', showBottomBar: false, showSearch: true, stickyHeader: true, heroStyle: 'minimal' } },
+  { label: 'Frictionless mobile (experimental)', description: 'Search, quick actions, categories, and bottom tabs.', values: { mobileNavStyle: 'tabs', showBottomBar: true, bottomBarStyle: 'modern', showSearch: true, quickActionPills: true, categoryChips: true } },
 ]
+
+const STORE_BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://store.homeatelier.ph'
 
 export default function MobileThemePage() {
   return (
     <NoCodeThemeStudio
       title="Mobile Theme Builder"
-      description="Tune the mobile storefront for regular shoppers: search, quick actions, categories, and RFQ access."
+      description="Tune the mobile storefront. Debut mode is a 1:1 clone of homeu.ph's mobile experience — the live preview below is the real storefront, not a mockup."
       endpoint="/api/admin/theme/mobile"
       defaults={defaults}
       sections={sections}
       preview="mobile"
       previewLabel="Phone preview"
       presets={presets}
+      htmlPreviewConfig={{
+        draftEndpoint: '/api/theme/preview-draft',
+        buildDraftPayload: settings => ({ mobileTheme: settings, mobileNavStyle: settings.mobileNavStyle }),
+        previewUrl: `${STORE_BASE_URL.replace(/\/$/, '')}/?suppressChat=1`,
+      }}
     />
   )
 }
