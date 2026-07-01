@@ -24,14 +24,16 @@ export function LeadGateForm({ onSubmit, sourcePage }: LeadGateFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [serverError, setServerError] = useState('')
+  const [returningLookup, setReturningLookup] = useState(false)
+  const [returningFound, setReturningFound] = useState(false)
 
   function validate(): boolean {
     const errs: Record<string, string> = {}
     if (!formData.name.trim()) errs.name = 'Name is required'
     if (!formData.email.trim()) errs.email = 'Email is required'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errs.email = 'Invalid email format'
-    if (!formData.mobile.trim()) errs.mobile = 'Mobile number is required'
-    else if (formData.mobile.replace(/\s/g, '').length < 7) errs.mobile = 'Enter a valid mobile number (min 7 digits)'
+    if (!returningFound && !formData.mobile.trim()) errs.mobile = 'Mobile number is required'
+    else if (formData.mobile.trim() && formData.mobile.replace(/\s/g, '').length < 7) errs.mobile = 'Enter a valid mobile number (min 7 digits)'
     if (!consent) errs.consent = 'You must agree to be contacted'
     setErrors(errs)
     return Object.keys(errs).length === 0
@@ -53,7 +55,32 @@ export function LeadGateForm({ onSubmit, sourcePage }: LeadGateFormProps) {
 
   function updateField(field: keyof LeadFormData, value: string) {
     setFormData(prev => ({ ...prev, [field]: value }))
+    if (field === 'email') setReturningFound(false)
     if (errors[field]) setErrors(prev => { const { [field]: _, ...rest } = prev; return rest })
+  }
+
+  async function lookupReturningVisitor() {
+    const email = formData.email.trim()
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return
+
+    setReturningLookup(true)
+    try {
+      const res = await fetch(`/api/chat/visitor?email=${encodeURIComponent(email)}`)
+      if (!res.ok) return
+      const data = await res.json()
+      if (!data.found) return
+
+      setReturningFound(true)
+      setFormData(prev => ({
+        ...prev,
+        name: prev.name.trim() ? prev.name : data.lead?.name || '',
+        mobile: prev.mobile.trim() ? prev.mobile : data.lead?.mobile || '',
+      }))
+    } catch {
+      // Lookup is best-effort; the normal lead form still works.
+    } finally {
+      setReturningLookup(false)
+    }
   }
 
   return (
@@ -84,8 +111,9 @@ export function LeadGateForm({ onSubmit, sourcePage }: LeadGateFormProps) {
                 type={field.type}
                 value={String(formData[field.name as keyof LeadFormData])}
                 onChange={e => updateField(field.name as keyof LeadFormData, e.target.value)}
+                onBlur={field.name === 'email' ? lookupReturningVisitor : undefined}
                 placeholder={field.placeholder}
-                required={field.required}
+                required={field.name === 'mobile' && returningFound ? false : field.required}
               />
             )}
             {errors[field.name] && <p className="chat-error">{errors[field.name]}</p>}
@@ -108,8 +136,8 @@ export function LeadGateForm({ onSubmit, sourcePage }: LeadGateFormProps) {
 
         {serverError && <p className="chat-error">{serverError}</p>}
 
-        <button className="chat-submit-btn" type="submit" disabled={submitting}>
-          {submitting ? 'Please wait...' : 'Start Chat'}
+        <button className="chat-submit-btn" type="submit" disabled={submitting || returningLookup}>
+          {submitting ? 'Please wait...' : returningLookup ? 'Checking...' : returningFound ? 'Continue Chat' : 'Start Chat'}
         </button>
       </form>
     </div>

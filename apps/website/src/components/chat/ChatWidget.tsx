@@ -63,6 +63,15 @@ interface WidgetConfig {
   productPageDelay: number
 }
 
+interface PersistedChatMessage {
+  id: string
+  senderType: 'visitor' | 'bot' | 'admin' | 'system'
+  content: string
+  messageType: string
+  metadata?: Record<string, unknown>
+  createdAt: string
+}
+
 const DEFAULT_WIDGET_CONFIG: WidgetConfig = {
   viberNumber: '',
   viberName: 'HomeU Sales Team',
@@ -239,6 +248,10 @@ export function ChatWidget() {
         setLeadId(data.leadId)
         setConversationId(data.conversationId)
         setQuoteCartLeadId(data.leadId) // Persist for server-side cart sync
+        if (data.resumedConversation && Array.isArray(data.messages) && data.messages.length > 0) {
+          setMessages(mapPersistedMessages(data.messages))
+          setQuickReplies(['Continue request', 'Request quotation', 'Book showroom visit', 'Contact sales on Viber'])
+        }
       }
     } catch (err) {
       console.error('[ChatWidget] Auto-lead creation failed:', err instanceof Error ? err.message : err)
@@ -248,6 +261,19 @@ export function ChatWidget() {
   // ── Helpers ───────────────────────────────────────────────
   const msgCounter = useRef(0)
   function nextMsgId() { return `msg-${Date.now()}-${++msgCounter.current}` }
+
+  function mapPersistedMessages(items: PersistedChatMessage[] = []): ChatMessage[] {
+    return items
+      .filter(item => item.content?.trim())
+      .map(item => ({
+        id: item.id,
+        sender: item.senderType === 'visitor' ? 'visitor' : item.senderType === 'system' ? 'system' : 'bot',
+        content: item.content,
+        type: (item.messageType || 'text') as ChatMessage['type'],
+        timestamp: new Date(item.createdAt),
+        metadata: item.metadata,
+      }))
+  }
 
   function addBotMessage(content: string) {
     setMessages(prev => [...prev, {
@@ -290,9 +316,23 @@ export function ChatWidget() {
     setLeadId(result.leadId)
     setConversationId(result.conversationId)
     setQuoteCartLeadId(result.leadId) // Persist for server-side cart sync
-    addSystemMessage(`Connected as ${data.name}`)
-    addBotMessage(`Thanks, ${data.name.split(' ')[0]}! How can I help you today? You can describe what you need, upload a photo, or browse our catalog.`)
-    setQuickReplies(['Find a product', 'Upload a photo', 'Request quotation', 'Book showroom visit'])
+    if (result.resumedConversation && Array.isArray(result.messages) && result.messages.length > 0) {
+      setMessages([
+        ...mapPersistedMessages(result.messages),
+        {
+          id: nextMsgId(),
+          sender: 'system' as any,
+          content: `Continued as ${data.name}`,
+          type: 'system' as any,
+          timestamp: new Date(),
+        },
+      ])
+      setQuickReplies(['Continue request', 'Request quotation', 'Book showroom visit', 'Contact sales on Viber'])
+    } else {
+      addSystemMessage(`Connected as ${data.name}`)
+      addBotMessage(`Thanks, ${data.name.split(' ')[0]}! How can I help you today? You can describe what you need, upload a photo, or browse our catalog.`)
+      setQuickReplies(['Find a product', 'Upload a photo', 'Request quotation', 'Book showroom visit'])
+    }
     setState('chat_active')
   }, [])
 

@@ -81,6 +81,15 @@ export interface MessageInsert {
   metadata?: Record<string, unknown>
 }
 
+export interface ChatHistoryMessage {
+  id: string
+  senderType: 'visitor' | 'bot' | 'admin' | 'system'
+  content: string
+  messageType: string
+  metadata: Record<string, unknown>
+  createdAt: string
+}
+
 export interface LedgerEventInsert {
   leadId: string
   conversationId?: string
@@ -164,6 +173,24 @@ export async function insertConversation(data: ConversationInsert): Promise<stri
   return rows[0].id
 }
 
+/**
+ * Return the most recent resumable conversation for a lead.
+ * The 30-day window is extended on every new message.
+ */
+export async function getRecentConversationForLead(leadId: string, days = 30): Promise<string | null> {
+  const rows = await query<{ id: string }>(
+    `SELECT id::text
+     FROM chatbot.conversations
+     WHERE lead_id = $1
+       AND COALESCE(status, 'active') NOT IN ('archived', 'closed')
+       AND COALESCE(expires_at, last_message_at + ($2::int * INTERVAL '1 day'), created_at + ($2::int * INTERVAL '1 day')) > NOW()
+     ORDER BY COALESCE(last_message_at, created_at) DESC
+     LIMIT 1`,
+    [leadId, days]
+  )
+  return rows[0]?.id || null
+}
+
 // ── Messages ─────────────────────────────────────────────────────
 
 /**
@@ -183,11 +210,17 @@ export async function insertMessage(data: MessageInsert): Promise<string> {
     ]
   )
 
-  // Update conversation message count and last_message_at
+  // Update conversation message count, last_message_at, retention, and unread state.
   // Use COALESCE to handle NULL message_count (legacy rows)
   try {
+    const unreadSet = data.senderType === 'visitor' ? ', is_read = FALSE' : ''
     await query(
-      'UPDATE chatbot.conversations SET message_count = COALESCE(message_count, 0) + 1, last_message_at = now() WHERE id = $1',
+      `UPDATE chatbot.conversations
+       SET message_count = COALESCE(message_count, 0) + 1,
+           last_message_at = now(),
+           expires_at = now() + INTERVAL '30 days'
+           ${unreadSet}
+       WHERE id = $1`,
       [data.conversationId]
     )
   } catch (err) {
@@ -195,6 +228,34 @@ export async function insertMessage(data: MessageInsert): Promise<string> {
   }
 
   return rows[0].id
+}
+
+export async function updateConversationIntent(conversationId: string, intent: string | null, confidence?: number): Promise<void> {
+  await query(
+    `UPDATE chatbot.conversations
+     SET current_intent = $2,
+         intent_confidence = $3
+     WHERE id = $1`,
+    [conversationId, intent, confidence ?? null]
+  )
+}
+
+export async function getRecentMessagesForConversation(conversationId: string, days = 30): Promise<ChatHistoryMessage[]> {
+  return query<ChatHistoryMessage>(
+    `SELECT
+       id::text AS "id",
+       sender_type AS "senderType",
+       COALESCE(content, '') AS "content",
+       COALESCE(message_type, 'text') AS "messageType",
+       COALESCE(metadata, '{}'::jsonb) AS "metadata",
+       created_at::text AS "createdAt"
+     FROM chatbot.messages
+     WHERE conversation_id = $1
+       AND created_at >= NOW() - ($2::int * INTERVAL '1 day')
+     ORDER BY created_at ASC
+     LIMIT 200`,
+    [conversationId, days]
+  )
 }
 
 // ── Ledger Events ────────────────────────────────────────────────

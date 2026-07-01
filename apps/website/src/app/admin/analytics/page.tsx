@@ -32,6 +32,7 @@ interface AnalyticsData {
   // ── Products ──
   topProducts: { title: string; count: number }[]
   mostViewedProducts: { title: string; productId: string; views: number }[]
+  mostViewedPages: { path: string; views: number }[]
 
   // ── Engagement ──
   dailyMessages: { date: string; count: number }[]
@@ -88,6 +89,9 @@ async function loadAnalytics(): Promise<AnalyticsData> {
 
       // ── Geography ──
       locationResult,
+
+      // ── Most Viewed Pages ──
+      mostViewedPagesResult,
     ] = await Promise.all([
       // Daily traffic (last 14 days)
       query(`
@@ -183,11 +187,20 @@ async function loadAnalytics(): Promise<AnalyticsData> {
 
       // Top products
       query(`SELECT product_title as title, COUNT(*) as count FROM chatbot.rfq_items GROUP BY product_title ORDER BY count DESC LIMIT 10`),
-      // Most viewed product pages
+      // Most viewed product pages (join on products table to display clean title)
       query(`
-        SELECT SPLIT_PART(path, '/', 3) as productId, COUNT(*) as views
-        FROM page_views WHERE is_admin = FALSE AND path LIKE '/products/%' AND created_at >= NOW() - INTERVAL '30 days'
-        GROUP BY productId ORDER BY views DESC LIMIT 8
+        SELECT 
+          SPLIT_PART(pv.path, '/', 3) as productid,
+          COALESCE(p.title, SPLIT_PART(pv.path, '/', 3)) as title,
+          COUNT(*) as views
+        FROM page_views pv
+        LEFT JOIN products p ON p.slug = SPLIT_PART(pv.path, '/', 3)
+        WHERE pv.is_admin = FALSE 
+          AND pv.path LIKE '/products/%' 
+          AND pv.created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY productid, p.title
+        ORDER BY views DESC 
+        LIMIT 8
       `),
 
       // Messages
@@ -195,6 +208,14 @@ async function loadAnalytics(): Promise<AnalyticsData> {
 
       // Top delivery locations from RFQ carts
       query(`SELECT COALESCE(NULLIF(delivery_location, ''), 'Not specified') as location, COUNT(*) as count FROM chatbot.rfq_carts WHERE delivery_location IS NOT NULL GROUP BY delivery_location ORDER BY count DESC LIMIT 6`),
+
+      // Most viewed pages (all pages)
+      query(`
+        SELECT path, COUNT(*) as views
+        FROM page_views 
+        WHERE is_admin = FALSE AND created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY path ORDER BY views DESC LIMIT 8
+      `),
     ])
 
     const stats = leadStatsResult.rows[0] || {}
@@ -219,7 +240,8 @@ async function loadAnalytics(): Promise<AnalyticsData> {
       conversionTrend: conversionTrendResult.rows.map((r: any) => ({ week: r.week, leads: Number(r.leads), rfqs: Number(r.rfqs), rate: Number(r.leads) > 0 ? Math.round((Number(r.rfqs) / Number(r.leads)) * 100) : 0 })),
 
       topProducts: topProductsResult.rows.map((r: any) => ({ title: r.title || 'Unknown', count: Number(r.count) })),
-      mostViewedProducts: productViewsResult.rows.map((r: any) => ({ title: r.productId || '', productId: r.productId || '', views: Number(r.views) })),
+      mostViewedProducts: productViewsResult.rows.map((r: any) => ({ title: r.title || r.productid || '', productId: r.productid || '', views: Number(r.views) })),
+      mostViewedPages: mostViewedPagesResult.rows.map((r: any) => ({ path: r.path || '', views: Number(r.views) })),
 
       dailyMessages: messageVolumeResult.rows.map((r: any) => ({ date: fmtDate(r.date), count: Number(r.count) })),
       appointments: appointmentResult.rows.map((r: any) => ({ status: r.status || 'unknown', count: Number(r.count) })),
@@ -270,7 +292,7 @@ function emptyAnalytics(error?: string): AnalyticsData {
     trafficDaily: [], trafficMonthly: [], trafficByHour: [], trafficByDayOfWeek: [], topReferrers: [],
     leadVolume: [], leadSources: [], leadScores: [],
     conversionFunnel: [], rfqPipeline: [], conversionTrend: [],
-    topProducts: [], mostViewedProducts: [],
+    topProducts: [], mostViewedProducts: [], mostViewedPages: [],
     dailyMessages: [], appointments: [], topLocations: [],
     summary: { totalLeads: 0, totalRFQs: 0, totalQuotations: 0, totalAppointments: 0, totalMessages: 0, totalPageViews: 0, totalUniqueVisitors: 0, todayViews: 0, todayLeads: 0, todayRFQs: 0, conversionRate: '0.0', avgLeadScore: 0, thisMonthViews: 0, lastMonthViews: 0 },
   }
@@ -566,10 +588,11 @@ export default async function AdminAnalyticsPage() {
       <Section title="👁️ Most Viewed Pages (30 Days)">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
           <Card title="All Pages">
-            {d.trafficDaily.length === 0 ? <Empty msg="No page view data yet. Add PageViewTracker to your layout." /> : (
+            {d.mostViewedPages.length === 0 ? <Empty msg="No page view data yet" /> : (
               <div>
-                {/* We'll use topReferrers + trafficDaily as page-level proxy. Build from page_views top pages */}
-                <Empty msg="Page-level breakdown requires page_views data. Ensure the migration has been run." />
+                {d.mostViewedPages.map((p, i) => (
+                  <HorizontalBar key={i} label={p.path} value={p.views} max={Math.max(...d.mostViewedPages.map(x => x.views), 1)} color="#1a6d3e" />
+                ))}
               </div>
             )}
           </Card>

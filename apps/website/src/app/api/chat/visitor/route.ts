@@ -1,21 +1,15 @@
 /**
  * GET /api/chat/visitor?email=xxx
  *
- * Returns returning visitor profile by email.
- * Used for personalized greetings and style DNA recall.
- *
- * Response: {
- *   found: boolean,
- *   lead?: { id, name, styleDNA, lastConversationSummary, projectHistory },
- *   greeting?: string   // personalized returning visitor greeting
- * }
+ * Returns a durable returning visitor profile by email. Chat history is
+ * resumable for 30 days from the last client-started interaction.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { query } from '@/lib/db'
 import { generateReturningGreeting } from '@/lib/chatbot/ledger'
-
-// In-memory store for MVP (mirrors ledger store)
-const visitorStore: Map<string, any> = new Map()
+import { getRecentConversationForLead, getRecentMessagesForConversation } from '@/lib/chatbot/db'
+import { findCustomerByEmail, linkLeadToCustomer } from '@/lib/chatbot/customer-sync'
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,54 +19,86 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ found: false })
     }
 
-    // In production: SELECT * FROM chatbot.leads WHERE email = $1 ORDER BY created_at DESC LIMIT 1
-    const profile = visitorStore.get(email.trim().toLowerCase())
+    const normalizedEmail = email.trim().toLowerCase()
+    const { rows } = await query(
+      `SELECT
+         id::text,
+         name,
+         email,
+         mobile,
+         style_dna,
+         conversation_summary,
+         daVincios_customer_id AS "daVinciosCustomerId",
+         last_seen_at
+       FROM chatbot.leads
+       WHERE LOWER(email) = LOWER($1)
+       ORDER BY last_seen_at DESC NULLS LAST, created_at DESC
+       LIMIT 1`,
+      [normalizedEmail]
+    )
 
-    if (!profile) {
-      return NextResponse.json({ found: false })
+    const lead = rows[0]
+    if (!lead) {
+      const customer = await findCustomerByEmail(normalizedEmail)
+      if (!customer?.id) return NextResponse.json({ found: false })
+
+      return NextResponse.json({
+        found: true,
+        lead: {
+          id: null,
+          name: customer.name || '',
+          email: customer.email || normalizedEmail,
+          mobile: customer.phone || '',
+          styleDNA: {},
+          lastConversationSummary: '',
+          customerId: customer.id,
+        },
+        conversationId: null,
+        messages: [],
+        canResume: false,
+        isExistingCustomer: true,
+        historyRetainedDays: 30,
+        greeting: `Welcome back${customer.name ? `, ${customer.name.split(' ')[0]}` : ''}.`,
+      })
     }
 
+    let customerId = lead.daVinciosCustomerId ? String(lead.daVinciosCustomerId) : undefined
+    if (!customerId) {
+      const customer = await findCustomerByEmail(normalizedEmail)
+      if (customer?.id) {
+        customerId = customer.id
+        await linkLeadToCustomer(lead.id, customer.id)
+      }
+    }
+
+    const conversationId = await getRecentConversationForLead(lead.id, 30)
+    const messages = conversationId ? await getRecentMessagesForConversation(conversationId, 30) : []
     const greeting = generateReturningGreeting(
-      profile.name,
-      profile.styleDNA || { styles: [], materials: [], colors: [], categories: [], roomTypes: [], recentSearches: [] },
-      profile.projectHistory || [],
-      profile.lastConversationSummary || ''
+      lead.name,
+      lead.style_dna || { styles: [], materials: [], colors: [], categories: [], roomTypes: [], recentSearches: [] },
+      [],
+      lead.conversation_summary || ''
     )
 
     return NextResponse.json({
       found: true,
       lead: {
-        id: profile.leadId,
-        name: profile.name,
-        styleDNA: profile.styleDNA,
-        lastConversationSummary: profile.lastConversationSummary,
-        projectHistory: profile.projectHistory,
+        id: lead.id,
+        name: lead.name,
+        email: lead.email,
+        mobile: lead.mobile,
+        styleDNA: lead.style_dna,
+        lastConversationSummary: lead.conversation_summary,
+        customerId,
       },
+      conversationId,
+      messages,
+      canResume: Boolean(conversationId),
+      historyRetainedDays: 30,
       greeting,
     })
-  } catch {
+  } catch (err) {
+    console.warn('[chatbot] visitor lookup failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ found: false })
   }
-}
-
-// Helper to store/update visitor profile (called by other APIs)
-function upsertVisitorProfile(leadId: string, data: {
-  email: string
-  name: string
-  styleDNA?: any
-  lastConversationSummary?: string
-  projectHistory?: any[]
-}) {
-  const key = data.email.trim().toLowerCase()
-  const existing = visitorStore.get(key) || {}
-  visitorStore.set(key, {
-    ...existing,
-    leadId,
-    name: data.name,
-    email: data.email,
-    styleDNA: data.styleDNA || existing.styleDNA,
-    lastConversationSummary: data.lastConversationSummary || existing.lastConversationSummary,
-    projectHistory: data.projectHistory || existing.projectHistory || [],
-    updatedAt: new Date().toISOString(),
-  })
 }

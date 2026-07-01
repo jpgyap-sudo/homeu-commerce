@@ -15,7 +15,7 @@ export interface UnifiedConversation {
   unreadCount: number
   status: string
   tags: string[]
-  customerId?: number
+  customerId?: number | string
   rfqRequestId?: string
 }
 
@@ -67,7 +67,7 @@ export async function getUnifiedInbox(params: {
           CASE WHEN c.is_read THEN 0 ELSE COALESCE((SELECT COUNT(*) FROM chatbot.messages m WHERE m.conversation_id = c.id AND m.sender_type = 'visitor'), 1)::int END AS "unreadCount",
           COALESCE(c.status, 'open') AS "status",
           ARRAY[]::text[] AS "tags",
-          NULL::int AS "customerId"
+          NULLIF(l.daVincios_customer_id, '') AS "customerId"
         FROM chatbot.conversations c
         LEFT JOIN chatbot.leads l ON l.id = c.lead_id
         WHERE ${tab === 'archived' ? "c.status = 'archived'" : "(c.status IS NULL OR c.status != 'archived')"}

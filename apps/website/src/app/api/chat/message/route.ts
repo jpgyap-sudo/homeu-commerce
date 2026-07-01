@@ -20,8 +20,7 @@ import {
   productRecommendationReply, PRICE_DISCLAIMER, fallbackMessage,
   RFQ_QUANTITY_QUESTION, APPOINTMENT_MESSAGE, ERROR_AI_TIMEOUT, ERROR_GENERIC,
 } from '@/lib/chatbot/prompts'
-import { createSignal } from '@/lib/chatbot/lead-scorer'
-import { insertMessage } from '@/lib/chatbot/db'
+import { insertLedgerEvent, insertMessage, updateConversationIntent } from '@/lib/chatbot/db'
 import { sendTelegramAlert } from '@/lib/chatbot/telegram-client'
 import { loadNamespace } from '@/lib/app-config'
 
@@ -46,6 +45,31 @@ export async function POST(request: NextRequest) {
         : currentPage?.includes('/quote-cart') || currentPage?.includes('/rfq')
           ? GREETING_HOMEPAGE // simplified
           : GREETING_HOMEPAGE
+
+      if (conversationId) {
+        try {
+          await insertMessage({
+            conversationId,
+            senderType: 'visitor',
+            content: message.trim(),
+            messageType: 'text',
+            metadata: { intent: 'GREETING', currentPage },
+          })
+          if (leadId) {
+            await insertLedgerEvent({
+              leadId,
+              conversationId,
+              eventType: 'message_sent',
+              eventData: { intent: 'GREETING', currentPage, preview: message.trim().slice(0, 120) },
+              scoreDelta: 2,
+            }).catch(() => '')
+          }
+          await updateConversationIntent(conversationId, 'GREETING', 1)
+        } catch (err: any) {
+          console.error('[chatbot] Failed to persist greeting visitor message:', err.message)
+          return NextResponse.json({ error: 'Failed to save message' }, { status: 500 })
+        }
+      }
 
       return NextResponse.json({
         reply: greeting,
@@ -239,6 +263,16 @@ export async function POST(request: NextRequest) {
           messageType: 'text',
           metadata: { intent: classified.intent, currentPage },
         })
+        if (leadId) {
+          await insertLedgerEvent({
+            leadId,
+            conversationId,
+            eventType: 'message_sent',
+            eventData: { intent: classified.intent, currentPage, preview: message.trim().slice(0, 120) },
+            scoreDelta: 2,
+          }).catch(() => '')
+        }
+        await updateConversationIntent(conversationId, classified.intent, classified.confidence)
       } catch (err: any) {
         console.error('[chatbot] Failed to persist visitor message:', err.message)
         return NextResponse.json({ error: 'Failed to save message' }, { status: 500 })

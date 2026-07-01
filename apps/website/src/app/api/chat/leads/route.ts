@@ -21,7 +21,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { createSignal } from '@/lib/chatbot/lead-scorer'
 import { findCustomerByEmail, linkLeadToCustomer } from '@/lib/chatbot/customer-sync'
-import { insertLead, insertConversation, insertLedgerEvent } from '@/lib/chatbot/db'
+import {
+  getRecentConversationForLead,
+  getRecentMessagesForConversation,
+  insertLead,
+  insertConversation,
+  insertLedgerEvent,
+  type ChatHistoryMessage,
+} from '@/lib/chatbot/db'
 import { sendTelegramAlert } from '@/lib/chatbot/telegram-client'
 
 export async function POST(request: NextRequest) {
@@ -52,6 +59,8 @@ export async function POST(request: NextRequest) {
     let leadId: string
     let conversationId: string
     let isReturning = false
+    let resumedConversation = false
+    let historyMessages: ChatHistoryMessage[] = []
 
     try {
       const existing = email?.trim()
@@ -98,13 +107,29 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      conversationId = await insertConversation({
-        leadId,
-        status: 'active',
-        deviceInfo: {
-          userAgent: request.headers.get('user-agent') || undefined,
-        },
-      })
+      const recentConversationId = await getRecentConversationForLead(leadId, 30)
+
+      if (recentConversationId) {
+        conversationId = recentConversationId
+        resumedConversation = true
+        historyMessages = await getRecentMessagesForConversation(conversationId, 30)
+
+        await query(
+          `UPDATE chatbot.conversations
+           SET status = CASE WHEN status = 'closed' THEN 'active' ELSE status END,
+               expires_at = NOW() + INTERVAL '30 days'
+           WHERE id = $1`,
+          [conversationId]
+        )
+      } else {
+        conversationId = await insertConversation({
+          leadId,
+          status: 'active',
+          deviceInfo: {
+            userAgent: request.headers.get('user-agent') || undefined,
+          },
+        })
+      }
 
       console.log(`[chatbot] Lead ${leadId} persisted to DB, conversation ${conversationId}`)
     } catch (dbErr) {
@@ -186,6 +211,9 @@ export async function POST(request: NextRequest) {
       customerLinked,
       customerId: resolvedCustomerId,
       isExistingCustomer,
+      isReturning,
+      resumedConversation,
+      messages: historyMessages,
       signals,
     })
   } catch (err) {
