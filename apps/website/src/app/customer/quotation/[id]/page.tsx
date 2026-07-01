@@ -278,10 +278,11 @@ export default function CustomerQuotationPage() {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 20 }}>Home Atelier</h2>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#666' }}>
-              56 Valencia QC · Jen Tang
-            </p>
+            <img
+              src="https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/uploads/661b4f02354d0a3763a4a0331fad557e312abdc19bece013a3d86bbe8582df1a.png"
+              alt="Home Atelier"
+              style={{ height: 48, maxWidth: 200, objectFit: 'contain', display: 'block', marginBottom: 6 }}
+            />
             <p style={{ margin: 0, fontSize: 13, color: '#666' }}>
               Phone: +63 2 8703 1996 · Email: sales@homeu.ph
             </p>
@@ -331,10 +332,8 @@ export default function CustomerQuotationPage() {
               <th style={{ textAlign: 'center', padding: '8px 6px', width: 40 }}>#</th>
               <th style={{ textAlign: 'left', padding: '8px 6px' }}>Description</th>
               <th style={{ textAlign: 'center', padding: '8px 6px', width: 45 }}>QTY</th>
-              <th style={{ textAlign: 'right', padding: '8px 6px', width: 85 }}>Unit Cost</th>
-              <th style={{ textAlign: 'center', padding: '8px 6px', width: 55 }}>Disc %</th>
-              <th style={{ textAlign: 'right', padding: '8px 6px', width: 85 }}>Disc Cost</th>
-              <th style={{ textAlign: 'right', padding: '8px 6px', width: 85 }}>Total</th>
+              <th style={{ textAlign: 'right', padding: '8px 6px', width: 90 }}>Unit Cost</th>
+              <th style={{ textAlign: 'right', padding: '8px 6px', width: 90 }}>Total</th>
             </tr>
           </thead>
           <tbody>
@@ -353,12 +352,6 @@ export default function CustomerQuotationPage() {
                 <td style={{ textAlign: 'right', padding: '10px 6px' }}>
                   ₱{item.unitCost.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                 </td>
-                <td style={{ textAlign: 'center', padding: '10px 6px', color: '#c00' }}>
-                  {item.discountPercent > 0 ? `${item.discountPercent}%` : '—'}
-                </td>
-                <td style={{ textAlign: 'right', padding: '10px 6px', fontWeight: 600 }}>
-                  ₱{item.discountedCost.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-                </td>
                 <td style={{ textAlign: 'right', padding: '10px 6px', fontWeight: 600 }}>
                   ₱{item.total.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                 </td>
@@ -366,26 +359,45 @@ export default function CustomerQuotationPage() {
             ))}
           </tbody>
           <tfoot>
-            <tr>
-              <td colSpan={5} style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 600, borderTop: '2px solid #ddd' }}>Subtotal:</td>
-              <td colSpan={2} style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 600, borderTop: '2px solid #ddd' }}>
-                ₱{(quotation.subtotal || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-              </td>
-            </tr>
-            {quotation.shippingCost > 0 && (
-              <tr>
-                <td colSpan={5} style={{ textAlign: 'right', padding: '6px 12px', fontSize: 12, color: '#555' }}>Shipping / Handling:</td>
-                <td colSpan={2} style={{ textAlign: 'right', padding: '6px 12px', fontSize: 12, color: '#555' }}>
-                  ₱{quotation.shippingCost.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-                </td>
-              </tr>
-            )}
-            <tr>
-              <td colSpan={5} style={{ textAlign: 'right', padding: '12px 12px', fontWeight: 700, fontSize: 16, borderTop: '3px double #222' }}>Grand Total:</td>
-              <td colSpan={2} style={{ textAlign: 'right', padding: '12px 12px', fontWeight: 700, fontSize: 16, borderTop: '3px double #222' }}>
-                ₱{(quotation.grandTotal || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-              </td>
-            </tr>
+            {(() => {
+              const subtotal = quotation.subtotal || 0
+              const shipping = quotation.shippingCost || 0
+              const grand = quotation.grandTotal || 0
+              const discount = Math.max(0, subtotal - (grand - shipping))
+              const hasDiscount = discount > 0.005
+              return (
+                <>
+                  <tr>
+                    <td colSpan={3} style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 600, borderTop: '2px solid #ddd' }}>Subtotal:</td>
+                    <td colSpan={2} style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 600, borderTop: '2px solid #ddd' }}>
+                      ₱{subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                  {hasDiscount && (
+                    <tr>
+                      <td colSpan={3} style={{ textAlign: 'right', padding: '6px 12px', fontSize: 12, color: '#c00' }}>Discount:</td>
+                      <td colSpan={2} style={{ textAlign: 'right', padding: '6px 12px', fontSize: 12, color: '#c00' }}>
+                        −₱{discount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  )}
+                  {shipping > 0 && (
+                    <tr>
+                      <td colSpan={3} style={{ textAlign: 'right', padding: '6px 12px', fontSize: 12, color: '#555' }}>Shipping / Handling:</td>
+                      <td colSpan={2} style={{ textAlign: 'right', padding: '6px 12px', fontSize: 12, color: '#555' }}>
+                        ₱{shipping.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  )}
+                  <tr>
+                    <td colSpan={3} style={{ textAlign: 'right', padding: '12px 12px', fontWeight: 700, fontSize: 16, borderTop: '3px double #222' }}>Grand Total:</td>
+                    <td colSpan={2} style={{ textAlign: 'right', padding: '12px 12px', fontWeight: 700, fontSize: 16, borderTop: '3px double #222' }}>
+                      ₱{grand.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                </>
+              )
+            })()}
           </tfoot>
         </table>
       </div>

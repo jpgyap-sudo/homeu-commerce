@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
 const RfqChatAdmin = lazy(() => import('@/components/rfq-chat/RfqChatAdminContainer'))
+import RfqAttachments from '@/components/rfq/RfqAttachments'
 
 interface RFQItem {
   id: string
@@ -265,6 +266,11 @@ export default function RFQDetailPage() {
             </table>
           </div>
         )}
+      </div>
+
+      {/* ── Project Files / Attachments ── */}
+      <div style={{ marginTop: 24, marginBottom: 24 }}>
+        <RfqAttachments rfqId={String(rfq.id)} canDelete isAdmin />
       </div>
 
       {/* ── Chat Section (Admin) ── */}

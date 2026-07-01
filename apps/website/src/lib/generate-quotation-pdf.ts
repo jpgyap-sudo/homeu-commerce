@@ -1,5 +1,29 @@
 import { jsPDF } from 'jspdf'
-import { LOGO_BASE64 } from './logo-base64'
+
+// ── Logo cache ────────────────────────────────────────────────────────────────
+// Fetches the brand logo from CDN on first use and caches as base64 for the
+// lifetime of the Node.js process. Falls back to the bundled LOGO_BASE64 if
+// the fetch fails (e.g. no internet in dev environment).
+const LOGO_CDN_URL =
+  'https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/uploads/661b4f02354d0a3763a4a0331fad557e312abdc19bece013a3d86bbe8582df1a.png'
+
+let _logoBase64Cache: string | null = null
+let _logoFetchAttempted = false
+
+async function getLogoBase64(): Promise<string | null> {
+  if (_logoFetchAttempted) return _logoBase64Cache
+  _logoFetchAttempted = true
+  try {
+    const res = await fetch(LOGO_CDN_URL)
+    if (res.ok) {
+      const buf = Buffer.from(await res.arrayBuffer())
+      _logoBase64Cache = `data:image/png;base64,${buf.toString('base64')}`
+    }
+  } catch (e) {
+    console.error('[PDF] Failed to fetch brand logo from CDN:', e)
+  }
+  return _logoBase64Cache
+}
 
 interface QuotationItem {
   itemNumber?: number
@@ -56,23 +80,23 @@ const CONTENT_W = PAGE_W - M * 2 // 180mm
 
 // Brand Colors
 const BRAND_GREEN = [23, 63, 47] as const // #173f2f
-const ACCENT_GOLD = [201, 160, 80] as const // #c9a050
 const INK = [38, 31, 22] as const
 const GRAY_BORDER = [210, 210, 210] as const
 
 const BANK_DETAILS = [
   'Bank Name: EASTWEST BANK',
-  'Account Name: LUMITEC LIGHTING SPECIALIST INC',
+  'Account Name: HOME ATELIER',
   'Account Number: 200012649842',
 ].join('\n')
 
+// ── Table layout: no Disc% or Disc Cost columns ───────────────────────────────
+// Item#(10) | Image(25) | Description(91) | QTY(10) | Unit Cost(20) | Total(24)
 const TABLE_WIDTHS = {
   item: 10,
   image: 25,
-  desc: 71,
+  desc: 91,
   qty: 10,
   unit: 20,
-  disc: 20,
   total: 24,
 }
 
@@ -82,8 +106,7 @@ const TABLE_COLS = {
   desc: M + TABLE_WIDTHS.item + TABLE_WIDTHS.image,
   qty: M + TABLE_WIDTHS.item + TABLE_WIDTHS.image + TABLE_WIDTHS.desc,
   unit: M + TABLE_WIDTHS.item + TABLE_WIDTHS.image + TABLE_WIDTHS.desc + TABLE_WIDTHS.qty,
-  disc: M + TABLE_WIDTHS.item + TABLE_WIDTHS.image + TABLE_WIDTHS.desc + TABLE_WIDTHS.qty + TABLE_WIDTHS.unit,
-  total: M + TABLE_WIDTHS.item + TABLE_WIDTHS.image + TABLE_WIDTHS.desc + TABLE_WIDTHS.qty + TABLE_WIDTHS.unit + TABLE_WIDTHS.disc,
+  total: M + TABLE_WIDTHS.item + TABLE_WIDTHS.image + TABLE_WIDTHS.desc + TABLE_WIDTHS.qty + TABLE_WIDTHS.unit,
 }
 
 function money(value: number | undefined, withCurrency = false): string {
@@ -138,18 +161,14 @@ function drawTableHeader(doc: jsPDF, y: number) {
   doc.setTextColor(255, 255, 255)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7)
-  
-  // Center headers
+
   doc.text('ITEM #', TABLE_COLS.item + TABLE_WIDTHS.item / 2, y + 4.5, { align: 'center' })
   doc.text('IMAGE', TABLE_COLS.image + TABLE_WIDTHS.image / 2, y + 4.5, { align: 'center' })
   doc.text('DESCRIPTION', TABLE_COLS.desc + 2, y + 4.5)
   doc.text('QTY', TABLE_COLS.qty + TABLE_WIDTHS.qty / 2, y + 4.5, { align: 'center' })
-  
-  // Right headers
   doc.text('UNIT COST', TABLE_COLS.unit + TABLE_WIDTHS.unit - 2, y + 4.5, { align: 'right' })
-  doc.text('DISC. COST', TABLE_COLS.disc + TABLE_WIDTHS.disc - 2, y + 4.5, { align: 'right' })
   doc.text('TOTAL', TABLE_COLS.total + TABLE_WIDTHS.total - 2, y + 4.5, { align: 'right' })
-  
+
   return y + 6.5
 }
 
@@ -161,35 +180,34 @@ function drawTableRowGrid(doc: jsPDF, y: number, rowH: number) {
   doc.line(TABLE_COLS.desc, y, TABLE_COLS.desc, y + rowH)
   doc.line(TABLE_COLS.qty, y, TABLE_COLS.qty, y + rowH)
   doc.line(TABLE_COLS.unit, y, TABLE_COLS.unit, y + rowH)
-  doc.line(TABLE_COLS.disc, y, TABLE_COLS.disc, y + rowH)
   doc.line(TABLE_COLS.total, y, TABLE_COLS.total, y + rowH)
 }
 
 function drawSignatureBlock(doc: jsPDF, y: number) {
   doc.setDrawColor(...GRAY_BORDER)
   doc.setLineWidth(0.2)
-  
+
   // Signature lines
   doc.line(M, y, M + 70, y)
   doc.line(M + 110, y, M + 180, y)
-  
+
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(6.5)
   doc.setTextColor(...INK)
   doc.text('Authorized by: CATHLYN ROMA', M, y + 4)
   doc.text('Date', M + 110, y + 4)
-  
+
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(6)
   doc.text('Home Atelier Representative', M, y + 7.5)
   doc.text('Client Signature / Date of Confirmation', M + 110, y + 7.5)
 }
 
-function drawFooter(doc: jsPDF, isLastPage = false, data?: QuotationData) {
+function drawFooter(doc: jsPDF) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(6.5)
   doc.setTextColor(120, 120, 120)
-  
+
   const footerText = 'If you have any questions about this quotation, please contact sales@homeu.ph'
   doc.text(footerText, PAGE_W / 2, PAGE_H - 12, { align: 'center' })
 }
@@ -200,15 +218,31 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Uint8Ar
   const grandTotal = Number(data.grandTotal ?? data.total ?? data.subtotal + Number(data.shippingCost || 0))
   const createdDate = plainDate(data.createdAt) || plainDate(new Date().toISOString())
 
+  // Compute discount (only show if positive)
+  const shippingCost = Number(data.shippingCost || 0)
+  const discountAmount = Math.max(0, data.subtotal - (grandTotal - shippingCost))
+  const hasDiscount = discountAmount > 0.005 // more than half a centavo
+
   // Draw Page 1 Branding and metadata
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...INK)
 
-  // 1. Branding Logo and details
-  try {
-    doc.addImage(LOGO_BASE64, 'JPEG', M, 15, 48, 16)
-  } catch (err) {
-    console.error('Error adding brand logo to PDF:', err)
+  // 1. Brand Logo (fetch from CDN, PNG)
+  const logoBase64 = await getLogoBase64()
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, 'PNG', M, 13, 52, 18)
+    } catch (err) {
+      console.error('Error adding brand logo to PDF:', err)
+      doc.setFont('times', 'bold')
+      doc.setFontSize(16)
+      doc.setTextColor(...BRAND_GREEN)
+      doc.text('Home Atelier', M, 24)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(6)
+      doc.text('MODERN LIVING', M + 1, 28)
+    }
+  } else {
     doc.setFont('times', 'bold')
     doc.setFontSize(16)
     doc.setTextColor(...BRAND_GREEN)
@@ -229,16 +263,16 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Uint8Ar
   doc.setFontSize(8.5)
   doc.setTextColor(...BRAND_GREEN)
   doc.text('ORDER DETAILS', PAGE_W - M, 20, { align: 'right' })
-  
+
   doc.setDrawColor(...BRAND_GREEN)
   doc.setLineWidth(0.2)
   doc.rect(PAGE_W - M - 45, 23, 45, 8)
-  
+
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(8)
   doc.setTextColor(...INK)
   doc.text(data.quotationNumber || `Q-${data.id}`, PAGE_W - M - 22.5, 28.5, { align: 'center' })
-  
+
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(6.5)
   doc.text(`Date: ${createdDate}`, PAGE_W - M, 36, { align: 'right' })
@@ -251,30 +285,30 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Uint8Ar
   // 4. Client & Delivery side-by-side Info Box
   const infoY = 50
   const colW = CONTENT_W / 2
-  
+
   // Header blocks
   doc.setFillColor(...BRAND_GREEN)
   doc.rect(M, infoY, colW, 5, 'F')
   doc.rect(M + colW, infoY, colW, 5, 'F')
-  
+
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(6.5)
   doc.setTextColor(255, 255, 255)
   doc.text('CLIENT INFORMATION', M + 2, infoY + 3.8)
   doc.text('DELIVERY INFORMATION', M + colW + 2, infoY + 3.8)
-  
+
   // Outer borders
   doc.setDrawColor(...GRAY_BORDER)
   doc.setLineWidth(0.15)
   doc.rect(M, infoY, CONTENT_W, 16)
   doc.line(M + colW, infoY, M + colW, infoY + 16)
-  
+
   // Information Text content
   doc.setTextColor(...INK)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7)
   doc.text(clean(data.customerName || 'Client'), M + 2, infoY + 9.5)
-  
+
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(6.5)
   if (data.phone) {
@@ -293,10 +327,10 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Uint8Ar
   let y = 73
   y = drawTableHeader(doc, y)
 
-  for (const [index, item] of items.entries()) {
+  for (const [, item] of items.entries()) {
     const title = item.description
     const descLines = doc.splitTextToSize(title, TABLE_WIDTHS.desc - 4)
-    
+
     // Process details list (materials, dimensions, color, etc.)
     const detailsArr = (item.details || []).map(clean).filter(Boolean)
     const detailLines: string[] = []
@@ -345,7 +379,7 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Uint8Ar
     doc.setTextColor(...INK)
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(7)
-    
+
     // Draw product title
     let ty = y + 4.5
     for (const line of descLines) {
@@ -362,15 +396,14 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Uint8Ar
       ty += 3.2
     }
 
-    // D. Qty, Unit Cost, Discounted Cost, Total (Currency Symbol Omitted)
+    // D. Qty, Unit Cost, Total (no per-item discount shown)
     doc.setTextColor(...INK)
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(7)
-    
+
     doc.text(String(item.quantity), TABLE_COLS.qty + TABLE_WIDTHS.qty / 2, y + rowH / 2, { align: 'center' })
     doc.text(money(item.unitCost), TABLE_COLS.unit + TABLE_WIDTHS.unit - 2, y + rowH / 2, { align: 'right' })
-    doc.text(money(item.discountedCost), TABLE_COLS.disc + TABLE_WIDTHS.disc - 2, y + rowH / 2, { align: 'right' })
-    
+
     doc.setFont('helvetica', 'bold')
     doc.text(money(item.total), TABLE_COLS.total + TABLE_WIDTHS.total - 2, y + rowH / 2, { align: 'right' })
 
@@ -436,41 +469,56 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Uint8Ar
   // Draw Totals Block (Right side)
   const totalsX = M + 120
   const totalsValueX = M + CONTENT_W - 2
-  
+
   doc.setFontSize(7.5)
   doc.setTextColor(...INK)
 
-  // Subtotal
+  // Subtotal row
   doc.setFont('helvetica', 'bold')
-  doc.text('TOTAL AMOUNT:', totalsX, y + 4.5)
+  doc.text('SUBTOTAL:', totalsX, y + 4.5)
   doc.setFont('helvetica', 'normal')
   doc.text('PHP', totalsX + 28, y + 4.5)
   doc.text(money(data.subtotal), totalsValueX, y + 4.5, { align: 'right' })
 
-  // Shipping Cost
-  doc.setFont('helvetica', 'bold')
-  doc.text('SHIPPING FEE:', totalsX, y + 11)
-  doc.setFont('helvetica', 'normal')
-  doc.text('PHP', totalsX + 28, y + 11)
-  const shippingText = Number(data.shippingCost || 0) > 0 ? money(data.shippingCost) : 'TO FOLLOW'
-  doc.text(shippingText, totalsValueX, y + 11, { align: 'right' })
+  let totalsOffsetY = 11
 
-  // Amount Due (Accent Gold / Grand Total)
+  // Discount row — only rendered when there is an actual discount
+  if (hasDiscount) {
+    doc.setFont('helvetica', 'bold')
+    doc.text('DISCOUNT:', totalsX, y + totalsOffsetY)
+    doc.setFont('helvetica', 'normal')
+    doc.text('PHP', totalsX + 28, y + totalsOffsetY)
+    doc.setTextColor(180, 30, 30)
+    doc.text(`-${money(discountAmount)}`, totalsValueX, y + totalsOffsetY, { align: 'right' })
+    doc.setTextColor(...INK)
+    totalsOffsetY += 6.5
+  }
+
+  // Shipping Cost row
+  doc.setFont('helvetica', 'bold')
+  doc.text('SHIPPING FEE:', totalsX, y + totalsOffsetY)
+  doc.setFont('helvetica', 'normal')
+  doc.text('PHP', totalsX + 28, y + totalsOffsetY)
+  const shippingText = shippingCost > 0 ? money(shippingCost) : 'TO FOLLOW'
+  doc.text(shippingText, totalsValueX, y + totalsOffsetY, { align: 'right' })
+  totalsOffsetY += 6.5
+
+  // Amount Due (Brand Green / Grand Total)
   doc.setFillColor(...BRAND_GREEN)
-  doc.rect(totalsX, y + 16, CONTENT_W - 120, 7.5, 'F')
-  
+  doc.rect(totalsX, y + totalsOffsetY, CONTENT_W - 120, 7.5, 'F')
+
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(8)
   doc.setTextColor(255, 255, 255)
-  doc.text('AMOUNT DUE:', totalsX + 2, y + 21.2)
-  doc.text('PHP', totalsX + 28, y + 21.2)
-  doc.text(money(grandTotal), totalsValueX, y + 21.2, { align: 'right' })
+  doc.text('AMOUNT DUE:', totalsX + 2, y + totalsOffsetY + 5.2)
+  doc.text('PHP', totalsX + 28, y + totalsOffsetY + 5.2)
+  doc.text(money(grandTotal), totalsValueX, y + totalsOffsetY + 5.2, { align: 'right' })
 
   y += Math.max(termsH + 6, 32)
 
   const policyBlocks: [string, string][] = [
-    ['Cancellation Policy', data.termsCancellationPolicy || 'Customers are free to cancel the confirmed preorder with us within 3 days during placement of order thru written notice and mutual confirmation. Upon cancellation confirmation, a 5% cancellation fee will apply. If a customer’s situation changes, the delivery date may be rescheduled to an earlier or later date. An additional charge will apply if a customer requests a delivery date to be earlier than its original date.'],
-    ['Return Policy', data.termsReturnPolicy || '• In case of dispute such as wrong item delivered, you may return the goods or deliver them to our specified address without undue delay and in any case within 7 days from the date on which you communicated the request of return.\n• You are responsible for the return\'s delivery charge and decrease in the value of the goods resulting from the handling of the goods other than that necessary to establish the nature, characteristics and functioning of the goods.\n• The returned goods must be returned in resalable conditions.\n• Please note, in the case of non-resalability, the amount equivalent to the decrease in the value of the asset can always be withheld.'],
+    ['Cancellation Policy', data.termsCancellationPolicy || 'Customers are free to cancel the confirmed preorder with us within 3 days during placement of order thru written notice and mutual confirmation. Upon cancellation confirmation, a 5% cancellation fee will apply. If a customer\u2019s situation changes, the delivery date may be rescheduled to an earlier or later date. An additional charge will apply if a customer requests a delivery date to be earlier than its original date.'],
+    ['Return Policy', data.termsReturnPolicy || '\u2022 In case of dispute such as wrong item delivered, you may return the goods or deliver them to our specified address without undue delay and in any case within 7 days from the date on which you communicated the request of return.\n\u2022 You are responsible for the return\'s delivery charge and decrease in the value of the goods resulting from the handling of the goods other than that necessary to establish the nature, characteristics and functioning of the goods.\n\u2022 The returned goods must be returned in resalable conditions.\n\u2022 Please note, in the case of non-resalability, the amount equivalent to the decrease in the value of the asset can always be withheld.'],
     ['Rejection of Items', data.termsRejectionOfItems || 'In the event that items delivered are rejected by the client, the client shall be responsible for the delivery and handling fees for both the outbound and return trips. This includes all costs associated with the transportation, packaging, and handling of the items.'],
     ['Refund Policy', data.termsRefundPolicy || 'Refunds will be processed in accordance with the cancellation policy, subject to administrative fees.'],
   ].filter((row): row is [string, string] => clean(row[1]).length > 0)
@@ -513,7 +561,7 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Uint8Ar
   }
 
   drawSignatureBlock(doc, y)
-  drawFooter(doc, true, data)
+  drawFooter(doc)
 
   return new Uint8Array(doc.output('arraybuffer'))
 }

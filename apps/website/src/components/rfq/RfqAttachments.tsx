@@ -25,7 +25,7 @@ function daysUntil(iso: string): number {
   return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000))
 }
 
-export default function RfqAttachments({ rfqId, canDelete }: { rfqId: string; canDelete?: boolean }) {
+export default function RfqAttachments({ rfqId, canDelete, isAdmin }: { rfqId: string; canDelete?: boolean; isAdmin?: boolean }) {
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -92,7 +92,7 @@ export default function RfqAttachments({ rfqId, canDelete }: { rfqId: string; ca
                 📄 {a.filename}
               </a>
               <span className="rfq-attachments__meta">
-                {formatBytes(a.sizeBytes)} · {a.uploadedBy === 'admin' ? 'HomeU Team' : 'You'} · expires in {daysUntil(a.expiresAt)}d
+                {formatBytes(a.sizeBytes)} · {a.uploadedBy === 'admin' ? 'HomeU Team' : (isAdmin ? 'Customer' : 'You')} · expires in {daysUntil(a.expiresAt)}d
               </span>
               {canDelete !== false && (
                 <button type="button" onClick={() => handleDelete(a.id)} className="rfq-attachments__remove" aria-label="Remove file">✕</button>

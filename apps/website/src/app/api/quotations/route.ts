@@ -139,9 +139,9 @@ export async function POST(request: NextRequest) {
     }
 
     const maxResult = await query('SELECT COALESCE(MAX(id), 0) as max_id FROM quotations')
-    const nextNum = parseInt(maxResult.rows[0].max_id) + 1
+    const nextNum = parseInt(maxResult.rows[0].max_id) + 9999 + 1
     const year = new Date().getFullYear()
-    const quotationNumber = body.quotationNumber || `Q-${year}-${String(nextNum).padStart(4, '0')}`
+    const quotationNumber = body.quotationNumber || `Q-${year}-${String(nextNum).padStart(5, '0')}`
     const customerId = await resolveQuotationCustomerId({
       customer: body.customer,
       email: body.email,

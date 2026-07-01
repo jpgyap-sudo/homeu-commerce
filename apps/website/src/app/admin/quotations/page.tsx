@@ -203,6 +203,9 @@ Thank you for choosing Home Atelier. We have prepared your quotation #${q.quotat
 You can view the full details and respond to this quotation online at:
 ${guestUrl}
 
+You can also view this quotation directly in your customer account dashboard:
+${storefrontBaseUrl()}/customer/dashboard
+
 If you have any questions or would like to request revisions, please let us know.
 
 Best regards,
