@@ -3,7 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
-import type { StoreTheme } from '@/lib/store-themes'
+import {
+  DEFAULT_CUSTOMER_ACCOUNT_THEME,
+  normalizeCustomerAccountTheme,
+  type CustomerAccountTheme,
+  type StoreTheme,
+} from '@/lib/store-themes'
 
 type SnapshotSection = StoreTheme['snapshot']['sections'][number]
 type TemplateKey = 'index' | 'product' | 'collection'
@@ -126,6 +131,7 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
             header: nextSettings.header_settings || null,
             css: typeof nextSettings.custom_css === 'string' ? nextSettings.custom_css : '',
             palette: paletteFromSettings(nextSettings),
+            customerAccountTheme: normalizeCustomerAccountTheme(nextSettings.customer_account_theme),
             mobileNavStyle: nextSettings.mobile_nav_style === 'debut' ? 'debut' : 'tabs',
           }),
         })
@@ -162,6 +168,16 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
         ...(current.header_settings || {}),
         [key]: value,
       },
+    }))
+  }
+
+  function updateAccountTheme(key: keyof CustomerAccountTheme, value: any) {
+    updateSettings(current => ({
+      ...current,
+      customer_account_theme: normalizeCustomerAccountTheme({
+        ...(current.customer_account_theme || DEFAULT_CUSTOMER_ACCOUNT_THEME),
+        [key]: value,
+      }),
     }))
   }
 
@@ -402,6 +418,11 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
             </div>
           </section>
 
+          <AccountThemeStudio
+            value={normalizeCustomerAccountTheme(settings.customer_account_theme)}
+            onChange={updateAccountTheme}
+          />
+
           <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, overflow: 'hidden' }}>
             <div style={{ padding: 16, borderBottom: '1px solid #eef1ed', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
               <h2 style={{ margin: 0, color: '#151a17', fontSize: 16, fontWeight: 900 }}>Sections</h2>
@@ -483,5 +504,148 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
         </section>
       </div>
     </main>
+  )
+}
+
+function AccountThemeStudio({
+  value,
+  onChange,
+}: {
+  value: CustomerAccountTheme
+  onChange: (key: keyof CustomerAccountTheme, value: any) => void
+}) {
+  const colorFields: Array<{ key: keyof CustomerAccountTheme; label: string }> = [
+    { key: 'surfaceColor', label: 'Canvas' },
+    { key: 'panelColor', label: 'Panels' },
+    { key: 'textColor', label: 'Text' },
+    { key: 'mutedColor', label: 'Muted' },
+    { key: 'accentColor', label: 'Primary' },
+    { key: 'secondaryAccentColor', label: 'Gold' },
+    { key: 'borderColor', label: 'Border' },
+  ]
+
+  return (
+    <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, marginBottom: 14, overflow: 'hidden' }}>
+      <div style={{ padding: 16, borderBottom: '1px solid #eef1ed' }}>
+        <h2 style={{ margin: 0, color: '#151a17', fontSize: 16, fontWeight: 900 }}>Account Theme Studio</h2>
+        <p style={{ margin: '5px 0 0', color: '#667168', fontSize: 12, lineHeight: 1.45 }}>
+          Customer dashboard, RFQs, addresses, orders, and profile pages inherit these settings when this theme is published.
+        </p>
+      </div>
+
+      <div style={{ padding: 16, display: 'grid', gap: 14 }}>
+        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
+          Portal label
+          <input
+            value={value.welcomeLabel}
+            onChange={event => onChange('welcomeLabel', event.target.value)}
+            style={inputStyle}
+          />
+        </label>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
+            Layout
+            <select value={value.layout} onChange={event => onChange('layout', event.target.value)} style={inputStyle}>
+              <option value="concierge">Concierge</option>
+              <option value="classic">Classic</option>
+            </select>
+          </label>
+          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
+            Navigation
+            <select value={value.navStyle} onChange={event => onChange('navStyle', event.target.value)} style={inputStyle}>
+              <option value="sidebar">Sidebar</option>
+              <option value="tabs">Tabs</option>
+            </select>
+          </label>
+          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
+            Card style
+            <select value={value.cardStyle} onChange={event => onChange('cardStyle', event.target.value)} style={inputStyle}>
+              <option value="soft">Soft shadow</option>
+              <option value="flat">Flat</option>
+            </select>
+          </label>
+          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
+            Density
+            <select value={value.density} onChange={event => onChange('density', event.target.value)} style={inputStyle}>
+              <option value="comfortable">Comfortable</option>
+              <option value="compact">Compact</option>
+            </select>
+          </label>
+        </div>
+
+        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
+          Radius: {value.radius}px
+          <input
+            type="range"
+            min={0}
+            max={24}
+            value={value.radius}
+            onChange={event => onChange('radius', Number(event.target.value))}
+            className="theme-range-input"
+          />
+        </label>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+          {colorFields.map(field => (
+            <label key={field.key} style={{ display: 'grid', gridTemplateColumns: '34px 1fr', gap: 8, alignItems: 'center', fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
+              <input
+                type="color"
+                value={String(value[field.key])}
+                onChange={event => onChange(field.key, event.target.value)}
+                style={{ width: 34, height: 34, padding: 0, border: '1px solid #d9e0d7', borderRadius: 8, background: '#fff' }}
+                aria-label={field.label}
+              />
+              <span>{field.label}</span>
+            </label>
+          ))}
+        </div>
+
+        <AccountThemePreview value={value} />
+      </div>
+    </section>
+  )
+}
+
+function AccountThemePreview({ value }: { value: CustomerAccountTheme }) {
+  const shadow = value.cardStyle === 'soft' ? '0 12px 30px rgba(21,26,23,0.10)' : 'none'
+  const compact = value.density === 'compact'
+  return (
+    <div style={{
+      background: value.surfaceColor,
+      border: `1px solid ${value.borderColor}`,
+      borderRadius: value.radius + 6,
+      padding: compact ? 12 : 16,
+      display: 'grid',
+      gap: compact ? 10 : 12,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+        <div>
+          <div style={{ color: value.accentColor, fontSize: 10, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{value.welcomeLabel}</div>
+          <div style={{ color: value.textColor, fontSize: 20, fontWeight: 900, marginTop: 3 }}>Welcome back, Maria</div>
+        </div>
+        <div style={{ background: value.accentColor, color: '#fff', borderRadius: value.radius, padding: '8px 10px', fontSize: 11, fontWeight: 900 }}>New RFQ</div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {['Active Projects', 'Awaiting Decision'].map((label, index) => (
+          <div key={label} style={{ background: value.panelColor, border: `1px solid ${value.borderColor}`, borderRadius: value.radius, boxShadow: shadow, padding: compact ? 10 : 13 }}>
+            <div style={{ color: value.textColor, fontSize: 22, fontWeight: 900 }}>{index === 0 ? '3' : '1'}</div>
+            <div style={{ color: value.mutedColor, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ background: value.panelColor, border: `1px solid ${value.borderColor}`, borderRadius: value.radius, boxShadow: shadow, padding: compact ? 11 : 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <div>
+            <div style={{ color: value.textColor, fontWeight: 900, fontSize: 13 }}>RFQ #A18F2C</div>
+            <div style={{ color: value.mutedColor, fontSize: 11, marginTop: 2 }}>Dining room set - updated 2h ago</div>
+          </div>
+          <div style={{ color: value.secondaryAccentColor, fontWeight: 900, fontSize: 11 }}>Quoted</div>
+        </div>
+        <div style={{ height: 6, borderRadius: 999, background: value.borderColor, marginTop: 12, overflow: 'hidden' }}>
+          <div style={{ width: '68%', height: '100%', background: value.accentColor }} />
+        </div>
+      </div>
+    </div>
   )
 }

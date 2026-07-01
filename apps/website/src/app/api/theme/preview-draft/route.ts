@@ -7,8 +7,8 @@ export async function POST(request: NextRequest) {
     const session = await getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { template, sections, header, css, palette, mobileNavStyle } = await request.json()
-    const draftData = { template, sections, header, css, palette, mobileNavStyle }
+    const { template, sections, header, css, palette, customerAccountTheme, mobileNavStyle } = await request.json()
+    const draftData = { template, sections, header, css, palette, customerAccountTheme, mobileNavStyle }
 
     await query(
       `INSERT INTO "DaVinciOS_kv" (key, data)

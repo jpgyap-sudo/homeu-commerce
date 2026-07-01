@@ -4,7 +4,13 @@
  */
 
 import { query } from '@/lib/db'
-import { getMobileLiveThemeSnapshot, type StoreThemeSnapshot } from '@/lib/store-themes'
+import {
+  DEFAULT_CUSTOMER_ACCOUNT_THEME,
+  getMobileLiveThemeSnapshot,
+  normalizeCustomerAccountTheme,
+  type CustomerAccountTheme,
+  type StoreThemeSnapshot,
+} from '@/lib/store-themes'
 import type { HomepageSection } from '@/lib/theme-types'
 
 export type { SectionType, HomepageSection } from '@/lib/theme-types'
@@ -202,6 +208,56 @@ export async function getSiteFavicon(): Promise<string> {
   } catch {
     return ''
   }
+}
+
+/** Customer account theme, editable from Online Store theme snapshots. */
+export async function getCustomerAccountTheme(): Promise<CustomerAccountTheme> {
+  let isPreview = false
+  try {
+    const { headers } = require('next/headers')
+    const h = await headers()
+    isPreview = h.get('x-theme-preview') === '1'
+  } catch {}
+
+  if (isPreview) {
+    const draft = await getPreviewDraft()
+    const accountTheme = (draft as any)?.customerAccountTheme
+    if (accountTheme) return normalizeCustomerAccountTheme(accountTheme)
+  }
+
+  try {
+    const res = await query(`SELECT value FROM site_settings WHERE key = 'customer_account_theme'`, [])
+    return normalizeCustomerAccountTheme(res.rows[0]?.value)
+  } catch {
+    return DEFAULT_CUSTOMER_ACCOUNT_THEME
+  }
+}
+
+export function customerAccountThemeCss(theme: CustomerAccountTheme): string {
+  const safe = normalizeCustomerAccountTheme(theme)
+  const shadow = safe.layout === 'classic' || safe.cardStyle === 'flat' ? 'none' : '0 12px 34px rgba(21, 26, 23, 0.07)'
+  const sectionPadding = safe.density === 'compact' ? '16px' : '22px'
+  const fieldPadding = safe.density === 'compact' ? '9px 11px' : '11px 13px'
+  const gridColumns = safe.navStyle === 'tabs' ? '1fr' : '220px 1fr'
+  return `:root{`
+    + `--account-surface:${safe.surfaceColor};`
+    + `--account-panel:${safe.panelColor};`
+    + `--account-text:${safe.textColor};`
+    + `--account-muted:${safe.mutedColor};`
+    + `--account-accent:${safe.accentColor};`
+    + `--account-secondary:${safe.secondaryAccentColor};`
+    + `--account-border:${safe.borderColor};`
+    + `--account-radius:${safe.radius}px;`
+    + `--account-card-shadow:${shadow};`
+    + `--account-section-padding:${sectionPadding};`
+    + `--account-field-padding:${fieldPadding};`
+    + `--account-grid-columns:${gridColumns};`
+    + `--account-nav-display:${safe.navStyle === 'tabs' ? 'row' : 'column'};`
+    + `--account-nav-position:${safe.navStyle === 'tabs' ? 'static' : 'sticky'};`
+    + `--account-welcome-label:"${safe.welcomeLabel.replace(/["\\]/g, '')}";`
+    + `}`
+    + `.dashboard-shell,.account-page{--debut-text:var(--account-text);--debut-borders:var(--account-border);}`
+    + `.dashboard-shell[data-account-layout="classic"],.account-page[data-account-layout="classic"]{--account-card-shadow:none;}`
 }
 
 export interface HeaderSettings {

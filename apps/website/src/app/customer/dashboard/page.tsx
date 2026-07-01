@@ -165,11 +165,10 @@ export default function CustomerDashboardPage() {
       {/* Hero */}
       <div className="dashboard-hero">
         <div>
+          <p className="dashboard-eyebrow">My HomeU</p>
           {BRAND_LOGO ? (
             <img src={BRAND_LOGO} alt="Home Atelier" className="dashboard-eyebrow-logo" />
-          ) : (
-            <p className="dashboard-eyebrow">My HomeU</p>
-          )}
+          ) : null}
           <h1>Welcome back, {customer.name.split(' ')[0]}</h1>
           {memberSince && <p className="dashboard-hero-sub">Member since {memberSince}</p>}
         </div>

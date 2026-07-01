@@ -1948,6 +1948,152 @@
 .account-form__error { color: #c00; font-size: 13px; margin: 0 0 16px; }
 .account-form__success { color: #059669; font-size: 13px; margin: 0 0 16px; }
 
+/* Customer Account Theme Studio variables */
+.account-page,
+.dashboard-shell {
+  color: var(--account-text, var(--debut-text, #1a2620));
+}
+.account-page {
+  max-width: 1120px;
+  grid-template-columns: var(--account-grid-columns, 220px 1fr);
+  background: var(--account-surface, transparent);
+  border-radius: calc(var(--account-radius, 8px) + 4px);
+}
+.account-nav {
+  flex-direction: var(--account-nav-display, column);
+  position: var(--account-nav-position, sticky);
+}
+.account-nav__link {
+  border-radius: var(--account-radius, 8px);
+  color: var(--account-muted, #888);
+}
+.account-nav__link:hover,
+.account-nav__link--active {
+  background: color-mix(in srgb, var(--account-accent, #1a6d3e) 10%, var(--account-panel, #fff));
+  color: var(--account-accent, #1a6d3e);
+}
+.account-section,
+.address-card,
+.order-card {
+  background: var(--account-panel, #fff);
+  border-color: var(--account-border, var(--debut-borders, #ebebeb));
+  border-radius: var(--account-radius, 8px);
+  box-shadow: var(--account-card-shadow, none);
+}
+.account-section {
+  padding: var(--account-section-padding, 22px);
+  border: 1px solid var(--account-border, var(--debut-borders, #ebebeb));
+}
+.account-title,
+.account-section__title,
+.address-form-modal__header h2 {
+  color: var(--account-text, var(--debut-text, #1a2620));
+}
+.account-subtitle,
+.account-empty,
+.account-loading,
+.account-form__hint {
+  color: var(--account-muted, #888);
+}
+.account-form__field label {
+  color: var(--account-muted, #666);
+}
+.account-form__field input {
+  padding: var(--account-field-padding, 10px 13px);
+  border-color: var(--account-border, var(--debut-borders, #ebebeb));
+  border-radius: var(--account-radius, 8px);
+}
+.account-form__field input:focus {
+  border-color: var(--account-accent, var(--debut-text, #3a3a3a));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--account-accent, #1a6d3e) 16%, transparent);
+}
+.address-card--default {
+  border-color: var(--account-accent, var(--debut-text, #3a3a3a));
+}
+.address-card__badge {
+  background: var(--account-accent, var(--debut-text, #3a3a3a));
+}
+.dashboard-shell {
+  max-width: 1120px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--account-surface, #f7f4ee) 94%, #fff) 0%, transparent 280px),
+    var(--account-surface, transparent);
+  border-radius: calc(var(--account-radius, 8px) + 6px);
+}
+.dashboard-hero {
+  padding: var(--account-section-padding, 22px);
+  background: var(--account-panel, #fff);
+  border: 1px solid var(--account-border, var(--debut-borders, #ebebeb));
+  border-radius: var(--account-radius, 8px);
+  box-shadow: var(--account-card-shadow, none);
+}
+.dashboard-eyebrow::before {
+  content: var(--account-welcome-label, "My HomeU");
+}
+.dashboard-eyebrow {
+  font-size: 0;
+}
+.dashboard-eyebrow::before {
+  font-size: 11px;
+}
+.dashboard-hero h1,
+.dashboard-section-heading h2,
+.dashboard-attention h2 {
+  color: var(--account-text, var(--debut-text, #1a2620));
+}
+.dashboard-hero-sub,
+.dashboard-stat-label,
+.dashboard-project-meta,
+.dashboard-project-id,
+.dashboard-chat-preview-text,
+.dashboard-back-link a {
+  color: var(--account-muted, #888);
+}
+.dashboard-stat-card,
+.dashboard-widget-card,
+.dashboard-project-card,
+.dashboard-profile-grid,
+.dashboard-empty {
+  background: var(--account-panel, #fff);
+  border-color: var(--account-border, var(--debut-borders, #ebebeb));
+  border-radius: var(--account-radius, 8px);
+  box-shadow: var(--account-card-shadow, none);
+}
+.dashboard-stat-value,
+.dashboard-chat-preview-sender,
+.dashboard-empty p:first-child {
+  color: var(--account-text, var(--debut-text, #1a2620));
+}
+.dashboard-cart-nudge,
+.dashboard-appointment-upcoming {
+  background: color-mix(in srgb, var(--account-accent, #1a6d3e) 8%, var(--account-panel, #fff));
+  border-color: color-mix(in srgb, var(--account-accent, #1a6d3e) 24%, var(--account-border, #ebebeb));
+  border-radius: var(--account-radius, 8px);
+}
+.dashboard-cart-nudge-cta,
+.dashboard-journey-step.done .dashboard-journey-label,
+.dashboard-appointment-msg {
+  color: var(--account-accent, #1a6d3e);
+}
+.dashboard-journey-step.done::before,
+.dashboard-journey-step.done .dashboard-journey-dot,
+.dashboard-project-chat-btn {
+  background: var(--account-accent, #1a6d3e);
+}
+.dashboard-project-chat-btn,
+.dashboard-project-quote-btn {
+  border-radius: var(--account-radius, 8px);
+}
+.dashboard-project-quote-btn {
+  border-color: var(--account-accent, #1a6d3e);
+  color: var(--account-accent, #1a6d3e);
+}
+.dashboard-attention-card {
+  background: color-mix(in srgb, var(--account-secondary, #b88935) 11%, var(--account-panel, #fff));
+  border-color: color-mix(in srgb, var(--account-secondary, #b88935) 38%, var(--account-border, #ebebeb));
+  border-radius: var(--account-radius, 8px);
+}
+
 /* ── RFQ project file attachments ─────────────────────────────────────────── */
 .rfq-attachments { background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 20px; }
 .rfq-attachments__title { margin: 0 0 8px; font-size: 18px; }

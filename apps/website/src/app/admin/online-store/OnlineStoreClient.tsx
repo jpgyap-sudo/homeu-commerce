@@ -28,6 +28,13 @@ function sectionCount(theme: StoreTheme, template: string) {
   return theme.snapshot?.sections?.filter(section => section.template === template).length || 0
 }
 
+function accountThemeSummary(theme: StoreTheme) {
+  const account = theme.snapshot?.settings?.customer_account_theme || {}
+  const label = account.welcomeLabel || 'My HomeU'
+  const layout = account.layout === 'classic' ? 'classic' : 'concierge'
+  return `${label} - ${layout} account portal`
+}
+
 const pageSpeed = [
   { label: 'LCP P75', value: '2213 milliseconds', delta: '7%', status: 'Good' },
   { label: 'INP P75', value: '144 milliseconds', delta: '20%', status: 'Good' },
@@ -192,7 +199,7 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
             <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: '#151a17', letterSpacing: 0 }}>Online Store</h1>
           </div>
           <p style={{ margin: 0, color: '#667168', fontSize: 14 }}>
-            {themes.length} themes, {draftThemes.length} desktop drafts, {mobileThemes.length} mobile drafts
+            {themes.length} themes, {draftThemes.length} desktop drafts, {mobileThemes.length} mobile drafts, account portal synced
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -255,6 +262,7 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
                 <StatusBadge label="Live" tone="green" />
               </div>
               <div style={{ color: '#667168', fontSize: 14 }}>Published {formatDate(liveTheme.published_at)} - Version {liveTheme.version}</div>
+              <div style={{ color: '#8a958d', fontSize: 12, marginTop: 5 }}>Account - {accountThemeSummary(liveTheme)}</div>
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button onClick={() => duplicate(liveTheme)} disabled={busy === `duplicate:${liveTheme.id}`} className="luxe-btn luxe-btn-ghost">
@@ -262,6 +270,7 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
               </button>
               <button onClick={() => startRename(liveTheme)} className="luxe-btn luxe-btn-ghost">Rename</button>
               <Link href="/admin/theme" className="luxe-btn luxe-btn-primary" style={{ textDecoration: 'none' }}>Customize</Link>
+              <Link href={`/admin/online-store/themes/${liveTheme.id}`} className="luxe-btn luxe-btn-ghost" style={{ textDecoration: 'none' }}>Account theme</Link>
             </div>
           </div>
         </section>
@@ -289,6 +298,9 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
               <div style={{ color: '#8a958d', fontSize: 12, marginTop: 5 }}>
                 Desktop - {sectionCount(theme, 'index')} home - {sectionCount(theme, 'product')} product - {sectionCount(theme, 'collection')} collection sections
               </div>
+              <div style={{ color: '#8a958d', fontSize: 12, marginTop: 3 }}>
+                Account - {accountThemeSummary(theme)}
+              </div>
               {showDiffId === theme.id && liveTheme && (
                 <ThemeDiffView diff={computeThemeDiff(liveTheme.snapshot, theme.snapshot)} />
               )}
@@ -301,6 +313,7 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
                 {busy === `publish:${theme.id}` ? 'Publishing' : 'Publish'}
               </button>
               <Link href={`/admin/theme?themeId=${theme.id}`} className="luxe-btn luxe-btn-ghost" style={{ textDecoration: 'none' }}>Customize</Link>
+              <Link href={`/admin/online-store/themes/${theme.id}`} className="luxe-btn luxe-btn-ghost" style={{ textDecoration: 'none' }}>Account theme</Link>
               <button onClick={() => duplicate(theme)} disabled={busy === `duplicate:${theme.id}`} className="luxe-btn luxe-btn-ghost">Duplicate</button>
               <button onClick={() => startRename(theme)} className="luxe-btn luxe-btn-ghost">Rename</button>
               <button onClick={() => run('delete', theme.id)} disabled={busy === `delete:${theme.id}`} className="luxe-btn luxe-btn-ghost" style={{ color: '#b0392f' }}>Delete</button>
