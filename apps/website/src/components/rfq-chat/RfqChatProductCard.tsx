@@ -1,5 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { addToQuoteCart, getQuoteCart, syncCartToServer } from '@/components/QuoteCart'
+
 interface ProductCardData {
   id: number | string
   title: string
@@ -12,7 +15,9 @@ interface ProductCardData {
 interface RfqChatProductCardProps {
   product: ProductCardData
   showAddToCart?: boolean
-  onAddToCart?: (productId: number | string) => void
+  onAddToCart?: (product: ProductCardData) => void | Promise<void>
+  onAskQuestion?: (product: ProductCardData, question: string) => void
+  addMode?: 'local-cart' | 'server-rfq'
   compact?: boolean
 }
 
@@ -20,9 +25,49 @@ export default function RfqChatProductCard({
   product,
   showAddToCart,
   onAddToCart,
+  onAskQuestion,
+  addMode = 'server-rfq',
   compact,
 }: RfqChatProductCardProps) {
   const productUrl = `/products/${product.slug || product.id}`
+  const [inCart, setInCart] = useState(false)
+  const [adding, setAdding] = useState(false)
+
+  useEffect(() => {
+    if (addMode !== 'local-cart') return
+    const sync = () => setInCart(getQuoteCart().some(item => item.productId === String(product.id)))
+    sync()
+    window.addEventListener('homeu_quote_cart_changed', sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      window.removeEventListener('homeu_quote_cart_changed', sync)
+      window.removeEventListener('storage', sync)
+    }
+  }, [addMode, product.id])
+
+  async function handleAdd() {
+    if (adding) return
+    setAdding(true)
+    try {
+      if (onAddToCart) {
+        await onAddToCart(product)
+      } else if (addMode === 'local-cart') {
+        addToQuoteCart({
+          productId: String(product.id),
+          title: product.title,
+          price: product.price || undefined,
+          quantity: 1,
+          imageUrl: product.imageUrl || undefined,
+          slug: product.slug,
+          notes: `Added from RFQ chat${product.categoryTitle ? ` - ${product.categoryTitle}` : ''}`,
+        })
+        setInCart(true)
+        syncCartToServer().catch(() => {})
+      }
+    } finally {
+      setAdding(false)
+    }
+  }
 
   if (compact) {
     return (

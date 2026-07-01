@@ -95,6 +95,7 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
   const [saving, setSaving] = useState(false)
   const [previewKey, setPreviewKey] = useState(0)
   const [mounted, setMounted] = useState(false)
+  const [editorTab, setEditorTab] = useState<'mobile' | 'account'>('mobile')
 
   useEffect(() => {
     setMounted(true)
@@ -347,125 +348,167 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
 
       <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(360px, 520px) minmax(420px, 1fr)', overflow: 'hidden' }}>
         <aside style={{ overflow: 'auto', padding: 18 }}>
-          <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, marginBottom: 14, overflow: 'hidden' }}>
-            <div style={{ padding: 16, borderBottom: '1px solid #eef1ed' }}>
-              <h1 style={{ margin: 0, color: '#151a17', fontSize: 21, fontWeight: 900 }}>Mobile Theme Studio</h1>
-              <p style={{ margin: '6px 0 0', color: '#667168', fontSize: 13 }}>
-                {theme.role === 'mobile_live' ? 'Current live mobile theme' : 'Mobile draft theme'}
-              </p>
-            </div>
-            <div style={{ padding: 16, display: 'grid', gap: 12 }}>
-              <label style={{ fontSize: 12, fontWeight: 800, color: '#3a4339' }}>Template</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                {(['index', 'product', 'collection'] as TemplateKey[]).map(template => (
-                  <button
-                    key={template}
-                    onClick={() => setCurrentTemplate(template)}
-                    style={{
-                      padding: '9px 10px',
-                      border: '1px solid #d9e0d7',
-                      borderRadius: 8,
-                      background: currentTemplate === template ? '#151a17' : '#fff',
-                      color: currentTemplate === template ? '#fff' : '#3a4339',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      textTransform: 'capitalize',
-                    }}
-                  >
-                    {template}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
+          {/* Section Tab Switcher */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 16, background: '#f0f2f0', padding: 4, borderRadius: 10 }}>
+            <button
+              onClick={() => setEditorTab('mobile')}
+              style={{
+                padding: '10px',
+                border: 0,
+                borderRadius: 8,
+                background: editorTab === 'mobile' ? '#fff' : 'transparent',
+                color: '#151a17',
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
+                transition: 'all 100ms ease',
+                boxShadow: editorTab === 'mobile' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+              }}
+            >
+              📱 Mobile Storefront
+            </button>
+            <button
+              onClick={() => setEditorTab('account')}
+              style={{
+                padding: '10px',
+                border: 0,
+                borderRadius: 8,
+                background: editorTab === 'account' ? '#fff' : 'transparent',
+                color: '#151a17',
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
+                transition: 'all 100ms ease',
+                boxShadow: editorTab === 'account' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+              }}
+            >
+              👤 Customer Account Portal
+            </button>
+          </div>
 
-          <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, marginBottom: 14, overflow: 'hidden' }}>
-            <div style={{ padding: 16, borderBottom: '1px solid #eef1ed' }}>
-              <h2 style={{ margin: 0, color: '#151a17', fontSize: 16, fontWeight: 900 }}>Mobile header</h2>
-            </div>
-            <div style={{ padding: 16, display: 'grid', gap: 12 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
-                Logo width
-                <input
-                  type="number"
-                  value={Number(settings.header_settings?.logoMaxWidth || 200)}
-                  onChange={event => updateHeader('logoMaxWidth', Number(event.target.value) || 200)}
-                  style={inputStyle}
-                />
-              </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
-                Header layout
-                <select value={settings.header_settings?.layout || 'logo-center'} onChange={event => updateHeader('layout', event.target.value)} style={inputStyle}>
-                  <option value="logo-center">Logo center</option>
-                  <option value="logo-left">Logo left</option>
-                </select>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#3a4339', fontWeight: 800 }}>
-                <input type="checkbox" checked={settings.header_settings?.sticky !== false} onChange={event => updateHeader('sticky', event.target.checked)} />
-                Sticky header
-              </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
-                Mobile navigation
-                <select
-                  value={settings.mobile_nav_style || 'tabs'}
-                  onChange={event => updateSettings(current => ({ ...current, mobile_nav_style: event.target.value }))}
-                  style={inputStyle}
-                >
-                  <option value="tabs">Custom mobile UX (welcome hero + quick-action pills + bottom tabs)</option>
-                  <option value="debut">Debut clone (homeu.ph 1:1 — real sections only, drawer nav, no bottom bar)</option>
-                </select>
-              </label>
-            </div>
-          </section>
-
-          <AccountThemeStudio
-            value={normalizeCustomerAccountTheme(settings.customer_account_theme)}
-            onChange={updateAccountTheme}
-          />
-
-          <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, overflow: 'hidden' }}>
-            <div style={{ padding: 16, borderBottom: '1px solid #eef1ed', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-              <h2 style={{ margin: 0, color: '#151a17', fontSize: 16, fontWeight: 900 }}>Sections</h2>
-              <span style={{ color: '#667168', fontSize: 12 }}>{templateItems.length} items</span>
-            </div>
-
-            {templateItems.length === 0 ? (
-              <div style={{ padding: 22, color: '#667168', fontSize: 13 }}>No sections saved for this template.</div>
-            ) : templateItems.map(({ section, index }, order) => {
-              const open = openIndex === index
-              return (
-                <div key={`${section.type}-${index}`} style={{ padding: 14, borderTop: order === 0 ? 0 : '1px solid #eef1ed' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center' }}>
-                    <div>
-                      <strong style={{ display: 'block', color: '#151a17', fontSize: 14 }}>{section.type.replace(/_/g, ' ')}</strong>
-                      <span style={{ color: '#8a958d', fontSize: 12 }}>Position {section.position}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <button onClick={() => moveSection(index, -1)} disabled={order === 0} className="luxe-btn luxe-btn-ghost" style={{ padding: '7px 9px' }}>Up</button>
-                      <button onClick={() => moveSection(index, 1)} disabled={order === templateItems.length - 1} className="luxe-btn luxe-btn-ghost" style={{ padding: '7px 9px' }}>Down</button>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#667168' }}>
-                      <input type="checkbox" checked={section.enabled !== false} onChange={event => updateSection(index, { enabled: event.target.checked })} />
-                      {section.enabled !== false ? 'Shown' : 'Hidden'}
-                    </label>
-                    <button onClick={() => setOpenIndex(open ? null : index)} className="luxe-btn luxe-btn-ghost" style={{ padding: '7px 10px' }}>
-                      {open ? 'Close' : 'Edit content'}
-                    </button>
-                  </div>
-                  {open && (
-                    <div style={{ marginTop: 12 }}>
-                      <textarea value={configText[index] || '{}'} onChange={event => setConfigText(prev => ({ ...prev, [index]: event.target.value }))} style={codeStyle} />
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-                        <button onClick={() => saveConfig(index)} className="luxe-btn luxe-btn-ghost">Apply content</button>
-                      </div>
-                    </div>
-                  )}
+          {editorTab === 'mobile' ? (
+            <>
+              <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, marginBottom: 14, overflow: 'hidden' }}>
+                <div style={{ padding: 16, borderBottom: '1px solid #eef1ed' }}>
+                  <h1 style={{ margin: 0, color: '#151a17', fontSize: 21, fontWeight: 900 }}>Mobile Theme Studio</h1>
+                  <p style={{ margin: '6px 0 0', color: '#667168', fontSize: 13 }}>
+                    {theme.role === 'mobile_live' ? 'Current live mobile theme' : 'Mobile draft theme'}
+                  </p>
                 </div>
-              )
-            })}
-          </section>
+                <div style={{ padding: 16, display: 'grid', gap: 12 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800, color: '#3a4339' }}>Template</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    {(['index', 'product', 'collection'] as TemplateKey[]).map(template => (
+                      <button
+                        key={template}
+                        onClick={() => setCurrentTemplate(template)}
+                        style={{
+                          padding: '9px 10px',
+                          border: '1px solid #d9e0d7',
+                          borderRadius: 8,
+                          background: currentTemplate === template ? '#151a17' : '#fff',
+                          color: currentTemplate === template ? '#fff' : '#3a4339',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {template}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, marginBottom: 14, overflow: 'hidden' }}>
+                <div style={{ padding: 16, borderBottom: '1px solid #eef1ed' }}>
+                  <h2 style={{ margin: 0, color: '#151a17', fontSize: 16, fontWeight: 900 }}>Mobile header</h2>
+                </div>
+                <div style={{ padding: 16, display: 'grid', gap: 12 }}>
+                  <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
+                    Logo width
+                    <input
+                      type="number"
+                      value={Number(settings.header_settings?.logoMaxWidth || 200)}
+                      onChange={event => updateHeader('logoMaxWidth', Number(event.target.value) || 200)}
+                      style={inputStyle}
+                    />
+                  </label>
+                  <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
+                    Header layout
+                    <select value={settings.header_settings?.layout || 'logo-center'} onChange={event => updateHeader('layout', event.target.value)} style={inputStyle}>
+                      <option value="logo-center">Logo center</option>
+                      <option value="logo-left">Logo left</option>
+                    </select>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#3a4339', fontWeight: 800 }}>
+                    <input type="checkbox" checked={settings.header_settings?.sticky !== false} onChange={event => updateHeader('sticky', event.target.checked)} />
+                    Sticky header
+                  </label>
+                  <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: '#3a4339' }}>
+                    Mobile navigation
+                    <select
+                      value={settings.mobile_nav_style || 'tabs'}
+                      onChange={event => updateSettings(current => ({ ...current, mobile_nav_style: event.target.value }))}
+                      style={inputStyle}
+                    >
+                      <option value="tabs">Custom mobile UX (welcome hero + quick-action pills + bottom tabs)</option>
+                      <option value="debut">Debut clone (homeu.ph 1:1 — real sections only, drawer nav, no bottom bar)</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ padding: 16, borderBottom: '1px solid #eef1ed', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                  <h2 style={{ margin: 0, color: '#151a17', fontSize: 16, fontWeight: 900 }}>Sections</h2>
+                  <span style={{ color: '#667168', fontSize: 12 }}>{templateItems.length} items</span>
+                </div>
+
+                {templateItems.length === 0 ? (
+                  <div style={{ padding: 22, color: '#667168', fontSize: 13 }}>No sections saved for this template.</div>
+                ) : templateItems.map(({ section, index }, order) => {
+                  const open = openIndex === index
+                  return (
+                    <div key={`${section.type}-${index}`} style={{ padding: 14, borderTop: order === 0 ? 0 : '1px solid #eef1ed' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center' }}>
+                        <div>
+                          <strong style={{ display: 'block', color: '#151a17', fontSize: 14 }}>{section.type.replace(/_/g, ' ')}</strong>
+                          <span style={{ color: '#8a958d', fontSize: 12 }}>Position {section.position}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <button onClick={() => moveSection(index, -1)} disabled={order === 0} className="luxe-btn luxe-btn-ghost" style={{ padding: '7px 9px' }}>Up</button>
+                          <button onClick={() => moveSection(index, 1)} disabled={order === templateItems.length - 1} className="luxe-btn luxe-btn-ghost" style={{ padding: '7px 9px' }}>Down</button>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#667168' }}>
+                          <input type="checkbox" checked={section.enabled !== false} onChange={event => updateSection(index, { enabled: event.target.checked })} />
+                          {section.enabled !== false ? 'Shown' : 'Hidden'}
+                        </label>
+                        <button onClick={() => setOpenIndex(open ? null : index)} className="luxe-btn luxe-btn-ghost" style={{ padding: '7px 10px' }}>
+                          {open ? 'Close' : 'Edit content'}
+                        </button>
+                      </div>
+                      {open && (
+                        <div style={{ marginTop: 12 }}>
+                          <textarea value={configText[index] || '{}'} onChange={event => setConfigText(prev => ({ ...prev, [index]: event.target.value }))} style={codeStyle} />
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+                            <button onClick={() => saveConfig(index)} className="luxe-btn luxe-btn-ghost">Apply content</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </section>
+            </>
+          ) : (
+            <AccountThemeStudio
+              value={normalizeCustomerAccountTheme(settings.customer_account_theme)}
+              onChange={updateAccountTheme}
+            />
+          )}
 
           <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 10, overflow: 'hidden', marginTop: 14 }}>
             <button onClick={() => setAdvancedOpen(open => !open)} style={{ width: '100%', padding: 16, border: 0, background: '#fff', textAlign: 'left', fontWeight: 900, color: '#151a17', cursor: 'pointer' }}>
@@ -480,27 +523,41 @@ export default function ThemeSnapshotEditor({ initialTheme }: { initialTheme: St
         </aside>
 
         <section style={{ display: 'flex', flexDirection: 'column', minWidth: 0, background: '#dfe6df', borderLeft: '1px solid #cfd8cc' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#fff', borderBottom: '1px solid #d9e0d7' }}>
-            <strong style={{ fontSize: 13, color: '#151a17' }}>Live phone preview</strong>
-            <span style={{ color: '#667168', fontSize: 12, textTransform: 'capitalize' }}>{currentTemplate}</span>
-            <div style={{ flex: 1 }} />
-            <button onClick={() => setPreviewKey(key => key + 1)} className="luxe-btn luxe-btn-ghost" style={{ padding: '7px 10px' }}>Refresh</button>
-            {mounted && <a href={previewUrl(currentTemplate, previewKey, previewRoot)} target="_blank" rel="noreferrer" className="luxe-btn luxe-btn-ghost" style={{ padding: '7px 10px', textDecoration: 'none' }}>Open</a>}
-          </div>
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', justifyContent: 'center', alignItems: 'stretch', overflow: 'auto', padding: 22 }}>
-            <div style={{ width: 390, maxWidth: '100%', minHeight: 680, background: '#111', borderRadius: 28, padding: 10, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
-              {mounted ? (
-                <iframe
-                  key={previewKey}
-                  src={previewUrl(currentTemplate, previewKey, previewRoot)}
-                  title="Mobile theme preview"
-                  style={{ width: '100%', height: '100%', minHeight: 660, border: 0, borderRadius: 20, background: '#fff' }}
-                />
-              ) : (
-                <div style={{ width: '100%', minHeight: 660, borderRadius: 20, background: '#fff' }} />
-              )}
-            </div>
-          </div>
+          {editorTab === 'mobile' ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#fff', borderBottom: '1px solid #d9e0d7' }}>
+                <strong style={{ fontSize: 13, color: '#151a17' }}>Live phone preview</strong>
+                <span style={{ color: '#667168', fontSize: 12, textTransform: 'capitalize' }}>{currentTemplate}</span>
+                <div style={{ flex: 1 }} />
+                <button onClick={() => setPreviewKey(key => key + 1)} className="luxe-btn luxe-btn-ghost" style={{ padding: '7px 10px' }}>Refresh</button>
+                {mounted && <a href={previewUrl(currentTemplate, previewKey, previewRoot)} target="_blank" rel="noreferrer" className="luxe-btn luxe-btn-ghost" style={{ padding: '7px 10px', textDecoration: 'none' }}>Open</a>}
+              </div>
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', justifyContent: 'center', alignItems: 'stretch', overflow: 'auto', padding: 22 }}>
+                <div style={{ width: 390, maxWidth: '100%', minHeight: 680, background: '#111', borderRadius: 28, padding: 10, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+                  {mounted ? (
+                    <iframe
+                      key={previewKey}
+                      src={previewUrl(currentTemplate, previewKey, previewRoot)}
+                      title="Mobile theme preview"
+                      style={{ width: '100%', height: '100%', minHeight: 660, border: 0, borderRadius: 20, background: '#fff' }}
+                    />
+                  ) : (
+                    <div style={{ width: '100%', minHeight: 660, borderRadius: 20, background: '#fff' }} />
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#fff', borderBottom: '1px solid #d9e0d7' }}>
+                <strong style={{ fontSize: 13, color: '#151a17' }}>Customer Account Portal Live Mockup Preview</strong>
+                <span style={{ color: '#667168', fontSize: 12 }}>Responsive Design Dashboard</span>
+              </div>
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', padding: 24, background: '#f6f7f5' }}>
+                <AccountPortalFullPreview value={normalizeCustomerAccountTheme(settings.customer_account_theme)} />
+              </div>
+            </>
+          )}
         </section>
       </div>
     </main>
@@ -644,6 +701,131 @@ function AccountThemePreview({ value }: { value: CustomerAccountTheme }) {
         </div>
         <div style={{ height: 6, borderRadius: 999, background: value.borderColor, marginTop: 12, overflow: 'hidden' }}>
           <div style={{ width: '68%', height: '100%', background: value.accentColor }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AccountPortalFullPreview({ value }: { value: CustomerAccountTheme }) {
+  const compact = value.density === 'compact'
+  const isTabs = value.navStyle === 'tabs'
+  const isClassic = value.layout === 'classic'
+  const shadow = value.cardStyle === 'soft' ? '0 10px 25px rgba(0,0,0,0.04)' : 'none'
+
+  return (
+    <div style={{
+      width: '100%',
+      maxWidth: 800,
+      background: value.surfaceColor,
+      border: `1px solid ${value.borderColor}`,
+      borderRadius: value.radius + 8,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: isClassic ? 'column' : 'row',
+      minHeight: 500,
+      fontFamily: 'Inter, sans-serif'
+    }}>
+      {/* Sidebar Navigation */}
+      {!isClassic && !isTabs && (
+        <div style={{ width: 200, borderRight: `1px solid ${value.borderColor}`, padding: 20, display: 'flex', flexDirection: 'column', gap: 20, background: value.panelColor }}>
+          <div style={{ fontWeight: 900, color: value.accentColor, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            {value.welcomeLabel || 'CONCIERGE'}
+          </div>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {['Dashboard', 'My RFQ Requests', 'Quotations', 'Showroom Visits', 'My Addresses', 'Sign Out'].map((item, idx) => (
+              <div key={item} style={{
+                padding: '8px 12px',
+                borderRadius: value.radius,
+                background: idx === 0 ? value.surfaceColor : 'transparent',
+                color: idx === 0 ? value.accentColor : value.mutedColor,
+                fontWeight: 600,
+                fontSize: 13,
+                border: idx === 0 ? `1px solid ${value.borderColor}` : '1px solid transparent'
+              }}>
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div style={{ flex: 1, padding: compact ? 24 : 32, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* Top Header / Greeting */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            {(isClassic || isTabs) && (
+              <div style={{ color: value.accentColor, fontSize: 10, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>
+                {value.welcomeLabel}
+              </div>
+            )}
+            <h1 style={{ color: value.textColor, fontSize: 24, fontWeight: 900, margin: 0 }}>Welcome back, Maria Dela Cruz</h1>
+            <p style={{ color: value.mutedColor, fontSize: 13, margin: '4px 0 0' }}>Designer Member · Approved Account</p>
+          </div>
+          <button style={{ background: value.accentColor, color: '#fff', border: 0, borderRadius: value.radius, padding: '10px 18px', fontSize: 12, fontWeight: 700, cursor: 'default' }}>
+            + Create New RFQ
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        {isTabs && (
+          <div style={{ display: 'flex', gap: 8, borderBottom: `1px solid ${value.borderColor}`, paddingBottom: 8 }}>
+            {['Dashboard', 'RFQ Requests', 'Quotations', 'Showroom Appointments', 'Profile Settings'].map((tab, idx) => (
+              <div key={tab} style={{
+                padding: '6px 12px',
+                color: idx === 0 ? value.accentColor : value.mutedColor,
+                fontWeight: 600,
+                fontSize: 13,
+                borderBottom: idx === 0 ? `2px solid ${value.accentColor}` : 'none',
+                cursor: 'default'
+              }}>
+                {tab}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Metric Cards Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+          {[
+            { value: '3', label: 'Active Projects', sub: '2 items pending review' },
+            { value: '1', label: 'Awaiting Decision', sub: 'Quotation ready' },
+            { value: '₱120,500', label: 'Total Ordered', sub: '4 items delivered' }
+          ].map(card => (
+            <div key={card.label} style={{ background: value.panelColor, border: `1px solid ${value.borderColor}`, borderRadius: value.radius, boxShadow: shadow, padding: compact ? 14 : 18 }}>
+              <div style={{ color: value.textColor, fontSize: 26, fontWeight: 900 }}>{card.value}</div>
+              <div style={{ color: value.textColor, fontSize: 12, fontWeight: 700, marginTop: 4 }}>{card.label}</div>
+              <div style={{ color: value.mutedColor, fontSize: 11, marginTop: 2 }}>{card.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Detailed List Card */}
+        <div style={{ background: value.panelColor, border: `1px solid ${value.borderColor}`, borderRadius: value.radius, boxShadow: shadow, padding: compact ? 16 : 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${value.borderColor}`, paddingBottom: 12, marginBottom: 12 }}>
+            <div style={{ color: value.textColor, fontWeight: 800, fontSize: 14 }}>Latest RFQ Activity</div>
+            <span style={{ color: value.accentColor, fontSize: 12, fontWeight: 600 }}>View All RFQs</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { id: 'RFQ #A18F2C', desc: 'Dining room set for Makati Project', date: 'Updated 2 hours ago', status: 'Quoted', color: value.secondaryAccentColor },
+              { id: 'RFQ #B89C3F', desc: 'Custom sectional and lounge chairs', date: 'Created on Jun 28, 2026', status: 'In Review', color: value.mutedColor }
+            ].map((rfq, idx) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: idx > 0 ? `1px solid ${value.borderColor}` : 'none' }}>
+                <div>
+                  <div style={{ color: value.textColor, fontWeight: 700, fontSize: 13 }}>{rfq.id}</div>
+                  <div style={{ color: value.textColor, fontSize: 12, marginTop: 2 }}>{rfq.desc}</div>
+                  <div style={{ color: value.mutedColor, fontSize: 11, marginTop: 1 }}>{rfq.date}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ color: rfq.color, fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{rfq.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

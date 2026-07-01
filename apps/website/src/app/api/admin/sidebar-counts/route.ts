@@ -42,10 +42,22 @@ export async function GET(_request: NextRequest) {
       console.warn('[sidebar-counts] Failed to count appointments:', (e as Error).message)
     }
 
+    // 4. Designer club applications with status = 'new'
+    let designersCount = 0
+    try {
+      const dResult = await query(
+        "SELECT COUNT(*)::int AS count FROM designer_club_applications WHERE status = 'new'"
+      )
+      designersCount = dResult.rows[0]?.count || 0
+    } catch (e) {
+      console.warn('[sidebar-counts] Failed to count designer club applications:', (e as Error).message)
+    }
+
     return NextResponse.json({
       quotations: quotationsCount,
       rfqs: rfqsCount,
       appointments: appointmentsCount,
+      designers: designersCount,
     })
   } catch (err) {
     console.error('[api/admin/sidebar-counts] GET error:', err)

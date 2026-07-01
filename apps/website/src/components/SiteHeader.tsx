@@ -130,14 +130,7 @@ export function SiteHeader({ nav, logoUrl, header }: { nav?: NavItem[]; logoUrl?
 
         {/* ── Mobile header bar ── */}
         <div className="grid grid--no-gutters grid--table site-header__mobile-nav medium-up--hide">
-          <div className="grid__item site-header__icon site-header__menu">
-            <button type="button" className="btn btn--link site-header__icon-button site-header__menu-toggle__open"
-              aria-controls="MobileNav" aria-expanded={mobileOpen ? 'true' : 'false'}
-              onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">
-              <span className="icon-bar" /><span className="icon-bar" /><span className="icon-bar" />
-            </button>
-          </div>
-          <div className="grid__item text-center site-header__mobile-logo">
+          <div className="grid__item text-left site-header__mobile-logo">
             <Link href="/">
               <span className="site-header__logo-anim">
                 <Image src={logoSrc} alt={siteConfig.name} width={140} height={44} className="site-header__logo-image" unoptimized />
@@ -151,6 +144,11 @@ export function SiteHeader({ nav, logoUrl, header }: { nav?: NavItem[]; logoUrl?
           </div>
           <div className="grid__item site-header__icon site-header__mobile-icons">
             <Icons />
+            <button type="button" className="btn btn--link site-header__icon-btn site-header__menu-toggle__open"
+              aria-controls="MobileNav" aria-expanded={mobileOpen ? 'true' : 'false'}
+              onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">
+              <span className="icon-bar" /><span className="icon-bar" /><span className="icon-bar" />
+            </button>
           </div>
         </div>
 

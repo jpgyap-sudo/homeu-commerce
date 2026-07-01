@@ -29,6 +29,9 @@ export default function AdminDesignerClubPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [selectedApp, setSelectedApp] = useState<Application | null>(null)
   const [noteText, setNoteText] = useState('')
+  const [metrics, setMetrics] = useState<{ total: number; new: number; contacted: number; approved: number; declined: number; linked: number }>({
+    total: 0, new: 0, contacted: 0, approved: 0, declined: 0, linked: 0
+  })
 
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -45,6 +48,7 @@ export default function AdminDesignerClubPage() {
       const res = await fetch(url, { credentials: 'include' })
       const data = await res.json()
       setApplications(data.applications || [])
+      if (data.metrics) setMetrics(data.metrics)
     } catch { setApplications([]) }
     finally { setLoading(false) }
   }, [statusFilter])
@@ -294,7 +298,35 @@ export default function AdminDesignerClubPage() {
               <div><strong>Address:</strong> {selectedApp.company_address || '—'}</div>
               <div><strong>Contact:</strong> {selectedApp.contact_number || '—'}</div>
               <div><strong>Socials:</strong> {selectedApp.company_socials || '—'}</div>
-              {selectedApp.customer_id && <div><strong>Linked Customer ID:</strong> {selectedApp.customer_id}</div>}
+              {selectedApp.customer_id ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#16a34a', fontWeight: 600, background: '#f0fdf4', padding: '6px 12px', borderRadius: 8, border: '1px solid #bbf7d0', marginTop: 4 }}>
+                  ✅ Linked to Customer Account (#{selectedApp.customer_id})
+                </div>
+              ) : (
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(`/api/admin/designer-club?id=${selectedApp.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'link_customer' }),
+                      })
+                      const data = await res.json()
+                      if (!res.ok) throw new Error(data.error || 'Failed to link customer')
+                      setSelectedApp(data.application)
+                      alert('Successfully linked designer to customer account and set status to APPROVED!')
+                      load()
+                    } catch (err: any) {
+                      alert(err.message)
+                    }
+                  }}
+                  style={{
+                    padding: '8px 12px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 4
+                  }}
+                >
+                  🔗 Auto-Link to Customer Account
+                </button>
+              )}
               <div style={{ fontSize: 11, color: '#9aa69c' }}>Applied: {new Date(selectedApp.created_at).toLocaleString('en-PH')}</div>
             </div>
 
@@ -313,14 +345,38 @@ export default function AdminDesignerClubPage() {
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 32px', fontFamily: 'Inter, sans-serif' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#151a17' }}>🎨 Designer Club</h1>
-          <p style={{ fontSize: 13, color: '#667168', margin: '0 0 20px' }}>Trade signup applications from the public form.</p>
+          <p style={{ fontSize: 13, color: '#667168', margin: 0 }}>Trade signup applications from the public form.</p>
         </div>
         <button onClick={exportCsv} style={{ padding: '8px 16px', background: '#f0f7f2', color: '#1e7a47', border: '1px solid #cfe3d6', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
           📥 Export CSV
         </button>
+      </div>
+
+      {/* Premium Statistics Overview */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+        <div style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', color: '#8b988f', letterSpacing: '0.05em' }}>Approved (Registered)</div>
+          <div style={{ fontSize: '26px', fontWeight: 800, color: '#1a6d3e', marginTop: '6px' }}>{metrics.approved}</div>
+          <div style={{ fontSize: '10px', color: '#8b988f', marginTop: '4px' }}>Registered designers</div>
+        </div>
+        <div style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', color: '#8b988f', letterSpacing: '0.05em' }}>New Applications</div>
+          <div style={{ fontSize: '26px', fontWeight: 800, color: '#b45309', marginTop: '6px' }}>{metrics.new}</div>
+          <div style={{ fontSize: '10px', color: '#8b988f', marginTop: '4px' }}>Requires admin review</div>
+        </div>
+        <div style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', color: '#8b988f', letterSpacing: '0.05em' }}>Contacted</div>
+          <div style={{ fontSize: '26px', fontWeight: 800, color: '#d97706', marginTop: '6px' }}>{metrics.contacted}</div>
+          <div style={{ fontSize: '10px', color: '#8b988f', marginTop: '4px' }}>In negotiation</div>
+        </div>
+        <div style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', color: '#8b988f', letterSpacing: '0.05em' }}>Linked Accounts</div>
+          <div style={{ fontSize: '26px', fontWeight: 800, color: '#2563eb', marginTop: '6px' }}>{metrics.linked}</div>
+          <div style={{ fontSize: '10px', color: '#8b988f', marginTop: '4px' }}>Synced with store login</div>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>

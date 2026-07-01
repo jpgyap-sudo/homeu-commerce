@@ -47,7 +47,18 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ applications: result.rows })
+    const countsResult = await query(
+      `SELECT
+         COUNT(*)::int as total,
+         COUNT(CASE WHEN status = 'new' THEN 1 END)::int as new,
+         COUNT(CASE WHEN status = 'contacted' THEN 1 END)::int as contacted,
+         COUNT(CASE WHEN status = 'approved' THEN 1 END)::int as approved,
+         COUNT(CASE WHEN status = 'declined' THEN 1 END)::int as declined,
+         COUNT(CASE WHEN customer_id IS NOT NULL THEN 1 END)::int as linked
+       FROM designer_club_applications`
+    )
+
+    return NextResponse.json({ applications: result.rows, metrics: countsResult.rows[0] })
   } catch (err: any) {
     console.error('[admin/designer-club] GET error:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
@@ -65,6 +76,31 @@ export async function PATCH(request: NextRequest) {
     if (!id) return NextResponse.json({ error: 'id query param is required' }, { status: 400 })
 
     const body = await request.json()
+
+    if (body.action === 'link_customer') {
+      const appResult = await query(
+        `SELECT email FROM designer_club_applications WHERE id = $1 LIMIT 1`,
+        [id]
+      )
+      const email = appResult.rows[0]?.email
+      if (!email) return NextResponse.json({ error: 'Application not found' }, { status: 404 })
+
+      const customerResult = await query(
+        `SELECT id FROM customers WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+        [email]
+      )
+      const custId = customerResult.rows[0]?.id
+      if (!custId) {
+        return NextResponse.json({ error: 'No customer account found with email ' + email + '. Ask the designer to register on the storefront first.' }, { status: 400 })
+      }
+
+      const updated = await query(
+        `UPDATE designer_club_applications SET customer_id = $1, status = 'approved', updated_at = now() WHERE id = $2 RETURNING *`,
+        [custId, id]
+      )
+      return NextResponse.json({ application: updated.rows[0] })
+    }
+
     const updates: string[] = []
     const values: any[] = []
 

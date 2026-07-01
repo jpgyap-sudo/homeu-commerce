@@ -322,6 +322,34 @@ export default function OnlineStoreClient({ initialThemes }: { initialThemes: St
         ))}
       </section>
 
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, margin: '32px 0 14px' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 22, color: '#151a17', fontWeight: 800 }}>Customer Account Theme</h2>
+          <p style={{ margin: '4px 0 0', color: '#667168', fontSize: 13 }}>Branding, layout style, spacing density, and color palette of the customer portal.</p>
+        </div>
+      </div>
+
+      <section style={{ background: '#fff', border: '1px solid #d9e0d7', borderRadius: 12, padding: '24px 28px', display: 'grid', gridTemplateColumns: '1fr auto', gap: 24, alignItems: 'center', marginBottom: 32, boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#151a17' }}>Customer Account Portal Settings</h3>
+          <p style={{ margin: '6px 0 0', color: '#667168', fontSize: 13, lineHeight: 1.5 }}>
+            Adjust buttons, rounded corners, sidebar layout modes, and spacing density for the client portal. Changes are synced instantly with storefront user dashboards.
+          </p>
+          <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 12, color: '#8a958d' }}>
+            <span>Density: <strong>Comfortable / Compact</strong></span>
+            <span>Nav layout: <strong>Concierge Sidebar / Tabs</strong></span>
+            <span>Card style: <strong>Soft shadow / Flat</strong></span>
+          </div>
+        </div>
+        <div>
+          {liveTheme && (
+            <Link href={`/admin/online-store/themes/${liveTheme.id}`} className="luxe-btn luxe-btn-primary" style={{ textDecoration: 'none', display: 'inline-block' }}>
+              🎨 Customize Account Theme
+            </Link>
+          )}
+        </div>
+      </section>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, margin: '26px 0 14px' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 22, color: '#151a17', fontWeight: 800 }}>Live mobile theme</h2>

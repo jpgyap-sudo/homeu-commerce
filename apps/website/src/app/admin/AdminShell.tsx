@@ -89,10 +89,11 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [userTabs, setUserTabs] = useState<string[]>(['*'])
-  const [counts, setCounts] = useState<{ quotations: number; rfqs: number; appointments: number }>({
+  const [counts, setCounts] = useState<{ quotations: number; rfqs: number; appointments: number; designers?: number }>({
     quotations: 0,
     rfqs: 0,
     appointments: 0,
+    designers: 0,
   })
 
   useEffect(() => {
@@ -233,6 +234,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                       if (href === '/admin/quotations' && counts.quotations > 0) return String(counts.quotations)
                       if (href === '/admin/rfq' && counts.rfqs > 0) return String(counts.rfqs)
                       if (href === '/admin/collections/appointments' && counts.appointments > 0) return String(counts.appointments)
+                      if (href === '/admin/designer-club' && counts.designers && counts.designers > 0) return String(counts.designers)
                       return null
                     }
                     const badge = link.badge || getBadge(link.href)
