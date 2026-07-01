@@ -37,7 +37,9 @@ export async function GET(
     const q = rows[0]
 
     const themeRes = await query(`SELECT value FROM site_settings WHERE key = $1`, ['theme_quotation'])
-    const theme = themeRes.rows[0]?.value || null
+    const baseTheme = themeRes.rows[0]?.value || null
+    const overrides = q.theme_overrides || null
+    const theme = baseTheme || overrides ? { ...(baseTheme || {}), ...(overrides || {}) } : null
 
     // Process items and fetch image base64 data URIs asynchronously
     const processedItems = []

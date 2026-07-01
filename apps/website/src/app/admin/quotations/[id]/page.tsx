@@ -115,6 +115,11 @@ export default function EditQuotationPage() {
   const [internalNotes, setInternalNotes] = useState('')
   const [terms, setTerms] = useState<Record<string, string>>({})
 
+  // Per-quotation theme overrides (on top of the global Quotation Theme Builder)
+  const [themeOverrides, setThemeOverrides] = useState<Record<string, any>>({})
+  const [savingOverrides, setSavingOverrides] = useState(false)
+  const [overrideStatus, setOverrideStatus] = useState('')
+
   // Product Picker state
   const [showProductPicker, setShowProductPicker] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
@@ -208,6 +213,39 @@ export default function EditQuotationPage() {
 
     loadQuotationAndVersions()
   }, [params?.id])
+
+  useEffect(() => {
+    const id = params?.id
+    if (!id) return
+    let cancelled = false
+    fetch(`/api/admin/quotations/${id}/theme-override`, { credentials: 'include' })
+      .then(res => (res.ok ? res.json() : {}))
+      .then(data => { if (!cancelled) setThemeOverrides(data || {}) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [params?.id])
+
+  async function saveThemeOverrides() {
+    const id = params?.id
+    if (!id) return
+    setSavingOverrides(true)
+    setOverrideStatus('')
+    try {
+      const res = await fetch(`/api/admin/quotations/${id}/theme-override`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(themeOverrides),
+      })
+      if (!res.ok) throw new Error('Failed to save overrides')
+      setOverrideStatus('Saved')
+      setTimeout(() => setOverrideStatus(''), 2200)
+    } catch (err: any) {
+      setOverrideStatus(err.message || 'Failed to save overrides')
+    } finally {
+      setSavingOverrides(false)
+    }
+  }
 
   const handleResolveRevision = useCallback(async (updatedItems: any[], message: string) => {
     setSaving(true)
@@ -1019,6 +1057,46 @@ Home Atelier Team`
               placeholder="Notes for internal team..." />
           </div>
         </div>
+
+        {/* PDF theme overrides — for this quotation only, on top of the global Quotation Theme Builder */}
+        <details style={{ marginBottom: 24, background: '#f9f9f9', border: '1px solid #eee', borderRadius: 8, padding: 20 }}>
+          <summary style={{ fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>PDF theme overrides for this quotation</summary>
+          <p style={{ color: '#777', fontSize: 13, margin: '10px 0 16px' }}>
+            Overrides apply only to this quotation&apos;s PDF, on top of the global{' '}
+            <Link href="/admin/theme/quotation" style={{ color: '#0066cc' }}>Quotation Theme Builder</Link> settings. Leave blank/off to use the global default.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+              <input
+                type="checkbox"
+                checked={themeOverrides.showWatermark === false}
+                onChange={e => setThemeOverrides(prev => ({ ...prev, showWatermark: e.target.checked ? false : undefined }))}
+              />
+              Force-hide watermark for this quotation
+            </label>
+            <div>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 600, fontSize: 13 }}>Footer text override</label>
+              <input
+                type="text"
+                value={themeOverrides.footerText || ''}
+                onChange={e => setThemeOverrides(prev => ({ ...prev, footerText: e.target.value || undefined }))}
+                placeholder="Leave blank to use the global footer text"
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #ccc', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+            <button
+              type="button"
+              onClick={saveThemeOverrides}
+              disabled={savingOverrides}
+              style={{ background: '#222', color: '#fff', border: 0, borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            >
+              {savingOverrides ? 'Saving…' : 'Save overrides'}
+            </button>
+            {overrideStatus && <span style={{ fontSize: 12, color: overrideStatus === 'Saved' ? '#17693a' : '#8a5a00', fontWeight: 700 }}>{overrideStatus}</span>}
+          </div>
+        </details>
 
         {/* Terms & Conditions (collapsible summary) */}
         <details style={{ marginBottom: 24 }}>
