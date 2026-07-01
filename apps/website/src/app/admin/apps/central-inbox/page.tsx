@@ -7,6 +7,7 @@ const TABS: { key: InboxTab; label: string; icon: string }[] = [
   { key: 'all', label: 'All Inbox', icon: '📬' },
   { key: 'website', label: 'Website Chat', icon: '💬' },
   { key: 'email', label: 'Email', icon: '📧' },
+  { key: 'rfq', label: 'RFQ Chat', icon: '📋' },
   { key: 'facebook', label: 'Facebook', icon: '📘' },
   { key: 'instagram', label: 'Instagram', icon: '📸' },
   { key: 'archived', label: 'Archived', icon: '📦' },
@@ -26,6 +27,7 @@ function initials(name: string) { return (name || '?').split(' ').map(n => n[0])
 const CHANNEL_COLORS: Record<string, string> = {
   website: 'linear-gradient(135deg, #3b82f6, #60a5fa)',
   email: 'linear-gradient(135deg, #c9a050, #d4b36a)',
+  rfq: 'linear-gradient(135deg, #10b981, #34d399)',
   facebook: 'linear-gradient(135deg, #1877f2, #3b82f6)',
   instagram: 'linear-gradient(135deg, #e4405f, #fd5949)',
 }
@@ -44,9 +46,10 @@ export default function CentralInboxPage() {
     all: number
     website: number
     email: number
+    rfq: number
     facebook: number
     instagram: number
-  }>({ all: 0, website: 0, email: 0, facebook: 0, instagram: 0 })
+  }>({ all: 0, website: 0, email: 0, rfq: 0, facebook: 0, instagram: 0 })
 
   const fetchConversations = useCallback(async () => {
     setLoading(true)
@@ -208,7 +211,7 @@ export default function CentralInboxPage() {
                     width: 16, height: 16, borderRadius: '50%', background: '#fff',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                  }}>{conv.channel === 'website' ? '💬' : conv.channel === 'email' ? '📧' : '💬'}</div>
+                  }}>{conv.channel === 'website' ? '💬' : conv.channel === 'email' ? '📧' : conv.channel === 'rfq' ? '📋' : '💬'}</div>
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -336,6 +339,12 @@ export default function CentralInboxPage() {
                 )}
                 {selected.channel === 'website' && (
                   <span className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ fontSize: 10, cursor: 'default' }}>💬 Website Chat</span>
+                )}
+                {selected.channel === 'rfq' && selected.rfqRequestId && (
+                  <>
+                    <a href={`/admin/rfq/${selected.rfqRequestId}`} className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ fontSize: 10 }}>◐ Open RFQ Request</a>
+                    <a href={`/admin/quotations/new?rfqId=${selected.rfqRequestId}`} className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ fontSize: 10, borderColor: 'var(--luxe-blue-600)' }}>◎ Create Quotation</a>
+                  </>
                 )}
                 {selected.customerId && (
                   <a href={`/admin/customers/${selected.customerId}`} className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ fontSize: 10 }}>👤 Customer Profile</a>

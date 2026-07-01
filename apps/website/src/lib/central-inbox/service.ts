@@ -1,6 +1,6 @@
 import { query } from '@/lib/db'
 
-export type Channel = 'website' | 'email' | 'facebook' | 'instagram' | 'all'
+export type Channel = 'website' | 'email' | 'facebook' | 'instagram' | 'rfq' | 'all'
 export type InboxTab = Channel | 'archived'
 
 export interface UnifiedConversation {
@@ -16,6 +16,7 @@ export interface UnifiedConversation {
   status: string
   tags: string[]
   customerId?: number
+  rfqRequestId?: string
 }
 
 export interface UnifiedMessage {
@@ -148,6 +149,57 @@ export async function getUnifiedInbox(params: {
     } catch { /* inbox tables may not exist */ }
   }
 
+  // ── RFQ Chat ──
+  if (tab === 'all' || tab === 'rfq' || tab === 'archived') {
+    try {
+      const { rows } = await query(`
+        SELECT
+          c.id::text AS "id",
+          'rfq' AS "channel",
+          r.id::text AS "rfqRequestId",
+          COALESCE(r.customer_name, 'Client') AS "contactName",
+          COALESCE(r.email, '') AS "contactEmail",
+          r.phone AS "contactPhone",
+          'RFQ #' || UPPER(SUBSTR(r.id::text, -6)) || ' - ' || COALESCE(r.project_type, 'Quote Request') AS "subject",
+          COALESCE(
+            (SELECT m.content FROM rfq_chat_messages m
+             WHERE m.conversation_id = c.id
+             ORDER BY m.created_at DESC LIMIT 1),
+            'No messages yet'
+          ) AS "lastMessage",
+          c.last_message_at::text AS "lastMessageAt",
+          CASE WHEN c.status = 'resolved' THEN 0 ELSE
+            COALESCE(
+              (SELECT COUNT(*)::int FROM rfq_chat_messages m
+               WHERE m.conversation_id = c.id
+                 AND m.sender_type = 'customer'
+                 AND m.created_at > COALESCE(
+                   (SELECT m2.created_at FROM rfq_chat_messages m2
+                    WHERE m2.conversation_id = c.id AND m2.sender_type = 'admin'
+                    ORDER BY m2.created_at DESC LIMIT 1),
+                   '1970-01-01'::timestamptz
+                 )),
+              0
+            )::int
+          END AS "unreadCount",
+          COALESCE(c.status, 'open') AS "status",
+          ARRAY['rfq']::text[] AS "tags",
+          r.customer_id::int AS "customerId"
+        FROM rfq_chat_conversations c
+        JOIN rfq_requests r ON r.id = c.rfq_request_id
+        WHERE ${tab === 'archived' ? "c.status = 'archived'" : "c.status != 'archived'"}
+          ${statusFilter === 'unread' ? "AND c.status != 'resolved' AND EXISTS (SELECT 1 FROM rfq_chat_messages m WHERE m.conversation_id = c.id AND m.sender_type = 'customer')" : ''}
+          ${statusFilter === 'read' ? "OR c.status = 'resolved'" : ''}
+          ${searchPattern ? `AND (r.customer_name ILIKE $1 OR r.email ILIKE $1)` : ''}
+        ORDER BY c.last_message_at DESC NULLS LAST
+        LIMIT ${Math.min(limit, 20)} OFFSET ${offset}
+      `, searchPattern ? [searchPattern] : [])
+      results.push(...rows)
+    } catch (e) {
+      console.warn('[central-inbox-service] Failed to fetch RFQs:', (e as Error).message)
+    }
+  }
+
   results.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime())
 
   return {
@@ -161,6 +213,18 @@ export async function getUnifiedInbox(params: {
  */
 export async function getConversationMessages(conversationId: string, channel: Channel): Promise<UnifiedMessage[]> {
   try {
+    if (channel === 'rfq') {
+      const { rows } = await query(
+        `SELECT id::text, conversation_id::text AS "conversationId",
+          CASE WHEN sender_type = 'customer' THEN 'inbound' ELSE 'outbound' END AS direction,
+          content AS body, 'rfq' AS channel, created_at::text AS "createdAt"
+         FROM rfq_chat_messages WHERE conversation_id = $1
+         ORDER BY created_at ASC LIMIT 100`,
+        [conversationId]
+      )
+      return rows
+    }
+
     if (channel === 'website') {
       const { rows } = await query(
         `SELECT id::text, conversation_id::text AS "conversationId",
@@ -208,6 +272,18 @@ export async function updateConversationStatus(
   action: 'read' | 'unread' | 'archive' | 'unarchive'
 ): Promise<boolean> {
   try {
+    if (channel === 'rfq') {
+      if (action === 'read') {
+        // Mark RFQ conversation as active/read
+        return true
+      } else if (action === 'archive') {
+        await query("UPDATE rfq_chat_conversations SET status = 'archived' WHERE id = $1", [conversationId])
+      } else if (action === 'unarchive') {
+        await query("UPDATE rfq_chat_conversations SET status = 'active' WHERE id = $1", [conversationId])
+      }
+      return true
+    }
+
     if (channel === 'website') {
       if (action === 'read') {
         await query('UPDATE chatbot.conversations SET is_read = TRUE WHERE id = $1', [conversationId])
@@ -262,8 +338,9 @@ export async function getUnreadCounts(): Promise<{
   email: number
   facebook: number
   instagram: number
+  rfq: number
 }> {
-  const counts = { all: 0, website: 0, email: 0, facebook: 0, instagram: 0 }
+  const counts = { all: 0, website: 0, email: 0, facebook: 0, instagram: 0, rfq: 0 }
   
   // Website
   try {
@@ -302,6 +379,21 @@ export async function getUnreadCounts(): Promise<{
     }
   } catch {}
 
-  counts.all = counts.website + counts.email + counts.facebook + counts.instagram
+  // RFQ count
+  try {
+    const { rows } = await query(`
+      SELECT COUNT(*)::int AS count 
+      FROM rfq_chat_conversations c
+      WHERE c.status = 'active'
+        AND EXISTS (
+          SELECT 1 FROM rfq_chat_messages m 
+          WHERE m.conversation_id = c.id 
+            AND m.sender_type = 'customer'
+        )
+    `)
+    counts.rfq = rows[0]?.count || 0
+  } catch {}
+
+  counts.all = counts.website + counts.email + counts.facebook + counts.instagram + counts.rfq
   return counts
 }

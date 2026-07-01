@@ -28,6 +28,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, channel: 'website' })
     }
 
+    if (channel === 'rfq') {
+      await query(
+        `INSERT INTO rfq_chat_messages (conversation_id, sender_type, content, message_type, customer_visible)
+         VALUES ($1, 'admin', $2, 'text', true)`,
+        [conversationId, replyText]
+      )
+      await query(
+        `UPDATE rfq_chat_conversations SET message_count = message_count + 1, last_message_at = now() WHERE id = $1`,
+        [conversationId]
+      )
+      return NextResponse.json({ success: true, channel: 'rfq' })
+    }
+
     if (channel === 'email') {
       // Email reply via SMTP (nodemailer already configured)
       const { rows } = await query('SELECT sender_email, subject FROM emails WHERE id = $1', [conversationId])
