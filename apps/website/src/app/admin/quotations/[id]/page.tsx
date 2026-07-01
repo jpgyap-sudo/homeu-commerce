@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { extractMaterialsFromDescription, extractDimensionsFromDescription } from '@/lib/format-utils'
 import QuotationRevisionWorkspace from '@/components/admin/QuotationRevisionWorkspace'
@@ -93,6 +93,7 @@ function quotationPublicUrl(id: string, token?: string): string {
 export default function EditQuotationPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [quotation, setQuotation] = useState<QuotationData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -213,6 +214,15 @@ export default function EditQuotationPage() {
 
     loadQuotationAndVersions()
   }, [params?.id])
+
+  // Jump straight to the revision workspace when arriving from the list
+  // page's "Revise" badge (?focus=revision), instead of landing at the top
+  // of this long page.
+  useEffect(() => {
+    if (loading || searchParams?.get('focus') !== 'revision') return
+    const el = document.getElementById('revision-workspace')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [loading, searchParams])
 
   useEffect(() => {
     const id = params?.id
