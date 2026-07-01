@@ -421,7 +421,7 @@ export default function CustomerQuotationPage() {
             <img
               src="https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/uploads/661b4f02354d0a3763a4a0331fad557e312abdc19bece013a3d86bbe8582df1a.png"
               alt="Home Atelier"
-              style={{ height: 80, maxWidth: 320, objectFit: 'contain', display: 'block', marginBottom: 6 }}
+              style={{ height: 80, width: 'auto', maxWidth: 320, objectFit: 'contain', display: 'block', marginBottom: 6 }}
             />
             <p style={{ margin: 0, fontSize: 13, color: '#666' }}>
               Phone: +63 2 8703 1996 · Email: sales@homeu.ph

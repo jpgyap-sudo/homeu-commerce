@@ -10,6 +10,43 @@ const LOGO_CDN_URL =
 let _logoBase64Cache: string | null = null
 let _logoFetchAttempted = false
 
+function getImageDimensions(dataUri: string): { width: number; height: number } | null {
+  try {
+    const base64Data = dataUri.split(';base64,')[1]
+    if (!base64Data) return null
+    const buf = Buffer.from(base64Data, 'base64')
+    
+    // Check if PNG
+    if (dataUri.startsWith('data:image/png') || buf.readUInt32BE(0) === 0x89504E47) {
+      if (buf.length > 24) {
+        const width = buf.readUInt32BE(16)
+        const height = buf.readUInt32BE(20)
+        return { width, height }
+      }
+    }
+    
+    // Check if JPEG
+    if (dataUri.startsWith('data:image/jpeg') || (buf.readUInt16BE(0) === 0xFFD8)) {
+      let i = 2
+      while (i < buf.length) {
+        const marker = buf.readUInt16BE(i)
+        i += 2
+        if (marker === 0xFFD9 || marker === 0xFFDA) break
+        const length = buf.readUInt16BE(i)
+        if (marker >= 0xFFC0 && marker <= 0xFFC3) {
+          const height = buf.readUInt16BE(i + 3)
+          const width = buf.readUInt16BE(i + 5)
+          return { width, height }
+        }
+        i += length
+      }
+    }
+  } catch (e) {
+    console.error('[PDF] Failed to parse image dimensions:', e)
+  }
+  return null
+}
+
 async function getLogoBase64(): Promise<string | null> {
   if (_logoFetchAttempted) return _logoBase64Cache
   _logoFetchAttempted = true
@@ -323,8 +360,25 @@ export async function generateQuotationPDF(data: QuotationData, theme?: Quotatio
   if (showHeaderLogo && logoBase64) {
     try {
       const format = logoBase64.startsWith('data:image/png') ? 'PNG' : 'JPEG'
-      doc.addImage(logoBase64, format, M, 10, 65, 22.5)
-      headerBottomY = 32.5
+      let logoW = 65
+      let logoH = 22.5
+      const dims = getImageDimensions(logoBase64)
+      if (dims && dims.width > 0 && dims.height > 0) {
+        const aspect = dims.width / dims.height
+        if (aspect < 2.0) {
+          logoH = 22.5
+          logoW = 22.5 * aspect
+        } else {
+          logoW = 65
+          logoH = 65 / aspect
+          if (logoH > 22.5) {
+            logoH = 22.5
+            logoW = 22.5 * aspect
+          }
+        }
+      }
+      doc.addImage(logoBase64, format, M, 10, logoW, logoH)
+      headerBottomY = 10 + logoH
     } catch (err) {
       console.error('Error adding brand logo to PDF:', err)
       logoBase64 = null
