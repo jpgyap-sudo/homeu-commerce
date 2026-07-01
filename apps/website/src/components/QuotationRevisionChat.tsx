@@ -22,6 +22,15 @@ export default function QuotationRevisionChat({ quotationId, isAdmin, token }: P
   const [collapsed, setCollapsed] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  function normalizeMessage(raw: any): ChatMessage {
+    return {
+      id: Number(raw.id),
+      senderType: raw.senderType || raw.sender_type || 'system',
+      message: raw.message || '',
+      createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
+    }
+  }
+
   useEffect(() => {
     const endpoint = isAdmin
       ? `/api/admin/quotations/${quotationId}/chat`
@@ -29,7 +38,7 @@ export default function QuotationRevisionChat({ quotationId, isAdmin, token }: P
     fetch(endpoint)
       .then(r => r.json())
       .then(data => {
-        if (Array.isArray(data)) setMessages(data)
+        if (Array.isArray(data)) setMessages(data.map(normalizeMessage))
       })
       .catch(() => {})
   }, [quotationId, isAdmin, token])
@@ -52,7 +61,7 @@ export default function QuotationRevisionChat({ quotationId, isAdmin, token }: P
       })
       if (res.ok) {
         const data = await res.json()
-        setMessages(prev => [...prev, data])
+        setMessages(prev => [...prev, normalizeMessage(data)])
         setNewMessage('')
       }
     } catch {}

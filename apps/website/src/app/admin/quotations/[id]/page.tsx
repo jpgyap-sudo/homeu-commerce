@@ -1156,9 +1156,9 @@ Home Atelier Team`
                 {versions.map((ver: any) => (
                   <div key={ver.id} style={{ borderBottom: '1px solid #eef1ed', paddingBottom: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <strong style={{ fontSize: 14 }}>Version #{ver.version_number}</strong>
+                      <strong style={{ fontSize: 14 }}>Version #{ver.versionNumber ?? ver.version_number}</strong>
                       <span style={{ fontSize: 12, color: '#666' }}>
-                        {new Date(ver.created_at).toLocaleString('en-PH')} by {ver.created_by}
+                        {new Date(ver.createdAt ?? ver.created_at).toLocaleString('en-PH')} by {ver.createdBy ?? ver.created_by}
                       </span>
                     </div>
                     <div style={{ fontSize: 13, color: '#444', marginBottom: 6 }}>
@@ -1168,16 +1168,16 @@ Home Atelier Team`
                         borderRadius: 4,
                         fontSize: 11,
                         fontWeight: 600,
-                        background: ver.revision_type === 'customer_revision' ? '#fff3cd' : ver.revision_type === 'initial' ? '#e8f2ec' : '#e0f2fe',
-                        color: ver.revision_type === 'customer_revision' ? '#856404' : ver.revision_type === 'initial' ? '#1a6d3e' : '#0369a1',
+                        background: (ver.revisionType ?? ver.revision_type) === 'customer_revision' ? '#fff3cd' : (ver.revisionType ?? ver.revision_type) === 'initial' ? '#e8f2ec' : '#e0f2fe',
+                        color: (ver.revisionType ?? ver.revision_type) === 'customer_revision' ? '#856404' : (ver.revisionType ?? ver.revision_type) === 'initial' ? '#1a6d3e' : '#0369a1',
                         marginRight: 8,
                         textTransform: 'capitalize'
                       }}>
-                        {ver.revision_type ? ver.revision_type.replace('_', ' ') : 'edit'}
+                        {(ver.revisionType ?? ver.revision_type) ? String(ver.revisionType ?? ver.revision_type).replace('_', ' ') : 'edit'}
                       </span>
-                      {ver.revision_message && (
+                      {(ver.revisionMessage ?? ver.revision_message) && (
                         <span style={{ fontStyle: 'italic', color: '#555' }}>
-                          &ldquo;{ver.revision_message}&rdquo;
+                          &ldquo;{ver.revisionMessage ?? ver.revision_message}&rdquo;
                         </span>
                       )}
                     </div>

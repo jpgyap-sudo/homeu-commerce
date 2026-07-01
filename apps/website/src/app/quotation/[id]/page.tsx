@@ -239,7 +239,7 @@ export default function QuotationViewPage() {
   }
 
   const statusInfo = STATUS_BADGES[quotation.status] || { label: quotation.status, color: '#999' }
-  const canAct = quotation.status === 'sent' && !quotation.pending_revision
+  const canAct = (quotation.status === 'sent' || quotation.status === 'revised') && !quotation.pending_revision
 
   return (
     <>

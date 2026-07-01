@@ -126,7 +126,7 @@ export async function middleware(request: NextRequest) {
 
   if (!token) {
     const loginUrl = new URL('/admin/login', request.url)
-    loginUrl.searchParams.set('redirect', pathname)
+    loginUrl.searchParams.set('redirect', `${pathname}${request.nextUrl.search}`)
     return NextResponse.redirect(loginUrl, { headers: respHeaders })
   }
 

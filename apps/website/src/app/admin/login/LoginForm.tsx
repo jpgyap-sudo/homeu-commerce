@@ -3,7 +3,7 @@
 import { useActionState, useState } from 'react'
 import { loginAction } from './actions'
 
-export function LoginForm() {
+export function LoginForm({ redirectTo = '' }: { redirectTo?: string }) {
   const [state, formAction, pending] = useActionState(
     async (_prev: { error: string }, formData: FormData) => {
       return loginAction(formData)
@@ -17,6 +17,7 @@ export function LoginForm() {
 
   return (
     <form action={formAction} className="admin-login-form">
+      <input type="hidden" name="redirectTo" value={redirectTo} />
       {/* Error alert */}
       {state?.error && (
         <div className="admin-login-error">

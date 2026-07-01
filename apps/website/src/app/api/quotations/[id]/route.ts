@@ -272,7 +272,7 @@ export async function PATCH(
         `UPDATE quotations
          SET pending_revision = false,
              revision_request = '',
-             revision_request_data = '{}'::jsonb,
+             pending_revision_data = '{}'::jsonb,
              status = 'revised',
              updated_at = NOW()
          WHERE id = $1`,

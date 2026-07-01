@@ -5,11 +5,17 @@ import siteConfig from '@/data/site-config.json'
 
 const BRAND_LOGO = 'https://homeatelierspaces.sgp1.cdn.digitaloceanspaces.com/uploads/reviews/bdda42a44380cbd7858cdc620097aed8e17f7bd2d1837be245688e77c9942ba5.png'
 
-export default async function AdminLoginPage() {
+export default async function AdminLoginPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ redirect?: string }>
+}) {
   const session = await getSession()
   if (session) {
     redirect('/admin/dashboard')
   }
+  const sp = searchParams ? await searchParams : {}
+  const redirectTo = typeof sp.redirect === 'string' ? sp.redirect : ''
 
   return (
     <div className="admin-login-shell">
@@ -59,7 +65,7 @@ export default async function AdminLoginPage() {
           <div className="admin-login-card">
             <h1 className="admin-login-title">Sign in</h1>
             <p className="admin-login-subtitle">Enter your credentials to access the console</p>
-            <LoginForm />
+            <LoginForm redirectTo={redirectTo} />
           </div>
 
           <p className="admin-login-footer-text">
