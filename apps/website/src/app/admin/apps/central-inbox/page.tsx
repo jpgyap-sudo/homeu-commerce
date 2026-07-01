@@ -313,7 +313,16 @@ export default function CentralInboxPage() {
                         fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                         border: msg.direction === 'inbound' ? '1px solid var(--luxe-warm-100)' : 'none'
                       }}>
-                        {msg.body}
+                        {msg.messageType === 'image' && msg.metadata?.imageUrl ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <img src={msg.metadata.imageUrl} alt="Uploaded attachment" 
+                              style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 6, display: 'block', objectFit: 'contain', cursor: 'zoom-in' }} 
+                              onClick={() => window.open(msg.metadata.imageUrl, '_blank')} />
+                            <span style={{ fontSize: 11, fontStyle: 'italic', opacity: 0.8 }}>{msg.body}</span>
+                          </div>
+                        ) : (
+                          msg.body
+                        )}
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--luxe-slate-400)', marginTop: 2, fontFamily: 'var(--font-mono)' }}>
                         {fmtTime(msg.createdAt)}

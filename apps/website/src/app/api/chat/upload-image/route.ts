@@ -58,6 +58,32 @@ export async function POST(request: NextRequest) {
       leadId,
     })
 
+    // 1. Insert visitor's image upload message and ledger event
+    if (conversationId) {
+      try {
+        const { insertMessage, insertLedgerEvent } = await import('@/lib/chatbot/db')
+        await insertMessage({
+          conversationId,
+          senderType: 'visitor',
+          content: `📷 Uploaded: ${image.name}`,
+          messageType: 'image',
+          metadata: { imageUrl, fileName: image.name, fileSize: image.size },
+        })
+
+        if (leadId) {
+          await insertLedgerEvent({
+            leadId,
+            conversationId,
+            eventType: 'image_uploaded',
+            eventData: { imageUrl, fileName: image.name, fileSize: image.size },
+            scoreDelta: 5,
+          }).catch(() => '')
+        }
+      } catch (err: any) {
+        console.error('[chatbot] Failed to persist visitor image message:', err.message)
+      }
+    }
+
     // Analyze image with AI vision
     let description = 'a furniture or lighting item'
     let extractedAttributes: Record<string, unknown> = {}
@@ -103,6 +129,23 @@ export async function POST(request: NextRequest) {
     }))
 
     const reply = imageUploadReply(description)
+
+    // 2. Insert bot's recommendations reply message
+    if (conversationId) {
+      try {
+        const { insertMessage, updateConversationIntent } = await import('@/lib/chatbot/db')
+        await insertMessage({
+          conversationId,
+          senderType: 'bot',
+          content: reply,
+          messageType: 'text',
+          metadata: { recommendations: formattedRecs, description, extractedAttributes },
+        })
+        await updateConversationIntent(conversationId, 'IMAGE_SEARCH', 0.95)
+      } catch (err: any) {
+        console.error('[chatbot] Failed to persist bot image search reply:', err.message)
+      }
+    }
 
     return NextResponse.json({
       imageId,

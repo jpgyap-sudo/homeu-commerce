@@ -27,6 +27,8 @@ export interface UnifiedMessage {
   channel: Channel
   createdAt: string
   externalId?: string
+  messageType?: string
+  metadata?: any
 }
 
 /**
@@ -229,7 +231,8 @@ export async function getConversationMessages(conversationId: string, channel: C
       const { rows } = await query(
         `SELECT id::text, conversation_id::text AS "conversationId",
           CASE WHEN sender_type = 'visitor' THEN 'inbound' ELSE 'outbound' END AS direction,
-          content AS body, 'website' AS channel, created_at::text AS "createdAt"
+          content AS body, 'website' AS channel, created_at::text AS "createdAt",
+          message_type AS "messageType", metadata
          FROM chatbot.messages WHERE conversation_id = $1
          ORDER BY created_at ASC LIMIT 100`,
         [conversationId]
