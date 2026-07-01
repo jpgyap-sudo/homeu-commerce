@@ -161,6 +161,58 @@ export default function QuotationViewPage() {
     }
   }
 
+  function exportToExcel() {
+    if (!quotation) return
+    const filename = `Quotation-${quotation.quotationNumber || quotation.id}.xls`
+    let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`
+    html += `<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>`
+    html += `<x:Name>Quotation</x:Name>`
+    html += `<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>`
+    html += `<table>`
+    html += `<tr><td colspan="5" style="font-size: 16pt; font-weight: bold;">HOME ATELIER - QUOTATION</td></tr>`
+    html += `<tr><td colspan="5" style="font-size: 12pt; font-weight: bold;">${quotation.quotationNumber}</td></tr>`
+    html += `<tr><td colspan="5">Date: ${new Date(quotation.createdAt).toLocaleDateString('en-PH')}</td></tr>`
+    html += `<tr><td colspan="5">Client: ${quotation.customerName}</td></tr>`
+    html += `<tr><td colspan="5">Delivery: ${quotation.deliveryLocation || 'TBA'}</td></tr>`
+    html += `<tr></tr>`
+    html += `<tr style="font-weight: bold; background-color: #f5f5f5;">`
+    html += `<th>Item #</th><th>Description</th><th>QTY</th><th>Unit Cost</th><th>Total</th>`
+    html += `</tr>`
+    quotation.items?.forEach(item => {
+      const desc = `${item.description} ${[item.material, item.dimensions, item.color].filter(Boolean).join(' · ')}`
+      html += `<tr>`
+      html += `<td style="text-align: center;">${item.itemNumber}</td>`
+      html += `<td>${desc}</td>`
+      html += `<td style="text-align: center;">${item.quantity}</td>`
+      html += `<td style="text-align: right;">${item.unitCost}</td>`
+      html += `<td style="text-align: right;">${item.total}</td>`
+      html += `</tr>`
+    })
+    const subtotal = quotation.subtotal || 0
+    const shipping = quotation.shippingCost || 0
+    const grand = quotation.grandTotal || 0
+    const discount = Math.max(0, subtotal - (grand - shipping))
+    html += `<tr></tr>`
+    html += `<tr><td colspan="3"></td><td style="font-weight: bold; text-align: right;">Subtotal:</td><td style="text-align: right;">${subtotal}</td></tr>`
+    if (discount > 0.005) {
+      html += `<tr><td colspan="3"></td><td style="font-weight: bold; text-align: right; color: #c00;">Discount:</td><td style="text-align: right; color: #c00;">-${discount}</td></tr>`
+    }
+    if (shipping > 0) {
+      html += `<tr><td colspan="3"></td><td style="font-weight: bold; text-align: right;">Shipping:</td><td style="text-align: right;">${shipping}</td></tr>`
+    }
+    html += `<tr><td colspan="3"></td><td style="font-weight: bold; text-align: right; font-size: 11pt;">Grand Total:</td><td style="font-weight: bold; text-align: right; font-size: 11pt;">${grand}</td></tr>`
+    html += `</table></body></html>`
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   function handlePrint() {
     window.print()
   }
@@ -204,6 +256,21 @@ export default function QuotationViewPage() {
           &larr; {returnLabel}
         </Link>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={exportToExcel}
+            style={{
+              padding: '8px 20px',
+              background: '#fff',
+              color: '#1a6d3e',
+              border: '1.5px solid #1a6d3e',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            📊 Export to Excel (.xls)
+          </button>
           <button
             onClick={handlePrint}
             style={{
@@ -393,7 +460,7 @@ export default function QuotationViewPage() {
       )}
 
       {/* ── Quotation Document ── */}
-      <div ref={printRef} style={{
+      <div ref={printRef} className="print-container" style={{
         maxWidth: 800,
         margin: '0 auto 60px',
         padding: '40px 48px',
@@ -734,6 +801,13 @@ export default function QuotationViewPage() {
           body { background: #fff; margin: 0; padding: 0; }
           .no-print { display: none !important; }
           @page { margin: 15mm; }
+          .print-container {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+          }
         }
       `}</style>
     </>
