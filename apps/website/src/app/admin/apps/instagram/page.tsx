@@ -50,12 +50,21 @@ export default function InstagramAdminPage() {
   const [imageCaption, setImageCaption] = useState('')
   const [imagePermalink, setImagePermalink] = useState('')
   const [postSource, setPostSource] = useState<'manual_upload'|'instagram'>('manual_upload')
-  const [taggedProducts, setTaggedProducts] = useState<number[]>([])
+  const [taggedProducts, setTaggedProducts] = useState<Array<{ id: number; title: string; handle: string }>>([])
   const [taggedCollections, setTaggedCollections] = useState<number[]>([])
   const [productSearch, setProductSearch] = useState('')
   const [productResults, setProductResults] = useState<ProductResult[]>([])
   const [showProductSearch, setShowProductSearch] = useState(false)
   const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([])
+
+  // Edit post modal form
+  const [editingPost, setEditingPost] = useState<Post | null>(null)
+  const [editCaption, setEditCaption] = useState('')
+  const [editTaggedProducts, setEditTaggedProducts] = useState<Array<{ id: number; title: string; handle: string }>>([])
+  const [editTaggedCollections, setEditTaggedCollections] = useState<number[]>([])
+  const [editProductSearch, setEditProductSearch] = useState('')
+  const [editProductResults, setEditProductResults] = useState<ProductResult[]>([])
+  const [showEditProductSearch, setShowEditProductSearch] = useState(false)
 
   // Grid creation
   const [creatingGrid, setCreatingGrid] = useState(false)
@@ -102,7 +111,7 @@ export default function InstagramAdminPage() {
     if (!imageUrl) return toast('Image URL required')
     const r = await fetch('/api/admin/instagram/posts', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_url: imageUrl, caption: imageCaption, permalink: imagePermalink, width: 800, height: 800, source: postSource, products: taggedProducts.map(id => ({ id })), collection_ids: taggedCollections, status: 'approved' })
+      body: JSON.stringify({ image_url: imageUrl, caption: imageCaption, permalink: imagePermalink, width: 800, height: 800, source: postSource, products: taggedProducts, collection_ids: taggedCollections, status: 'approved' })
     })
     if (r.ok) { resetPostForm(); fetchPosts(); toast('Post added!') }
     else toast('Failed to add post')
@@ -140,11 +149,62 @@ export default function InstagramAdminPage() {
   }
 
   const addTaggedProduct = (p: ProductResult) => {
-    if (!taggedProducts.includes(p.id)) setTaggedProducts([...taggedProducts, p.id])
+    if (!taggedProducts.some(x => x.id === p.id)) {
+      setTaggedProducts([...taggedProducts, { id: p.id, title: p.title, handle: p.slug }])
+    }
     setProductSearch(''); setProductResults([]); setShowProductSearch(false)
   }
 
-  const removeTaggedProduct = (id: number) => setTaggedProducts(taggedProducts.filter(x => x !== id))
+  const removeTaggedProduct = (id: number) => setTaggedProducts(taggedProducts.filter(x => x.id !== id))
+
+  // Edit modal helper actions
+  const startEditPost = (post: Post) => {
+    setEditingPost(post)
+    setEditCaption(post.caption || '')
+    setEditTaggedProducts(Array.isArray(post.products) ? post.products : [])
+    setEditTaggedCollections(Array.isArray(post.collection_ids) ? post.collection_ids : [])
+    setEditProductSearch('')
+    setEditProductResults([])
+    setShowEditProductSearch(false)
+  }
+
+  const searchEditProducts = async (q: string) => {
+    setEditProductSearch(q)
+    if (q.length < 2) { setEditProductResults([]); return }
+    const r = await fetch(`/api/products?search=${encodeURIComponent(q)}&limit=5`)
+    if (r.ok) { const d = await r.json(); setEditProductResults(d.docs || d.products || d.rows || []) }
+  }
+
+  const addEditTaggedProduct = (p: ProductResult) => {
+    if (!editTaggedProducts.some(x => x.id === p.id)) {
+      setEditTaggedProducts([...editTaggedProducts, { id: p.id, title: p.title, handle: p.slug }])
+    }
+    setEditProductSearch(''); setEditProductResults([]); setShowEditProductSearch(false)
+  }
+
+  const removeEditTaggedProduct = (id: number) => setEditTaggedProducts(editTaggedProducts.filter(x => x.id !== id))
+
+  const savePostEdit = async () => {
+    if (!editingPost) return
+    const r = await fetch('/api/admin/instagram/posts', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: editingPost.id,
+        caption: editCaption,
+        alt_text: editCaption?.slice(0, 240) || 'Instagram post',
+        products: editTaggedProducts,
+        collection_ids: editTaggedCollections,
+      })
+    })
+    if (r.ok) {
+      setEditingPost(null)
+      fetchPosts()
+      toast('Post updated successfully!')
+    } else {
+      toast('Failed to update post')
+    }
+  }
 
   const resetPostForm = () => {
     setImageUrl(''); setImageCaption(''); setImagePermalink(''); setPostSource('manual_upload')
@@ -276,10 +336,10 @@ export default function InstagramAdminPage() {
           <div style={{ marginBottom:'var(--space-4)' }}>
             <label style={{ fontSize:11,fontWeight:600,color:'var(--luxe-slate-400)',textTransform:'uppercase',marginBottom:4,display:'block' }}>Tag Products</label>
             <div style={{ display:'flex',gap:'var(--space-2)',flexWrap:'wrap',marginBottom:8 }}>
-              {taggedProducts.map(id => (
-                <span key={id} style={{ background:'rgba(201,160,80,0.1)',color:'var(--luxe-gold-500)',padding:'4px 10px',borderRadius:999,fontSize:11,fontWeight:500,display:'flex',alignItems:'center',gap:6 }}>
-                  Product #{id}
-                  <button onClick={() => removeTaggedProduct(id)} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--luxe-merlot)',fontSize:14,lineHeight:1 }}>×</button>
+              {taggedProducts.map(p => (
+                <span key={p.id} style={{ background:'rgba(201,160,80,0.1)',color:'var(--luxe-gold-500)',padding:'4px 10px',borderRadius:999,fontSize:11,fontWeight:500,display:'flex',alignItems:'center',gap:6 }}>
+                  {p.title}
+                  <button onClick={() => removeTaggedProduct(p.id)} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--luxe-merlot)',fontSize:14,lineHeight:1 }}>×</button>
                 </span>
               ))}
             </div>
@@ -348,12 +408,41 @@ export default function InstagramAdminPage() {
               {/* Info + Actions */}
               <div style={{ padding:'var(--space-3)' }}>
                 {post.caption && <div style={{ fontSize:12,color:'var(--luxe-slate-600)',marginBottom:'var(--space-2)',lineHeight:1.4 }}>{post.caption.substring(0,80)}{post.caption.length>80?'...':''}</div>}
+
+                {/* Tagged Products Indicator */}
+                {post.products && post.products.length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+                    {post.products.map((p: any) => (
+                      <span key={p.id} style={{ fontSize: 10, background: 'rgba(201,160,80,0.1)', color: 'var(--luxe-gold-500)', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
+                        🏷️ {p.title || `Product #${p.id}`}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tagged Categories Indicator */}
+                {post.collection_ids && post.collection_ids.length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+                    {post.collection_ids.map((cid: number) => {
+                      const cat = categoryOptions.find(c => c.id === cid)
+                      return (
+                        <span key={cid} style={{ fontSize: 10, background: '#f4f6f4', color: '#1a6d3e', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
+                          📁 {cat?.title || `Category #${cid}`}
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+
                 <div style={{ display:'flex',gap:4,flexWrap:'wrap',marginBottom:'var(--space-2)' }}>
                   <span className={`luxe-badge ${post.status==='approved'?'success':post.status==='pending'?'warning':'neutral'}`} style={{ fontSize:10 }}>{post.status}</span>
                   {post.is_pinned && <span className="luxe-badge info" style={{ fontSize:10 }}>📌 Pinned</span>}
                   <span className="luxe-badge neutral" style={{ fontSize:10 }}>{post.source}</span>
                 </div>
                 <div style={{ display:'flex',gap:'var(--space-2)',flexWrap:'wrap' }}>
+                  <button onClick={() => startEditPost(post)} className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ padding:'2px 8px',fontSize:10 }}>
+                    ✏️ Edit / Tag
+                  </button>
                   <button onClick={() => togglePin(post)} className="luxe-btn luxe-btn-ghost luxe-btn-sm" style={{ padding:'2px 8px',fontSize:10 }}>
                     {post.is_pinned ? '📌 Unpin' : '📌 Pin'}
                   </button>
@@ -507,6 +596,85 @@ export default function InstagramAdminPage() {
                 <button onClick={() => setCreatingGrid(false)} className="luxe-btn luxe-btn-ghost luxe-btn-sm">Cancel</button>
                 <button onClick={createGrid} className="luxe-btn luxe-btn-gold luxe-btn-sm">✨ Create Grid</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Post Modal */}
+      {editingPost && (
+        <div style={{ position:'fixed',inset:0,zIndex:999,background:'rgba(0,0,0,0.4)',display:'flex',alignItems:'center',justifyContent:'center' }} onClick={() => setEditingPost(null)}>
+          <div className="luxe-card" style={{ width:600,maxWidth:'90vw',maxHeight:'85vh',overflow:'auto' }} onClick={e => e.stopPropagation()}>
+            <div className="luxe-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 className="luxe-card-title">✏️ Edit Shoppable Post</h2>
+              <span className="luxe-badge info">{editingPost.source === 'instagram' ? 'Instagram' : 'Manual'}</span>
+            </div>
+            <div className="luxe-card-body" style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 16, alignItems: 'start' }}>
+                <img src={editingPost.image_url} alt="" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--luxe-warm-200)' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                  <label style={{ fontSize:11,fontWeight:600,color:'var(--luxe-slate-400)',textTransform:'uppercase',display:'block' }}>Caption</label>
+                  <textarea className="luxe-input" rows={4} placeholder="Caption..." value={editCaption} onChange={e => setEditCaption(e.target.value)} style={{ width: '100%', height: 96, fontFamily: 'inherit', resize: 'vertical' }} />
+                </div>
+              </div>
+
+              {/* Tagged Products */}
+              <div>
+                <label style={{ fontSize:11,fontWeight:600,color:'var(--luxe-slate-400)',textTransform:'uppercase',display:'block',marginBottom:6 }}>Tag Products</label>
+                <div style={{ display:'flex',gap:'var(--space-2)',flexWrap:'wrap',marginBottom:8 }}>
+                  {editTaggedProducts.map(p => (
+                    <span key={p.id} style={{ background:'rgba(201,160,80,0.1)',color:'var(--luxe-gold-500)',padding:'4px 10px',borderRadius:999,fontSize:11,fontWeight:500,display:'flex',alignItems:'center',gap:6 }}>
+                      {p.title || `Product #${p.id}`}
+                      <button onClick={() => removeEditTaggedProduct(p.id)} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--luxe-merlot)',fontSize:14,lineHeight:1 }}>×</button>
+                    </span>
+                  ))}
+                  {editTaggedProducts.length === 0 && <span style={{ fontSize:12,color:'var(--luxe-slate-400)' }}>No products tagged yet.</span>}
+                </div>
+
+                {/* Autocomplete Product Search */}
+                <div style={{ position:'relative' }}>
+                  <input className="luxe-input" placeholder="Search products to tag..." value={editProductSearch}
+                    onChange={e => searchEditProducts(e.target.value)} onFocus={() => setShowEditProductSearch(true)}
+                    onBlur={() => setTimeout(() => { setShowEditProductSearch(false); setEditProductResults([]) }, 200)} />
+                  {showEditProductSearch && editProductResults.length > 0 && (
+                    <div style={{ position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1px solid var(--luxe-warm-200)',borderRadius:'var(--radius-sm)',boxShadow:'var(--shadow-lg)',zIndex:1050,maxHeight:200,overflow:'auto' }}>
+                      {editProductResults.map(p => (
+                        <div key={p.id} onMouseDown={() => addEditTaggedProduct(p)}
+                          style={{ padding:'8px 12px',cursor:'pointer',fontSize:12,borderBottom:'1px solid var(--luxe-warm-100)',display:'flex',justifyContent:'space-between' }}>
+                          <span>{p.title}</span>
+                          <span style={{ color:'var(--luxe-slate-400)' }}>{p.slug}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tagged Categories */}
+              <div>
+                <label style={{ fontSize:11,fontWeight:600,color:'var(--luxe-slate-400)',textTransform:'uppercase',display:'block',marginBottom:6 }}>Tag Categories</label>
+                <div style={{ display:'flex',gap:'var(--space-2)',flexWrap:'wrap',maxHeight:120,overflow:'auto',padding:2,border:'1px solid var(--luxe-warm-200)',borderRadius:'var(--radius-sm)' }}>
+                  {categoryOptions.map(category => {
+                    const selectedCategory = editTaggedCollections.includes(category.id)
+                    return (
+                      <button key={category.id} type="button"
+                        onClick={() => setEditTaggedCollections(prev => selectedCategory ? prev.filter(id => id !== category.id) : [...prev, category.id])}
+                        className="luxe-btn luxe-btn-ghost luxe-btn-sm"
+                        style={{ padding:'4px 9px',fontSize:10,borderColor:selectedCategory?'var(--luxe-gold-500)':undefined,color:selectedCategory?'var(--luxe-gold-500)':undefined }}>
+                        {selectedCategory ? '✓ ' : ''}{category.title}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div style={{ display:'flex',gap:'var(--space-3)',justifyContent:'flex-end',marginTop:'var(--space-2)' }}>
+                <button onClick={() => setEditingPost(null)} className="luxe-btn luxe-btn-ghost luxe-btn-sm">Cancel</button>
+                <button onClick={savePostEdit} className="luxe-btn luxe-btn-gold luxe-btn-sm">💾 Save Changes</button>
+              </div>
+
             </div>
           </div>
         </div>

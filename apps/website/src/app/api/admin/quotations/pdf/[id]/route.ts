@@ -36,6 +36,9 @@ export async function GET(
 
     const q = rows[0]
 
+    const themeRes = await query(`SELECT value FROM site_settings WHERE key = $1`, ['theme_quotation'])
+    const theme = themeRes.rows[0]?.value || null
+
     // Process items and fetch image base64 data URIs asynchronously
     const processedItems = []
     for (const item of (q.pdf_items || [])) {
@@ -112,7 +115,7 @@ export async function GET(
       termsRefundPolicy: q.terms_refund_policy,
       validUntil: q.valid_until,
       createdAt: q.created_at,
-    })
+    }, theme)
     const filenameName = String(q.customer_name || 'homeu').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-|-$/g, '')
     const disposition = searchParams.get('preview') === '1' ? 'inline' : 'attachment'
 

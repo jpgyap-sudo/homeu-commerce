@@ -21,6 +21,7 @@ import SectionAnimation from '@/components/home/SectionAnimation'
 import ProductDetailClient from '@/components/ProductDetailClient'
 import CollectionHeaderClient from '@/components/CollectionHeaderClient'
 import ProductGridClient from '@/components/ProductGridClient'
+import InstagramFeed from '@/components/instagram/InstagramFeed'
 
 // ── Data fetchers ────────────────────────────────────────────────────────
 interface CollectionTile { id: number; title: string; slug: string; image_url: string | null }
@@ -494,19 +495,17 @@ async function renderSection(section: HomepageSection, context?: any) {
           <div className="page-width">
             <div className="section-header text-center">
               <h2 className="section-header__title h2" data-edit="heading">{cfg.heading || `Follow @${handle}`}</h2>
-              <p className="section-header__sub">
-                <a href={`https://www.instagram.com/${handle}/`} target="_blank" rel="noopener noreferrer" className="homepage-instagram__profile-link">See our latest on Instagram ↗</a>
-              </p>
+              {cfg.showProfileLink !== false && (
+                <p className="section-header__sub">
+                  <a href={`https://www.instagram.com/${handle}/`} target="_blank" rel="noopener noreferrer" className="homepage-instagram__profile-link">See our latest on Instagram ↗</a>
+                </p>
+              )}
             </div>
-            <div className="homepage-instagram__grid" id="instagram-feed">
-              {Array.from({ length: tiles }).map((_, i) => (
-                <a key={i} href={`https://www.instagram.com/${handle}/`} target="_blank" rel="noopener noreferrer" className="homepage-instagram__tile" aria-label="Instagram">
-                  <span className="homepage-instagram__icon">
-                    <svg viewBox="0 0 20 20" width="28" height="28" fill="currentColor"><path d="M10 1.8c2.67 0 2.99.01 4.04.06 2.76.13 4.04 1.41 4.17 4.17.05 1.05.06 1.36.06 4.04s-.01 2.99-.06 4.04c-.13 2.75-1.41 4.04-4.17 4.17-1.05.05-1.35.06-4.04.06s-2.99-.01-4.04-.06C3.2 18.16 1.92 16.88 1.79 14.12 1.74 13.07 1.73 12.76 1.73 10s.01-2.99.06-4.04C1.92 3.2 3.2 1.92 5.96 1.79 7.01 1.74 7.32 1.73 10 1.73zM10 0C7.28 0 6.94.01 5.88.06 2.25.23.23 2.25.06 5.88.01 6.94 0 7.28 0 10s.01 3.06.06 4.12c.17 3.63 2.19 5.65 5.82 5.82C6.94 19.99 7.28 20 10 20s3.06-.01 4.12-.06c3.63-.17 5.65-2.19 5.82-5.82.05-1.06.06-1.4.06-4.12s-.01-3.06-.06-4.12C19.77 2.25 17.75.23 14.12.06 13.06.01 12.72 0 10 0zm0 4.86a5.14 5.14 0 100 10.28A5.14 5.14 0 0010 4.86zm0 8.48a3.34 3.34 0 110-6.68 3.34 3.34 0 010 6.68zm5.34-9.78a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z"/></svg>
-                  </span>
-                </a>
-              ))}
-            </div>
+            <InstagramFeed
+              limit={Number(tiles)}
+              columns={Number(cfg.columnsDesktop) || 4}
+              gap={Number(cfg.gap) || 4}
+            />
           </div>
         </section>
       )

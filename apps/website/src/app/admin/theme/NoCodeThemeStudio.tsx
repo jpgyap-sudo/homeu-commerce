@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { ImagePickerField } from '@/components/admin/ImagePickerField'
 
-type FieldType = 'toggle' | 'select' | 'range' | 'text' | 'textarea' | 'color'
+type FieldType = 'toggle' | 'select' | 'range' | 'text' | 'textarea' | 'color' | 'image'
 
 export interface ThemeField {
   key: string
@@ -17,6 +18,7 @@ export interface ThemeField {
   placeholder?: string
   rows?: number
   options?: Array<{ value: string; label: string; help?: string }>
+  textPresets?: Array<{ label: string; value: string }>
 }
 
 export interface ThemeFieldSection {
@@ -359,10 +361,40 @@ function FieldControl({ field, value, onChange }: { field: ThemeField; value: an
     )
   }
 
+  if (field.type === 'image') {
+    return (
+      <ImagePickerField label={field.label} value={String(value || '')} onChange={onChange} aspectRatio="3 / 1" />
+    )
+  }
+
   if (field.type === 'textarea') {
     return (
       <div>
         <label style={smallLabel}>{field.label}</label>
+        {field.textPresets && field.textPresets.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 7 }}>
+            {field.textPresets.map(preset => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => onChange(preset.value)}
+                title={preset.value}
+                style={{
+                  border: value === preset.value ? '1px solid #1a6d3e' : '1px solid #dfe6df',
+                  background: value === preset.value ? '#eef6f1' : '#fbfcfa',
+                  color: value === preset.value ? '#145c35' : '#3a4339',
+                  borderRadius: 999,
+                  padding: '5px 11px',
+                  fontSize: 11,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        )}
         <textarea value={String(value || '')} rows={field.rows || 4} placeholder={field.placeholder} onChange={event => onChange(event.target.value)} style={{ ...input, minHeight: 92, resize: 'vertical', lineHeight: 1.45 }} />
         {field.help && <p style={{ margin: '5px 0 0', color: '#7a857d', fontSize: 11 }}>{field.help}</p>}
       </div>
@@ -535,7 +567,11 @@ function QuotationPreview({ settings }: { settings: Record<string, any> }) {
         {settings.template === 'modern' && <div style={{ height: 8, background: brand, borderRadius: 999, marginBottom: 20 }} />}
         <header style={{ display: 'flex', justifyContent: 'space-between', gap: 18, borderBottom: '1px solid #e5e7e2', paddingBottom: 18 }}>
           <div>
-            {settings.showHeaderLogo && <div style={{ width: 52, height: 52, borderRadius: 8, background: brand, marginBottom: 10 }} />}
+            {settings.showHeaderLogo && (
+              settings.headerLogo
+                ? <img src={settings.headerLogo} alt="" style={{ width: 130, height: 44, objectFit: 'contain', objectPosition: 'left', marginBottom: 10, display: 'block' }} />
+                : <div style={{ width: 52, height: 52, borderRadius: 8, background: brand, marginBottom: 10 }} />
+            )}
             {settings.showCompanyName && <strong style={{ color: '#151a17', fontSize: 18 }}>Home Atelier</strong>}
             {settings.showAddress && <p style={{ color: '#667168', fontSize: 12, margin: '5px 0 0' }}>Makati, Metro Manila</p>}
           </div>
@@ -547,8 +583,20 @@ function QuotationPreview({ settings }: { settings: Record<string, any> }) {
         <section style={{ marginTop: 24 }}>
           <strong>Prepared for Maria Santos</strong>
           <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 18, fontSize: 12 }}>
-            <thead><tr style={{ background: settings.template === 'minimal' ? '#fff' : '#f7f4ee', color: '#3a4339' }}><th style={{ textAlign: 'left', padding: 10 }}>Item</th><th style={{ textAlign: 'right', padding: 10 }}>Total</th></tr></thead>
-            <tbody>{['Aalto Modern Sofa', 'Augustin Pouf', 'Delivery and handling'].map((item, index) => <tr key={item} style={{ borderBottom: '1px solid #edf0ec' }}><td style={{ padding: 10 }}>{item}</td><td style={{ padding: 10, textAlign: 'right' }}>PHP {[128184, 32000, 6500][index].toLocaleString('en-PH')}</td></tr>)}</tbody>
+            <thead><tr style={{ background: settings.template === 'minimal' ? '#fff' : '#f7f4ee', color: '#3a4339' }}>
+              {settings.showItemImages !== false && <th style={{ textAlign: 'left', padding: 10, width: 44 }}>Img</th>}
+              <th style={{ textAlign: 'left', padding: 10 }}>Item</th>
+              {settings.showUnitPrice !== false && <th style={{ textAlign: 'right', padding: 10 }}>Unit</th>}
+              <th style={{ textAlign: 'right', padding: 10 }}>Total</th>
+            </tr></thead>
+            <tbody>{['Aalto Modern Sofa', 'Augustin Pouf', 'Delivery and handling'].map((item, index) => (
+              <tr key={item} style={{ borderBottom: '1px solid #edf0ec' }}>
+                {settings.showItemImages !== false && <td style={{ padding: 10 }}><div style={{ width: 24, height: 24, borderRadius: 4, background: '#eee' }} /></td>}
+                <td style={{ padding: 10 }}>{item}</td>
+                {settings.showUnitPrice !== false && <td style={{ padding: 10, textAlign: 'right', color: '#8a958d' }}>PHP {[128184, 32000, 6500][index].toLocaleString('en-PH')}</td>}
+                <td style={{ padding: 10, textAlign: 'right' }}>PHP {[128184, 32000, 6500][index].toLocaleString('en-PH')}</td>
+              </tr>
+            ))}</tbody>
           </table>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}><strong style={{ color: accent, fontSize: 18 }}>PHP 166,684</strong></div>
         </section>

@@ -181,14 +181,15 @@ export default function InstagramFeed({
 }
 
 function InstagramCell({ cell, showCaption, lazyLoad }: { cell: Cell; showCaption: boolean; lazyLoad: boolean }) {
-  const Wrapper = cell.link ? 'a' : 'div'
-  const hasOverlay = showCaption && (cell.caption || (cell.products && cell.products.length > 0))
+  const hasProducts = cell.products && cell.products.length > 0
+  const Wrapper = (cell.link && !hasProducts) ? 'a' : 'div'
+  const hasOverlay = showCaption && (cell.caption || hasProducts)
 
   return (
     <Wrapper
-      href={cell.link || undefined}
-      target={cell.link ? '_blank' : undefined}
-      rel={cell.link ? 'noopener noreferrer' : undefined}
+      href={(cell.link && !hasProducts) ? cell.link : undefined}
+      target={(cell.link && !hasProducts) ? '_blank' : undefined}
+      rel={(cell.link && !hasProducts) ? 'noopener noreferrer' : undefined}
       className="instagram-cell"
       style={{
         gridColumn: `${cell.colStart + 1} / span ${cell.colSpan}`,
@@ -210,15 +211,22 @@ function InstagramCell({ cell, showCaption, lazyLoad }: { cell: Cell; showCaptio
           {showCaption && cell.caption && (
             <p className="instagram-cell-caption">{cell.caption}</p>
           )}
-          {cell.products && cell.products.length > 0 && (
-            <div className="instagram-cell-products">
-              {cell.products.map(p => (
-                <Link key={p.id} href={`/products/${p.handle || p.id}`} className="instagram-cell-product-tag">
-                  🛒 {p.title}
-                </Link>
-              ))}
-            </div>
-          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 6, marginTop: 'auto' }}>
+            {hasProducts && (
+              <div className="instagram-cell-products" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {cell.products?.map(p => (
+                  <Link key={p.id} href={`/products/${p.handle || p.id}`} className="instagram-cell-product-tag" style={{ pointerEvents: 'auto' }}>
+                    🛒 {p.title}
+                  </Link>
+                ))}
+              </div>
+            )}
+            {cell.link && hasProducts && (
+              <a href={cell.link} target="_blank" rel="noopener noreferrer" className="instagram-cell-product-tag" style={{ background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 10, padding: '4px 9px', borderRadius: 999, textDecoration: 'none', pointerEvents: 'auto' }}>
+                📸 View Post ↗
+              </a>
+            )}
+          </div>
         </div>
       )}
     </Wrapper>
