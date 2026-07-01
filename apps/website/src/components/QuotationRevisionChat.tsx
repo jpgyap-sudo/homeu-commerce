@@ -12,9 +12,10 @@ interface ChatMessage {
 interface Props {
   quotationId: string | number
   isAdmin?: boolean
+  token?: string
 }
 
-export default function QuotationRevisionChat({ quotationId, isAdmin }: Props) {
+export default function QuotationRevisionChat({ quotationId, isAdmin, token }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -24,14 +25,14 @@ export default function QuotationRevisionChat({ quotationId, isAdmin }: Props) {
   useEffect(() => {
     const endpoint = isAdmin
       ? `/api/admin/quotations/${quotationId}/chat`
-      : `/api/quotations/${quotationId}/chat`
+      : `/api/quotations/${quotationId}/chat${token ? `?token=${encodeURIComponent(token)}` : ''}`
     fetch(endpoint)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) setMessages(data)
       })
       .catch(() => {})
-  }, [quotationId, isAdmin])
+  }, [quotationId, isAdmin, token])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -43,7 +44,7 @@ export default function QuotationRevisionChat({ quotationId, isAdmin }: Props) {
     try {
       const endpoint = isAdmin
         ? `/api/admin/quotations/${quotationId}/chat`
-        : `/api/quotations/${quotationId}/chat`
+        : `/api/quotations/${quotationId}/chat${token ? `?token=${encodeURIComponent(token)}` : ''}`
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

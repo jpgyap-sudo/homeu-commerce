@@ -1,30 +1,60 @@
 /**
  * Customer-facing revision chat API for a quotation.
- * GET  — list all messages
- * POST — customer sends a message
+ * GET  — list all messages (auth via session or token)
+ * POST — customer sends a message (auth via session or token)
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth'
 import { query } from '@/lib/db'
+import crypto from 'crypto'
 
-// Customer auth: verify logged in + own this quotation
-async function verifyOwnership(quotationId: string | number): Promise<boolean> {
+const ADMIN_ROLES = new Set(['admin', 'superadmin', 'editor', 'sales'])
+type Session = Awaited<ReturnType<typeof getSession>>
+
+function isAdminSession(session: Session): boolean {
+  return !!session && ADMIN_ROLES.has(session.role)
+}
+
+function isCustomerOwner(quote: any, session: Session): boolean {
+  if (!session) return false
+  const sessionId = Number(session.id)
+  if (Number.isInteger(sessionId) && Number(quote.customer_id) === sessionId) return true
+  const quoteEmail = String(quote.email || quote.customer_email || '').toLowerCase()
+  return !!quoteEmail && quoteEmail === String(session.email || '').toLowerCase()
+}
+
+async function verifyAuth(id: string | number, request: NextRequest): Promise<boolean> {
+  const session = await getSession()
+
   try {
-    const meRes = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/customers/me`, {
-      credentials: 'include',
-      headers: { cookie: '' },
-    } as any)
-    // We use cookies, so the server-side fetch won't work directly.
-    // Instead, we check if the quotation belongs to the requesting customer by session.
-    // Since this is called from the client, the auth session is handled by client credentials.
-    return true // Auth handled by client-side call with credentials
-  } catch {
-    return false
-  }
+    const qResult = await query('SELECT * FROM quotations WHERE id = $1', [id])
+    if (qResult.rows.length === 0) return false
+    const quote = qResult.rows[0]
+    if (isAdminSession(session) || isCustomerOwner(quote, session)) return true
+
+    const { searchParams } = new URL(request.url)
+    const token = searchParams.get('token')
+    if (token) {
+      const secret = process.env.JWT_SECRET || 'fallback'
+      const computed = crypto
+        .createHmac('sha256', secret)
+        .update(`${id}-${quote.created_at}`)
+        .digest('hex')
+        .slice(0, 16)
+      return token === computed
+    }
+  } catch {}
+  return false
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+    const authorized = await verifyAuth(id, request)
+    if (!authorized) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const result = await query(
       `SELECT id, sender_type, message, created_at
        FROM quotation_revision_chat
@@ -42,6 +72,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+    const authorized = await verifyAuth(id, request)
+    if (!authorized) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
     const message = String(body.message || '').trim()
 

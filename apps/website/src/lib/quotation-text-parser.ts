@@ -134,13 +134,11 @@ export function parseRevisionText(text: string): DetectedChange[] {
   const matchedRanges: Array<{ start: number; end: number }> = []
 
   for (const pattern of PATTERNS) {
-    // Reset regex lastIndex
-    pattern.regex.lastIndex = 0
-
-    let match: RegExpMatchArray | null
-    while ((match = pattern.regex.exec(text)) !== null) {
+    // Use a single match per pattern since these are not global regexes
+    const match = text.match(pattern.regex)
+    if (match) {
       // Avoid overlapping matches
-      const start = match.index ?? match.input?.indexOf(match[0]) ?? 0
+      const start = match.index ?? 0
       const range = { start, end: start + match[0].length }
       if (matchedRanges.some(r => rangesOverlap(r, range))) continue
       matchedRanges.push(range)

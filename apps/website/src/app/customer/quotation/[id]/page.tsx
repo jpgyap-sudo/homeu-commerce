@@ -38,6 +38,7 @@ interface QuotationData {
   grandTotal: number
   validUntil?: string
   status: string
+  guestToken?: string
   sentAt?: string
   createdAt: string
   termsDeliveryLeadtime?: string
@@ -92,7 +93,7 @@ export default function CustomerQuotationPage() {
   const [showRevise, setShowRevise] = useState(false)
   const [reviseText, setReviseText] = useState('')
   const [reviseItems, setReviseItems] = useState<Set<string>>(new Set())
-  const [summaryActions, setSummaryActions] = useState<Array<{ id: string; itemIndex: number; itemTitle: string; actionType: string; description: string }>>([])
+  const [summaryActions, setSummaryActions] = useState<Array<{ id: string; itemIndex: number; itemTitle: string; actionType: string; description: string; payload: Record<string, any> }>>([])
   const [versions, setVersions] = useState<any[]>([])
   const [showVersionCompare, setShowVersionCompare] = useState(false)
   const [revisionNote, setRevisionNote] = useState('')
@@ -100,7 +101,7 @@ export default function CustomerQuotationPage() {
   // Load version history for timeline + compare
   useEffect(() => {
     if (!quotation?.id) return
-    fetch(`/api/quotations/${quotation.id}/versions`)
+    fetch(`/api/quotations/${quotation.id}/versions${quotation.guestToken ? `?token=${encodeURIComponent(quotation.guestToken)}` : ''}`)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data.versions)) setVersions(data.versions)
@@ -130,6 +131,7 @@ export default function CustomerQuotationPage() {
       itemTitle: title,
       actionType: action.actionType,
       description,
+      payload: action.payload || {},
     }])
   }, [quotation])
 
@@ -148,30 +150,43 @@ export default function CustomerQuotationPage() {
       }
 
       // Save revision items
+      // Save revision items with real payload data
       if (summaryActions.length > 0) {
+        // Extract payloads from summary actions by matching to quotation items
+        const itemsPayload = summaryActions.map(a => {
+          const item = quotation.items?.[a.itemIndex]
+          let payload: Record<string, any> = {}
+          switch (a.actionType) {
+            case 'change_qty':
+              // Extract qty from description if possible
+              const qtyMatch = a.description.match(/→\s*(\d+)/)
+              if (qtyMatch) payload.newQty = parseInt(qtyMatch[1], 10)
+              break
+            case 'change_finish':
+              const finishMatch = a.description.match(/→\s*(.+)$/)
+              if (finishMatch) payload.finish = finishMatch[1].trim()
+              break
+          }
+          return { itemIndex: a.itemIndex, actionType: a.actionType, payload }
+        })
+
         await fetch(`/api/quotations/${quotation.id}/revision-items`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            items: summaryActions.map(a => ({
-              itemIndex: a.itemIndex,
-              actionType: a.actionType,
-              payload: {},
-            })),
-          }),
+          body: JSON.stringify({ items: itemsPayload, token: quotation.guestToken }),
         })
       }
 
       const res = await fetch(`/api/quotations/${quotation.id}/revision-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: fullMessage.trim() }),
+        body: JSON.stringify({ message: fullMessage.trim(), token: quotation.guestToken }),
       })
       if (!res.ok) throw new Error('Failed to send revision request')
       setActionMsg('✅ Revision request sent! The team will review and update your quotation.')
       setShowRevise(false)
       setSummaryActions([])
-      setQuotation(prev => prev ? { ...prev, pending_revision: true, revision_request: fullMessage.trim() } : prev)
+      setQuotation(prev => prev ? { ...prev, status: 'revision_requested', pending_revision: true, revision_request: fullMessage.trim() } : prev)
     } catch (err: any) {
       setActionMsg('❌ ' + err.message)
     } finally {
@@ -205,7 +220,7 @@ export default function CustomerQuotationPage() {
       const res = await fetch(`/api/quotations/${quotation.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'accepted' }),
+        body: JSON.stringify({ status: 'accepted', token: quotation.guestToken }),
       })
       if (!res.ok) throw new Error('Failed to approve')
       const data = await res.json()
@@ -226,12 +241,13 @@ export default function CustomerQuotationPage() {
         body: JSON.stringify({
           message: reviseText.trim(),
           items: [...reviseItems],
+          token: quotation.guestToken,
         }),
       })
       if (!res.ok) throw new Error('Failed to send revision request')
       setActionMsg('✅ Revision request sent! The team will review and update your quotation.')
       setShowRevise(false)
-      setQuotation(prev => prev ? { ...prev, pending_revision: true, revision_request: reviseText.trim() } : prev)
+      setQuotation(prev => prev ? { ...prev, status: 'revision_requested', pending_revision: true, revision_request: reviseText.trim() } : prev)
     } catch (err: any) { setActionMsg('❌ ' + err.message) }
     finally { setActionLoading(false) }
   }
@@ -550,7 +566,7 @@ export default function CustomerQuotationPage() {
       )}
 
       {/* ── Revision Chat ── */}
-      <QuotationRevisionChat quotationId={quotation.id} />
+      <QuotationRevisionChat quotationId={quotation.id} token={quotation.guestToken} />
 
       {/* ── Pending Revision Banner ── */}
       {quotation.pending_revision && (

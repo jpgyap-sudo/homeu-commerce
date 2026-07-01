@@ -165,7 +165,7 @@ export function computeChangelog(
  */
 export async function createVersion(
   quotationId: number | string,
-  revisionType: 'initial' | 'admin_edit' | 'customer_revision' | 'reverted' = 'admin_edit',
+  revisionType: 'initial' | 'admin_edit' | 'customer_revision' | 'quotation_accepted' | 'quotation_rejected' | 'revision_resolved' | 'reverted' = 'admin_edit',
   revisionMessage: string = '',
   createdBy: string = 'system'
 ): Promise<number> {
@@ -211,6 +211,9 @@ export async function createVersion(
       initial: 'quotation_created',
       admin_edit: 'quotation_updated',
       customer_revision: 'revision_resolved',
+      quotation_accepted: 'quotation_accepted',
+      quotation_rejected: 'quotation_rejected',
+      revision_resolved: 'revision_resolved',
       reverted: 'quotation_updated',
     }
     const eventType = eventTypeMap[revisionType] || 'quotation_updated'
@@ -218,6 +221,9 @@ export async function createVersion(
       initial: 'Quotation created',
       admin_edit: 'Quotation updated',
       customer_revision: 'Revision resolved',
+      quotation_accepted: 'Quotation accepted',
+      quotation_rejected: 'Quotation rejected',
+      revision_resolved: 'Revision resolved',
       reverted: 'Quotation reverted',
     }
     const eventLabel = eventLabelMap[revisionType] || 'Quotation updated'
@@ -259,13 +265,23 @@ export async function createVersion(
  */
 export async function getVersionHistory(quotationId: number | string) {
   const { rows } = await query(
-    `SELECT id, version_number, revision_type, revision_message, changelog, created_by, created_at
+    `SELECT id, version_number, revision_type, revision_message, changelog, snapshot, created_by, created_at
      FROM quotation_versions
      WHERE quotation_id = $1
      ORDER BY version_number DESC`,
     [quotationId]
   )
-  return rows
+  // Convert snake_case to camelCase for the client
+  return rows.map((r: any) => ({
+    id: r.id,
+    versionNumber: r.version_number,
+    revisionType: r.revision_type,
+    revisionMessage: r.revision_message,
+    changelog: r.changelog,
+    snapshot: r.snapshot,
+    createdBy: r.created_by,
+    createdAt: r.created_at,
+  }))
 }
 
 /**
