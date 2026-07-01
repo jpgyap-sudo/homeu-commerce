@@ -160,7 +160,7 @@ export async function getUnifiedInbox(params: {
           COALESCE(r.customer_name, 'Client') AS "contactName",
           COALESCE(r.email, '') AS "contactEmail",
           r.phone AS "contactPhone",
-          'RFQ #' || UPPER(SUBSTR(r.id::text, -6)) || ' - ' || COALESCE(r.project_type, 'Quote Request') AS "subject",
+          'RFQ #' || UPPER(SUBSTR(r.id::text, -6)) || ' - ' || COALESCE(r.project_type::text, 'Quote Request') AS "subject",
           COALESCE(
             (SELECT m.content FROM rfq_chat_messages m
              WHERE m.conversation_id = c.id
@@ -189,7 +189,7 @@ export async function getUnifiedInbox(params: {
         JOIN rfq_requests r ON r.id = c.rfq_request_id
         WHERE ${tab === 'archived' ? "c.status = 'archived'" : "c.status != 'archived'"}
           ${statusFilter === 'unread' ? "AND c.status != 'resolved' AND EXISTS (SELECT 1 FROM rfq_chat_messages m WHERE m.conversation_id = c.id AND m.sender_type = 'customer')" : ''}
-          ${statusFilter === 'read' ? "OR c.status = 'resolved'" : ''}
+          ${statusFilter === 'read' ? "AND (c.status = 'resolved' OR NOT EXISTS (SELECT 1 FROM rfq_chat_messages m WHERE m.conversation_id = c.id AND m.sender_type = 'customer' AND m.created_at > COALESCE((SELECT m2.created_at FROM rfq_chat_messages m2 WHERE m2.conversation_id = c.id AND m2.sender_type = 'admin' ORDER BY m2.created_at DESC LIMIT 1), '1970-01-01'::timestamptz)))" : ''}
           ${searchPattern ? `AND (r.customer_name ILIKE $1 OR r.email ILIKE $1)` : ''}
         ORDER BY c.last_message_at DESC NULLS LAST
         LIMIT ${Math.min(limit, 20)} OFFSET ${offset}

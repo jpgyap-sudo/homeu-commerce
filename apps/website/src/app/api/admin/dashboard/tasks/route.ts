@@ -97,11 +97,11 @@ export async function GET(request: NextRequest) {
       const apptHistoryResult = await query(`
         SELECT a.id, COALESCE(l.name, 'Unknown') as lead_name, 
                TO_CHAR(a.preferred_date, 'YYYY-MM-DD') as preferred_date, 
-               a.status, a.updated_at
+               a.status, a.created_at AS updated_at
         FROM chatbot.appointments a
         LEFT JOIN chatbot.leads l ON l.id = a.lead_id
         WHERE a.status IN ('completed', 'cancelled')
-        ORDER BY a.updated_at DESC
+        ORDER BY a.created_at DESC
         LIMIT 5
       `)
       pastAppointments = apptHistoryResult.rows

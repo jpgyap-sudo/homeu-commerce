@@ -5,12 +5,14 @@
 
 import { query } from '@/lib/db'
 import {
-  DEFAULT_CUSTOMER_ACCOUNT_THEME,
   getMobileLiveThemeSnapshot,
-  normalizeCustomerAccountTheme,
-  type CustomerAccountTheme,
   type StoreThemeSnapshot,
 } from '@/lib/store-themes'
+import {
+  DEFAULT_CUSTOMER_ACCOUNT_THEME,
+  normalizeCustomerAccountTheme,
+  type CustomerAccountTheme,
+} from '@/lib/customer-account-theme'
 import type { HomepageSection } from '@/lib/theme-types'
 
 export type { SectionType, HomepageSection } from '@/lib/theme-types'

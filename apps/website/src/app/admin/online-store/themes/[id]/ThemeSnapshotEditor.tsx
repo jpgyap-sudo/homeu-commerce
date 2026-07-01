@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
+import type { StoreTheme } from '@/lib/store-themes'
 import {
   DEFAULT_CUSTOMER_ACCOUNT_THEME,
   normalizeCustomerAccountTheme,
   type CustomerAccountTheme,
-  type StoreTheme,
-} from '@/lib/store-themes'
+} from '@/lib/customer-account-theme'
 
 type SnapshotSection = StoreTheme['snapshot']['sections'][number]
 type TemplateKey = 'index' | 'product' | 'collection'
