@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { extractMaterialsFromDescription, extractDimensionsFromDescription } from '@/lib/format-utils'
+import QuotationRevisionWorkspace from '@/components/admin/QuotationRevisionWorkspace'
 
 interface Product {
   id: string
@@ -208,7 +209,7 @@ export default function EditQuotationPage() {
     loadQuotationAndVersions()
   }, [params?.id])
 
-  async function handleResolveRevision() {
+  const handleResolveRevision = useCallback(async (updatedItems: any[], message: string) => {
     setSaving(true)
     setError('')
     setSuccess('')
@@ -216,10 +217,16 @@ export default function EditQuotationPage() {
       const id = params?.id
       if (!id) throw new Error('Quotation ID not found')
 
+      // Update items + resolve revision + set status to 'revised'
       const res = await fetch(`/api/quotations/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resolveRevision: true }),
+        body: JSON.stringify({
+          items: updatedItems,
+          resolveRevision: true,
+          status: 'revised',
+          revisionNote: message,
+        }),
       })
 
       if (!res.ok) {
@@ -227,7 +234,7 @@ export default function EditQuotationPage() {
         throw new Error(data.error || 'Failed to resolve revision')
       }
 
-      setSuccess('Revision request resolved successfully!')
+      setSuccess('Revision resolved! Customer can now review the updated quotation.')
       
       // Reload details and versions
       const [updatedRes, verRes] = await Promise.all([
@@ -249,7 +256,32 @@ export default function EditQuotationPage() {
     } finally {
       setSaving(false)
     }
-  }
+  }, [params?.id])
+
+  const handleRejectRevision = useCallback(async () => {
+    setSaving(true)
+    setError('')
+    setSuccess('')
+    try {
+      const id = params?.id
+      if (!id) throw new Error('Quotation ID not found')
+
+      const res = await fetch(`/api/quotations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolveRevision: true }),
+      })
+
+      if (!res.ok) throw new Error('Failed to reject revision')
+
+      setSuccess('Revision rejected. Kept current version.')
+      window.location.reload()
+    } catch (err: any) {
+      setError(err.message || 'Failed to reject revision')
+    } finally {
+      setSaving(false)
+    }
+  }, [params?.id])
 
   function populateForm(data: QuotationData) {
     setCustomerName(data.customerName || '')
@@ -678,45 +710,21 @@ Home Atelier Team`
         <div style={{ background: '#e8f5e9', color: '#2e7d32', padding: '12px 16px', borderRadius: 6, marginBottom: 20, fontSize: 14 }}>{success}</div>
       )}
 
-      {quotation?.pending_revision && (
-        <div style={{
-          background: '#fff3cd',
-          border: '1.5px solid #ffeeba',
-          borderRadius: 8,
-          padding: 16,
-          marginBottom: 20,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 16,
-        }}>
-          <div style={{ flex: 1 }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: '#856404' }}>
-              🔄 Revision Requested by Client
-            </h3>
-            <p style={{ margin: 0, fontSize: 13, color: '#856404', fontStyle: 'italic' }}>
-              &ldquo;{quotation.revision_request || 'No message provided'}&rdquo;
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleResolveRevision}
-            disabled={saving}
-            style={{
-              padding: '8px 16px',
-              background: '#856404',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              cursor: saving ? 'not-allowed' : 'pointer',
-              fontSize: 13,
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {saving ? 'Processing...' : 'Mark as Resolved'}
-          </button>
-        </div>
+      {quotation?.pending_revision && quotation?.revision_request && (
+        <QuotationRevisionWorkspace
+          quotationId={quotation.id}
+          items={items.length > 0 ? items : (quotation.items || []).map((item: any) => ({
+            title: item.description || item.productTitle || `Item ${item.itemNumber}`,
+            sku: item.sku || '',
+            quantity: item.quantity || 1,
+            unitCost: item.unitCost || 0,
+            discountPercent: item.discountPercent || 0,
+            total: item.total || 0,
+          }))}
+          revisionRequest={quotation.revision_request}
+          onResolve={handleResolveRevision}
+          onReject={handleRejectRevision}
+        />
       )}
 
       {rfqId && (

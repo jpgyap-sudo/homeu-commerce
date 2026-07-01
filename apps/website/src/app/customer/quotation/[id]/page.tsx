@@ -1,8 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import QuotationRevisionButtons from '@/components/QuotationRevisionButtons'
+import QuotationRevisionSummary from '@/components/QuotationRevisionSummary'
+import QuotationVersionCompare from '@/components/QuotationVersionCompare'
+import QuotationRevisionChat from '@/components/QuotationRevisionChat'
+import QuotationTimeline from '@/components/QuotationTimeline'
+import type { RevisionAction } from '@/components/QuotationRevisionButtons'
 
 interface QuotationItem {
   id: string
@@ -86,6 +92,92 @@ export default function CustomerQuotationPage() {
   const [showRevise, setShowRevise] = useState(false)
   const [reviseText, setReviseText] = useState('')
   const [reviseItems, setReviseItems] = useState<Set<string>>(new Set())
+  const [summaryActions, setSummaryActions] = useState<Array<{ id: string; itemIndex: number; itemTitle: string; actionType: string; description: string }>>([])
+  const [versions, setVersions] = useState<any[]>([])
+  const [showVersionCompare, setShowVersionCompare] = useState(false)
+  const [revisionNote, setRevisionNote] = useState('')
+
+  // Load version history for timeline + compare
+  useEffect(() => {
+    if (!quotation?.id) return
+    fetch(`/api/quotations/${quotation.id}/versions`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data.versions)) setVersions(data.versions)
+        else if (Array.isArray(data)) setVersions(data)
+      })
+      .catch(() => {})
+  }, [quotation?.id])
+
+  const handleRevisionAction = useCallback((action: RevisionAction) => {
+    const item = quotation?.items?.[action.itemIndex]
+    const title = item?.description || `Item #${action.itemIndex + 1}`
+
+    let description = ''
+    switch (action.actionType) {
+      case 'remove': description = `Remove: ${title}`; break
+      case 'change_qty': description = `Change qty: ${title} → ${action.payload.newQty || '?'}`; break
+      case 'change_finish': description = `Change finish: ${title} → ${action.payload.finish || 'custom'}`; break
+      case 'swap': description = `Swap: ${title}`; break
+      case 'lower_price': description = `Lower price: ${title}`; break
+      case 'lead_time': description = `Lead time: ${title}`; break
+      default: description = `Change: ${title}`
+    }
+
+    setSummaryActions(prev => [...prev, {
+      id: `action-${Date.now()}-${Math.random()}`,
+      itemIndex: action.itemIndex,
+      itemTitle: title,
+      actionType: action.actionType,
+      description,
+    }])
+  }, [quotation])
+
+  const handleSendRevision = useCallback(async (freeText: string) => {
+    if (!quotation) return
+    setActionLoading(true)
+    setActionMsg('')
+    try {
+      // Build the revision message from structured actions + free text
+      const actionLines = summaryActions.map(a => a.description).join('\n')
+      const fullMessage = [actionLines, freeText].filter(Boolean).join('\n\n')
+      if (!fullMessage.trim()) {
+        setActionMsg('❌ Please add at least one change or type a message.')
+        setActionLoading(false)
+        return
+      }
+
+      // Save revision items
+      if (summaryActions.length > 0) {
+        await fetch(`/api/quotations/${quotation.id}/revision-items`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: summaryActions.map(a => ({
+              itemIndex: a.itemIndex,
+              actionType: a.actionType,
+              payload: {},
+            })),
+          }),
+        })
+      }
+
+      const res = await fetch(`/api/quotations/${quotation.id}/revision-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: fullMessage.trim() }),
+      })
+      if (!res.ok) throw new Error('Failed to send revision request')
+      setActionMsg('✅ Revision request sent! The team will review and update your quotation.')
+      setShowRevise(false)
+      setSummaryActions([])
+      setQuotation(prev => prev ? { ...prev, pending_revision: true, revision_request: fullMessage.trim() } : prev)
+    } catch (err: any) {
+      setActionMsg('❌ ' + err.message)
+    } finally {
+      setActionLoading(false)
+    }
+  }, [quotation, summaryActions])
 
   if (loading) {
     return (
@@ -145,6 +237,7 @@ export default function CustomerQuotationPage() {
   }
 
   const canAct = quotation.status === 'sent' || quotation.status === 'revised'
+  const isRevised = quotation.status === 'revised'
 
   return (
     <main style={{ maxWidth: 800, margin: '40px auto', padding: '0 24px' }}>
@@ -161,15 +254,46 @@ export default function CustomerQuotationPage() {
             }}>📋</div>
             <div style={{ flex: 1 }}>
               <h3 style={{ margin: '0 0 2px', fontSize: 15, fontWeight: 700, color: '#151a17' }}>
-                {quotation.pending_revision ? 'Revised Quotation Ready for Review' : 'Review Your Quotation'}
+                {isRevised ? 'Revised Quotation Ready for Review' : quotation.pending_revision ? 'Revised Quotation Ready for Review' : 'Review Your Quotation'}
               </h3>
               <p style={{ margin: 0, fontSize: 13, color: '#667168' }}>
-                {quotation.pending_revision
-                  ? 'The team has updated your quotation based on your feedback. Please review and confirm.'
-                  : `Please review the items and pricing. If everything looks good, approve below.`}
+                {isRevised
+                  ? 'The team has updated your quotation based on your feedback. See what changed below.'
+                  : quotation.pending_revision
+                    ? 'The team is reviewing your revision request.'
+                    : 'Please review the items and pricing. If everything looks good, approve below.'}
               </p>
             </div>
           </div>
+
+          {/* Version compare for revised status */}
+          {isRevised && versions.length >= 2 && (
+            <div style={{ marginBottom: 16 }}>
+              <button
+                onClick={() => setShowVersionCompare(!showVersionCompare)}
+                style={{
+                  padding: '8px 16px',
+                  background: showVersionCompare ? '#1a6d3e' : '#fff',
+                  color: showVersionCompare ? '#fff' : '#1a6d3e',
+                  border: '1px solid #1a6d3e',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginBottom: 8,
+                }}
+              >
+                📊 {showVersionCompare ? 'Hide Changes' : 'View Changes from Previous Version'}
+              </button>
+              {showVersionCompare && (
+                <QuotationVersionCompare
+                  previous={versions[versions.length - 2]?.snapshot || null}
+                  current={versions[versions.length - 1]?.snapshot || versions[0]?.snapshot || {}}
+                  onClose={() => setShowVersionCompare(false)}
+                />
+              )}
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 12 }}>
             <button onClick={handleApprove} disabled={actionLoading} style={{
@@ -179,53 +303,53 @@ export default function CustomerQuotationPage() {
             }}>
               ✅ {actionLoading ? 'Processing…' : 'Approve & Confirm'}
             </button>
-            <button onClick={() => setShowRevise(!showRevise)} disabled={actionLoading} style={{
-              padding: '14px 24px', background: '#fff', color: '#d97706',
-              border: '1.5px solid #fde68a', borderRadius: 10, fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', whiteSpace: 'nowrap',
-            }}>
-              ✏️ Request Changes
-            </button>
+            {!quotation.pending_revision && !isRevised && (
+              <button onClick={() => setShowRevise(!showRevise)} disabled={actionLoading} style={{
+                padding: '14px 24px', background: '#fff', color: '#d97706',
+                border: '1.5px solid #fde68a', borderRadius: 10, fontSize: 14, fontWeight: 600,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+              }}>
+                ✏️ Request Changes
+              </button>
+            )}
           </div>
 
-          {/* Revision form */}
-          {showRevise && (
+          {/* Revision form with line-item buttons */}
+          {showRevise && !quotation.pending_revision && (
             <div style={{ marginTop: 16, padding: 16, background: '#fffbeb', borderRadius: 10, border: '1px solid #fde68a' }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: '#92400e', margin: '0 0 8px' }}>
-                What would you like to change?
+                What would you like to change? Click a button below any item to add a revision request.
               </p>
 
-              {/* Item-level checkboxes */}
-              {quotation.items && quotation.items.length > 0 && (
-                <div style={{ marginBottom: 12 }}>
-                  <p style={{ fontSize: 11, color: '#92400e', margin: '0 0 6px', fontWeight: 500 }}>Select items to revise:</p>
-                  {quotation.items.map(item => (
-                    <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer', fontSize: 12 }}>
-                      <input type="checkbox" checked={reviseItems.has(item.id)} onChange={e => {
-                        const next = new Set(reviseItems)
-                        e.target.checked ? next.add(item.id) : next.delete(item.id)
-                        setReviseItems(next)
-                      }} style={{ accentColor: '#d97706' }} />
-                      Item #{item.itemNumber} — {item.description.substring(0, 40)}…
-                    </label>
-                  ))}
-                </div>
-              )}
-
-              <textarea value={reviseText} onChange={e => setReviseText(e.target.value)} rows={3}
-                placeholder="E.g. Can you adjust the pricing on Item #2? I'd prefer a different finish on Item #1..."
-                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #fde68a', borderRadius: 8, fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }} />
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                <button onClick={handleRevise} disabled={actionLoading || !reviseText.trim()} style={{
-                  padding: '10px 20px', background: '#d97706', color: '#fff', border: 'none',
-                  borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              {/* Line-Item Revision Buttons per item */}
+              {quotation.items && quotation.items.map((item, idx) => (
+                <div key={item.id || idx} style={{
+                  padding: '8px 12px',
+                  background: '#fff',
+                  borderRadius: 8,
+                  border: '1px solid #fde68a',
+                  marginBottom: 8,
                 }}>
-                  {actionLoading ? 'Sending…' : 'Send Revision Request'}
-                </button>
-                <button onClick={() => setShowRevise(false)} style={{ padding: '10px 20px', background: '#fff', border: '1px solid #d9e0d7', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>
-                  Cancel
-                </button>
-              </div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#151a17' }}>
+                    #{item.itemNumber} — {item.description.substring(0, 50)}
+                  </div>
+                  <QuotationRevisionButtons
+                    itemIndex={idx}
+                    itemTitle={item.description || `Item #${item.itemNumber || idx + 1}`}
+                    onAction={handleRevisionAction}
+                    disabled={actionLoading}
+                  />
+                </div>
+              ))}
+
+              {/* Revision Summary Tray */}
+              <QuotationRevisionSummary
+                actions={summaryActions}
+                onRemove={(id) => setSummaryActions(prev => prev.filter(a => a.id !== id))}
+                onClear={() => setSummaryActions([])}
+                onSend={(freeText) => handleSendRevision(freeText)}
+                isSending={actionLoading}
+              />
             </div>
           )}
 
@@ -416,84 +540,36 @@ export default function CustomerQuotationPage() {
         Thank you for ordering your new beloved furnishing piece at Home Atelier.
       </div>
 
-      {/* ── Revision Request Section (THE GENIUS) ── */}
-      {quotation.status === 'sent' && (
+      {/* ── Timeline ── */}
+      {versions.length > 0 && (
+        <QuotationTimeline
+          versions={versions}
+          currentStatus={quotation.status}
+          hasPendingRevision={!!quotation.pending_revision}
+        />
+      )}
+
+      {/* ── Revision Chat ── */}
+      <QuotationRevisionChat quotationId={quotation.id} />
+
+      {/* ── Pending Revision Banner ── */}
+      {quotation.pending_revision && (
         <div style={{
-          background: '#f9f9f9', border: '1px solid #eee', borderRadius: 8,
-          padding: 20, marginTop: 24,
+          background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8,
+          padding: 16, marginTop: 24, display: 'flex', alignItems: 'center', gap: 12,
         }}>
-          {quotation.pending_revision ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 24 }}>🔄</span>
-              <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: 16 }}>Revision Requested</h3>
-                <p style={{ margin: 0, fontSize: 13, color: '#555' }}>
-                  The HomeU team is reviewing your revision request. They will update the quotation and notify you.
-                </p>
-                {quotation.revision_request && (
-                  <p style={{ margin: '8px 0 0', fontSize: 13, color: '#333', fontStyle: 'italic' }}>
-                    Your message: &ldquo;{quotation.revision_request}&rdquo;
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <>
-              <h3 style={{ margin: '0 0 8px', fontSize: 16 }}>Need changes?</h3>
-              <p style={{ margin: '0 0 12px', fontSize: 13, color: '#555' }}>
-                If you'd like to revise pricing, items, or terms, let us know what you need and we'll create an updated quotation.
+          <span style={{ fontSize: 24 }}>🔄</span>
+          <div>
+            <h3 style={{ margin: '0 0 4px', fontSize: 16, color: '#854d0e' }}>Revision Requested</h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#854d0e' }}>
+              The HomeU team is reviewing your revision request. They will update the quotation and notify you.
+            </p>
+            {quotation.revision_request && (
+              <p style={{ margin: '8px 0 0', fontSize: 13, color: '#333', fontStyle: 'italic' }}>
+                Your message: &ldquo;{quotation.revision_request}&rdquo;
               </p>
-              <textarea
-                id="revision-message"
-                rows={3}
-                placeholder="E.g. Can you adjust the pricing for Item X? We'd also like to add..."
-                style={{
-                  width: '100%', padding: '10px 12px', border: '1.5px solid #d9e0d7',
-                  borderRadius: 8, fontSize: 13, fontFamily: 'inherit', resize: 'vertical',
-                  marginBottom: 10, boxSizing: 'border-box',
-                }}
-              />
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button
-                  onClick={async () => {
-                    const msg = (document.getElementById('revision-message') as HTMLTextAreaElement).value
-                    if (!msg.trim()) return alert('Please enter your revision request.')
-                    try {
-                      const res = await fetch(`/api/quotations/${quotation.id}/revision-request`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: msg.trim() }),
-                      })
-                      if (res.ok) {
-                        // Update state to show pending
-                        setQuotation(prev => prev ? { ...prev, pending_revision: true, revision_request: msg.trim() } : prev)
-                      } else {
-                        const data = await res.json()
-                        alert(data.error || 'Failed to submit revision request')
-                      }
-                    } catch {
-                      alert('Failed to submit revision request. Please try again.')
-                    }
-                  }}
-                  style={{
-                    padding: '10px 24px', background: '#1a6d3e', color: '#fff',
-                    border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  ✏️ Request Revision
-                </button>
-                <a href={`mailto:sales@homeu.ph?subject=Question about Quotation ${quotation.quotationNumber}`}
-                  style={{
-                    padding: '10px 24px', background: '#222', color: '#fff',
-                    borderRadius: 6, textDecoration: 'none', fontSize: 14, display: 'inline-flex',
-                    alignItems: 'center',
-                  }}>
-                  ✉ Email Us
-                </a>
-              </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
       )}
 

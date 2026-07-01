@@ -164,15 +164,56 @@ export async function PATCH(
 
     // Handle resolveRevision — admin resolved a customer's revision request
     if (body.resolveRevision === true) {
+      const revisionNote = body.revisionNote || ''
+
+      // Store revision note as a system chat message
+      if (revisionNote) {
+        try {
+          await query(
+            `INSERT INTO quotation_revision_chat (quotation_id, sender_type, message) VALUES ($1, 'system', $2)`,
+            [id, `Admin note: ${revisionNote}`]
+          )
+        } catch {}
+      }
+
+      // Insert system event message
+      try {
+        await query(
+          `INSERT INTO quotation_revision_chat (quotation_id, sender_type, message) VALUES ($1, 'system', $2)`,
+          [id, 'Quotation revised and ready for customer review']
+        )
+      } catch {}
+
       await query(
-        `UPDATE quotations SET pending_revision = false, revision_request = '', current_version = current_version + 1, updated_at = NOW() WHERE id = $1`,
+        `UPDATE quotations SET pending_revision = false, revision_request = '', revision_request_data = '{}'::jsonb, current_version = current_version + 1, updated_at = NOW() WHERE id = $1`,
         [id]
       )
       const row = await query("SELECT *, TO_CHAR(valid_until, 'YYYY-MM-DD') as valid_until FROM quotations WHERE id = $1", [id])
+
+      // Fire RFQ chat event for revision_resolved
+      try {
+        const q = row.rows[0]
+        if (q.rfq_id) {
+          const APP_URL = process.env.APP_URL || 'http://localhost:3000'
+          fetch(`${APP_URL}/api/system/rfq-chat/quotation-event`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              rfqRequestId: q.rfq_id,
+              quotationId: Number(id),
+              versionNumber: q.current_version || 1,
+              eventType: 'revision_resolved',
+              eventLabel: 'Revision resolved',
+              message: revisionNote || 'Quotation revised',
+            }),
+          }).catch(() => {})
+        }
+      } catch {}
+
       return NextResponse.json({ ...row.rows[0], revisionResolved: true })
     }
 
-    const fields = Object.keys(body).filter(k => k !== 'resolveRevision' && k !== 'clearRevisionFlag')
+    const fields = Object.keys(body).filter(k => k !== 'resolveRevision' && k !== 'clearRevisionFlag' && k !== 'revisionNote')
     if (fields.includes('items')) {
       if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
         return NextResponse.json(
