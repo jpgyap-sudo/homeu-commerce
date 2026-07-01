@@ -19,7 +19,7 @@ export async function computeDNAScores(): Promise<{ summary: DNASummary; product
   const { rows } = await query(`
     SELECT
       p.id, p.title, p.slug,
-      p.price, p.dimensions, p.materials,
+      p.price, p.dimensions,
       p.description, p.category_id,
       p.seo_title, p.seo_description,
       pi.image_count,
@@ -72,8 +72,8 @@ export async function computeDNAScores(): Promise<{ summary: DNASummary; product
 function scoreProduct(r: any): DNAProduct {
   const id = r.id; const title = r.title; const slug = r.slug
   const imageCount = r.image_count || 0
-  // Note: dimensions and materials are MTO (Made-to-Order) custom fields
-  // selected during RFQ — not standalone product attributes. Not scored.
+  // Note: dimensions is an MTO (Made-to-Order) custom field
+  // selected during RFQ — not a standalone product attribute. Not scored.
   const hasDescription = !!(r.description)
   const hasPrice = !!(r.price)
   const hasCategory = !!(r.category_id)
