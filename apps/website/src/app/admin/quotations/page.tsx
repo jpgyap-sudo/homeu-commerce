@@ -59,6 +59,7 @@ export default function AdminQuotationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [revisionOnly, setRevisionOnly] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [sendingId, setSendingId] = useState<string | null>(null)
 
@@ -70,7 +71,7 @@ export default function AdminQuotationsPage() {
 
   useEffect(() => {
     loadQuotations()
-  }, [statusFilter])
+  }, [statusFilter, revisionOnly])
 
   async function loadQuotations() {
     setLoading(true)
@@ -79,6 +80,7 @@ export default function AdminQuotationsPage() {
     try {
       let url = '/api/quotations?limit=50'
       if (statusFilter) url += `&status=${statusFilter}`
+      if (revisionOnly) url += `&pendingRevision=true`
       if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`
 
       const res = await fetch(url)

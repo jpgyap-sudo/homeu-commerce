@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const rfqId = searchParams.get('rfq')
     const customerId = searchParams.get('customer')
+    const pendingRevision = searchParams.get('pendingRevision')
 
     const conditions: string[] = []
     const params: any[] = []
@@ -64,6 +65,9 @@ export async function GET(request: NextRequest) {
     if (status) {
       conditions.push(`status = $${params.length + 1}`)
       params.push(status)
+    }
+    if (pendingRevision === 'true') {
+      conditions.push(`pending_revision = TRUE`)
     }
     if (rfqId) {
       conditions.push(`rfq_id = $${params.length + 1}`)
@@ -85,7 +89,7 @@ export async function GET(request: NextRequest) {
     const totalDocs = parseInt(countResult.rows[0].count)
 
     const dataResult = await query(
-      `SELECT *, TO_CHAR(valid_until, 'YYYY-MM-DD') as valid_until FROM quotations ${where} ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      `SELECT *, TO_CHAR(valid_until, 'YYYY-MM-DD') as valid_until FROM quotations ${where} ORDER BY pending_revision DESC, created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, limit, offset]
     )
 

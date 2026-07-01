@@ -369,33 +369,51 @@ export default function CentralInboxPage() {
               {selected.channel === 'rfq' && rfqDetails && (
                 <div style={{ width: 340, flexShrink: 0, borderLeft: '1px solid var(--luxe-warm-200)', background: '#f9faf9', padding: '20px', display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', height: '100%' }}>
                   <div style={{ borderBottom: '1px solid var(--luxe-warm-100)', paddingBottom: 12 }}>
-                    <h3 style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h3 style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
                       📋 RFQ Request Details
-                      <span className={`luxe-badge ${rfqDetails.status === 'new' ? 'warning' : 'success'}`} style={{ fontSize: 10, padding: '2px 6px' }}>
+                      <span style={{
+                        fontSize: 9,
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        background: rfqDetails.status === 'quoted' ? '#ecfdf5' : rfqDetails.status === 'new' ? '#fffbeb' : '#f0f9ff',
+                        color: rfqDetails.status === 'quoted' ? '#10b981' : rfqDetails.status === 'new' ? '#d97706' : '#0284c7'
+                      }}>
                         {rfqDetails.status}
                       </span>
                     </h3>
-                    <p style={{ margin: 0, fontSize: 12, color: 'var(--luxe-slate-500)', fontFamily: 'var(--font-mono)' }}>ID: #{rfqDetails.id}</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'var(--luxe-slate-500)', fontFamily: 'var(--font-mono)' }}>ID: #{rfqDetails.id}</p>
                   </div>
 
                   {/* Project Metadata */}
-                  <div style={{ fontSize: 12, display: 'grid', gap: 8 }}>
+                  <div style={{ fontSize: 12, display: 'grid', gap: 10, background: '#fff', padding: 12, borderRadius: 8, border: '1px solid var(--luxe-warm-100)' }}>
                     {rfqDetails.project_type && (
-                      <div>
-                        <strong style={{ color: 'var(--luxe-slate-500)' }}>Project Type:</strong>
-                        <div style={{ fontWeight: 600, color: 'var(--luxe-charcoal)', marginTop: 2 }}>{rfqDetails.project_type}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 14 }}>💼</span>
+                        <div>
+                          <span style={{ color: 'var(--luxe-slate-500)', fontSize: 9, textTransform: 'uppercase', fontWeight: 600, display: 'block', letterSpacing: '0.02em' }}>Project Type</span>
+                          <div style={{ fontWeight: 600, color: 'var(--luxe-charcoal)', marginTop: 2 }}>{rfqDetails.project_type}</div>
+                        </div>
                       </div>
                     )}
                     {rfqDetails.budget_range && (
-                      <div>
-                        <strong style={{ color: 'var(--luxe-slate-500)' }}>Budget Range:</strong>
-                        <div style={{ fontWeight: 600, color: 'var(--luxe-charcoal)', marginTop: 2 }}>{rfqDetails.budget_range}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid #f4f6f4', paddingTop: 8 }}>
+                        <span style={{ fontSize: 14 }}>💰</span>
+                        <div>
+                          <span style={{ color: 'var(--luxe-slate-500)', fontSize: 9, textTransform: 'uppercase', fontWeight: 600, display: 'block', letterSpacing: '0.02em' }}>Budget Range</span>
+                          <div style={{ fontWeight: 600, color: 'var(--luxe-charcoal)', marginTop: 2 }}>{rfqDetails.budget_range}</div>
+                        </div>
                       </div>
                     )}
                     {rfqDetails.delivery_location && (
-                      <div>
-                        <strong style={{ color: 'var(--luxe-slate-500)' }}>Delivery Location:</strong>
-                        <div style={{ fontWeight: 600, color: 'var(--luxe-charcoal)', marginTop: 2 }}>📍 {rfqDetails.delivery_location}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid #f4f6f4', paddingTop: 8 }}>
+                        <span style={{ fontSize: 14 }}>📍</span>
+                        <div>
+                          <span style={{ color: 'var(--luxe-slate-500)', fontSize: 9, textTransform: 'uppercase', fontWeight: 600, display: 'block', letterSpacing: '0.02em' }}>Delivery Location</span>
+                          <div style={{ fontWeight: 600, color: 'var(--luxe-charcoal)', marginTop: 2 }}>{rfqDetails.delivery_location}</div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -403,18 +421,20 @@ export default function CentralInboxPage() {
                   {/* Items List */}
                   {rfqDetails.items && rfqDetails.items.length > 0 && (
                     <div style={{ borderTop: '1px solid var(--luxe-warm-100)', paddingTop: 12 }}>
-                      <h4 style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--luxe-slate-500)' }}>Items Requested ({rfqDetails.items.length})</h4>
+                      <h4 style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--luxe-slate-500)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>📦</span> Items Requested ({rfqDetails.items.length})
+                      </h4>
                       <div style={{ display: 'grid', gap: 8 }}>
                         {rfqDetails.items.map((item: any, idx: number) => (
-                          <div key={idx} style={{ background: '#fff', border: '1px solid var(--luxe-warm-100)', borderRadius: 6, padding: '8px 10px', fontSize: 12 }}>
-                            <div style={{ fontWeight: 600, color: 'var(--luxe-charcoal)', marginBottom: 2 }}>{item.title}</div>
+                          <div key={idx} style={{ background: '#fff', border: '1px solid var(--luxe-warm-100)', borderRadius: 8, padding: 12, fontSize: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--luxe-charcoal)', marginBottom: 4 }}>{item.title}</div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--luxe-slate-500)', fontSize: 11 }}>
                               <span>Qty: {item.quantity}</span>
-                              {item.price > 0 && <span>₱{Number(item.price).toLocaleString()}</span>}
+                              {item.price > 0 && <span style={{ color: '#1a6d3e', fontWeight: 600 }}>₱{Number(item.price).toLocaleString()}</span>}
                             </div>
                             {item.notes && (
-                              <div style={{ marginTop: 4, fontStyle: 'italic', color: '#8b988f', fontSize: 11, background: '#f4f6f4', padding: '3px 6px', borderRadius: 4 }}>
-                                "{item.notes}"
+                              <div style={{ marginTop: 6, fontStyle: 'italic', color: '#7c5a24', fontSize: 11, background: '#fefcf6', borderLeft: '3px solid var(--luxe-gold-400)', padding: '5px 8px', borderRadius: '0 4px 4px 0' }}>
+                                💬 &ldquo;{item.notes}&rdquo;
                               </div>
                             )}
                           </div>
@@ -426,7 +446,9 @@ export default function CentralInboxPage() {
                   {/* Other Chats Switcher */}
                   {otherConversations && otherConversations.length > 0 && (
                     <div style={{ borderTop: '1px solid var(--luxe-warm-100)', paddingTop: 12, marginTop: 'auto' }}>
-                      <h4 style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--luxe-slate-500)' }}>Other RFQs from Customer</h4>
+                      <h4 style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--luxe-slate-500)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>📑</span> Other RFQs from Customer
+                      </h4>
                       <div style={{ display: 'grid', gap: 6 }}>
                         {otherConversations.map((other: any) => (
                           <button key={other.id}
@@ -451,13 +473,44 @@ export default function CentralInboxPage() {
                               }
                             }}
                             style={{
-                              display: 'block', width: '100%', textAlign: 'left', background: '#fff', border: '1px solid var(--luxe-warm-100)', borderRadius: 6, padding: '8px 10px', fontSize: 11, cursor: 'pointer', transition: 'all 100ms ease'
+                              display: 'block',
+                              width: '100%',
+                              textAlign: 'left',
+                              background: '#f0f9ff',
+                              border: '1px solid #bae6fd',
+                              borderRadius: 8,
+                              padding: '10px 12px',
+                              fontSize: 11,
+                              cursor: 'pointer',
+                              transition: 'all 150ms ease',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                             }}
-                            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--luxe-blue-400)'}
-                            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--luxe-warm-100)'}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.borderColor = '#38bdf8';
+                              e.currentTarget.style.background = '#e0f2fe';
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.borderColor = '#bae6fd';
+                              e.currentTarget.style.background = '#f0f9ff';
+                            }}
                           >
-                            <div style={{ fontWeight: 600, color: 'var(--luxe-charcoal)' }}>{other.subject}</div>
-                            <div style={{ fontSize: 10, color: 'var(--luxe-slate-400)', marginTop: 2 }}>Last active: {fmtTime(other.lastMessageAt)}</div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontWeight: 600, color: '#0369a1' }}>{other.subject}</span>
+                              {other.status && (
+                                <span style={{
+                                  fontSize: 8,
+                                  fontWeight: 700,
+                                  textTransform: 'uppercase',
+                                  padding: '1px 5px',
+                                  borderRadius: 4,
+                                  background: other.status === 'quoted' ? '#d1fae5' : '#fef3c7',
+                                  color: other.status === 'quoted' ? '#065f46' : '#d97706'
+                                }}>
+                                  {other.status}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 10, color: '#0284c7', opacity: 0.8, marginTop: 4 }}>Last active: {fmtTime(other.lastMessageAt)}</div>
                           </button>
                         ))}
                       </div>
