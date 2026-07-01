@@ -8,7 +8,8 @@ interface RfqChatMessageBubbleProps {
   selected?: boolean
   onToggleSelect?: () => void
   selectMode?: boolean
-  onAddProductToRfq?: (productId: number | string) => void
+  onAddProductToRfq?: (product: any) => void
+  onAskProductQuestion?: (product: any, question: string) => void
 }
 
 const SENDER_ICONS: Record<string, string> = {
@@ -32,6 +33,7 @@ export default function RfqChatMessageBubble({
   onToggleSelect,
   selectMode,
   onAddProductToRfq,
+  onAskProductQuestion,
 }: RfqChatMessageBubbleProps) {
   const senderType = message.sender_type || 'customer'
   const isSystem = senderType === 'system'
@@ -142,8 +144,10 @@ export default function RfqChatMessageBubble({
         {productCard && (
           <RfqChatProductCard
             product={productCard}
-            showAddToCart={isAdmin}
-            onAddToCart={onAddProductToRfq ? () => onAddProductToRfq(productCard.id) : undefined}
+            showAddToCart
+            addMode={isAdmin ? 'server-rfq' : 'local-cart'}
+            onAddToCart={onAddProductToRfq}
+            onAskQuestion={!isAdmin ? onAskProductQuestion : undefined}
           />
         )}
 

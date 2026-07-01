@@ -130,12 +130,12 @@ export default function RfqChatAdminContainer({ rfqId, customerEmail }: RfqChatA
   }
 
   /** Add product directly to RFQ items */
-  async function handleAddProductToRfq(productId: number | string) {
+  async function handleAddProductToRfq(product: any) {
     try {
       const res = await fetch('/api/rfq/add-item', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: 'admin', productId, quantity: 1 }),
+        body: JSON.stringify({ leadId: 'admin', productId: product.id, productTitle: product.title, quantity: 1 }),
       })
       if (!res.ok) throw new Error('Failed to add')
       shouldScrollMessagesRef.current = true

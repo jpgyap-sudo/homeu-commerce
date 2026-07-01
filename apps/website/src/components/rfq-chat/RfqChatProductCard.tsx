@@ -184,9 +184,26 @@ export default function RfqChatProductCard({
           >
             🔗 View Product
           </a>
-          {showAddToCart && onAddToCart && (
+          {showAddToCart && addMode === 'local-cart' && inCart ? (
+            <a
+              href="/quote-cart"
+              style={{
+                padding: '4px 12px',
+                background: '#e8f2ec',
+                color: '#1a6d3e',
+                border: '1px solid #b7d4c2',
+                borderRadius: 6,
+                fontSize: 12,
+                textDecoration: 'none',
+                fontWeight: 700,
+              }}
+            >
+              View RFQ Cart
+            </a>
+          ) : showAddToCart && (
             <button
-              onClick={(e) => { e.stopPropagation(); onAddToCart(product.id) }}
+              onClick={(e) => { e.stopPropagation(); handleAdd() }}
+              disabled={adding}
               style={{
                 padding: '4px 12px',
                 background: '#151a17',
@@ -195,13 +212,39 @@ export default function RfqChatProductCard({
                 borderRadius: 6,
                 fontSize: 12,
                 fontWeight: 500,
-                cursor: 'pointer',
+                cursor: adding ? 'wait' : 'pointer',
+                opacity: adding ? 0.75 : 1,
               }}
             >
-              + Add to RFQ
+              {adding ? 'Adding...' : '+ Add to RFQ'}
             </button>
           )}
         </div>
+        {onAskQuestion && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+            {[
+              { label: 'Ask lead time', text: `What is the lead time for ${product.title}?` },
+              { label: 'Ask details', text: `Can you confirm dimensions and finishes for ${product.title}?` },
+            ].map(action => (
+              <button
+                key={action.label}
+                onClick={() => onAskQuestion(product, action.text)}
+                style={{
+                  padding: '4px 9px',
+                  border: '1px solid #e2e6df',
+                  background: '#fafafa',
+                  color: '#555',
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

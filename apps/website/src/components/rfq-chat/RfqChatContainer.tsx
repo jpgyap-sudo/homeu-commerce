@@ -123,7 +123,7 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
   }
 
   /** Admin: add product directly to RFQ items — non-blocking inline feedback */
-  async function handleAddProductToRfq(productId: number | string) {
+  async function handleAddProductToRfq(product: any) {
     if (!conversationId) {
       setSendError('No active conversation — cannot add product to RFQ')
       return
@@ -132,7 +132,7 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
       const res = await fetch('/api/rfq/add-item', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: conversationId, productId, quantity: 1 }),
+        body: JSON.stringify({ leadId: conversationId, productId: product.id, productTitle: product.title, quantity: 1 }),
       })
       if (!res.ok) {
         const d = await res.json()
@@ -156,6 +156,10 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
     } catch (err: any) {
       setSendError('Could not add product: ' + err.message)
     }
+  }
+
+  function handleAskProductQuestion(_product: any, question: string) {
+    handleSendMessage(question)
   }
 
   const hasBackfillNotice = messages.some(
@@ -304,6 +308,7 @@ export default function RfqChatContainer({ rfqId, isAdmin }: RfqChatContainerPro
             messages={messages}
             isAdmin={isAdmin}
             onAddProductToRfq={isAdmin ? handleAddProductToRfq : undefined}
+            onAskProductQuestion={!isAdmin ? handleAskProductQuestion : undefined}
           />
         )}
         <div ref={messagesEndRef} />

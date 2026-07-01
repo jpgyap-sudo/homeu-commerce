@@ -8,7 +8,8 @@ interface RfqChatMessageListProps {
   selectedIds?: Set<string>
   onToggleSelect?: (id: string) => void
   selectMode?: boolean
-  onAddProductToRfq?: (productId: number | string) => void
+  onAddProductToRfq?: (product: any) => void
+  onAskProductQuestion?: (product: any, question: string) => void
 }
 
 export default function RfqChatMessageList({
@@ -18,6 +19,7 @@ export default function RfqChatMessageList({
   onToggleSelect,
   selectMode,
   onAddProductToRfq,
+  onAskProductQuestion,
 }: RfqChatMessageListProps) {
   // Group messages by date
   const groups: Record<string, any[]> = {}
@@ -58,6 +60,7 @@ export default function RfqChatMessageList({
               onToggleSelect={onToggleSelect ? () => onToggleSelect(msg.id) : undefined}
               selectMode={selectMode}
               onAddProductToRfq={onAddProductToRfq}
+              onAskProductQuestion={onAskProductQuestion}
             />
           ))}
         </div>
