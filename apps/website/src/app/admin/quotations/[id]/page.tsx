@@ -759,20 +759,22 @@ Home Atelier Team`
       )}
 
       {quotation?.pending_revision && quotation?.revision_request && (
-        <QuotationRevisionWorkspace
-          quotationId={quotation.id}
-          items={items.length > 0 ? items : (quotation.items || []).map((item: any) => ({
-            title: item.description || item.productTitle || `Item ${item.itemNumber}`,
-            sku: item.sku || '',
-            quantity: item.quantity || 1,
-            unitCost: item.unitCost || 0,
-            discountPercent: item.discountPercent || 0,
-            total: item.total || 0,
-          }))}
-          revisionRequest={quotation.revision_request}
-          onResolve={handleResolveRevision}
-          onReject={handleRejectRevision}
-        />
+        <div id="revision-workspace">
+          <QuotationRevisionWorkspace
+            quotationId={quotation.id}
+            items={items.length > 0 ? items : (quotation.items || []).map((item: any) => ({
+              title: item.description || item.productTitle || `Item ${item.itemNumber}`,
+              sku: item.sku || '',
+              quantity: item.quantity || 1,
+              unitCost: item.unitCost || 0,
+              discountPercent: item.discountPercent || 0,
+              total: item.total || 0,
+            }))}
+            revisionRequest={quotation.revision_request}
+            onResolve={handleResolveRevision}
+            onReject={handleRejectRevision}
+          />
+        </div>
       )}
 
       {rfqId && (
