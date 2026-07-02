@@ -18,6 +18,7 @@ const defaults = {
   layoutMaxWidth: 1200,
   sectionGap: 48,
   customCss: '',
+  favicon: '',
 }
 
 const sections: ThemeFieldSection[] = [
@@ -54,6 +55,13 @@ const sections: ThemeFieldSection[] = [
       { key: 'buttonUppercase', label: 'Uppercase button labels', type: 'toggle' },
       { key: 'layoutMaxWidth', label: 'Content max width', type: 'range', min: 960, max: 1440, step: 40, unit: 'px' },
       { key: 'sectionGap', label: 'Section gap', type: 'range', min: 20, max: 96, step: 4, unit: 'px' },
+    ],
+  },
+  {
+    title: 'SEO & Icons',
+    description: 'Search engine metadata and browser icons',
+    fields: [
+      { key: 'favicon', label: 'Favicon', type: 'image', aspectRatio: '1 / 1', help: 'Small icon shown in the browser tab. Square PNG or SVG recommended.' },
     ],
   },
   {

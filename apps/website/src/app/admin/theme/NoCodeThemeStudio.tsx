@@ -19,6 +19,7 @@ export interface ThemeField {
   rows?: number
   options?: Array<{ value: string; label: string; help?: string }>
   textPresets?: Array<{ label: string; value: string }>
+  aspectRatio?: string
 }
 
 export interface ThemeFieldSection {
@@ -509,7 +510,7 @@ function FieldControl({
 
   if (field.type === 'image') {
     return (
-      <ImagePickerField label={field.label} value={String(value || '')} onChange={onChange} aspectRatio="3 / 1" />
+      <ImagePickerField label={field.label} value={String(value || '')} onChange={onChange} aspectRatio={field.aspectRatio || '3 / 1'} />
     )
   }
 

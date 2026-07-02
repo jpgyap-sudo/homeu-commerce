@@ -14,7 +14,7 @@ import WebVitalsTracker from '@/components/WebVitalsTracker'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { getMainNav } from '@/lib/navigation'
-import { customerAccountThemeCss, getCustomCss, getCustomerAccountTheme, getHeaderSettings, getThemePalette, headerFontGoogleQuery, getSiteFavicon, getMobileThemeSettings } from '@/lib/theme'
+import { customerAccountThemeCss, getCustomCss, getCustomerAccountTheme, getHeaderSettings, getThemePalette, headerFontGoogleQuery, getSiteFavicon, getMobileThemeSettings, themeFontGoogleQuery } from '@/lib/theme'
 import siteConfig from '@/data/site-config.json'
 
 export const metadata = {
@@ -77,11 +77,40 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     + `--theme-heading-font:${palette.headingFont};`
     + `--theme-body-font:${palette.bodyFont};`
     + `--theme-button-radius:${palette.buttonRadius}px;`
+    + `--theme-body-bg:${palette.bodyBg};`
+    + `--theme-text:${palette.textColor};`
+    + `--theme-muted:${palette.mutedColor};`
+    + `--theme-border:${palette.borderColor};`
+    + `--theme-layout-max-width:${palette.layoutMaxWidth}px;`
+    + `--theme-section-gap:${palette.sectionGap}px;`
+    + `--color-bg:${palette.bodyBg};`
+    + `--color-bg-alt:${palette.bodyBg};`
+    + `--color-text:${palette.textColor};`
+    + `--color-body-text:${palette.textColor};`
+    + `--color-border:${palette.borderColor};`
+    + `--color-borders:${palette.borderColor};`
+    + `--color-btn-primary:${palette.primaryColor};`
+    + `--color-btn-primary-text:#ffffff;`
+    + `--color-btn-primary-focus:${palette.accentColor};`
+    + `--debut-body-bg:${palette.bodyBg};`
+    + `--debut-text:${palette.textColor};`
+    + `--debut-body-text:${palette.textColor};`
+    + `--debut-borders:${palette.borderColor};`
+    + `--debut-button:${palette.primaryColor};`
+    + `--debut-button-border:${palette.primaryColor};`
+    + `--debut-font-heading:${palette.headingFont};`
+    + `--debut-font-body:${palette.bodyFont};`
     + `}`
+    + `body{background-color:${palette.bodyBg} !important;color:${palette.textColor} !important;}`
     + `h1,h2,h3,h4,h5,h6,.h1,.h2,.h3,.h4,.h5,.h6{font-family:${palette.headingFont};}`
-    + `body{font-family:${palette.bodyFont};}`
-    + `.btn{border-radius:${palette.buttonRadius}px;}`
+    + `body,p,span,a,li,td,th,input,textarea,select{font-family:${palette.bodyFont};}`
+    + `.btn{border-radius:${palette.buttonRadius}px;text-transform:${palette.buttonUppercase ? 'uppercase' : 'none'} !important;}`
+    + (palette.buttonStyle === 'outline' ? `.btn--primary{background:transparent !important;color:${palette.primaryColor} !important;border:2px solid currentColor !important;}` : '')
+    + `.page-width{max-width:${palette.layoutMaxWidth}px !important;}`
+    + `.index-section{padding:${palette.sectionGap}px 0 !important;}`
   const headerFontQuery = headerFontGoogleQuery(header.fontFamily)
+  const headingFontQuery = themeFontGoogleQuery(palette.headingFont)
+  const bodyFontQuery = themeFontGoogleQuery(palette.bodyFont)
   return (
     <html lang="en">
       <head>
@@ -107,6 +136,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Script src="https://cdn.judge.me/widget.js" strategy="afterInteractive" />
         {/* Admin-editable header appearance (Theme → Header) */}
         {headerFontQuery ? <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${headerFontQuery}&display=swap`} /> : null}
+        {headingFontQuery ? <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${headingFontQuery}&display=swap`} /> : null}
+        {bodyFontQuery ? <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${bodyFontQuery}&display=swap`} /> : null}
         <style id="homeu-header-css" dangerouslySetInnerHTML={{ __html: headerCss }} />
         {/* Theme palette CSS custom properties (Theme → Palette) */}
         <style id="homeu-palette-css" dangerouslySetInnerHTML={{ __html: paletteCss }} />

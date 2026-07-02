@@ -401,17 +401,44 @@ export interface ThemePalette {
   headingFont: string
   bodyFont: string
   buttonRadius: number
+  bodyBg: string
+  textColor: string
+  mutedColor: string
+  borderColor: string
+  buttonStyle: string
+  buttonUppercase: boolean
+  layoutMaxWidth: number
+  sectionGap: number
+}
+
+function parseThemeValue(key: string, val: any): any {
+  if (val == null) return val
+  if (['buttonRadius', 'layoutMaxWidth', 'sectionGap'].includes(key)) {
+    return Number(val)
+  }
+  if (key === 'buttonUppercase') {
+    return val === 'true' || val === true
+  }
+  return String(val)
 }
 
 /** Fetch the theme palette from site_settings (editable in Theme → Palette). */
 export async function getThemePalette(): Promise<ThemePalette> {
   const defaults: ThemePalette = {
     primaryColor: '#1a6d3e',
-    secondaryColor: '#d4a853',
-    accentColor: '#151a17',
-    headingFont: 'Playfair Display, serif',
+    secondaryColor: '#151a17',
+    accentColor: '#b88935',
+    headingFont: 'Crimson Text, Georgia, serif',
     bodyFont: 'Inter, sans-serif',
-    buttonRadius: 6,
+    buttonRadius: 8,
+    bodyBg: '#f7f4ee',
+    textColor: '#151a17',
+    mutedColor: '#667168',
+    borderColor: '#d9e0d7',
+    buttonStyle: 'filled',
+    buttonUppercase: false,
+    layoutMaxWidth: 1200,
+    sectionGap: 48,
   }
 
   let isPreview = false
@@ -435,7 +462,7 @@ export async function getThemePalette(): Promise<ThemePalette> {
       if (!key.startsWith('theme_')) continue
       const k = key.replace('theme_', '')
       if (k in mobileDefaults && value != null) {
-        ;(mobileDefaults as any)[k] = k === 'buttonRadius' ? Number(value) : String(value)
+        ;(mobileDefaults as any)[k] = parseThemeValue(k, value)
       }
     }
     return mobileDefaults
@@ -449,9 +476,33 @@ export async function getThemePalette(): Promise<ThemePalette> {
     for (const r of res.rows) {
       const k = r.key.replace('theme_', '')
       if (k in defaults && r.value != null) {
-        ;(defaults as any)[k] = k === 'buttonRadius' ? Number(r.value) : String(r.value)
+        ;(defaults as any)[k] = parseThemeValue(k, r.value)
       }
     }
   } catch { /* fall through */ }
   return defaults
 }
+
+/** Map of theme font-family stacks to their Google Fonts query format. */
+export const THEME_FONTS: Record<string, string> = {
+  "'Crimson Text', Georgia, serif": 'Crimson+Text:ital,wght@0,400;0,600;1,400',
+  "Crimson Text, Georgia, serif": 'Crimson+Text:ital,wght@0,400;0,600;1,400',
+  "'Playfair Display', serif": 'Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400',
+  "Playfair Display, serif": 'Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400',
+  "'Inter', sans-serif": 'Inter:wght@400;500;600;700',
+  "Inter, sans-serif": 'Inter:wght@400;500;600;700',
+  "'Poppins', sans-serif": 'Poppins:wght@400;500;600;700',
+  "Poppins, sans-serif": 'Poppins:wght@400;500;600;700',
+  "'Montserrat', sans-serif": 'Montserrat:wght@400;500;600;700',
+  "Montserrat, sans-serif": 'Montserrat:wght@400;500;600;700',
+  "'Cardo', Georgia, serif": 'Cardo:ital,wght@0,400;0,700;1,400',
+  "Cardo, Georgia, serif": 'Cardo:ital,wght@0,400;0,700;1,400',
+}
+
+/** Get the Google Fonts family query parameter for a given theme font stack. */
+export function themeFontGoogleQuery(stack: string): string | null {
+  if (!stack) return null
+  const key = stack.trim()
+  return THEME_FONTS[key] || null
+}
+
