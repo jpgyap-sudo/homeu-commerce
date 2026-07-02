@@ -321,12 +321,12 @@ export function headerFontGoogleQuery(stack: string): string | null {
  */
 const DEFAULT_MOBILE_THEME = {
   mobileNavStyle: 'debut' as 'tabs' | 'debut',
-  showBottomBar: true,
+  showBottomBar: false,
   bottomBarStyle: 'modern' as 'modern' | 'classic',
   showSearch: true,
-  heroStyle: 'default' as 'default' | 'minimal',
-  quickActionPills: true,
-  categoryChips: true,
+  heroStyle: 'minimal' as 'default' | 'minimal',
+  quickActionPills: false,
+  categoryChips: false,
   stickyHeader: true,
 }
 
@@ -505,4 +505,3 @@ export function themeFontGoogleQuery(stack: string): string | null {
   const key = stack.trim()
   return THEME_FONTS[key] || null
 }
-

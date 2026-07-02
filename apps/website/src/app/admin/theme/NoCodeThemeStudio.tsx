@@ -20,6 +20,8 @@ export interface ThemeField {
   options?: Array<{ value: string; label: string; help?: string }>
   textPresets?: Array<{ label: string; value: string }>
   aspectRatio?: string
+  disabledWhen?: (settings: Record<string, any>) => boolean
+  disabledReason?: string
 }
 
 export interface ThemeFieldSection {
@@ -352,6 +354,7 @@ export default function NoCodeThemeStudio({
                     key={field.key}
                     field={field}
                     value={settings[field.key]}
+                    settings={settings}
                     customPresets={settings[`${field.key}__presets`] || []}
                     onChange={value => update(field.key, value)}
                     onSaveCustomPreset={label => update(`${field.key}__presets`, [
@@ -411,10 +414,11 @@ export default function NoCodeThemeStudio({
 }
 
 function FieldControl({
-  field, value, customPresets = [], onChange, onSaveCustomPreset, onDeleteCustomPreset,
+  field, value, settings = {}, customPresets = [], onChange, onSaveCustomPreset, onDeleteCustomPreset,
 }: {
   field: ThemeField
   value: any
+  settings?: Record<string, any>
   customPresets?: Array<{ label: string; value: string }>
   onChange: (value: any) => void
   onSaveCustomPreset?: (label: string) => void
@@ -422,18 +426,23 @@ function FieldControl({
 }) {
   const [savingPreset, setSavingPreset] = useState(false)
   const [presetLabel, setPresetLabel] = useState('')
+  const disabled = field.disabledWhen ? field.disabledWhen(settings) : false
+  const disabledHelp = disabled ? field.disabledReason : ''
+  const disabledStyle: CSSProperties = disabled ? { opacity: 0.55 } : {}
 
   if (field.type === 'toggle') {
     const checked = Boolean(value)
     return (
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', ...disabledStyle }}>
         <div>
           <label style={{ color: '#3a4339', fontSize: 13, fontWeight: 800 }}>{field.label}</label>
           {field.help && <p style={{ margin: '3px 0 0', color: '#7a857d', fontSize: 11 }}>{field.help}</p>}
+          {disabledHelp && <p style={{ margin: '3px 0 0', color: '#8a5a00', fontSize: 11, fontWeight: 700 }}>{disabledHelp}</p>}
         </div>
         <button
           type="button"
-          onClick={() => onChange(!checked)}
+          onClick={() => { if (!disabled) onChange(!checked) }}
+          disabled={disabled}
           aria-pressed={checked}
           style={{
             width: 46,
@@ -442,7 +451,7 @@ function FieldControl({
             borderRadius: 999,
             background: checked ? '#1a6d3e' : '#cbd6ce',
             position: 'relative',
-            cursor: 'pointer',
+            cursor: disabled ? 'not-allowed' : 'pointer',
             flex: '0 0 auto',
           }}
         >
@@ -463,12 +472,13 @@ function FieldControl({
 
   if (field.type === 'select') {
     return (
-      <div>
+      <div style={disabledStyle}>
         <label style={smallLabel}>{field.label}</label>
-        <select value={value ?? ''} onChange={event => onChange(event.target.value)} style={input}>
+        <select value={value ?? ''} disabled={disabled} onChange={event => onChange(event.target.value)} style={{ ...input, cursor: disabled ? 'not-allowed' : 'pointer' }}>
           {(field.options || []).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
         {field.help && <p style={{ margin: '5px 0 0', color: '#7a857d', fontSize: 11 }}>{field.help}</p>}
+        {disabledHelp && <p style={{ margin: '5px 0 0', color: '#8a5a00', fontSize: 11, fontWeight: 700 }}>{disabledHelp}</p>}
       </div>
     )
   }
@@ -476,7 +486,7 @@ function FieldControl({
   if (field.type === 'range') {
     const numeric = Number(value ?? field.min ?? 0)
     return (
-      <div>
+      <div style={disabledStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 5 }}>
           <label style={{ color: '#3a4339', fontSize: 13, fontWeight: 800 }}>{field.label}</label>
           <span style={{ fontSize: 12, color: '#151a17', fontWeight: 850 }}>{numeric}{field.unit || ''}</span>
@@ -487,10 +497,12 @@ function FieldControl({
           max={field.max}
           step={field.step || 1}
           value={numeric}
+          disabled={disabled}
           onChange={event => onChange(Number(event.target.value))}
-          style={{ width: '100%', accentColor: '#1a6d3e' }}
+          style={{ width: '100%', accentColor: '#1a6d3e', cursor: disabled ? 'not-allowed' : 'pointer' }}
         />
         {field.help && <p style={{ margin: '5px 0 0', color: '#7a857d', fontSize: 11 }}>{field.help}</p>}
+        {disabledHelp && <p style={{ margin: '5px 0 0', color: '#8a5a00', fontSize: 11, fontWeight: 700 }}>{disabledHelp}</p>}
       </div>
     )
   }

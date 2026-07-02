@@ -4,12 +4,12 @@ import NoCodeThemeStudio, { type ThemeFieldSection, type ThemePreset } from '../
 
 const defaults = {
   mobileNavStyle: 'debut',
-  showBottomBar: true,
+  showBottomBar: false,
   bottomBarStyle: 'modern',
   showSearch: true,
-  heroStyle: 'default',
-  quickActionPills: true,
-  categoryChips: true,
+  heroStyle: 'minimal',
+  quickActionPills: false,
+  categoryChips: false,
   stickyHeader: true,
 }
 
@@ -30,8 +30,8 @@ const sections: ThemeFieldSection[] = [
     title: 'Bottom tabs',
     description: 'Only applies in "Modern tabs" mode — Debut mode has no bottom bar, matching homeu.ph',
     fields: [
-      { key: 'showBottomBar', label: 'Show bottom tab bar', type: 'toggle' },
-      { key: 'bottomBarStyle', label: 'Bottom bar style', type: 'select', options: [
+      { key: 'showBottomBar', label: 'Show bottom tab bar', type: 'toggle', disabledWhen: settings => settings.mobileNavStyle === 'debut', disabledReason: 'Debut mode uses the drawer navigation, so the bottom bar is hidden.' },
+      { key: 'bottomBarStyle', label: 'Bottom bar style', type: 'select', disabledWhen: settings => settings.mobileNavStyle === 'debut' || !settings.showBottomBar, disabledReason: 'Only applies when Modern tabs and bottom bar are enabled.', options: [
         { value: 'modern', label: 'Floating modern' },
         { value: 'classic', label: 'Classic fixed' },
       ] },
@@ -41,12 +41,12 @@ const sections: ThemeFieldSection[] = [
     title: 'Mobile homepage',
     description: 'Only applies in "Modern tabs" mode — Debut mode shows the real homepage sections, matching homeu.ph',
     fields: [
-      { key: 'heroStyle', label: 'Hero style', type: 'select', options: [
+      { key: 'heroStyle', label: 'Hero style', type: 'select', disabledWhen: settings => settings.mobileNavStyle === 'debut', disabledReason: 'Debut mode renders the real homepage sections instead of the synthetic mobile hero.', options: [
         { value: 'default', label: 'Hero with quick actions' },
         { value: 'minimal', label: 'Minimal catalog-first' },
       ] },
-      { key: 'quickActionPills', label: 'Show quick action pills', type: 'toggle' },
-      { key: 'categoryChips', label: 'Show category chips', type: 'toggle' },
+      { key: 'quickActionPills', label: 'Show quick action pills', type: 'toggle', disabledWhen: settings => settings.mobileNavStyle === 'debut', disabledReason: 'Only applies to Modern tabs mode.' },
+      { key: 'categoryChips', label: 'Show category chips', type: 'toggle', disabledWhen: settings => settings.mobileNavStyle === 'debut', disabledReason: 'Only applies to Modern tabs mode.' },
     ],
   },
 ]
