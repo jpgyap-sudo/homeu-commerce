@@ -141,7 +141,7 @@ export default function QuotationRevisionWorkspace({ quotationId, items, revisio
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#fff', borderRadius: 6, border: '1px solid #e5e5e5' }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: '#1a6d3e' }}>{pc.change.type.replace('_', ' ')}</span>
                       <span style={{ fontSize: 12, color: '#667168' }}>→</span>
-                      <span style={{ fontSize: 12, color: '#151a17' }}>{workingItems[pc.itemIndex]?.title || pc.change.keyword}</span>
+                      <span style={{ fontSize: 12, color: '#151a17' }}>{workingItems[pc.itemIndex]?.title || workingItems[pc.itemIndex]?.description || pc.change.keyword}</span>
                       {pc.change.value && <span style={{ fontSize: 12, color: '#667168' }}>({String(pc.change.value)})</span>}
                       <span style={{ fontSize: 10, color: '#667168', marginLeft: 'auto' }}>
                         {Math.round(pc.matchConfidence * 100)}% match
@@ -181,7 +181,7 @@ export default function QuotationRevisionWorkspace({ quotationId, items, revisio
                   textDecoration: item.quantity === 0 ? 'line-through' : 'none',
                   opacity: item.quantity === 0 ? 0.6 : 1,
                 }}>
-                  <td style={{ padding: '8px 10px', color: '#151a17' }}>{item.title}</td>
+                  <td style={{ padding: '8px 10px', color: '#151a17' }}>{item.title || item.description}</td>
                   <td style={{ padding: '4px', textAlign: 'center' }}>
                     <input
                       type="number"

@@ -762,8 +762,8 @@ Home Atelier Team`
         <div id="revision-workspace">
           <QuotationRevisionWorkspace
             quotationId={quotation.id}
-            items={items.length > 0 ? items : (quotation.items || []).map((item: any) => ({
-              title: item.description || item.productTitle || `Item ${item.itemNumber}`,
+            items={(items.length > 0 ? items : (quotation.items || [])).map((item: any) => ({
+              title: item.description || item.title || item.productTitle || `Item ${item.itemNumber || 1}`,
               sku: item.sku || '',
               quantity: item.quantity || 1,
               unitCost: item.unitCost || 0,
